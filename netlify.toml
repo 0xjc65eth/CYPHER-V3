@@ -14,9 +14,9 @@
   external_node_modules = ["axios"]
   node_bundler = "esbuild"
 
-# Remove Next.js plugin to avoid conflicts
-# [[plugins]]
-#   package = "@netlify/plugin-nextjs"
+# Next.js plugin handles API routes automatically
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
 
 # Headers for security
 [[headers]]
@@ -27,62 +27,7 @@
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# API Routes to Netlify Functions
-[[redirects]]
-  from = "/api/realtime-prices"
-  to = "/.netlify/functions/realtime-prices"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/coinmarketcap"
-  to = "/.netlify/functions/coinmarketcap-data"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/hiro"
-  to = "/.netlify/functions/hiro-data"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/bitcoin-price"
-  to = "/.netlify/functions/bitcoin-price"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/runes-list"
-  to = "/.netlify/functions/runes-list"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/test-cmc"
-  to = "/.netlify/functions/test-cmc"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/arbitrage/opportunities"
-  to = "/.netlify/functions/arbitrage-opportunities"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/runes/*"
-  to = "/.netlify/functions/runes-data"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/ordinals/*"
-  to = "/.netlify/functions/ordinals-data"
-  status = 200
-  force = true
-
-# External API Proxies for CORS handling
+# External API Proxies for CORS handling (ONLY external services)
 [[redirects]]
   from = "/api/mempool-direct/*"
   to = "https://mempool.space/api/:splat"

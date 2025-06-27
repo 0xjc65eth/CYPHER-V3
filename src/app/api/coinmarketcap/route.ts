@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter } from '@/lib/rateLimiter';
 
+export const dynamic = 'force-dynamic'; // Essential for Netlify
+
 const CMC_API_KEY = process.env.CMC_API_KEY;
 const CMC_BASE_URL = 'https://pro-api.coinmarketcap.com/v1';
 
