@@ -141,7 +141,6 @@ const TOKEN_REGISTRY = {
 }
 
 // GET /api/quick-trade/tokens - Get tokens for a specific chain
-export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams

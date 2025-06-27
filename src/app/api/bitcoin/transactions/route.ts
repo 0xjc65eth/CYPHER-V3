@@ -310,7 +310,6 @@ async function fetchFromBlockstream(address: string, page = 0, limit = 50): Prom
 /**
  * Main API Handler
  */
-export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();

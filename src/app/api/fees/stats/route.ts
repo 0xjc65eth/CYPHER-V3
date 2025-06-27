@@ -12,7 +12,6 @@ import { NetworkType } from '@/lib/feeManager';
  * GET /api/fees/stats
  * Retorna estatísticas completas do sistema de taxas
  */
-export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;

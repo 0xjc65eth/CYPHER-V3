@@ -12,7 +12,6 @@ import { NetworkType } from '@/lib/feeManager';
  * GET /api/fees/distribute
  * Retorna status das distribuições
  */
-export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const distributions = cypherFeeDistributor.getAllDistributions();

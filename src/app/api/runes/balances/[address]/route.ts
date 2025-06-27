@@ -315,7 +315,6 @@ async function fetchFromUniSat(address: string, page = 0, limit = 50): Promise<R
 /**
  * Main API Handler
  */
-export const dynamic = 'force-dynamic';
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }

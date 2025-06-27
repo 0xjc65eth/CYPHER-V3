@@ -56,7 +56,6 @@ function getIntervalInMs(interval: string): number {
   return intervals[interval] || intervals['1h'];
 }
 
-export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

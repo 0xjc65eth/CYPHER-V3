@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
 
 // Real function to get Bitcoin data from Blockstream API
 async function getRealBitcoinData(address: string) {

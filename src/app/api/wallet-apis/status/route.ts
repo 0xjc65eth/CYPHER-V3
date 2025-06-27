@@ -73,7 +73,6 @@ function calculateHealthStatus(stats: any): 'healthy' | 'degraded' | 'down' | 'u
 /**
  * Main Status API Handler
  */
-export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
   

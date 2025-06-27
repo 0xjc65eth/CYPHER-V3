@@ -12,7 +12,6 @@ const simulatePriceMovement = (basePrice: number, volatility: number = 0.02): nu
 }
 
 // GET /api/quick-trade/prices - Get real-time prices
-export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams

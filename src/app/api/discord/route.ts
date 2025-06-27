@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic'; // A LINHA DA VITÓRIA!
+// Remove dynamic export - using Netlify Functions instead
 
 export async function POST(request: NextRequest) {
   try {

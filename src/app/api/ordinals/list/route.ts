@@ -2,7 +2,6 @@
 import { hiroAPI } from '@/lib/hiro-api';
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const searchParams = request.nextUrl.searchParams;
