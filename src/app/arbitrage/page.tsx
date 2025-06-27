@@ -336,7 +336,7 @@ export default function ArbitragePage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-2xl font-bold text-green-400">{totalSpread?.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-green-400">{totalSpread ? totalSpread.toFixed(1) : '0.0'}%</div>
                     <div className="text-sm text-gray-400">Spread Total</div>
                   </div>
                   <TrendingUp className="h-8 w-8 text-green-400" />
@@ -348,7 +348,7 @@ export default function ArbitragePage() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-2xl font-bold text-blue-400">{avgSpread?.toFixed(1)}%</div>
+                    <div className="text-2xl font-bold text-blue-400">{avgSpread ? avgSpread.toFixed(1) : '0.0'}%</div>
                     <div className="text-sm text-gray-400">Spread Médio</div>
                   </div>
                   <Activity className="h-8 w-8 text-blue-400" />

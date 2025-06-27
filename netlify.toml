@@ -35,6 +35,18 @@
   force = true
 
 [[redirects]]
+  from = "/api/coinmarketcap"
+  to = "/.netlify/functions/coinmarketcap-data"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/hiro"
+  to = "/.netlify/functions/hiro-data"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/arbitrage/opportunities"
   to = "/.netlify/functions/arbitrage-opportunities"
   status = 200
