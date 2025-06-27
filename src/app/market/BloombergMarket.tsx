@@ -76,22 +76,25 @@ export default function BloombergMarketPage() {
   const [professionalIndicators, setProfessionalIndicators] = useState<ProfessionalIndicator[]>([]);
   const [realOnChainData, setRealOnChainData] = useState<RealOnChainData[]>([]);
   const [marketSentiment, setMarketSentiment] = useState<MarketSentiment | null>(null);
+  const [marketIndices, setMarketIndices] = useState<any[]>([]);
   
   const { prices: cryptoPrices, loading: pricesLoading } = useMultiCryptoRealTimePrice();
   
   // Load all real data
   const loadRealData = async () => {
     try {
-      const [marketData, indicators, onChainData, sentiment] = await Promise.all([
+      const [marketData, indicators, onChainData, sentiment, indices] = await Promise.all([
         professionalMarketService.getRealMarketData(),
         professionalMarketService.getProfessionalIndicators(),
         professionalMarketService.getRealOnChainData(),
-        professionalMarketService.getMarketSentiment()
+        professionalMarketService.getMarketSentiment(),
+        fetch('/api/market-indices').then(res => res.json())
       ]);
       
       setRealMarketData(marketData || []);
       setProfessionalIndicators(indicators || []);
       setRealOnChainData(onChainData || []);
+      setMarketIndices(indices?.data || []);
       setMarketSentiment(sentiment || {
         fearGreedIndex: 72,
         altcoinSeason: 68,
@@ -154,26 +157,38 @@ export default function BloombergMarketPage() {
             </div>
             <div className="col-span-10 flex items-center">
               <div className="flex-1 grid grid-cols-6 gap-0">
-                <div className="p-3 border-r border-orange-500/30">
-                  <div className="text-[10px] opacity-60">S&P 500</div>
-                  <div className="text-sm font-bold text-green-400">5,234.18 ▲1.23%</div>
-                </div>
-                <div className="p-3 border-r border-orange-500/30">
-                  <div className="text-[10px] opacity-60">NASDAQ</div>
-                  <div className="text-sm font-bold text-green-400">16,384.52 ▲1.84%</div>
-                </div>
-                <div className="p-3 border-r border-orange-500/30">
-                  <div className="text-[10px] opacity-60">DXY</div>
-                  <div className="text-sm font-bold text-red-400">103.84 ▼0.23%</div>
-                </div>
-                <div className="p-3 border-r border-orange-500/30">
-                  <div className="text-[10px] opacity-60">GOLD</div>
-                  <div className="text-sm font-bold text-green-400">2,647.30 ▲0.45%</div>
-                </div>
-                <div className="p-3 border-r border-orange-500/30">
-                  <div className="text-[10px] opacity-60">VIX</div>
-                  <div className="text-sm font-bold text-red-400">18.34 ▲2.1%</div>
-                </div>
+                {marketIndices.map((index, i) => (
+                  <div key={index.symbol} className="p-3 border-r border-orange-500/30">
+                    <div className="text-[10px] opacity-60">{index.symbol}</div>
+                    <div className={`text-sm font-bold ${index.change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {index.price.toLocaleString()} {index.change >= 0 ? '▲' : '▼'}{Math.abs(index.change).toFixed(2)}%
+                    </div>
+                  </div>
+                ))}
+                {marketIndices.length === 0 && (
+                  <>
+                    <div className="p-3 border-r border-orange-500/30">
+                      <div className="text-[10px] opacity-60">S&P 500</div>
+                      <div className="text-sm font-bold text-green-400">Loading...</div>
+                    </div>
+                    <div className="p-3 border-r border-orange-500/30">
+                      <div className="text-[10px] opacity-60">NASDAQ</div>
+                      <div className="text-sm font-bold text-green-400">Loading...</div>
+                    </div>
+                    <div className="p-3 border-r border-orange-500/30">
+                      <div className="text-[10px] opacity-60">DXY</div>
+                      <div className="text-sm font-bold text-red-400">Loading...</div>
+                    </div>
+                    <div className="p-3 border-r border-orange-500/30">
+                      <div className="text-[10px] opacity-60">GOLD</div>
+                      <div className="text-sm font-bold text-green-400">Loading...</div>
+                    </div>
+                    <div className="p-3 border-r border-orange-500/30">
+                      <div className="text-[10px] opacity-60">VIX</div>
+                      <div className="text-sm font-bold text-red-400">Loading...</div>
+                    </div>
+                  </>
+                )}
                 <div className="p-3">
                   <div className="text-[10px] opacity-60">{new Date().toLocaleString('en-US', { timeZone: 'America/New_York', timeZoneName: 'short' })}</div>
                   <div className="text-sm font-bold animate-pulse">● LIVE</div>
