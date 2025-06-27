@@ -1,5 +1,4 @@
-const axios = require('axios');
-
+// Arbitrage Opportunities Function for Netlify
 exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -20,28 +19,33 @@ exports.handler = async (event, context) => {
     // CoinMarketCap prices
     if (process.env.CMC_API_KEY) {
       promises.push(
-        axios.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest', {
-          headers: { 'X-CMC_PRO_API_KEY': process.env.CMC_API_KEY },
-          params: { symbol: 'BTC,ETH,SOL', convert: 'USD' }
-        }).catch(err => ({ data: null, error: err.message }))
+        fetch('https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest?symbol=BTC,ETH,SOL&convert=USD', {
+          headers: { 'X-CMC_PRO_API_KEY': process.env.CMC_API_KEY }
+        })
+        .then(res => res.json())
+        .catch(err => ({ data: null, error: err.message }))
       );
     }
 
     // Hiro.so API for Bitcoin/Ordinals
     if (process.env.HIRO_API_KEY) {
       promises.push(
-        axios.get('https://api.hiro.so/ordinals/v1/inscriptions', {
-          headers: { 'Authorization': `Bearer ${process.env.HIRO_API_KEY}` }
-        }).catch(err => ({ data: null, error: err.message }))
+        fetch('https://api.hiro.so/ordinals/v1/inscriptions', {
+          headers: { 'X-API-Key': process.env.HIRO_API_KEY }
+        })
+        .then(res => res.json())
+        .catch(err => ({ data: null, error: err.message }))
       );
     }
 
     // Ordiscan API
     if (process.env.ORDISCAN_API_KEY) {
       promises.push(
-        axios.get('https://api.ordiscan.com/v1/market/collections', {
+        fetch('https://api.ordiscan.com/v1/market/collections', {
           headers: { 'Authorization': `Bearer ${process.env.ORDISCAN_API_KEY}` }
-        }).catch(err => ({ data: null, error: err.message }))
+        })
+        .then(res => res.json())
+        .catch(err => ({ data: null, error: err.message }))
       );
     }
 

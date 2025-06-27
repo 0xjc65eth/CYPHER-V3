@@ -59,6 +59,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/test-cmc"
+  to = "/.netlify/functions/test-cmc"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/api/arbitrage/opportunities"
   to = "/.netlify/functions/arbitrage-opportunities"
   status = 200
