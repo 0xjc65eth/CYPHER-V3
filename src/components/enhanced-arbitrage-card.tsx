@@ -380,9 +380,10 @@ export function EnhancedArbitrageCard() {
     );
   }
 
-  // Filtrar para mostrar apenas oportunidades ativas e novas
+  // Filtrar para mostrar apenas oportunidades ativas, novas e com profit positivo
   const activeOpportunities = opportunities.filter(
-    opp => opp.status === 'Active' || opp.status === 'New'
+    opp => (opp.status === 'Active' || opp.status === 'New') &&
+           parseFloat(opp.profitPercent) > 0
   );
 
   // Obter as 6 melhores oportunidades

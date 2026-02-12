@@ -472,10 +472,13 @@ const TokenSelector: React.FC<TokenSelectorProps> = ({
             <div className="flex items-center justify-between text-xs text-slate-500">
               <div className="flex items-center gap-4">
                 <span>Powered by Token Lists</span>
-                <a href="#" className="hover:text-cyan-400 flex items-center gap-1">
+                <button
+                  onClick={() => window.open('https://docs.uniswap.org/concepts/protocol/token-list', '_blank')}
+                  className="hover:text-cyan-400 flex items-center gap-1"
+                >
                   Add Token
                   <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
               </div>
               <div className="flex items-center gap-1 text-slate-500">
                 <Clock className="w-3 h-3" />

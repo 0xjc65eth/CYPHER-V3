@@ -43,7 +43,7 @@ interface SMCOpportunity {
   lastUpdate: Date;
 }
 
-export function BloombergSMCAnalysis() {
+export const BloombergSMCAnalysis = React.memo(function BloombergSMCAnalysis() {
   const [opportunities, setOpportunities] = useState<SMCOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'HIGH' | 'LONG' | 'SHORT'>('ALL');
@@ -546,7 +546,7 @@ export function BloombergSMCAnalysis() {
       </div>
     </div>
   );
-}
+});
 
 const handleTrade = (opportunity: SMCOpportunity) => {
   // Open appropriate trading platform based on network

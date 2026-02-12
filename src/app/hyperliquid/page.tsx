@@ -27,7 +27,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useHyperLiquid } from '@/hooks/useHyperLiquid';
 
 const HyperLiquidPage: React.FC = () => {
-  const { address, isConnected, connect } = useWallet();
+  const { address, isConnected, connectWallet: connect } = useWallet();
   const [activeTab, setActiveTab] = useState('overview');
   
   const { 

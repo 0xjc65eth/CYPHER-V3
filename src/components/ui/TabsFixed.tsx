@@ -26,29 +26,40 @@ export function TabsFixed({ tabs, activeTab, onTabChange, className = '' }: Tabs
   if (!mounted) return null;
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
+    <div role="tablist" className={`flex items-center gap-1 ${className}`}>
       {tabs.map(tab => {
         const Icon = tab.icon;
+        const isSelected = activeTab === tab.id;
         return (
-          <div
+          <button
             key={tab.id}
-            role="button"
-            tabIndex={0}
+            role="tab"
+            aria-selected={isSelected}
+            aria-controls={`tabpanel-${tab.id}`}
+            id={`tab-${tab.id}`}
+            tabIndex={isSelected ? 0 : -1}
             onClick={() => {
-              console.log('🚀 Tab clicked directly:', tab.id);
               onTabChange(tab.id);
             }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (e.key === 'ArrowRight') {
                 e.preventDefault();
-                onTabChange(tab.id);
+                const currentIndex = tabs.findIndex(t => t.id === tab.id);
+                const nextIndex = (currentIndex + 1) % tabs.length;
+                onTabChange(tabs[nextIndex].id);
+              } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const currentIndex = tabs.findIndex(t => t.id === tab.id);
+                const prevIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                onTabChange(tabs[prevIndex].id);
               }
             }}
             className={`
-              flex items-center gap-2 px-4 py-3 
+              flex items-center gap-2 px-4 py-3
               border-b-2 transition-colors cursor-pointer
               select-none touch-manipulation
-              ${activeTab === tab.id
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500
+              ${isSelected
                 ? 'border-orange-500 text-orange-400'
                 : 'border-transparent text-gray-400 hover:text-white'
               }
@@ -59,9 +70,9 @@ export function TabsFixed({ tabs, activeTab, onTabChange, className = '' }: Tabs
               touchAction: 'manipulation'
             }}
           >
-            {Icon && <Icon className="w-4 h-4" />}
+            {Icon && <Icon className="w-4 h-4" aria-hidden="true" />}
             <span>{tab.label}</span>
-          </div>
+          </button>
         );
       })}
     </div>

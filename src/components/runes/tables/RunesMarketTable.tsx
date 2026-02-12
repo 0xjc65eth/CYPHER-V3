@@ -224,7 +224,7 @@ export default function RunesMarketTable({
         </div>
 
         {/* Market Summary Stats */}
-        <div className="grid grid-cols-6 gap-4 mt-4 pt-4 border-t border-gray-800">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-4 pt-4 border-t border-gray-800">
           <div className="text-center">
             <p className="text-xs text-gray-400 mb-1">TOTAL MCAP</p>
             <p className="text-lg font-bold text-white font-mono">
@@ -274,7 +274,7 @@ export default function RunesMarketTable({
 
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <Table>
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow className="border-gray-800 hover:bg-transparent">
                 <TableHead className="w-12 text-center">#</TableHead>
@@ -440,7 +440,7 @@ export default function RunesMarketTable({
 
         {/* Market Summary Footer */}
         <div className="border-t border-gray-800 p-4">
-          <div className="grid grid-cols-4 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <p className="text-gray-400">Total Market Cap</p>
               <p className="text-white font-mono">

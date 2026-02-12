@@ -197,12 +197,15 @@ function HashtagsTrendsCard({ data }: { data: any[] }) {
                 <span className="text-gray-300">Bearish</span>
               </div>
             </div>
-            <a href="#" className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-lg transition-colors">
+            <button
+              onClick={() => window.location.href = '/social-analytics'}
+              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 px-3 py-1.5 bg-purple-500/10 border border-purple-500/30 rounded-lg transition-colors"
+            >
               View all trends
               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            </a>
+            </button>
           </div>
         </div>
 

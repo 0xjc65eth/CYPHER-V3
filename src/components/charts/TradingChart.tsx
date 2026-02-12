@@ -1,17 +1,20 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { 
-  createChart, 
-  IChartApi, 
-  ISeriesApi, 
+import {
+  createChart,
+  IChartApi,
+  ISeriesApi,
   CandlestickData,
   LineData,
   HistogramData,
   ColorType,
   CrosshairMode,
   LineStyle,
-  PriceScaleMode
+  PriceScaleMode,
+  CandlestickSeries,
+  HistogramSeries,
+  LineSeries
 } from 'lightweight-charts';
 import { 
   TrendingUp, 
@@ -243,16 +246,16 @@ export default function TradingChart({
       });
 
       // Criar série de candlesticks
-      candlestickSeriesRef.current = chartRef.current.addCandlestickSeries(candlestickOptions);
+      candlestickSeriesRef.current = chartRef.current.addSeries(CandlestickSeries, candlestickOptions);
 
       // Criar série de volume se habilitado
       if (indicators.volume) {
-        volumeSeriesRef.current = chartRef.current.addHistogramSeries(volumeOptions);
+        volumeSeriesRef.current = chartRef.current.addSeries(HistogramSeries, volumeOptions);
       }
 
       // Criar médias móveis se habilitadas
       if (indicators.ma20) {
-        ma20SeriesRef.current = chartRef.current.addLineSeries({
+        ma20SeriesRef.current = chartRef.current.addSeries(LineSeries, {
           color: '#ffff00',
           lineWidth: 2,
           title: 'MA20'
@@ -260,7 +263,7 @@ export default function TradingChart({
       }
 
       if (indicators.ma50) {
-        ma50SeriesRef.current = chartRef.current.addLineSeries({
+        ma50SeriesRef.current = chartRef.current.addSeries(LineSeries, {
           color: '#ff8800',
           lineWidth: 2,
           title: 'MA50'

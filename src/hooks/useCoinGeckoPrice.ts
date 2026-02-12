@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { coinGeckoService } from '@/lib/api/coingecko-service';
 
 interface CoinGeckoPrice {
   usd: number;
@@ -21,21 +22,22 @@ export function useCoinGeckoPrice() {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true'
+        const data = await coinGeckoService.getSimplePrice(
+          ['bitcoin', 'ethereum', 'solana'],
+          ['usd'],
+          {
+            include24hrChange: true,
+            include24hrVol: true,
+            includeMarketCap: true,
+          }
         );
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch prices from CoinGecko');
-        }
 
-        const data = await response.json();
         setPrices(data);
         setError(null);
       } catch (err) {
         console.error('CoinGecko API Error:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch prices');
-        
+
         // Fallback prices
         setPrices({
           bitcoin: { usd: 105847, usd_24h_change: 2.85, usd_24h_vol: 34567000000, usd_market_cap: 2075000000000 },
@@ -50,7 +52,7 @@ export function useCoinGeckoPrice() {
     // Fetch immediately
     fetchPrices();
 
-    // Update every minute
+    // Update every minute (service handles rate limiting internally)
     const interval = setInterval(fetchPrices, 60000);
 
     return () => clearInterval(interval);

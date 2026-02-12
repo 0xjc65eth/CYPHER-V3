@@ -1,23 +1,24 @@
 /**
- * 🔄 REAL ARBITRAGE OPPORTUNITIES API
- * Live arbitrage detection across multiple exchanges
+ * Real Arbitrage Opportunities API
+ * Live arbitrage detection across 8 exchanges with real price data
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { 
+import {
   withMiddleware,
   createSuccessResponse,
   createErrorResponse,
   corsHeaders
 } from '@/lib/api-middleware';
+import { fetchAllExchangePrices, EXCHANGE_FEES, ExchangePrice } from '@/lib/arbitrage/exchange-fetchers';
 
 // Request schema
 const ArbitrageRequestSchema = z.object({
   pairs: z.array(z.string()).optional().default(['BTC/USDT', 'ETH/USDT', 'SOL/USDT']),
   minProfitPercent: z.number().min(0).max(100).optional().default(0.5),
   maxPriceImpact: z.number().min(0).max(50).optional().default(2.0),
-  exchanges: z.array(z.string()).optional().default(['binance', 'coinbase', 'kraken', 'bybit']),
+  exchanges: z.array(z.string()).optional().default(['binance', 'coinbase', 'kraken', 'bybit', 'okx', 'bitfinex', 'kucoin', 'gateio']),
   includeGasCosts: z.boolean().optional().default(true),
   timeWindow: z.number().min(1).max(3600).optional().default(300) // 5 minutes
 });
@@ -152,10 +153,12 @@ class RealArbitrageDetector {
     
     const grossProfitPercent = ((sellPrice - buyPrice) / buyPrice) * 100;
     
-    // Calculate fees
-    const buyFee = buyPrice * 0.001; // 0.1% typical exchange fee
-    const sellFee = sellPrice * 0.001;
-    const totalFeePercent = ((buyFee + sellFee) / buyPrice) * 100;
+    // Calculate fees using real exchange fee table
+    const buyFeeRate = EXCHANGE_FEES[buyMarket.exchange] || 0.002;
+    const sellFeeRate = EXCHANGE_FEES[sellMarket.exchange] || 0.002;
+    const buyFee = buyPrice * buyFeeRate;
+    const sellFee = sellPrice * sellFeeRate;
+    const totalFeePercent = (buyFeeRate + sellFeeRate) * 100;
     
     const netProfitPercent = grossProfitPercent - totalFeePercent;
     
@@ -217,82 +220,55 @@ class RealArbitrageDetector {
   }
 
   /**
-   * Update market data from exchanges
+   * Update market data from real exchanges
    */
   private async updateMarketData(exchanges: string[], pairs: string[]): Promise<void> {
     const now = Date.now();
-    
+
     // Skip if data is fresh
     if (now - this.lastUpdate < this.CACHE_DURATION) {
       return;
     }
-    
+
     try {
-      // Simulate fetching real market data
+      // Fetch real prices for all pairs in parallel
+      const pairResults = await Promise.all(
+        pairs.map((pair) => fetchAllExchangePrices(pair, exchanges))
+      );
+
+      // Clear old data
       for (const exchange of exchanges) {
-        const exchangeData: ArbitrageMarketData[] = [];
-        
-        for (const pair of pairs) {
-          const mockData = this.generateMockMarketData(exchange, pair);
-          exchangeData.push(mockData);
-        }
-        
-        this.exchangeData.set(exchange, exchangeData);
+        this.exchangeData.set(exchange, []);
       }
-      
+
+      // Organize fetched prices by exchange
+      for (let i = 0; i < pairs.length; i++) {
+        const prices = pairResults[i];
+        for (const ep of prices) {
+          const spread = ep.ask - ep.bid;
+          const midPrice = (ep.bid + ep.ask) / 2;
+          const marketData: ArbitrageMarketData = {
+            exchange: ep.exchange,
+            pair: ep.pair,
+            price: midPrice,
+            volume: ep.volume * midPrice, // approximate USD volume
+            spread,
+            depth: {
+              bids: [[ep.bid, ep.volume * 0.1]],
+              asks: [[ep.ask, ep.volume * 0.1]],
+            },
+            lastUpdate: ep.timestamp,
+          };
+          const existing = this.exchangeData.get(ep.exchange) || [];
+          existing.push(marketData);
+          this.exchangeData.set(ep.exchange, existing);
+        }
+      }
+
       this.lastUpdate = now;
-      
     } catch (error) {
       console.error('Failed to update market data:', error);
     }
-  }
-
-  /**
-   * Generate realistic mock market data
-   */
-  private generateMockMarketData(exchange: string, pair: string): ArbitrageMarketData {
-    const basePrices: { [key: string]: number } = {
-      'BTC/USDT': 45000,
-      'ETH/USDT': 2800,
-      'SOL/USDT': 95,
-      'MATIC/USDT': 0.8,
-      'AVAX/USDT': 25
-    };
-    
-    const basePrice = basePrices[pair] || 100;
-    
-    // Add exchange-specific price variations
-    const exchangeVariations: { [key: string]: number } = {
-      binance: 1.0,
-      coinbase: 1.001,
-      kraken: 0.999,
-      bybit: 1.002,
-      uniswap: 1.005,
-      sushiswap: 1.003
-    };
-    
-    const variation = exchangeVariations[exchange] || 1.0;
-    const randomVariation = 1 + (Math.random() - 0.5) * 0.01; // ±0.5%
-    const price = basePrice * variation * randomVariation;
-    
-    return {
-      exchange,
-      pair,
-      price,
-      volume: 1000000 + Math.random() * 5000000, // $1M-6M daily volume
-      spread: price * (0.0001 + Math.random() * 0.001), // 0.01-0.1% spread
-      depth: {
-        bids: Array.from({ length: 10 }, (_, i) => [
-          price * (1 - (i + 1) * 0.0001),
-          Math.random() * 100
-        ]),
-        asks: Array.from({ length: 10 }, (_, i) => [
-          price * (1 + (i + 1) * 0.0001),
-          Math.random() * 100
-        ])
-      },
-      lastUpdate: Date.now()
-    };
   }
 
   /**
@@ -352,8 +328,10 @@ class RealArbitrageDetector {
       coinbase: 3000,
       kraken: 4000,
       bybit: 2500,
-      uniswap: 15000,
-      sushiswap: 18000
+      okx: 2500,
+      bitfinex: 3500,
+      kucoin: 3000,
+      gateio: 3500,
     };
     
     const buyTime = exchangeTimes[buyExchange] || 5000;

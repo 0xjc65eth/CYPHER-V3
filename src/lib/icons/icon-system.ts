@@ -374,7 +374,8 @@ export const NavigationIcons = {
   '/settings': getIcon('settings', 'settings')!,
   '/brc20': getIcon('crypto', 'tokens')!,
   '/rare-sats': getIcon('crypto', 'security')!,
-  '/training': getIcon('ai', 'neural')!
+  '/training': getIcon('ai', 'neural')!,
+  '/swap': getIcon('trading', 'arbitrage')!
 } as const;
 
 /**

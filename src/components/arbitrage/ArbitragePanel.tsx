@@ -26,7 +26,7 @@ export function ArbitragePanel({ className = '' }: ArbitragePanelProps) {
     loadOpportunities();
 
     // Set up real-time updates
-    const interval = setInterval(loadOpportunities, 30000); // Update every 30 seconds
+    const interval = setInterval(loadOpportunities, 60000); // CoinGecko rate limit: increased to 60s
 
     return () => {
       unsubscribe();

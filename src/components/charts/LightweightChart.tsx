@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState } from 'react'
-import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType } from 'lightweight-charts'
+import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType, CandlestickSeries, LineSeries } from 'lightweight-charts'
 import type { ChartType, ChartData, ChartConfig, CandlestickData, LineData } from './UnifiedChartSystem'
 
 interface LightweightChartProps {
@@ -96,7 +96,7 @@ export function LightweightChart({ type, data, config }: LightweightChartProps) 
       // Create appropriate series based on chart type
       switch (type) {
         case 'candlestick':
-          series = chart.addCandlestickSeries({
+          series = chart.addSeries(CandlestickSeries, {
             upColor: config.colors?.[1] || '#10B981',
             downColor: config.colors?.[3] || '#EF4444',
             borderUpColor: config.colors?.[1] || '#10B981',
@@ -118,7 +118,7 @@ export function LightweightChart({ type, data, config }: LightweightChartProps) 
 
         case 'line':
         case 'area':
-          series = chart.addLineSeries({
+          series = chart.addSeries(LineSeries, {
             color: config.colors?.[0] || '#3B82F6',
             lineWidth: 2,
             lineType: 0, // Simple line

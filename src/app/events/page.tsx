@@ -1,15 +1,32 @@
-import { Header } from '@/components/header'
+'use client'
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardCard } from '@/components/dashboard-card'
+
 export default function EventsPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-2">EVENTS</h1>
         <h2 className="text-lg text-muted-foreground mb-6">UPCOMING EVENTS</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <UpcomingEventsCard />
-          <PastEventsCard />
-        </div>
+        <Tabs defaultValue="upcoming" className="w-full">
+          <div className="border-b border-[#1a1a2e] mb-6">
+            <TabsList className="bg-transparent border-0 p-0 h-auto">
+              <TabsTrigger value="upcoming" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                Upcoming
+              </TabsTrigger>
+              <TabsTrigger value="past" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                Past Events
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="upcoming">
+            <UpcomingEventsCard />
+          </TabsContent>
+          <TabsContent value="past">
+            <PastEventsCard />
+          </TabsContent>
+        </Tabs>
       </div>
     </main>
   )
@@ -53,4 +70,4 @@ function PastEventsCard() {
       </div>
     </DashboardCard>
   )
-} 
+}

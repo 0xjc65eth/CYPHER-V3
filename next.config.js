@@ -4,8 +4,12 @@ const nextConfig = {
   // output: 'export', // Removed - using standard hybrid mode for API routes
   trailingSlash: true,
   images: {
-    domains: ['ordinals.com', 'magiceden.io', 'api.coinmarketcap.com', 'api.ordiscan.com'],
-    unoptimized: true,
+    remotePatterns: [
+      { protocol: 'https', hostname: 'ordinals.com' },
+      { protocol: 'https', hostname: 'magiceden.io' },
+      { protocol: 'https', hostname: 'api.coinmarketcap.com' },
+      { protocol: 'https', hostname: 'api.ordiscan.com' },
+    ],
   },
   experimental: {
     optimizePackageImports: ['@tremor/react', 'recharts'],

@@ -28,7 +28,7 @@ interface TechnicalIndicator {
   color: string;
 }
 
-export function BloombergProfessionalChart() {
+export const BloombergProfessionalChart = React.memo(function BloombergProfessionalChart() {
   const [selectedAsset, setSelectedAsset] = useState('BTC');
   const [timeframe, setTimeframe] = useState('1H');
   const [chartType, setChartType] = useState<'candlestick' | 'line' | 'volume'>('candlestick');
@@ -408,4 +408,4 @@ export function BloombergProfessionalChart() {
       </div>
     </div>
   );
-}
+});

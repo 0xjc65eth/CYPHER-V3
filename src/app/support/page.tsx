@@ -1,15 +1,32 @@
-import { Header } from '@/components/header'
+'use client'
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardCard } from '@/components/dashboard-card'
+
 export default function SupportPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-2">SUPPORT</h1>
         <h2 className="text-lg text-muted-foreground mb-6">HELP CENTER</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <FAQCard />
-          <ContactSupportCard />
-        </div>
+        <Tabs defaultValue="center" className="w-full">
+          <div className="border-b border-[#1a1a2e] mb-6">
+            <TabsList className="bg-transparent border-0 p-0 h-auto">
+              <TabsTrigger value="center" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                Help Center
+              </TabsTrigger>
+              <TabsTrigger value="contact" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                Contact Support
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="center">
+            <FAQCard />
+          </TabsContent>
+          <TabsContent value="contact">
+            <ContactSupportCard />
+          </TabsContent>
+        </Tabs>
       </div>
     </main>
   )
@@ -53,4 +70,4 @@ function ContactSupportCard() {
       </div>
     </DashboardCard>
   )
-} 
+}

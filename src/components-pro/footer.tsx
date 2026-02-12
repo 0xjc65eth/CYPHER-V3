@@ -42,7 +42,7 @@ export function Footer() {
         </p>
         
         <p className="mt-4 text-xs text-[#9CA3AF]">
-          © 2024 CYPHER ORDI FUTURE. All rights reserved.
+          © 2025 CYPHER ORDI FUTURE. All rights reserved.
         </p>
       </div>
     </footer>

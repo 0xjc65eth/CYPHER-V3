@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter } from '@/lib/rateLimiter';
 
+const FETCH_TIMEOUT = 10000;
+
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     // Check rate limit
     if (!rateLimiter.canMakeRequest('blockchain-info')) {
-      console.log('Blockchain.info rate limit protection activated');
+      console.log('Mining API rate limit protection activated');
       return NextResponse.json({
         success: true,
         data: getFallbackMiningData(),
@@ -13,92 +26,97 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString(),
       });
     }
-    
-    // Fetch real mining data from Blockchain.info API
-    const [statsResponse, mempoolResponse] = await Promise.allSettled([
-      fetch('https://blockchain.info/stats?format=json'),
-      fetch('https://blockchain.info/q/unconfirmedcount')
+
+    // Fetch real mining data from Mempool.space APIs
+    const [hashrateResponse, poolsResponse, difficultyResponse, blockHeightResponse] = await Promise.allSettled([
+      fetchWithTimeout('https://mempool.space/api/v1/mining/hashrate/1w'),
+      fetchWithTimeout('https://mempool.space/api/v1/mining/pools/1w'),
+      fetchWithTimeout('https://mempool.space/api/v1/difficulty-adjustment'),
+      fetchWithTimeout('https://mempool.space/api/blocks/tip/height'),
     ]);
-    
-    let realData = {
-      hashrate: '578.4 EH/s',
-      difficulty: '62.46 T',
-      nextAdjustment: '6 days',
-      profitability: 87.5,
-      averageBlockTime: '9.8 min',
-      mempoolSize: '142 MB',
-      blocksToday: 144,
-      totalBlocks: 832456,
-      mempoolTxCount: 150000,
-      estimatedSeconds: 588
-    };
-    
-    // Process Blockchain.info stats if available
-    if (statsResponse.status === 'fulfilled' && statsResponse.value.ok) {
-      const stats = await statsResponse.value.json();
-      
-      // Convert hash rate from hash/s to EH/s
-      if (stats.hash_rate) {
-        const ehPerSecond = stats.hash_rate / (10**18);
-        realData.hashrate = `${ehPerSecond.toFixed(1)} EH/s`;
-      }
-      
-      // Convert difficulty
-      if (stats.difficulty) {
-        const difficultyT = stats.difficulty / (10**12);
-        realData.difficulty = `${difficultyT.toFixed(2)} T`;
-      }
-      
-      // Calculate blocks today and total
-      if (stats.n_blocks_total) {
-        realData.totalBlocks = stats.n_blocks_total;
-        realData.blocksToday = Math.floor(144 + Math.random() * 10); // Approximate
-      }
-      
-      // Average block time in minutes
-      if (stats.minutes_between_blocks) {
-        realData.averageBlockTime = `${stats.minutes_between_blocks.toFixed(1)} min`;
-      }
-      
-      // Estimated seconds to next block
-      if (stats.estimated_btc_sent) {
-        realData.estimatedSeconds = Math.floor(300 + Math.random() * 600); // 5-15 minutes
+
+    let realData = getFallbackMiningData();
+
+    // Process hashrate data
+    if (hashrateResponse.status === 'fulfilled' && hashrateResponse.value.ok) {
+      try {
+        const hashrateData = await hashrateResponse.value.json();
+        // currentHashrate is in H/s, convert to EH/s
+        if (hashrateData.currentHashrate) {
+          const ehPerSecond = hashrateData.currentHashrate / 1e18;
+          realData.hashrate = `${ehPerSecond.toFixed(1)} EH/s`;
+        }
+        // currentDifficulty
+        if (hashrateData.currentDifficulty) {
+          const difficultyT = hashrateData.currentDifficulty / 1e12;
+          realData.difficulty = `${difficultyT.toFixed(2)} T`;
+        }
+      } catch (e) {
+        console.error('Error parsing hashrate data:', e);
       }
     }
-    
-    // Process mempool count if available
-    if (mempoolResponse.status === 'fulfilled' && mempoolResponse.value.ok) {
-      const mempoolCount = await mempoolResponse.value.text();
-      const txCount = parseInt(mempoolCount);
-      if (!isNaN(txCount)) {
-        realData.mempoolTxCount = txCount;
-        // Estimate mempool size (average tx is ~250 bytes)
-        const sizeBytes = txCount * 250;
-        const sizeMB = sizeBytes / (1024 * 1024);
-        realData.mempoolSize = `${sizeMB.toFixed(0)} MB`;
+
+    // Process pools data
+    if (poolsResponse.status === 'fulfilled' && poolsResponse.value.ok) {
+      try {
+        const poolsData = await poolsResponse.value.json();
+        if (poolsData.blockCount) {
+          realData.blocksToday = Math.round(poolsData.blockCount / 7); // weekly blocks / 7
+        }
+      } catch (e) {
+        console.error('Error parsing pools data:', e);
       }
     }
-    
-    // Calculate next difficulty adjustment estimate
-    const blocksToAdjustment = 2016 - (realData.totalBlocks % 2016);
-    const daysToAdjustment = (blocksToAdjustment * 10) / (24 * 60); // 10 min blocks
-    realData.nextAdjustment = `${Math.ceil(daysToAdjustment)} days`;
-    
+
+    // Process difficulty adjustment data
+    if (difficultyResponse.status === 'fulfilled' && difficultyResponse.value.ok) {
+      try {
+        const diffData = await difficultyResponse.value.json();
+        // remainingBlocks, remainingTime (ms), estimatedRetargetDate, timeAvg (ms)
+        if (diffData.remainingTime) {
+          const daysRemaining = diffData.remainingTime / (1000 * 60 * 60 * 24);
+          realData.nextAdjustment = `${Math.ceil(daysRemaining)} days`;
+        }
+        if (diffData.timeAvg) {
+          const avgMinutes = diffData.timeAvg / (1000 * 60);
+          realData.averageBlockTime = `${avgMinutes.toFixed(1)} min`;
+          realData.estimatedSeconds = Math.round(diffData.timeAvg / 1000);
+        }
+      } catch (e) {
+        console.error('Error parsing difficulty data:', e);
+      }
+    }
+
+    // Process block height
+    if (blockHeightResponse.status === 'fulfilled' && blockHeightResponse.value.ok) {
+      try {
+        const heightText = await blockHeightResponse.value.text();
+        const height = parseInt(heightText);
+        if (!isNaN(height)) {
+          realData.totalBlocks = height;
+        }
+      } catch (e) {
+        console.error('Error parsing block height:', e);
+      }
+    }
+
     // Calculate profitability index (simplified)
     const difficultyNum = parseFloat(realData.difficulty);
     const hashrateNum = parseFloat(realData.hashrate);
-    realData.profitability = Math.max(50, Math.min(100, 100 - (difficultyNum / hashrateNum) * 10));
-    
+    if (hashrateNum > 0) {
+      realData.profitability = Math.max(50, Math.min(100, 100 - (difficultyNum / hashrateNum) * 10));
+    }
+
     return NextResponse.json({
       success: true,
       data: realData,
-      source: 'Blockchain.info + Calculations',
+      source: 'Mempool.space Mining APIs',
       timestamp: new Date().toISOString(),
     });
-    
+
   } catch (error) {
     console.error('Mining data API error:', error);
-    
+
     return NextResponse.json({
       success: true,
       data: getFallbackMiningData(),
@@ -110,21 +128,16 @@ export async function GET(request: NextRequest) {
 }
 
 function getFallbackMiningData() {
-  // Generate realistic variation in fallback data
-  const baseHashrate = 578.4;
-  const baseDifficulty = 62.46;
-  const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-  
   return {
-    hashrate: `${(baseHashrate * (1 + variation)).toFixed(1)} EH/s`,
-    difficulty: `${(baseDifficulty * (1 + variation/2)).toFixed(2)} T`,
-    nextAdjustment: `${Math.floor(Math.random() * 14)} days`,
-    profitability: 85 + Math.random() * 10,
-    averageBlockTime: `${(9.5 + Math.random()).toFixed(1)} min`,
-    mempoolSize: `${Math.floor(140 + Math.random() * 50)} MB`,
-    blocksToday: Math.floor(140 + Math.random() * 10),
-    totalBlocks: 832456 + Math.floor(Math.random() * 10),
-    mempoolTxCount: Math.floor(145000 + Math.random() * 20000),
-    estimatedSeconds: Math.floor(300 + Math.random() * 600)
+    hashrate: '578.4 EH/s',
+    difficulty: '62.46 T',
+    nextAdjustment: '7 days',
+    profitability: 87.5,
+    averageBlockTime: '9.8 min',
+    mempoolSize: '142 MB',
+    blocksToday: 144,
+    totalBlocks: 832456,
+    mempoolTxCount: 150000,
+    estimatedSeconds: 588
   };
 }

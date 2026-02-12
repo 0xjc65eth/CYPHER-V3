@@ -32,7 +32,7 @@ interface SwapQuote {
   estimatedTime: string;
 }
 
-export function BloombergCypherTrade() {
+export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
   const [fromToken, setFromToken] = useState<TokenInfo>({
     symbol: 'BTC',
     name: 'Bitcoin',
@@ -879,4 +879,4 @@ export function BloombergCypherTrade() {
       )}
     </div>
   );
-}
+});

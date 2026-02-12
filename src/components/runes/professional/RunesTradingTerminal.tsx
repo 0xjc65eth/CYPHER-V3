@@ -116,7 +116,7 @@ export function RunesTradingTerminal() {
     };
 
     fetchMarketData();
-    const interval = setInterval(fetchMarketData, 10000); // Update every 10 seconds
+    const interval = setInterval(fetchMarketData, 60000); // CoinGecko rate limit: increased to 60s
     
     return () => clearInterval(interval);
   }, [selectedRune]);

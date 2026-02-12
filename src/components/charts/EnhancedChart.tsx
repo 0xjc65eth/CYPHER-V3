@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { createChart, IChartApi, ISeriesApi, Time } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, Time, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -120,7 +120,7 @@ export const EnhancedChart: React.FC<EnhancedChartProps> = ({
       chartRef.current = chart;
 
       // Add candlestick series
-      candleSeries = chart.addCandlestickSeries({
+      candleSeries = chart.addSeries(CandlestickSeries, {
         upColor: '#22c55e',
         downColor: '#ef4444',
         borderVisible: false,
@@ -131,7 +131,7 @@ export const EnhancedChart: React.FC<EnhancedChartProps> = ({
       candleSeriesRef.current = candleSeries;
 
       // Add volume series
-      volumeSeries = chart.addHistogramSeries({
+      volumeSeries = chart.addSeries(HistogramSeries, {
         priceFormat: {
           type: 'volume',
         },

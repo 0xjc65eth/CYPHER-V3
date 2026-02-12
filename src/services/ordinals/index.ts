@@ -7,6 +7,7 @@
 export { OrdinalsAnalytics, ordinalsAnalytics } from './OrdinalsAnalytics';
 export { OrdinalsTrader, ordinalsTrader } from './OrdinalsTrader';
 export { OrdinalsDataAggregator, ordinalsDataAggregator } from './DataAggregator';
+export { OrdinalsArbitrageService, ordinalsArbitrageService } from './OrdinalsArbitrageService';
 export { PortfolioAnalytics, portfolioAnalytics } from './PortfolioAnalytics';
 export { OrdinalsWebSocketManager, ordinalsWebSocketManager } from './WebSocketManager';
 

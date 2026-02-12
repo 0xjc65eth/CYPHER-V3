@@ -12,6 +12,14 @@ import {
   StandardizedActivity,
   StandardizedMarketStats
 } from './integrations';
+import {
+  OrdinalsArbitrageOpportunity,
+  FeeBreakdown,
+  RiskScore,
+  MARKETPLACE_FEES,
+  PLATFORM_FEE_PERCENTAGE,
+  DEFAULT_CONFIG
+} from '../../types/ordinals-arbitrage';
 import { EventEmitter } from 'events';
 
 export interface AggregatedCollectionData {
@@ -35,6 +43,13 @@ export interface AggregatedCollectionData {
       sellMarketplace?: OrdinalsMarketplace;
       profit?: number;
       profitPercentage?: number;
+      fees?: FeeBreakdown;
+      netProfit?: number;
+      netProfitPercentage?: number;
+      confidence?: number;
+      riskScore?: RiskScore;
+      liquidityScore?: number;
+      lastUpdated?: number;
     };
   };
   lastUpdated: number;
@@ -272,6 +287,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
 
   /**
    * Find arbitrage opportunities across marketplaces
+   * Enhanced with stale price detection, market depth scoring, and fee-adjusted profit calculations
    */
   async findArbitrageOpportunities(
     collections?: string[],
@@ -284,6 +300,12 @@ export class OrdinalsDataAggregator extends EventEmitter {
     profit: number;
     profitPercentage: number;
     confidence: number;
+    fees: FeeBreakdown;
+    netProfit: number;
+    netProfitPercentage: number;
+    riskScore: RiskScore;
+    liquidityScore: number;
+    lastUpdated: number;
   }>> {
     const opportunities: Array<{
       collectionId: string;
@@ -293,32 +315,141 @@ export class OrdinalsDataAggregator extends EventEmitter {
       profit: number;
       profitPercentage: number;
       confidence: number;
+      fees: FeeBreakdown;
+      netProfit: number;
+      netProfitPercentage: number;
+      riskScore: RiskScore;
+      liquidityScore: number;
+      lastUpdated: number;
     }> = [];
 
     try {
-      const collectionsToCheck = collections || this.config.collectionsToTrack.slice(0, 20);
+      // Default collections to scan for arbitrage opportunities
+      const DEFAULT_COLLECTIONS = [
+        'bitcoin-puppets',
+        'nodemonkeys',
+        'runestone',
+        'quantum-cats',
+        'bitcoin-frogs',
+        'ordinal-maxi-biz'
+      ];
 
-      for (const collectionId of collectionsToCheck) {
-        const collectionData = await this.getAggregatedCollection(collectionId);
-        
-        if (collectionData?.consolidatedMetrics.arbitrageOpportunity.exists) {
-          const arb = collectionData.consolidatedMetrics.arbitrageOpportunity;
-          
-          if (arb.profitPercentage && arb.profitPercentage >= minProfitPercentage) {
-            opportunities.push({
-              collectionId,
-              buyMarketplace: arb.buyMarketplace!,
-              sellMarketplace: arb.sellMarketplace!,
-              profit: arb.profit!,
-              profitPercentage: arb.profitPercentage,
-              confidence: this.calculateArbitrageConfidence(collectionData)
-            });
-          }
+      // If no collections specified and none tracked, use defaults then fetch top collections
+      let collectionsToCheck = collections || this.config.collectionsToTrack.slice(0, 20);
+
+      if (collectionsToCheck.length === 0) {
+        console.log('No collections to track, using default popular collections...');
+        collectionsToCheck = DEFAULT_COLLECTIONS;
+
+        // Also try to fetch top collections from API to supplement defaults
+        try {
+          const topCollections = await this.getTopCollections(20);
+          const topCollectionIds = topCollections.map(c => c.id || c.slug).filter(Boolean);
+          // Merge defaults with API results, avoiding duplicates
+          collectionsToCheck = [...new Set([...collectionsToCheck, ...topCollectionIds])];
+          console.log(`Auto-populated ${collectionsToCheck.length} collections for arbitrage scanning`);
+        } catch (error) {
+          console.warn('Failed to fetch top collections, using defaults only:', error);
         }
       }
 
-      // Sort by profit percentage
-      opportunities.sort((a, b) => b.profitPercentage - a.profitPercentage);
+      const now = Date.now();
+
+      for (const collectionId of collectionsToCheck) {
+        try {
+          const collectionData = await this.getAggregatedCollection(collectionId);
+
+          if (!collectionData) {
+            console.warn(`⚠️ ${collectionId}: No collection data available`);
+            continue;
+          }
+
+          if (!collectionData.consolidatedMetrics.arbitrageOpportunity.exists) {
+            continue;
+          }
+
+          const arb = collectionData.consolidatedMetrics.arbitrageOpportunity;
+
+          // ENHANCEMENT 1: Stale price detection - reject if timestamp > 60s old
+          const priceAge = (now - collectionData.lastUpdated) / 1000; // in seconds
+          if (priceAge > DEFAULT_CONFIG.MAX_PRICE_AGE_SECONDS) {
+            console.warn(`⚠️ ${collectionId}: Stale price data (${priceAge}s old) - rejecting`);
+            continue;
+          }
+
+          // Validate required fields exist (fees, netProfit, etc.)
+          if (!arb.netProfit || !arb.netProfitPercentage || !arb.fees) {
+            console.warn(`⚠️ ${collectionId}: Missing required arbitrage fields`);
+            continue;
+          }
+
+          // ENHANCEMENT 2: Use fee-adjusted profit (netProfitPercentage) for filtering
+          if (arb.netProfitPercentage < minProfitPercentage) {
+            console.log(`❌ ${collectionId}: Net profit ${arb.netProfitPercentage.toFixed(2)}% < minimum ${minProfitPercentage}%`);
+            continue;
+          }
+
+          // Double-check net profit is actually positive
+          if (arb.netProfit <= 0) {
+            console.warn(`❌ ${collectionId}: Net profit ${arb.netProfit} BTC is not positive`);
+            continue;
+          }
+
+          const buyPrice = collectionData.consolidatedMetrics.bestFloorPrice;
+          const sellPrice = buyPrice + arb.profit!;
+
+          // Validate prices are realistic
+          if (buyPrice <= 0 || sellPrice <= 0) {
+            console.warn(`❌ ${collectionId}: Invalid prices - buy: ${buyPrice}, sell: ${sellPrice}`);
+            continue;
+          }
+
+          // Validate sell price is higher than buy price
+          if (sellPrice <= buyPrice) {
+            console.warn(`❌ ${collectionId}: Sell price ${sellPrice} <= buy price ${buyPrice}`);
+            continue;
+          }
+
+          // Calculate confidence score based on collection metrics
+          const confidence = this.calculateArbitrageConfidence(collectionData);
+
+          // ENHANCEMENT 3: Market depth score based on listedCount
+          const liquidityScore = this.calculateLiquidityScore(
+            collectionData.consolidatedMetrics.totalListedCount
+          );
+
+          // Calculate risk score using netProfitPercentage, liquidityScore, and priceAge
+          const riskScore = this.calculateRiskScore(
+            arb.netProfitPercentage,
+            liquidityScore,
+            priceAge
+          );
+
+          console.log(`✅ ${collectionId}: Valid opportunity - ${arb.netProfitPercentage.toFixed(2)}% net profit, ${liquidityScore} liquidity, ${priceAge.toFixed(1)}s age`);
+
+          // ENHANCEMENT 4: Return object includes fees, netProfit, netProfitPercentage, liquidityScore
+          opportunities.push({
+            collectionId,
+            buyMarketplace: arb.buyMarketplace!,
+            sellMarketplace: arb.sellMarketplace!,
+            profit: arb.profit!,
+            profitPercentage: arb.profitPercentage!,
+            fees: arb.fees,
+            netProfit: arb.netProfit,
+            netProfitPercentage: arb.netProfitPercentage,
+            confidence,
+            riskScore,
+            liquidityScore,
+            lastUpdated: collectionData.lastUpdated
+          });
+        } catch (error) {
+          console.error(`❌ ${collectionId}: Error processing arbitrage opportunity:`, error);
+          continue;
+        }
+      }
+
+      // Sort by net profit percentage (fee-adjusted) descending
+      opportunities.sort((a, b) => b.netProfitPercentage - a.netProfitPercentage);
 
       return opportunities;
     } catch (error) {
@@ -471,30 +602,95 @@ export class OrdinalsDataAggregator extends EventEmitter {
     const marketplaceData: Record<OrdinalsMarketplace, any> = {} as any;
     let primaryCollection: StandardizedCollection | null = null;
 
-    // Fetch data from all enabled marketplaces
+    // Fetch data from all enabled marketplaces with individual error handling
     for (const marketplace of this.config.enabledMarketplaces) {
       try {
         const client = this.clients[marketplace];
-        let collection: any = null;
 
-        switch (marketplace) {
-          case OrdinalsMarketplace.MAGIC_EDEN:
-            collection = await client.getCollection(collectionId);
-            break;
-          case OrdinalsMarketplace.OKX:
-            collection = await client.getCollection(collectionId);
-            break;
-          case OrdinalsMarketplace.UNISAT:
-            collection = await client.getCollection(collectionId);
-            break;
-          case OrdinalsMarketplace.HIRO:
-            collection = await client.getCollectionInfo(collectionId);
-            break;
+        if (!client) {
+          console.warn(`❌ ${marketplace}: Client not initialized`);
+          marketplaceData[marketplace] = {
+            floorPrice: 0,
+            volume24h: 0,
+            listedCount: 0,
+            lastUpdated: Date.now(),
+            available: false,
+            error: 'Client not initialized'
+          };
+          continue;
         }
 
-        if (collection) {
+        let collection: any = null;
+        const startTime = Date.now();
+
+        try {
+          // Add timeout to prevent hanging API calls
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('API timeout')), 10000)
+          );
+
+          switch (marketplace) {
+            case OrdinalsMarketplace.MAGIC_EDEN:
+              collection = await Promise.race([
+                client.getCollection(collectionId),
+                timeoutPromise
+              ]);
+              break;
+            case OrdinalsMarketplace.OKX:
+              collection = await Promise.race([
+                client.getCollection(collectionId),
+                timeoutPromise
+              ]);
+              break;
+            case OrdinalsMarketplace.UNISAT:
+              collection = await Promise.race([
+                client.getCollection(collectionId),
+                timeoutPromise
+              ]);
+              break;
+            case OrdinalsMarketplace.HIRO:
+              collection = await Promise.race([
+                client.getCollectionInfo(collectionId),
+                timeoutPromise
+              ]);
+              break;
+          }
+
+          const responseTime = Date.now() - startTime;
+          console.log(`✅ ${marketplace}: Responded in ${responseTime}ms`);
+
+        } catch (apiError) {
+          const responseTime = Date.now() - startTime;
+          console.error(`❌ ${marketplace}: Failed after ${responseTime}ms`, apiError);
+
+          marketplaceData[marketplace] = {
+            floorPrice: 0,
+            volume24h: 0,
+            listedCount: 0,
+            lastUpdated: Date.now(),
+            available: false,
+            error: apiError instanceof Error ? apiError.message : 'API request failed'
+          };
+          continue;
+        }
+
+        if (collection && collection.floorPrice > 0) {
           const standardized = OrdinalsDataConverter.convertCollection(collection, marketplace);
-          
+
+          // Validate data quality
+          if (standardized.floorPrice <= 0) {
+            console.warn(`⚠️ ${marketplace}: Invalid floor price (${standardized.floorPrice})`);
+            marketplaceData[marketplace] = {
+              floorPrice: 0,
+              volume24h: 0,
+              listedCount: 0,
+              lastUpdated: Date.now(),
+              available: false,
+              error: 'Invalid floor price'
+            };
+            continue;
+          }
+
           if (!primaryCollection || standardized.totalSupply > primaryCollection.totalSupply) {
             primaryCollection = standardized;
           }
@@ -506,23 +702,28 @@ export class OrdinalsDataAggregator extends EventEmitter {
             lastUpdated: Date.now(),
             available: true
           };
+
+          console.log(`✅ ${marketplace}: Floor ${standardized.floorPrice} BTC, Volume ${standardized.volume24h} BTC`);
         } else {
+          console.warn(`⚠️ ${marketplace}: No valid collection data`);
           marketplaceData[marketplace] = {
             floorPrice: 0,
             volume24h: 0,
             listedCount: 0,
             lastUpdated: Date.now(),
-            available: false
+            available: false,
+            error: 'No collection data or zero floor price'
           };
         }
       } catch (error) {
-        console.warn(`Failed to fetch collection ${collectionId} from ${marketplace}:`, error);
+        console.error(`❌ ${marketplace}: Exception while fetching collection ${collectionId}:`, error);
         marketplaceData[marketplace] = {
           floorPrice: 0,
           volume24h: 0,
           listedCount: 0,
           lastUpdated: Date.now(),
-          available: false
+          available: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
         };
       }
     }
@@ -679,6 +880,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
       .filter(([_, data]) => data.available && data.floorPrice > 0);
 
     if (availableData.length === 0) {
+      console.log('⚠️ No available marketplace data for arbitrage calculation');
       return {
         bestFloorPrice: 0,
         bestFloorMarketplace: OrdinalsMarketplace.MAGIC_EDEN,
@@ -689,10 +891,23 @@ export class OrdinalsDataAggregator extends EventEmitter {
       };
     }
 
+    // Need at least 2 marketplaces for arbitrage
+    if (availableData.length < 2) {
+      console.log(`⚠️ Only ${availableData.length} marketplace available, need 2+ for arbitrage`);
+      return {
+        bestFloorPrice: availableData[0][1].floorPrice,
+        bestFloorMarketplace: availableData[0][0] as OrdinalsMarketplace,
+        totalVolume24h: availableData[0][1].volume24h,
+        totalListedCount: availableData[0][1].listedCount,
+        priceSpread: 0,
+        arbitrageOpportunity: { exists: false }
+      };
+    }
+
     const prices = availableData.map(([_, data]) => data.floorPrice);
     const bestFloorPrice = Math.min(...prices);
     const highestFloorPrice = Math.max(...prices);
-    const bestFloorMarketplace = availableData.find(([_, data]) => 
+    const bestFloorMarketplace = availableData.find(([_, data]) =>
       data.floorPrice === bestFloorPrice
     )![0] as OrdinalsMarketplace;
 
@@ -700,18 +915,70 @@ export class OrdinalsDataAggregator extends EventEmitter {
     const totalListedCount = availableData.reduce((sum, [_, data]) => sum + data.listedCount, 0);
     const priceSpread = highestFloorPrice - bestFloorPrice;
 
-    // Check for arbitrage opportunity
-    const arbitrageThreshold = 0.02; // 2%
-    const profitPercentage = bestFloorPrice > 0 ? (priceSpread / bestFloorPrice) * 100 : 0;
-    const arbitrageOpportunity = profitPercentage > arbitrageThreshold ? {
-      exists: true,
-      buyMarketplace: bestFloorMarketplace,
-      sellMarketplace: availableData.find(([_, data]) => 
+    // Check for arbitrage opportunity with STRICT validation
+    const grossProfitPercentage = bestFloorPrice > 0 ? (priceSpread / bestFloorPrice) * 100 : 0;
+
+    let arbitrageOpportunity: any;
+
+    // Need at least some profit before calculating fees
+    if (grossProfitPercentage > 0.5 && priceSpread > 0) {
+      const sellMarketplace = availableData.find(([_, data]) =>
         data.floorPrice === highestFloorPrice
-      )![0] as OrdinalsMarketplace,
-      profit: priceSpread,
-      profitPercentage
-    } : { exists: false };
+      )![0] as OrdinalsMarketplace;
+
+      // Calculate fees for the opportunity
+      const fees = this.calculateFees(
+        bestFloorPrice,
+        highestFloorPrice,
+        bestFloorMarketplace,
+        sellMarketplace
+      );
+
+      // Calculate net profit AFTER fees
+      const netProfit = priceSpread - fees.totalFees;
+      const netProfitPercentage = (netProfit / bestFloorPrice) * 100;
+
+      console.log(`💰 Arbitrage check: Buy ${bestFloorPrice} BTC @ ${bestFloorMarketplace}, Sell ${highestFloorPrice} BTC @ ${sellMarketplace}`);
+      console.log(`   Gross Profit: ${priceSpread.toFixed(8)} BTC (${grossProfitPercentage.toFixed(2)}%)`);
+      console.log(`   Total Fees: ${fees.totalFees.toFixed(8)} BTC`);
+      console.log(`   Net Profit: ${netProfit.toFixed(8)} BTC (${netProfitPercentage.toFixed(2)}%)`);
+
+      // CRITICAL: Only mark as opportunity if NET profit is positive
+      if (netProfit > 0 && netProfitPercentage > 0.5) {
+        // Calculate liquidity score
+        const liquidityScore = this.calculateLiquidityScore(totalListedCount);
+
+        // Calculate risk score
+        const riskScore = this.calculateRiskScore(
+          netProfitPercentage,
+          liquidityScore,
+          0 // Price age is 0 for fresh data
+        );
+
+        console.log(`✅ VALID ARBITRAGE: Net profit ${netProfitPercentage.toFixed(2)}% after fees`);
+
+        arbitrageOpportunity = {
+          exists: true,
+          buyMarketplace: bestFloorMarketplace,
+          sellMarketplace,
+          profit: priceSpread,
+          profitPercentage: grossProfitPercentage,
+          fees,
+          netProfit,
+          netProfitPercentage,
+          confidence: 50, // Base confidence, will be refined in findArbitrageOpportunities
+          riskScore,
+          liquidityScore,
+          lastUpdated: Date.now()
+        };
+      } else {
+        console.log(`❌ REJECTED: Net profit ${netProfitPercentage.toFixed(2)}% is negative or too low`);
+        arbitrageOpportunity = { exists: false };
+      }
+    } else {
+      console.log(`❌ No arbitrage: Gross profit ${grossProfitPercentage.toFixed(2)}% too low`);
+      arbitrageOpportunity = { exists: false };
+    }
 
     return {
       bestFloorPrice,
@@ -742,14 +1009,89 @@ export class OrdinalsDataAggregator extends EventEmitter {
     }
 
     // Decrease confidence if price spread is too high (might indicate illiquidity)
-    const spreadPercentage = collectionData.consolidatedMetrics.priceSpread / 
+    const spreadPercentage = collectionData.consolidatedMetrics.priceSpread /
       collectionData.consolidatedMetrics.bestFloorPrice * 100;
-    
+
     if (spreadPercentage > 20) {
       confidence -= 20;
     }
 
     return Math.max(0, Math.min(100, confidence));
+  }
+
+  /**
+   * Calculate detailed fee breakdown for an arbitrage opportunity
+   */
+  private calculateFees(
+    buyPrice: number,
+    sellPrice: number,
+    buyMarketplace: OrdinalsMarketplace,
+    sellMarketplace: OrdinalsMarketplace
+  ): FeeBreakdown {
+    // Calculate marketplace fees
+    const buyMarketplaceFee = buyPrice * MARKETPLACE_FEES[buyMarketplace];
+    const sellMarketplaceFee = sellPrice * MARKETPLACE_FEES[sellMarketplace];
+
+    // Estimate network fee (Bitcoin transaction fee)
+    // Using default tx bytes from config (250 bytes @ ~50 sat/vB = ~0.0000125 BTC)
+    const networkFee = (DEFAULT_CONFIG.ESTIMATED_TX_BYTES * 50) / 100000000;
+
+    // Calculate platform fee (0.35%)
+    const platformFee = (buyPrice + sellPrice) * PLATFORM_FEE_PERCENTAGE;
+
+    // Total fees
+    const totalFees = buyMarketplaceFee + sellMarketplaceFee + networkFee + platformFee;
+
+    return {
+      buyMarketplaceFee,
+      sellMarketplaceFee,
+      networkFee,
+      platformFee,
+      totalFees
+    };
+  }
+
+  /**
+   * Calculate liquidity score based on listed count
+   */
+  private calculateLiquidityScore(listedCount: number): number {
+    // Score based on listing availability
+    // 0-10 listings: low (0-30)
+    // 10-50 listings: medium (30-70)
+    // 50+ listings: high (70-100)
+
+    if (listedCount >= 100) return 100;
+    if (listedCount >= 50) return 70 + ((listedCount - 50) / 50) * 30;
+    if (listedCount >= 10) return 30 + ((listedCount - 10) / 40) * 40;
+    return Math.min(30, (listedCount / 10) * 30);
+  }
+
+  /**
+   * Calculate risk score based on multiple factors
+   */
+  private calculateRiskScore(
+    netProfitPercentage: number,
+    liquidityScore: number,
+    priceAge: number
+  ): RiskScore {
+    let riskPoints = 0;
+
+    // Higher profit = lower risk (assuming legitimate opportunity)
+    if (netProfitPercentage < 5) riskPoints += 2;
+    else if (netProfitPercentage < 10) riskPoints += 1;
+
+    // Lower liquidity = higher risk
+    if (liquidityScore < 30) riskPoints += 2;
+    else if (liquidityScore < 60) riskPoints += 1;
+
+    // Older price data = higher risk
+    if (priceAge > 45) riskPoints += 2;
+    else if (priceAge > 30) riskPoints += 1;
+
+    // Determine risk level
+    if (riskPoints >= 4) return 'high';
+    if (riskPoints >= 2) return 'medium';
+    return 'low';
   }
 
   private async calculateInscriptionAnalytics(

@@ -63,17 +63,31 @@ export function PremiumThankYouModal({ collection, onClose }: PremiumThankYouMod
             <RiCheckLine className="mr-1 w-5 h-5" />
             Verified {collection} Holder
           </p>
-          <p className="text-white text-sm">
-            Thanks for supporting Bitcoin development through your {collection} collection!
-            Because you're encouraging development on BTC, new updates will be coming to this tool
-            and you'll benefit completely free of charge!
-          </p>
+          {collection === 'YIELD HACKER PASS' ? (
+            <p className="text-white text-sm">
+              Welcome, Yield Hacker! Your YHP NFT grants you exclusive premium access to
+              CYPHER's full suite of tools including advanced analytics, AI trading signals,
+              and priority access to new features.
+            </p>
+          ) : (
+            <p className="text-white text-sm">
+              Thanks for supporting Bitcoin development through your {collection} collection!
+              Because you're encouraging development on BTC, new updates will be coming to this tool
+              and you'll benefit completely free of charge!
+            </p>
+          )}
         </div>
 
         <div className="p-4 bg-[#1D1D1D] border border-[#8B5CF6]/20 rounded-lg mb-4">
-          <p className="text-white text-sm">
-            <span className="font-bold text-[#8B5CF6]">Your Benefits:</span> You'll receive all future updates and premium features completely free of charge. We're constantly working on new tools and insights to enhance your Bitcoin analytics experience.
-          </p>
+          {collection === 'YIELD HACKER PASS' ? (
+            <p className="text-white text-sm">
+              <span className="font-bold text-orange-400">YHP Benefits:</span> Full premium dashboard access, CYPHER AI analytics, advanced trading tools, real-time alerts, and all future premium features — included with your Yield Hacker Pass membership.
+            </p>
+          ) : (
+            <p className="text-white text-sm">
+              <span className="font-bold text-[#8B5CF6]">Your Benefits:</span> You'll receive all future updates and premium features completely free of charge. We're constantly working on new tools and insights to enhance your Bitcoin analytics experience.
+            </p>
+          )}
         </div>
 
         <div className="flex justify-center">

@@ -37,11 +37,14 @@ import {
   Volume2,
   VolumeX,
   Settings,
-  Maximize2
+  Maximize2,
+  Send,
+  Hash
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
+import { ordinalsService, OrdinalsAnalytics } from '@/services/ordinals';
 
 // Enhanced interfaces with better typing
 interface OrdinalRarity {
@@ -287,11 +290,13 @@ export function OrdinalsTabFixed() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [favoriteItems, setFavoriteItems] = useState<Set<string>>(new Set());
   const [soundEnabled, setSoundEnabled] = useState(false);
-  
+
   // Data state
   const [collections, setCollections] = useState<Collection[]>(MOCK_COLLECTIONS);
   const [ordinals, setOrdinals] = useState<Ordinal[]>([]);
   const [activity, setActivity] = useState<ActivityItem[]>(MOCK_ACTIVITY);
+  const [analyticsData, setAnalyticsData] = useState<OrdinalsAnalytics | null>(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [marketStats, setMarketStats] = useState<MarketStats>({
     totalVolume: 5678.9,
     volume24h: 234.5,
@@ -354,6 +359,26 @@ export function OrdinalsTabFixed() {
       }
     };
   }, []);
+
+  // Load analytics data when analytics tab is active
+  useEffect(() => {
+    if (activeTab === 'analytics' && !analyticsData) {
+      loadAnalyticsData();
+    }
+  }, [activeTab]);
+
+  const loadAnalyticsData = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await ordinalsService.fetchOrdinalsStats();
+      setAnalyticsData(data);
+    } catch (error) {
+      console.error('Failed to load analytics data:', error);
+      toast.error('Failed to load analytics data');
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  };
 
   // Data loading function with abort control
   const loadOrdinalsData = useCallback(async () => {
@@ -1129,7 +1154,7 @@ export function OrdinalsTabFixed() {
                               {item.type === 'transfer' && <Send className="w-5 h-5" />}
                               {item.type === 'mint' && <Zap className="w-5 h-5" />}
                             </div>
-                            
+
                             <div>
                               <div className="flex items-center gap-2">
                                 <p className="font-medium text-white">
@@ -1149,7 +1174,7 @@ export function OrdinalsTabFixed() {
                                   {item.type}
                                 </span>
                               </div>
-                              
+
                               <div className="flex items-center gap-4 text-sm text-gray-400">
                                 <span>{formatDistanceToNow(item.timestamp)} ago</span>
                                 {item.marketplace && (
@@ -1160,7 +1185,7 @@ export function OrdinalsTabFixed() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="text-right">
                             {item.price && (
                               <div>
@@ -1172,7 +1197,7 @@ export function OrdinalsTabFixed() {
                                 </p>
                               </div>
                             )}
-                            
+
                             <button
                               onClick={() => copyToClipboard(item.txHash, 'Transaction hash')}
                               className="text-sm text-gray-400 hover:text-white transition-colors mt-1"
@@ -1185,6 +1210,167 @@ export function OrdinalsTabFixed() {
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Analytics View */}
+            {activeTab === 'analytics' && (
+              <div className="space-y-6">
+                {analyticsLoading ? (
+                  <div className="flex items-center justify-center py-24">
+                    <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+                  </div>
+                ) : analyticsData ? (
+                  <>
+                    {/* Key Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-400 text-sm">Total Inscriptions</span>
+                          <Gem className="w-5 h-5 text-orange-500" />
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {typeof analyticsData.totalInscriptions === 'number'
+                            ? analyticsData.totalInscriptions.toLocaleString()
+                            : analyticsData.totalInscriptions}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {typeof analyticsData.trends.inscriptionsGrowth === 'number'
+                            ? `${analyticsData.trends.inscriptionsGrowth > 0 ? '+' : ''}${analyticsData.trends.inscriptionsGrowth}% growth`
+                            : analyticsData.trends.inscriptionsGrowth}
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-400 text-sm">24h Volume</span>
+                          <BarChart3 className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {typeof analyticsData.totalVolume24h === 'number'
+                            ? `₿${analyticsData.totalVolume24h.toFixed(2)}`
+                            : analyticsData.totalVolume24h}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {typeof analyticsData.trends.volumeGrowth === 'number'
+                            ? `${analyticsData.trends.volumeGrowth > 0 ? '+' : ''}${analyticsData.trends.volumeGrowth}% vs yesterday`
+                            : analyticsData.trends.volumeGrowth}
+                        </p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-400 text-sm">24h Sales</span>
+                          <Activity className="w-5 h-5 text-green-500" />
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {typeof analyticsData.totalSales24h === 'number'
+                            ? analyticsData.totalSales24h.toLocaleString()
+                            : analyticsData.totalSales24h}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">transactions</p>
+                      </div>
+
+                      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-400 text-sm">Avg. Price</span>
+                          <DollarSign className="w-5 h-5 text-purple-500" />
+                        </div>
+                        <p className="text-2xl font-bold text-white">
+                          {typeof analyticsData.averagePrice === 'number'
+                            ? `${analyticsData.averagePrice.toLocaleString()} sats`
+                            : analyticsData.averagePrice}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">inscription fee</p>
+                      </div>
+                    </div>
+
+                    {/* Market Sentiment */}
+                    <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-orange-500" />
+                          Market Sentiment
+                        </h3>
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          analyticsData.marketSentiment === 'bullish'
+                            ? 'bg-green-500/20 text-green-400'
+                            : analyticsData.marketSentiment === 'bearish'
+                            ? 'bg-red-500/20 text-red-400'
+                            : 'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {analyticsData.marketSentiment.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-gray-400">
+                        The Ordinals market is currently showing {analyticsData.marketSentiment} signals based on volume growth and activity trends.
+                      </p>
+                    </div>
+
+                    {/* Top Collections */}
+                    {analyticsData.topCollections && analyticsData.topCollections.length > 0 && (
+                      <div className="bg-gray-800 rounded-xl border border-gray-700">
+                        <div className="p-4 border-b border-gray-700">
+                          <h3 className="text-lg font-semibold text-white">Top Collections</h3>
+                        </div>
+                        <div className="divide-y divide-gray-700">
+                          {analyticsData.topCollections.map((collection, index) => (
+                            <div key={collection.id} className="p-4 hover:bg-gray-700/50 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">
+                                    {index + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-white">{collection.name}</p>
+                                    <p className="text-sm text-gray-400">Floor: ₿{collection.floorPrice.toFixed(4)}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-medium text-white">₿{collection.volume24h.toFixed(2)}</p>
+                                  <p className={`text-sm flex items-center gap-1 ${
+                                    collection.change24h >= 0 ? 'text-green-400' : 'text-red-400'
+                                  }`}>
+                                    {collection.change24h >= 0 ? (
+                                      <ArrowUpRight className="w-3 h-3" />
+                                    ) : (
+                                      <ArrowDownRight className="w-3 h-3" />
+                                    )}
+                                    {Math.abs(collection.change24h).toFixed(1)}%
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Refresh Button */}
+                    <div className="flex justify-center">
+                      <button
+                        onClick={loadAnalyticsData}
+                        disabled={analyticsLoading}
+                        className="px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-700 rounded-lg font-medium transition-colors flex items-center gap-2"
+                      >
+                        <RefreshCw className={`w-4 h-4 ${analyticsLoading ? 'animate-spin' : ''}`} />
+                        Refresh Data
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-24">
+                    <AlertCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-300 mb-2">Failed to load analytics</h3>
+                    <p className="text-gray-500 mb-4">Unable to fetch data from Hiro API</p>
+                    <button
+                      onClick={loadAnalyticsData}
+                      className="px-6 py-3 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

@@ -139,6 +139,14 @@ export class ArbitrageScanner extends EventEmitter {
         const spreadPercent = (spread / buyExchange.ask) * 100
         
         if (spreadPercent >= this.minSpreadPercent) {
+          // Calculate fees correctly (0.1% on each transaction for 1000 units)
+          const tradeAmount = 1000;
+          const buyFee = buyExchange.ask * tradeAmount * 0.001;
+          const sellFee = sellExchange.bid * tradeAmount * 0.001;
+          const totalFees = buyFee + sellFee;
+          const grossProfit = spread * tradeAmount;
+          const netProfit = grossProfit - totalFees;
+
           const opportunity: ArbitrageOpportunity = {
             id: `${Date.now()}-${symbol}-${buyExchange.exchange}-${sellExchange.exchange}`,
             buyExchange: buyExchange.exchange,
@@ -149,14 +157,17 @@ export class ArbitrageScanner extends EventEmitter {
             spread,
             spreadPercent,
             volume: Math.min(buyExchange.volume, sellExchange.volume),
-            estimatedProfit: spread * 1000, // For 1000 units
-            estimatedFees: (buyExchange.ask + sellExchange.bid) * 0.001, // 0.1% fee
-            netProfit: (spread * 1000) - ((buyExchange.ask + sellExchange.bid) * 0.001),
+            estimatedProfit: grossProfit,
+            estimatedFees: totalFees,
+            netProfit: netProfit,
             confidence: this.calculateConfidence(spreadPercent, buyExchange.volume, sellExchange.volume),
             timestamp: new Date()
           }
-          
-          this.emit('opportunityFound', opportunity)
+
+          // Only emit opportunities with positive net profit
+          if (netProfit > 0) {
+            this.emit('opportunityFound', opportunity)
+          }
         }
       }
     }

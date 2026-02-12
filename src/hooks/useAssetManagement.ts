@@ -21,6 +21,7 @@ import {
 } from '@/store/assetSlice'
 import { Token } from '@/types/quickTrade'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch'
 
 // Asset price fetching service
 class AssetPriceService {
@@ -53,16 +54,10 @@ class AssetPriceService {
       }
       
       const coinId = symbolToId[symbol.toUpperCase()] || symbol.toLowerCase()
-      
-      const response = await fetch(
+
+      const data = await rateLimitedFetch(
         `${this.BASE_URL}/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
       )
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch price for ${symbol}`)
-      }
-      
-      const data = await response.json()
       const coinData = data[coinId]
       
       if (!coinData) {
@@ -102,15 +97,9 @@ class AssetPriceService {
       
       const coinIds = symbols.map(symbol => symbolToId[symbol.toUpperCase()] || symbol.toLowerCase()).join(',')
       
-      const response = await fetch(
+      const data = await rateLimitedFetch(
         `${this.BASE_URL}/simple/price?ids=${coinIds}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
       )
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch multiple prices')
-      }
-      
-      const data = await response.json()
       const result: Record<string, any> = {}
       
       symbols.forEach(symbol => {

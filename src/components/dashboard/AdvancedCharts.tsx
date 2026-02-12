@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { createChart, IChartApi, ISeriesApi } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries, LineSeries } from 'lightweight-charts';
 import { Card } from '@/components/ui/card';
 
 interface AdvancedChartsProps {
@@ -62,7 +62,7 @@ export const AdvancedCharts: React.FC<AdvancedChartsProps> = ({
     chartRef.current = chart;
 
     // Add candlestick series
-    const candleSeries = chart.addCandlestickSeries({
+    const candleSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#26a69a',
       downColor: '#ef5350',
       borderVisible: false,
@@ -73,7 +73,7 @@ export const AdvancedCharts: React.FC<AdvancedChartsProps> = ({
     candleSeriesRef.current = candleSeries;
 
     // Add volume series
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: {
         type: 'volume',
       },
@@ -86,7 +86,7 @@ export const AdvancedCharts: React.FC<AdvancedChartsProps> = ({
 
     // Add technical indicators based on props
     if (indicators.includes('MA')) {
-      const maSeries = chart.addLineSeries({
+      const maSeries = chart.addSeries(LineSeries, {
         color: '#2962FF',
         lineWidth: 2,
         title: 'MA 20',
@@ -95,7 +95,7 @@ export const AdvancedCharts: React.FC<AdvancedChartsProps> = ({
 
     if (indicators.includes('RSI')) {
       // RSI would be on a separate pane
-      const rsiSeries = chart.addLineSeries({
+      const rsiSeries = chart.addSeries(LineSeries, {
         color: '#9B7DFF',
         lineWidth: 2,
         title: 'RSI',

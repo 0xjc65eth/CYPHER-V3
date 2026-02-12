@@ -1,6 +1,6 @@
 /**
- * 🧠 CYPHER AI INTERFACE - CYPHER ORDi FUTURE V3
- * Interface moderna com texto e áudio
+ * CYPHER AI INTERFACE - CYPHER ORDi FUTURE V3
+ * Multi-agent chat interface with agent routing
  */
 
 'use client';
@@ -10,13 +10,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Mic, 
-  MicOff, 
-  Send, 
-  Volume2, 
-  VolumeX, 
-  Brain, 
+import {
+  Mic,
+  MicOff,
+  Send,
+  Volume2,
+  VolumeX,
+  Brain,
   Sparkles,
   MessageCircle,
   Loader2,
@@ -24,12 +24,20 @@ import {
   Pause,
   RotateCcw,
   Copy,
-  Download,
   Zap
 } from 'lucide-react';
 import { enhancedCypherAI, CypherAIResponse, CypherAIContext } from '@/services/enhanced-cypher-ai';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
 import { ErrorReporter } from '@/lib/ErrorReporter';
+import { AgentBadge } from '@/components/cypher-ai/AgentBadge';
+import { AgentSelector } from '@/components/cypher-ai/AgentSelector';
+
+interface AgentMeta {
+  name: string;
+  icon: string;
+  color: string;
+  specialty?: string;
+}
 
 interface Message {
   id: string;
@@ -40,6 +48,8 @@ interface Message {
   mood?: string;
   emojis?: string[];
   action?: string;
+  agent?: AgentMeta;
+  dataSources?: string[];
 }
 
 export function CypherAIInterface() {
@@ -50,28 +60,25 @@ export function CypherAIInterface() {
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   useEffect(() => {
-    // Mensagem inicial
     const welcomeMessage: Message = {
       id: 'welcome',
       type: 'ai',
-      content: 'E aí, mano! 👋 Sou a Cypher AI, tua parceira nas crypto! Como posso te ajudar hoje? Quer saber sobre preços, análises, ou configurar um bot maneiro? 🚀',
+      content: 'Welcome to CYPHER AI Multi-Agent Terminal. Ask about market analysis, on-chain data, ordinals, macro trends, DeFi, risk management, sentiment, or quant analysis. Each query is routed to the best specialist agent.',
       timestamp: new Date(),
-      mood: 'excited',
-      emojis: ['👋', '🚀', '💰'],
-      action: 'greeting'
+      agent: { name: 'Alpha', icon: '\u{1F4C8}', color: '#F7931A' },
     };
-    
+
     setMessages([welcomeMessage]);
   }, []);
 
@@ -90,58 +97,87 @@ export function CypherAIInterface() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputText;
     setInputText('');
     setIsProcessing(true);
 
     try {
-      const context: CypherAIContext = {
-        conversationHistory: messages.map(m => `${m.type}: ${m.content}`),
-        timestamp: Date.now()
+      // Call the multi-agent API directly to get agent metadata
+      const body: Record<string, unknown> = {
+        message: messageText,
+        language: 'en-US',
+        useGemini: true,
       };
+      if (selectedAgent) {
+        body.agentHint = selectedAgent;
+      }
 
-      const response = await enhancedCypherAI.processTextInput(inputText, context);
-      
+      const res = await fetch('/api/cypher-ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'API error');
+      }
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: response.text,
-        audioUrl: response.audioUrl,
+        content: data.response || 'No response received.',
         timestamp: new Date(),
-        mood: response.mood,
-        emojis: response.emojis,
-        action: response.action
+        agent: data.agent || undefined,
+        dataSources: data.agent?.dataFetchers || undefined,
       };
 
       setMessages(prev => [...prev, aiMessage]);
 
-      // Reproduzir áudio automaticamente se habilitado
-      if (audioEnabled && response.audioUrl) {
-        playAudio(response.audioUrl);
-      }
-
-      EnhancedLogger.info('Cypher AI message sent successfully', {
+      EnhancedLogger.info('Cypher AI agent response received', {
         component: 'CypherAIInterface',
-        responseConfidence: response.confidence,
-        hasAudio: !!response.audioUrl
+        agent: data.agent?.name,
+        source: data.source,
       });
 
     } catch (error) {
       ErrorReporter.report(error as Error, {
         component: 'CypherAIInterface',
         action: 'sendMessage',
-        message: inputText
+        message: messageText
       });
 
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        type: 'ai',
-        content: 'Opa, deu um rolê aqui! 😅 Tenta de novo, mano!',
-        timestamp: new Date(),
-        mood: 'neutral',
-        emojis: ['😅', '⚠️']
-      };
-
-      setMessages(prev => [...prev, errorMessage]);
+      // Fallback to enhancedCypherAI service
+      try {
+        const context: CypherAIContext = {
+          conversationHistory: messages.map(m => `${m.type}: ${m.content}`),
+          timestamp: Date.now()
+        };
+        const response = await enhancedCypherAI.processTextInput(messageText, context);
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: response.text,
+          audioUrl: response.audioUrl,
+          timestamp: new Date(),
+          mood: response.mood,
+          emojis: response.emojis,
+          action: response.action
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        if (audioEnabled && response.audioUrl) {
+          playAudio(response.audioUrl);
+        }
+      } catch {
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          type: 'ai',
+          content: 'Connection error. Please try again.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -166,18 +202,12 @@ export function CypherAIInterface() {
 
       mediaRecorder.start();
       setIsRecording(true);
-
-      EnhancedLogger.info('Audio recording started', {
-        component: 'CypherAIInterface'
-      });
-
     } catch (error) {
       ErrorReporter.report(error as Error, {
         component: 'CypherAIInterface',
         action: 'startRecording'
       });
-      
-      alert('Erro ao acessar microfone. Verifique as permissões.');
+      alert('Error accessing microphone. Check permissions.');
     }
   };
 
@@ -192,23 +222,18 @@ export function CypherAIInterface() {
   const processAudioInput = async (audioBlob: Blob) => {
     try {
       const audioFile = new File([audioBlob], 'audio.wav', { type: 'audio/wav' });
-      
+
       const userMessage: Message = {
         id: Date.now().toString(),
         type: 'user',
-        content: '🎤 Mensagem de áudio',
+        content: 'Audio message',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, userMessage]);
 
-      const context: CypherAIContext = {
-        conversationHistory: messages.map(m => `${m.type}: ${m.content}`),
-        timestamp: Date.now()
-      };
-
       const response = await enhancedCypherAI.processAudioInput(audioFile);
-      
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
@@ -225,7 +250,6 @@ export function CypherAIInterface() {
       if (audioEnabled && response.audioUrl) {
         playAudio(response.audioUrl);
       }
-
     } catch (error) {
       ErrorReporter.report(error as Error, {
         component: 'CypherAIInterface',
@@ -241,15 +265,13 @@ export function CypherAIInterface() {
       if (currentAudio) {
         currentAudio.pause();
       }
-
       const audio = new Audio(audioUrl);
       audio.onplay = () => setIsPlaying(true);
       audio.onended = () => setIsPlaying(false);
       audio.onerror = () => setIsPlaying(false);
-      
       setCurrentAudio(audio);
       audio.play();
-    } catch (error) {
+    } catch (error: any) {
       EnhancedLogger.warn('Failed to play audio', {
         component: 'CypherAIInterface',
         error: error.message
@@ -273,32 +295,9 @@ export function CypherAIInterface() {
     navigator.clipboard.writeText(content);
   };
 
-  const getMoodColor = (mood?: string) => {
-    switch (mood) {
-      case 'bullish':
-      case 'excited':
-        return 'text-green-400';
-      case 'bearish':
-      case 'cautious':
-        return 'text-red-400';
-      case 'confident':
-        return 'text-blue-400';
-      default:
-        return 'text-gray-400';
-    }
-  };
-
-  const getActionIcon = (action?: string) => {
-    switch (action) {
-      case 'trade':
-        return <Zap className="w-4 h-4" />;
-      case 'analyze':
-        return <Brain className="w-4 h-4" />;
-      case 'command':
-        return <Sparkles className="w-4 h-4" />;
-      default:
-        return <MessageCircle className="w-4 h-4" />;
-    }
+  const getAgentBorderColor = (agent?: AgentMeta) => {
+    if (!agent) return 'border-gray-700';
+    return 'border-gray-700';
   };
 
   return (
@@ -314,10 +313,10 @@ export function CypherAIInterface() {
                 </div>
                 <div>
                   <h1 className="text-xl font-bold text-white">Cypher AI</h1>
-                  <p className="text-sm text-gray-400">Sua IA parceira em crypto</p>
+                  <p className="text-sm text-gray-400">Multi-Agent Analytics Terminal</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
@@ -327,7 +326,7 @@ export function CypherAIInterface() {
                 >
                   {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </Button>
-                
+
                 <Button
                   size="sm"
                   variant="ghost"
@@ -347,38 +346,70 @@ export function CypherAIInterface() {
 
         {/* Chat Messages */}
         <Card className="bg-gray-900 border-gray-700 mb-6">
-          <div className="p-4 h-96 overflow-y-auto space-y-4">
+          <div className="p-4 h-[28rem] overflow-y-auto space-y-4">
             {messages.map((message) => (
-              <div 
-                key={message.id} 
+              <div
+                key={message.id}
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
-                  message.type === 'user' 
-                    ? 'bg-orange-500 text-white' 
-                    : 'bg-gray-800 text-white border border-gray-700'
-                }`}>
-                  {message.type === 'ai' && (
-                    <div className="flex items-center gap-2 mb-2">
-                      {getActionIcon(message.action)}
-                      <span className={`text-xs font-medium ${getMoodColor(message.mood)}`}>
-                        {message.mood?.toUpperCase()}
-                      </span>
-                      {message.emojis && (
-                        <span className="text-xs">
-                          {message.emojis.slice(0, 3).join(' ')}
-                        </span>
-                      )}
+                <div
+                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                    message.type === 'user'
+                      ? 'bg-orange-500 text-white'
+                      : `bg-gray-800 text-white ${getAgentBorderColor(message.agent)}`
+                  }`}
+                  style={
+                    message.type === 'ai' && message.agent
+                      ? {
+                          borderLeft: `3px solid ${message.agent.color}`,
+                          backgroundColor: `${message.agent.color}08`,
+                        }
+                      : undefined
+                  }
+                >
+                  {/* Agent badge for AI messages */}
+                  {message.type === 'ai' && message.agent && (
+                    <div className="mb-2">
+                      <AgentBadge
+                        name={message.agent.name}
+                        icon={message.agent.icon}
+                        color={message.agent.color}
+                        specialty={message.agent.specialty}
+                      />
                     </div>
                   )}
-                  
+
+                  {/* Legacy mood/action display for fallback responses */}
+                  {message.type === 'ai' && !message.agent && message.mood && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <MessageCircle className="w-4 h-4 text-gray-400" />
+                      <span className="text-xs font-medium text-gray-400">
+                        {message.mood.toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  
+
+                  {/* Data sources */}
+                  {message.dataSources && message.dataSources.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {message.dataSources.map((src) => (
+                        <span
+                          key={src}
+                          className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-700/50 text-gray-400"
+                        >
+                          {src.replace('fetch', '')}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-xs opacity-60">
                       {message.timestamp.toLocaleTimeString()}
                     </span>
-                    
+
                     <div className="flex items-center gap-1">
                       {message.audioUrl && (
                         <Button
@@ -387,13 +418,13 @@ export function CypherAIInterface() {
                           onClick={() => isPlaying ? stopAudio() : playAudio(message.audioUrl!)}
                           className="h-6 w-6 p-0"
                         >
-                          {isPlaying ? 
-                            <Pause className="w-3 h-3" /> : 
+                          {isPlaying ?
+                            <Pause className="w-3 h-3" /> :
                             <Play className="w-3 h-3" />
                           }
                         </Button>
                       )}
-                      
+
                       <Button
                         size="sm"
                         variant="ghost"
@@ -407,18 +438,20 @@ export function CypherAIInterface() {
                 </div>
               </div>
             ))}
-            
+
             {isProcessing && (
               <div className="flex justify-start">
                 <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-gray-400">Cypher pensando...</span>
+                    <Loader2 className="w-4 h-4 animate-spin text-orange-400" />
+                    <span className="text-sm text-gray-400">
+                      {selectedAgent ? `${selectedAgent} analyzing...` : 'Routing to agent...'}
+                    </span>
                   </div>
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
         </Card>
@@ -431,7 +464,7 @@ export function CypherAIInterface() {
                 <Textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Fala aí, mano! Pergunta sobre preços, trading, ou qualquer coisa de crypto..."
+                  placeholder="Ask about markets, on-chain data, ordinals, macro, DeFi, risk, sentiment, or quant..."
                   className="bg-gray-800 border-gray-600 text-white resize-none"
                   rows={3}
                   onKeyDown={(e) => {
@@ -442,7 +475,7 @@ export function CypherAIInterface() {
                   }}
                 />
               </div>
-              
+
               <div className="flex flex-col gap-2">
                 <Button
                   onClick={handleSendMessage}
@@ -451,7 +484,7 @@ export function CypherAIInterface() {
                 >
                   <Send className="w-4 h-4" />
                 </Button>
-                
+
                 <Button
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={isProcessing}
@@ -462,15 +495,14 @@ export function CypherAIInterface() {
                 </Button>
               </div>
             </div>
-            
-            <div className="flex items-center justify-between mt-3 text-xs text-gray-400">
-              <span>
-                {isRecording ? '🎤 Gravando...' : 'Digite sua mensagem ou clique no mic para falar'}
-              </span>
-              
-              <div className="flex items-center gap-2">
-                {audioEnabled && <span>🔊 Áudio ativo</span>}
-                <span>💬 {messages.length} mensagens</span>
+
+            <div className="flex items-center justify-between mt-3">
+              <AgentSelector value={selectedAgent} onChange={setSelectedAgent} />
+
+              <div className="flex items-center gap-3 text-xs text-gray-400">
+                {isRecording && <span>Recording...</span>}
+                {audioEnabled && <span>Audio on</span>}
+                <span>{messages.length} messages</span>
               </div>
             </div>
           </div>

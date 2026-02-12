@@ -165,12 +165,12 @@ function EnhancedErrorFallback({
   };
 
   return (
-    <div className={getContainerClasses()}>
+    <div className={getContainerClasses()} role="alert" aria-live="assertive">
       <Card className="max-w-2xl w-full bg-gray-900 border-red-500/20">
         <div className="p-6 text-center">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-red-500/10 rounded-full">
-              <AlertTriangle className="w-8 h-8 text-red-500" />
+              <AlertTriangle className="w-8 h-8 text-red-500" aria-hidden="true" />
             </div>
           </div>
           

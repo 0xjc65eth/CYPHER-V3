@@ -36,7 +36,7 @@ const LightweightChartWrapper: React.FC<LightweightChartProps> = ({
         if (!chartContainerRef.current) return;
 
         // Dynamic import to reduce bundle size
-        const { createChart } = await import('lightweight-charts');
+        const { createChart, LineSeries } = await import('lightweight-charts');
         
         if (!isMounted) return;
 
@@ -62,7 +62,7 @@ const LightweightChartWrapper: React.FC<LightweightChartProps> = ({
           ...options
         });
 
-        const lineSeries = chart.addLineSeries({
+        const lineSeries = chart.addSeries(LineSeries, {
           color: '#f97316',
           lineWidth: 2,
         });

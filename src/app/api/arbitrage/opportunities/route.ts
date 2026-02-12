@@ -43,110 +43,120 @@ interface ArbitrageStats {
   successRate: number;
 }
 
-// Mock exchanges data
-const EXCHANGES = [
-  { name: 'Binance', fee: 0.001 },
-  { name: 'Coinbase', fee: 0.0015 },
-  { name: 'Kraken', fee: 0.0016 },
-  { name: 'OKX', fee: 0.001 },
-  { name: 'Magic Eden', fee: 0.02 },
-  { name: 'Ordinals Market', fee: 0.025 },
-  { name: 'UniSat', fee: 0.02 }
-];
-
-// Generate mock arbitrage opportunities
-function generateOpportunities(limit: number = 10): ArbitrageOpportunity[] {
-  const opportunities: ArbitrageOpportunity[] = [];
-  const assets = [
-    { symbol: 'BTC', name: 'Bitcoin', type: 'bitcoin' as const },
-    { symbol: 'ORDI', name: 'ORDI', type: 'brc20' as const },
-    { symbol: 'SATS', name: 'SATS', type: 'brc20' as const },
-    { symbol: 'PUNK', name: 'Bitcoin Punks', type: 'ordinal' as const },
-    { symbol: 'OMB', name: 'Ordinal Maxi Biz', type: 'ordinal' as const }
-  ];
-
-  for (let i = 0; i < limit; i++) {
-    const asset = assets[Math.floor(Math.random() * assets.length)];
-    const buyExchange = EXCHANGES[Math.floor(Math.random() * EXCHANGES.length)];
-    let sellExchange = EXCHANGES[Math.floor(Math.random() * EXCHANGES.length)];
-    
-    // Ensure different exchanges
-    while (sellExchange.name === buyExchange.name) {
-      sellExchange = EXCHANGES[Math.floor(Math.random() * EXCHANGES.length)];
-    }
-
-    const basePrice = asset.symbol === 'BTC' ? 98500 : 
-                     asset.type === 'ordinal' ? 10000 + Math.random() * 20000 :
-                     10 + Math.random() * 50;
-    
-    const priceDiff = 0.001 + Math.random() * 0.03; // 0.1% to 3% difference
-    const buyPrice = basePrice * (1 - priceDiff / 2);
-    const sellPrice = basePrice * (1 + priceDiff / 2);
-    
-    const volume = asset.symbol === 'BTC' ? 0.1 + Math.random() * 2 :
-                   asset.type === 'ordinal' ? 1 :
-                   100 + Math.random() * 1000;
-    
-    const requiredCapital = buyPrice * volume;
-    const grossProfit = (sellPrice - buyPrice) * volume;
-    const totalFees = (buyPrice * volume * buyExchange.fee) + (sellPrice * volume * sellExchange.fee);
-    const netProfit = grossProfit - totalFees;
-    const profitPercentage = (netProfit / requiredCapital) * 100;
-    
-    // Only include profitable opportunities
-    if (netProfit > 0) {
-      opportunities.push({
-        id: `arb-${Date.now()}-${i}`,
-        type: asset.type === 'ordinal' ? 'ordinals' : 'cross-exchange',
-        exchanges: {
-          buy: {
-            name: buyExchange.name,
-            price: buyPrice,
-            volume: volume,
-            fee: buyExchange.fee
-          },
-          sell: {
-            name: sellExchange.name,
-            price: sellPrice,
-            volume: volume,
-            fee: sellExchange.fee
-          }
-        },
-        asset: asset,
-        profit: {
-          amount: grossProfit,
-          percentage: profitPercentage,
-          netAmount: netProfit
-        },
-        requiredCapital,
-        confidence: 60 + Math.random() * 40,
-        riskLevel: profitPercentage > 2 ? 'high' : profitPercentage > 1 ? 'medium' : 'low',
-        expiresAt: new Date(Date.now() + (30 + Math.random() * 300) * 1000), // 30s to 5min
-        executionTime: 5 + Math.random() * 25,
-        status: 'active'
-      });
-    }
-  }
-
-  return opportunities.sort((a, b) => b.profit.percentage - a.profit.percentage);
-}
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const assetClass = searchParams.get('assetClass');
     const type = searchParams.get('type') || 'all';
     const minSpread = parseFloat(searchParams.get('minSpread') || '5');
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
 
+    // NEW: Handle Ordinals asset class
+    if (assetClass === 'ordinals' || type === 'ordinals') {
+      try {
+        console.log('🎯 Fetching Ordinals arbitrage opportunities...');
+
+        const { ordinalsArbitrageService } = await import('@/services/ordinals/OrdinalsArbitrageService');
+
+        // Get collections filter
+        const collectionsParam = searchParams.get('collections');
+        const collections = collectionsParam ? collectionsParam.split(',').filter(Boolean) : undefined;
+
+        // Get confidence filter
+        const minConfidence = parseFloat(searchParams.get('minConfidence') || '50');
+
+        // Get marketplaces filter
+        const marketplacesParam = searchParams.get('marketplaces');
+        const marketplaces = marketplacesParam ? marketplacesParam.split(',').filter(Boolean) : undefined;
+
+        // Scan for opportunities
+        const opportunities = await ordinalsArbitrageService.scanOpportunities({
+          minProfitPercentage: minSpread,
+          collections,
+          minConfidence,
+          marketplaces: marketplaces as any,
+          limit
+        });
+
+        // Calculate statistics
+        const totalOpportunities = opportunities.length;
+        const avgNetProfit = totalOpportunities > 0
+          ? opportunities.reduce((sum, opp) => sum + opp.netProfitPercentage, 0) / totalOpportunities
+          : 0;
+        const avgGrossProfit = totalOpportunities > 0
+          ? opportunities.reduce((sum, opp) => sum + opp.grossProfitPercentage, 0) / totalOpportunities
+          : 0;
+        const highValueCount = opportunities.filter(opp => opp.netProfitPercentage > 15).length;
+        const avgLiquidity = totalOpportunities > 0
+          ? opportunities.reduce((sum, opp) => sum + opp.liquidityScore, 0) / totalOpportunities
+          : 0;
+        const avgConfidence = totalOpportunities > 0
+          ? opportunities.reduce((sum, opp) => sum + opp.confidence, 0) / totalOpportunities
+          : 0;
+
+        // Marketplace distribution
+        const marketplaceDistribution: Record<string, number> = {};
+        opportunities.forEach(opp => {
+          marketplaceDistribution[opp.buyMarketplace] = (marketplaceDistribution[opp.buyMarketplace] || 0) + 1;
+          marketplaceDistribution[opp.sellMarketplace] = (marketplaceDistribution[opp.sellMarketplace] || 0) + 1;
+        });
+
+        // Risk distribution
+        const riskDistribution: Record<string, number> = {
+          low: opportunities.filter(opp => opp.riskScore === 'low').length,
+          medium: opportunities.filter(opp => opp.riskScore === 'medium').length,
+          high: opportunities.filter(opp => opp.riskScore === 'high').length
+        };
+
+        return NextResponse.json({
+          success: true,
+          source: 'ORDINALS_REAL_DATA',
+          opportunities: opportunities.slice(0, limit),
+          stats: {
+            totalOpportunities,
+            avgNetProfit,
+            avgGrossProfit,
+            highValueCount,
+            avgLiquidityScore: avgLiquidity,
+            avgConfidence,
+            marketplaceDistribution,
+            riskDistribution
+          },
+          timestamp: new Date().toISOString(),
+          cached: false
+        });
+
+      } catch (ordinalsError) {
+        console.error('❌ Ordinals arbitrage detection failed:', ordinalsError);
+        return NextResponse.json({
+          success: false,
+          source: 'ORDINALS_ERROR',
+          opportunities: [],
+          stats: {
+            totalOpportunities: 0,
+            avgNetProfit: 0,
+            avgGrossProfit: 0,
+            highValueCount: 0,
+            avgLiquidityScore: 0,
+            avgConfidence: 0,
+            marketplaceDistribution: {},
+            riskDistribution: { low: 0, medium: 0, high: 0 }
+          },
+          timestamp: new Date().toISOString(),
+          error: ordinalsError instanceof Error ? ordinalsError.message : 'Failed to fetch Ordinals arbitrage opportunities'
+        });
+      }
+    }
+
     // Get REAL arbitrage opportunities using our services
     const { realArbitrageService } = await import('@/services/RealArbitrageService');
-    
+
     console.log('🚀 Starting real arbitrage detection with CMC, Hiro & Ordiscan...');
-    
+
     try {
       // Detect real arbitrage opportunities
       const realOpportunities = await realArbitrageService.detectRealOpportunities(minSpread, type);
-      
+
       // If we have real data, use it
       if (realOpportunities.length > 0) {
         const totalOpportunities = realOpportunities.length;
@@ -173,297 +183,29 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (realDataError) {
-      console.warn('⚠️ Real arbitrage detection failed, using enhanced fallback:', realDataError);
+      console.error('❌ Real arbitrage detection failed:', realDataError);
+
+      // Return error response - no mock data fallback
+      return NextResponse.json({
+        success: false,
+        timestamp: new Date().toISOString(),
+        opportunities: [],
+        stats: {
+          totalOpportunities: 0,
+          totalSpread: 0,
+          avgSpread: 0,
+          highValueOpportunities: 0,
+          lastScan: Date.now()
+        },
+        filters: {
+          type,
+          minSpread,
+          limit
+        },
+        source: 'ERROR',
+        error: realDataError instanceof Error ? realDataError.message : 'Failed to fetch real arbitrage opportunities'
+      });
     }
-    
-    // Enhanced fallback with more realistic data
-    const enhancedOpportunities = [
-      // Bitcoin Ordinals
-      {
-        symbol: 'NodeMonkes',
-        name: 'NodeMonkes Collection',
-        type: 'ordinals',
-        buyPrice: 0.025,
-        sellPrice: 0.0295,
-        spread: 18.0,
-        potentialProfit: 0.0045,
-        buySource: 'Magic Eden',
-        sellSource: 'UniSat',
-        buyLink: 'https://magiceden.io/ordinals/marketplace/nodemonkes',
-        sellLink: 'https://unisat.io/inscription/nodemonkes',
-        baseCurrency: 'BTC',
-        volume24h: 2.5,
-        liquidity: 85,
-        confidence: 92,
-        lastUpdated: Date.now(),
-        marketCap: 125000,
-        aiAnalysis: 'High-value collection with strong floor support. Recent whale activity detected.',
-        riskScore: 'low',
-        trustScore: 92,
-        estimatedFees: {
-          network: 0.0002,
-          platform: 0.0005,
-          total: 0.0007
-        },
-        executionTime: 180,
-        historicalSuccess: 89,
-        priceConsistency: 94,
-        discoveryTime: Date.now() - 300000
-      },
-      {
-        symbol: 'Bitcoin Puppets',
-        name: 'Bitcoin Puppets',
-        type: 'ordinals',
-        buyPrice: 0.012,
-        sellPrice: 0.0138,
-        spread: 15.0,
-        potentialProfit: 0.0018,
-        buySource: 'OKX',
-        sellSource: 'Magic Eden',
-        buyLink: 'https://okx.com/web3/marketplace/ordinals/bitcoin-puppets',
-        sellLink: 'https://magiceden.io/ordinals/marketplace/bitcoin-puppets',
-        baseCurrency: 'BTC',
-        volume24h: 1.8,
-        liquidity: 78,
-        confidence: 88,
-        lastUpdated: Date.now(),
-        marketCap: 78000,
-        aiAnalysis: 'Strong community backing. Technical resistance broken recently.',
-        riskScore: 'medium',
-        trustScore: 78,
-        estimatedFees: {
-          network: 0.00015,
-          platform: 0.0004,
-          total: 0.00055
-        },
-        executionTime: 240,
-        historicalSuccess: 76,
-        priceConsistency: 82,
-        discoveryTime: Date.now() - 450000
-      },
-      // BRC-20 Tokens
-      {
-        symbol: 'ORDI',
-        name: 'Ordinals Protocol',
-        type: 'tokens',
-        buyPrice: 42.50,
-        sellPrice: 48.90,
-        spread: 15.06,
-        potentialProfit: 6.40,
-        buySource: 'OKX',
-        sellSource: 'UniSat',
-        buyLink: 'https://okx.com/web3/dex-swap/btc/ordi',
-        sellLink: 'https://unisat.io/market/brc20?tick=ordi',
-        baseCurrency: 'USD',
-        volume24h: 2500000,
-        liquidity: 95,
-        confidence: 96,
-        lastUpdated: Date.now(),
-        marketCap: 890000000,
-        aiAnalysis: 'First BRC-20 token showing institutional interest. Major exchange listing imminent.',
-        riskScore: 'low',
-        trustScore: 96,
-        estimatedFees: {
-          network: 0.5,
-          platform: 2.1,
-          bridge: 1.2,
-          total: 3.8
-        },
-        executionTime: 120,
-        historicalSuccess: 94,
-        priceConsistency: 91,
-        discoveryTime: Date.now() - 180000
-      },
-      {
-        symbol: 'SATS',
-        name: 'Satoshis',
-        type: 'tokens',
-        buyPrice: 0.000485,
-        sellPrice: 0.000558,
-        spread: 15.05,
-        potentialProfit: 0.000073,
-        buySource: 'Gate.io',
-        sellSource: 'Magic Eden',
-        buyLink: 'https://gate.io/trade/SATS_USDT',
-        sellLink: 'https://magiceden.io/ordinals/marketplace/sats',
-        baseCurrency: 'USD',
-        volume24h: 850000,
-        liquidity: 82,
-        confidence: 89,
-        lastUpdated: Date.now(),
-        marketCap: 315000000,
-        aiAnalysis: 'Memorial token gaining traction. Strong correlation with BTC price movements.',
-        riskScore: 'medium',
-        trustScore: 82,
-        estimatedFees: {
-          network: 0.000012,
-          platform: 0.000024,
-          bridge: 0.000008,
-          total: 0.000044
-        },
-        executionTime: 300,
-        historicalSuccess: 79,
-        priceConsistency: 85,
-        discoveryTime: Date.now() - 600000
-      },
-      // Runes
-      {
-        symbol: 'UNCOMMON•GOODS',
-        name: 'Uncommon Goods Rune',
-        type: 'runes',
-        buyPrice: 12.5,
-        sellPrice: 14.8,
-        spread: 18.4,
-        potentialProfit: 2.3,
-        buySource: 'UniSat',
-        sellSource: 'OKX',
-        buyLink: 'https://unisat.io/runes/market/UNCOMMON%E2%80%A2GOODS',
-        sellLink: 'https://okx.com/web3/marketplace/runes/uncommon-goods',
-        baseCurrency: 'USD',
-        volume24h: 45000,
-        liquidity: 65,
-        confidence: 81,
-        lastUpdated: Date.now(),
-        marketCap: 1200000,
-        aiAnalysis: 'Early Rune with utility focus. Growing adoption in NFT marketplaces.',
-        riskScore: 'high',
-        trustScore: 65,
-        estimatedFees: {
-          network: 0.3,
-          platform: 0.8,
-          total: 1.1
-        },
-        executionTime: 420,
-        historicalSuccess: 61,
-        priceConsistency: 68,
-        discoveryTime: Date.now() - 720000
-      },
-      {
-        symbol: 'RSIC•GENESIS•RUNE',
-        name: 'RSIC Genesis Rune',
-        type: 'runes',
-        buyPrice: 8.9,
-        sellPrice: 10.45,
-        spread: 17.4,
-        potentialProfit: 1.55,
-        buySource: 'Magic Eden',
-        sellSource: 'Ordiscan',
-        buyLink: 'https://magiceden.io/runes/RSIC%E2%80%A2GENESIS%E2%80%A2RUNE',
-        sellLink: 'https://ordiscan.com/rune/RSIC%E2%80%A2GENESIS%E2%80%A2RUNE',
-        baseCurrency: 'USD',
-        volume24h: 125000,
-        liquidity: 72,
-        confidence: 85,
-        lastUpdated: Date.now(),
-        marketCap: 2800000,
-        aiAnalysis: 'Genesis collection with strong fundamentals. Mining rewards creating buy pressure.',
-        riskScore: 'medium',
-        trustScore: 85,
-        estimatedFees: {
-          network: 0.25,
-          platform: 0.45,
-          total: 0.7
-        },
-        executionTime: 200,
-        historicalSuccess: 83,
-        priceConsistency: 87,
-        discoveryTime: Date.now() - 150000
-      },
-      // Additional high-spread opportunities
-      {
-        symbol: 'MEME•ECONOMICS',
-        name: 'Meme Economics Rune',
-        type: 'runes',
-        buyPrice: 0.85,
-        sellPrice: 1.02,
-        spread: 20.0,
-        potentialProfit: 0.17,
-        buySource: 'UniSat',
-        sellSource: 'Magic Eden',
-        buyLink: 'https://unisat.io/runes/market/MEME%E2%80%A2ECONOMICS',
-        sellLink: 'https://magiceden.io/runes/MEME%E2%80%A2ECONOMICS',
-        baseCurrency: 'USD',
-        volume24h: 15000,
-        liquidity: 45,
-        confidence: 75,
-        lastUpdated: Date.now(),
-        marketCap: 180000,
-        aiAnalysis: 'Emerging meme token with viral potential. Social sentiment strongly positive.',
-        riskScore: 'high',
-        trustScore: 45,
-        estimatedFees: {
-          network: 0.02,
-          platform: 0.04,
-          total: 0.06
-        },
-        executionTime: 600,
-        historicalSuccess: 42,
-        priceConsistency: 55,
-        discoveryTime: Date.now() - 1200000
-      },
-      {
-        symbol: 'Quantum Cats',
-        name: 'Quantum Cats Ordinals',
-        type: 'ordinals',
-        buyPrice: 0.035,
-        sellPrice: 0.042,
-        spread: 20.0,
-        potentialProfit: 0.007,
-        buySource: 'Ordiscan',
-        sellSource: 'OKX',
-        buyLink: 'https://ordiscan.com/collection/quantum-cats',
-        sellLink: 'https://okx.com/web3/marketplace/ordinals/quantum-cats',
-        baseCurrency: 'BTC',
-        volume24h: 0.8,
-        liquidity: 58,
-        confidence: 79,
-        lastUpdated: Date.now(),
-        marketCap: 95000,
-        aiAnalysis: 'Innovative on-chain art project. Limited supply creating scarcity premium.',
-        riskScore: 'high',
-        trustScore: 58,
-        estimatedFees: {
-          network: 0.0003,
-          platform: 0.0007,
-          total: 0.001
-        },
-        executionTime: 480,
-        historicalSuccess: 52,
-        priceConsistency: 61,
-        discoveryTime: Date.now() - 900000
-      }
-    ];
-
-    // Filter by type and minimum spread
-    let filteredOpportunities = enhancedOpportunities
-      .filter(opp => type === 'all' || opp.type === type)
-      .filter(opp => opp.spread >= minSpread)
-      .sort((a, b) => b.spread - a.spread)
-      .slice(0, limit);
-
-    // Calculate statistics
-    const totalOpportunities = filteredOpportunities.length;
-    const totalSpread = filteredOpportunities.reduce((sum, opp) => sum + opp.spread, 0);
-    const avgSpread = totalOpportunities > 0 ? totalSpread / totalOpportunities : 0;
-
-    return NextResponse.json({
-      success: true,
-      timestamp: new Date().toISOString(),
-      opportunities: filteredOpportunities,
-      stats: {
-        totalOpportunities,
-        totalSpread,
-        avgSpread,
-        highValueOpportunities: filteredOpportunities.filter(opp => opp.spread >= 15).length,
-        lastScan: Date.now()
-      },
-      filters: {
-        type,
-        minSpread,
-        limit
-      },
-      source: 'ENHANCED_FALLBACK'
-    });
 
   } catch (error) {
     console.error('Arbitrage opportunities API error:', error);

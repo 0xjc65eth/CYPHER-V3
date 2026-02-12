@@ -13,19 +13,57 @@ export interface NewsItem {
   image?: string;
 }
 
+// Simple title similarity check — returns ratio of matching characters
+function titleSimilarity(a: string, b: string): number {
+  const na = a.toLowerCase().trim();
+  const nb = b.toLowerCase().trim();
+  if (na === nb) return 1;
+  const longer = na.length >= nb.length ? na : nb;
+  const shorter = na.length < nb.length ? na : nb;
+  if (longer.length === 0) return 1;
+  // Count matching characters in order (LCS-lite)
+  let matches = 0;
+  let pos = 0;
+  for (const ch of shorter) {
+    const idx = longer.indexOf(ch, pos);
+    if (idx !== -1) { matches++; pos = idx + 1; }
+  }
+  return matches / longer.length;
+}
+
+// Deduplicate news items by title similarity (>80% match = duplicate)
+function deduplicateNews(items: NewsItem[]): NewsItem[] {
+  const result: NewsItem[] = [];
+  for (const item of items) {
+    const isDuplicate = result.some(existing => titleSimilarity(existing.title, item.title) > 0.8);
+    if (!isDuplicate) result.push(item);
+  }
+  return result;
+}
+
 // Function to fetch news from multiple sources
 async function fetchCryptoNews(): Promise<NewsItem[]> {
   try {
-    // Try to fetch from CryptoCompare API
-    const cryptoCompareNews = await fetchCryptoCompareNews();
-    
-    // If we have news from CryptoCompare, return it
-    if (cryptoCompareNews.length > 0) {
-      return cryptoCompareNews;
+    const [cryptoCompareResult, cryptoPanicResult] = await Promise.allSettled([
+      fetchCryptoCompareNews(),
+      fetchCryptoPanicNews(),
+    ]);
+
+    const cryptoCompareNews = cryptoCompareResult.status === 'fulfilled' ? cryptoCompareResult.value : [];
+    const cryptoPanicNews = cryptoPanicResult.status === 'fulfilled' ? cryptoPanicResult.value : [];
+
+    const merged = [...cryptoCompareNews, ...cryptoPanicNews];
+
+    if (merged.length === 0) {
+      return getFallbackNews();
     }
-    
-    // Otherwise, return fallback news
-    return getFallbackNews();
+
+    const deduplicated = deduplicateNews(merged);
+
+    // Sort by publishedAt descending (most recent first)
+    deduplicated.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+    return deduplicated;
   } catch (error) {
     console.error('Error fetching crypto news:', error);
     return getFallbackNews();
@@ -91,6 +129,68 @@ async function fetchCryptoCompareNews(): Promise<NewsItem[]> {
     });
   } catch (error) {
     console.error('Error fetching from CryptoCompare:', error);
+    return [];
+  }
+}
+
+// Function to fetch news from CryptoPanic
+async function fetchCryptoPanicNews(): Promise<NewsItem[]> {
+  try {
+    const apiKey = process.env.CRYPTOPANIC_API_KEY;
+    if (!apiKey) {
+      return [];
+    }
+
+    const response = await fetch(
+      `https://cryptopanic.com/api/free/v1/posts/?auth_token=${apiKey}&public=true&filter=hot&currencies=BTC`,
+      { cache: 'no-store' }
+    );
+
+    if (!response.ok) {
+      throw new Error(`CryptoPanic API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.results || !Array.isArray(data.results)) {
+      throw new Error('Invalid response format from CryptoPanic');
+    }
+
+    return data.results.map((item: any, index: number) => {
+      const positive = item.votes?.positive || 0;
+      const negative = item.votes?.negative || 0;
+      const totalVotes = positive + negative;
+
+      let sentiment: 'positive' | 'negative' | 'neutral' = 'neutral';
+      if (totalVotes > 0) {
+        if (positive > negative) sentiment = 'positive';
+        else if (negative > positive) sentiment = 'negative';
+      }
+
+      const relevance = Math.min(99, 60 + Math.min(totalVotes * 2, 39));
+
+      const categories: string[] = [];
+      if (item.currencies && Array.isArray(item.currencies)) {
+        for (const c of item.currencies) {
+          if (c.code) categories.push(c.code);
+        }
+      }
+      if (categories.length === 0) categories.push('Bitcoin');
+
+      return {
+        id: `cp-${item.id || index}`,
+        title: item.title || '',
+        description: item.title || '',
+        url: item.url || '',
+        source: item.source?.title || 'CryptoPanic',
+        publishedAt: item.published_at || new Date().toISOString(),
+        sentiment,
+        relevance,
+        categories,
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching from CryptoPanic:', error);
     return [];
   }
 }

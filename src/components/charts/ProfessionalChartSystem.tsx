@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useState, useMemo } from 'react'
-import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType, CrosshairMode } from 'lightweight-charts'
+import { createChart, IChartApi, ISeriesApi, LineStyle, ColorType, CrosshairMode, CandlestickSeries, AreaSeries, LineSeries, HistogramSeries } from 'lightweight-charts'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { TrendingUp, TrendingDown, BarChart3, Activity, Zap, Target } from 'lucide-react'
 
@@ -149,7 +149,7 @@ export function ProfessionalChart({
       try {
         switch (config.type) {
           case 'candlestick':
-            series = chart.addCandlestickSeries({
+            series = chart.addSeries(CandlestickSeries, {
               upColor: config.colors?.[0] || DEFAULT_COLORS.bullish,
               downColor: config.colors?.[1] || DEFAULT_COLORS.bearish,
               borderUpColor: config.colors?.[0] || DEFAULT_COLORS.bullish,
@@ -169,7 +169,7 @@ export function ProfessionalChart({
             break
 
           case 'area':
-            series = chart.addAreaSeries({
+            series = chart.addSeries(AreaSeries, {
               lineColor: config.colors?.[0] || DEFAULT_COLORS.primary,
               topColor: config.colors?.[0] ? `${config.colors[0]}40` : `${DEFAULT_COLORS.primary}40`,
               bottomColor: config.colors?.[0] ? `${config.colors[0]}00` : `${DEFAULT_COLORS.primary}00`,
@@ -184,7 +184,7 @@ export function ProfessionalChart({
             break
 
           default: // line
-            series = chart.addLineSeries({
+            series = chart.addSeries(LineSeries, {
               color: config.colors?.[0] || DEFAULT_COLORS.primary,
               lineWidth: 2,
               pointMarkersVisible: false,
@@ -205,7 +205,7 @@ export function ProfessionalChart({
 
         // Volume series if enabled
         if (config.showVolume && data.some(d => d.volume)) {
-          const volumeSeries = chart.addHistogramSeries({
+          const volumeSeries = chart.addSeries(HistogramSeries, {
             color: isDark ? '#374151' : '#F3F4F6',
             priceFormat: { type: 'volume' },
             priceScaleId: 'volume',

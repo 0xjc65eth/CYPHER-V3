@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { NeuralMetric } from '@/services/trading-data-service'
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch'
 
 export async function GET() {
   try {
@@ -8,18 +9,15 @@ export async function GET() {
     // Array para armazenar métricas neurais
     const metrics: NeuralMetric[] = []
 
-    // Obter dados de preço do Bitcoin
+    // Obter dados de preço do Bitcoin com rate limiting
     try {
-      const btcPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_7d_change=true', {
-        cache: 'no-store'
-      })
+      const btcData = await rateLimitedFetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_7d_change=true'
+      )
 
-      if (btcPriceResponse.ok) {
-        const btcData = await btcPriceResponse.json()
-
-        if (btcData.bitcoin) {
-          const priceChange24h = btcData.bitcoin.usd_24h_change || 0
-          const priceChange7d = btcData.bitcoin.usd_7d_change || 0
+      if (btcData && btcData.bitcoin) {
+        const priceChange24h = btcData.bitcoin.usd_24h_change || 0
+        const priceChange7d = btcData.bitcoin.usd_7d_change || 0
 
           // Calcular valor baseado nas mudanças de preço
           const value = 50 + (priceChange24h * 0.3) + (priceChange7d * 0.7)
@@ -38,15 +36,14 @@ export async function GET() {
             interpretation = `Strong bearish trend across multiple timeframes.`
           }
 
-          metrics.push({
-            name: 'Bitcoin Price Momentum',
-            value: Math.min(100, Math.max(0, value)),
-            interpretation,
-            trend,
-            confidence: 90,
-            timeframe: '1D'
-          })
-        }
+        metrics.push({
+          name: 'Bitcoin Price Momentum',
+          value: Math.min(100, Math.max(0, value)),
+          interpretation,
+          trend,
+          confidence: 90,
+          timeframe: '1D'
+        })
       }
     } catch (error) {
       console.error('Error fetching Bitcoin price data:', error)

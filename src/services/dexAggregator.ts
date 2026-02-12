@@ -5,6 +5,7 @@
 
 import axios from 'axios';
 import { ethers } from 'ethers';
+import { getDexFeeRate, MAX_FEE_USD } from '@/config/fee-config';
 
 export interface TokenInfo {
   address: string;
@@ -22,6 +23,7 @@ export interface QuoteRequest {
   chainId: number;
   slippage?: number;
   userAddress?: string;
+  isPremium?: boolean;
 }
 
 export interface QuoteResponse {
@@ -57,8 +59,6 @@ export interface DEXPrice {
 }
 
 class DEXAggregatorService {
-  private readonly CYPHER_FEE_RATE = 0.0005; // 0.05%
-  private readonly MAX_FEE_USD = 100;
   
   // Chain configurations
   private readonly CHAIN_CONFIG = {
@@ -141,7 +141,7 @@ class DEXAggregatorService {
       );
 
       // Calculate Cypher fee
-      const cypherFee = this.calculateCypherFee(bestQuote!.toAmount, bestQuote!.toToken);
+      const cypherFee = this.calculateCypherFee(bestQuote!.toAmount, bestQuote!.toToken, request.isPremium);
 
       return {
         ...bestQuote!,
@@ -343,17 +343,22 @@ class DEXAggregatorService {
   /**
    * Calculate Cypher fee with USD cap
    */
-  private calculateCypherFee(toAmount: string, toToken: TokenInfo): { fee: string; feeUSD: string } {
+  private calculateCypherFee(toAmount: string, toToken: TokenInfo, isPremium?: boolean): { fee: string; feeUSD: string } {
     try {
+      const feeRate = getDexFeeRate(isPremium ?? false);
+      if (feeRate === 0) {
+        return { fee: '0', feeUSD: '0' };
+      }
+
       const amount = parseFloat(toAmount);
-      const feeAmount = amount * this.CYPHER_FEE_RATE;
-      
+      const feeAmount = amount * feeRate;
+
       // For stablecoins, assume 1:1 USD ratio
       const isStablecoin = ['USDT', 'USDC', 'DAI', 'BUSD'].includes(toToken.symbol.toUpperCase());
       const estimatedUSD = isStablecoin ? feeAmount : feeAmount * 2000; // Rough ETH price estimate
-      
+
       // Apply USD cap
-      const cappedFeeUSD = Math.min(estimatedUSD, this.MAX_FEE_USD);
+      const cappedFeeUSD = Math.min(estimatedUSD, MAX_FEE_USD);
       const cappedFee = isStablecoin ? cappedFeeUSD : cappedFeeUSD / 2000;
 
       return {

@@ -1,12 +1,17 @@
+/* Import select overrides to fix transparency issues */
+@import '../styles/select-overrides.css';
+
+/* Import Ordinals CSS for professional features */
+@import '../styles/ordinals.css';
+
+/* Import Runes CSS for Magic Eden integration */
+@import '../runes/styles/runes.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import Bloomberg Terminal font */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Inter:ital,wght@0,100..900;1,100..900&display=swap');
-
-/* Import select overrides to fix transparency issues */
-@import '../styles/select-overrides.css';
+/* Bloomberg Terminal font - self-hosted via next/font/google in layout.tsx */
 
 /* Bloomberg Terminal CSS Variables */
 :root {
@@ -48,6 +53,34 @@
   --foreground-rgb: 247, 147, 26;
   --background-start-rgb: 0, 0, 0;
   --background-end-rgb: 0, 0, 0;
+
+  /* CYPHER Design Tokens */
+  /* Surface scale */
+  --cypher-surface-0: #000000;
+  --cypher-surface-1: #0a0a0a;
+  --cypher-surface-2: #111111;
+  --cypher-surface-3: #1a1a1a;
+  --cypher-surface-4: #222222;
+
+  /* Accent */
+  --cypher-accent: #F7931A;
+  --cypher-accent-rgb: 247, 147, 26;
+  --cypher-accent-dim: rgba(247, 147, 26, 0.5);
+  --cypher-accent-bright: #FFB347;
+
+  /* Border */
+  --cypher-border: #1e1e1e;
+  --cypher-border-active: rgba(247, 147, 26, 0.25);
+
+  /* Glow effects */
+  --cypher-glow-sm: 0 0 4px rgba(247, 147, 26, 0.3);
+  --cypher-glow-md: 0 0 8px rgba(247, 147, 26, 0.4);
+  --cypher-glow-lg: 0 0 16px rgba(247, 147, 26, 0.5);
+
+  /* Text */
+  --cypher-text-primary: #F7931A;
+  --cypher-text-secondary: rgba(247, 147, 26, 0.7);
+  --cypher-text-muted: rgba(247, 147, 26, 0.4);
 }
 
 /* Bloomberg Terminal Base Styles */
@@ -63,7 +96,7 @@ html {
 }
 
 body {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-family: var(--font-jetbrains-mono, 'JetBrains Mono'), 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
   font-size: var(--terminal-font-size-base);
   line-height: var(--terminal-line-height);
   color: var(--bloomberg-orange);
@@ -76,6 +109,15 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Terminal Typography System */
@@ -301,16 +343,49 @@ body {
   outline: none;
 }
 
+/* Global focus-visible styles for interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--bloomberg-orange);
+  outline-offset: 2px;
+}
+
+/* Screen reader only - live regions for dynamic content */
+.sr-only-live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  
+
   .terminal-scanlines::before {
     display: none;
+  }
+
+  .animate-pulse,
+  .animate-spin,
+  .animate-bounce {
+    animation: none !important;
   }
 }
 
@@ -373,8 +448,29 @@ body {
   body {
     font-size: 10px;
   }
-  
+
   .terminal-heading-1 { font-size: 16px; }
   .terminal-heading-2 { font-size: 14px; }
   .terminal-heading-3 { font-size: 12px; }
+}
+
+/* WCAG 2.1 AA Contrast Fix: Boost low-contrast gray text on dark backgrounds.
+   text-gray-500 (#6B7280) on bg-gray-900 (#111827) = 3.9:1 (FAILS AA)
+   text-gray-400 (#9CA3AF) on bg-gray-900 (#111827) = 5.5:1 (PASSES AA)
+   Override gray-500 and gray-600 in dark mode to meet 4.5:1 minimum. */
+.dark .text-gray-500 {
+  color: #9CA3AF !important; /* Equivalent to gray-400 for AA compliance */
+}
+
+.dark .text-gray-600 {
+  color: #9CA3AF !important; /* Equivalent to gray-400 for AA compliance */
+}
+
+/* Also fix placeholder text contrast */
+.dark .placeholder-gray-500::placeholder {
+  color: #9CA3AF !important;
+}
+
+.dark .placeholder-gray-600::placeholder {
+  color: #9CA3AF !important;
 }

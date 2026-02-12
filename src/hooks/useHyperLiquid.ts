@@ -140,7 +140,7 @@ export const useHyperLiquidPositions = (address?: string, enabled = true) => {
   const closePosition = useCallback(async (asset: string, size: number) => {
     if (!address) throw new Error('Address is required');
     
-    const result = await hyperLiquidService.closePosition(address, asset, size, '');
+    const result = await hyperLiquidService.closePosition(asset);
     if (result.success) {
       // Invalidate related queries to trigger refresh
       queryClient.invalidateQueries({ queryKey: ['hyperliquid-positions', address] });

@@ -1,33 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { coinGeckoService } from '@/lib/api/coingecko-service';
 
-// Proxy para API do CoinGecko para resolver problemas de CORS
+// Proxy para API do CoinGecko usando centralized rate-limited service
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const endpoint = searchParams.get('endpoint') || '/simple/price';
   const params = searchParams.get('params') || '';
-  
-  try {
-    const coingeckoUrl = `https://api.coingecko.com/api/v3${endpoint}${params ? `?${params}` : ''}`;
-    
-    const response = await fetch(coingeckoUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'CYPHER-ORDi-Future/3.0',
-      },
-      next: {
-        revalidate: 60, // Cache por 1 minuto
-      },
-    });
 
-    if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
+  try {
+    let data: any;
+
+    // Parse params string into object
+    const paramsObj: Record<string, string> = {};
+    if (params) {
+      const urlParams = new URLSearchParams(params);
+      urlParams.forEach((value, key) => {
+        paramsObj[key] = value;
+      });
     }
 
-    const data = await response.json();
-    
+    // Route to appropriate service method based on endpoint
+    if (endpoint === '/simple/price') {
+      const ids = paramsObj.ids?.split(',') || ['bitcoin'];
+      const vsCurrencies = paramsObj.vs_currencies?.split(',') || ['usd'];
+
+      data = await coinGeckoService.getSimplePrice(ids, vsCurrencies, {
+        include24hrChange: paramsObj.include_24hr_change === 'true',
+        include24hrVol: paramsObj.include_24hr_vol === 'true',
+        includeMarketCap: paramsObj.include_market_cap === 'true',
+      });
+    } else if (endpoint === '/coins/markets') {
+      data = await coinGeckoService.getCoinsMarkets(paramsObj.vs_currency || 'usd', {
+        perPage: parseInt(paramsObj.per_page || '20'),
+        page: parseInt(paramsObj.page || '1'),
+        ids: paramsObj.ids?.split(','),
+      });
+    } else if (endpoint === '/global') {
+      data = await coinGeckoService.getGlobal();
+    } else {
+      // For other endpoints, return fallback
+      data = getFallbackData(endpoint);
+    }
+
     return NextResponse.json(data, {
       headers: {
-        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        'Cache-Control': 'public, s-maxage=45, stale-while-revalidate=90',
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
@@ -35,10 +52,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('CoinGecko proxy error:', error);
-    
+
     // Retornar dados de fallback
     const fallbackData = getFallbackData(endpoint);
-    
+
     return NextResponse.json(fallbackData, {
       status: 200,
       headers: {

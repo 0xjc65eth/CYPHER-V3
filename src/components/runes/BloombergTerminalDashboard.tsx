@@ -319,7 +319,7 @@ export default function BloombergTerminalDashboard() {
             </button>
 
             <button
-              onClick={() => {}} // Settings modal would open
+              onClick={() => window.location.href = '/settings'}
               className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
               title="Settings"
             >

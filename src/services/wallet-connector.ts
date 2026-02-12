@@ -204,10 +204,11 @@ class WalletConnector {
    * Start real-time price monitoring
    */
   private startPriceMonitoring(): void {
+    // CoinGecko rate limit: increased to 60s
     this.refreshInterval = setInterval(async () => {
       await this.updateAssetPrices();
       await this.refreshAllWallets();
-    }, 30000); // Update every 30 seconds
+    }, 60000);
   }
 
   /**

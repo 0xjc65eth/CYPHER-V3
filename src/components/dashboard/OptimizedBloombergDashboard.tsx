@@ -100,7 +100,7 @@ const MarketOverviewGrid = React.memo(({
       <div className="bg-gray-900 border border-orange-500/30 p-3">
         <div className="text-[10px] text-orange-500/60 font-mono mb-1">BLOCK HEIGHT</div>
         <div className="text-lg font-bold text-orange-500 font-mono">
-          {networkStatus?.blockHeight.toLocaleString() || '832,456'}
+          {networkStatus?.blockHeight?.toLocaleString() || '---'}
         </div>
         <div className="text-[10px] text-green-400 font-mono">LATEST</div>
       </div>

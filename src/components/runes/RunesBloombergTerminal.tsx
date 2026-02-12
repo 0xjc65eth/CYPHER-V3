@@ -65,62 +65,79 @@ interface MarketAlert {
 }
 
 export default function RunesBloombergTerminal() {
+  const [allRunes, setAllRunes] = useState<RuneData[]>([]);
   const [selectedRune, setSelectedRune] = useState<RuneData | null>(null);
   const [topGainers, setTopGainers] = useState<RuneData[]>([]);
   const [topLosers, setTopLosers] = useState<RuneData[]>([]);
   const [marketAlerts, setMarketAlerts] = useState<MarketAlert[]>([]);
   const [isLive, setIsLive] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data generation (replace with real API calls)
   useEffect(() => {
-    const generateMockData = () => {
-      // Generate mock runes data
-      const runeNames = [
-        'RSIC•GENESIS•RUNE', 'DOG•GO•TO•THE•MOON', 'RUNESTONE', 'UNCOMMON•GOODS',
-        'RUNE•COIN', 'SATOSHI•NAKAMOTO', 'BITCOIN•ORDINALS', 'RARE•PEPE•RUNE'
-      ];
+    const controller = new AbortController();
 
-      const mockRunes: RuneData[] = runeNames.map((name, index) => ({
-        name,
-        symbol: name.split('•')[0],
-        price_btc: 0.00001 + Math.random() * 0.001,
-        price_usd: 45000 * (0.00001 + Math.random() * 0.001),
-        change_24h: (Math.random() - 0.5) * 50,
-        volume_24h: Math.random() * 1000000,
-        market_cap: Math.random() * 50000000,
-        holders: Math.floor(Math.random() * 10000),
-        supply: Math.floor(Math.random() * 21000000),
-        tvl: Math.random() * 5000000
-      }));
+    const fetchRunesData = async () => {
+      try {
+        const res = await fetch('/api/runes/market-data?limit=20&includeAnalytics=true', {
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`API returned ${res.status}`);
+        const json = await res.json();
+        const runesRaw = json.data?.runes || json.runes || [];
 
-      // Sort by change for gainers/losers
-      const sorted = [...mockRunes].sort((a, b) => b.change_24h - a.change_24h);
-      setTopGainers(sorted.slice(0, 5));
-      setTopLosers(sorted.slice(-5).reverse());
-      
-      if (!selectedRune) {
-        setSelectedRune(mockRunes[0]);
+        const mapped: RuneData[] = runesRaw.map((r: any) => ({
+          name: r.name || 'Unknown',
+          symbol: r.symbol || r.name?.split('•')[0] || '?',
+          price_btc: r.price?.current || 0,
+          price_usd: (r.price?.current || 0) * 95000,
+          change_24h: r.price?.change24h || 0,
+          volume_24h: r.volume?.volume24h || 0,
+          market_cap: r.marketCap?.current || 0,
+          holders: r.holders || 0,
+          supply: r.supply?.circulating || 0,
+          tvl: r.liquidity?.totalLiquidity || 0,
+        }));
+
+        setAllRunes(mapped);
+
+        const sorted = [...mapped].sort((a, b) => b.holders - a.holders);
+        setTopGainers(sorted.slice(0, 5));
+        setTopLosers(sorted.slice(-5).reverse());
+
+        if (!selectedRune && mapped.length > 0) {
+          setSelectedRune(mapped[0]);
+        }
+
+        // Build alerts from top runes by holder count
+        const alerts: MarketAlert[] = mapped.slice(0, 3).map((r: RuneData, i: number) => ({
+          id: `alert-${i}`,
+          type: 'volume' as const,
+          message: `${r.name}: ${r.holders.toLocaleString()} holders, ${r.supply.toLocaleString()} supply`,
+          timestamp: new Date().toLocaleTimeString(),
+          severity: r.holders > 5000 ? 'high' as const : r.holders > 1000 ? 'medium' as const : 'low' as const,
+          rune: r.name,
+        }));
+        setMarketAlerts(alerts);
+        setLastUpdate(new Date());
+        setIsLive(true);
+        setError(null);
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          console.error('Failed to fetch runes data:', err);
+          setError('Failed to load runes data');
+          setIsLive(false);
+        }
       }
-
-      // Generate alerts
-      const alertTypes = ['whale', 'volatility', 'pattern', 'volume'] as const;
-      const newAlerts: MarketAlert[] = Array.from({ length: 3 }, (_, i) => ({
-        id: `alert-${i}`,
-        type: alertTypes[Math.floor(Math.random() * alertTypes.length)],
-        message: `Large ${mockRunes[i]?.name} transaction detected`,
-        timestamp: new Date(Date.now() - Math.random() * 3600000).toLocaleTimeString(),
-        severity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
-        rune: mockRunes[i]?.name || 'Unknown'
-      }));
-      setMarketAlerts(newAlerts);
-      setLastUpdate(new Date());
     };
 
-    generateMockData();
-    const interval = setInterval(generateMockData, 10000); // Update every 10s
-    return () => clearInterval(interval);
-  }, [selectedRune]);
+    fetchRunesData();
+    const interval = setInterval(fetchRunesData, 60000); // CoinGecko rate limit: increased to 60s
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, []);
 
   const formatPrice = (price: number, currency: 'BTC' | 'USD' = 'USD') => {
     if (currency === 'BTC') {
@@ -193,28 +210,25 @@ export default function RunesBloombergTerminal() {
                   <h2 className="text-2xl font-bold text-orange-400 mb-2">{selectedRune.name}</h2>
                   <div className="space-y-1">
                     <div className="text-3xl font-bold text-white">
-                      {formatPrice(selectedRune.price_usd)}
+                      {selectedRune.supply > 0 ? `${(selectedRune.supply / 1_000_000).toFixed(1)}M supply` : '--'}
                     </div>
                     <div className="text-lg text-gray-400">
-                      {formatPrice(selectedRune.price_btc, 'BTC')}
-                    </div>
-                    <div className="text-lg">
-                      {formatChange(selectedRune.change_24h)}
+                      {selectedRune.holders.toLocaleString()} holders
                     </div>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:col-span-4">
                   <div>
-                    <div className="text-xs text-gray-400 mb-1">Market Cap</div>
+                    <div className="text-xs text-gray-400 mb-1">Total Supply</div>
                     <div className="text-lg font-bold text-white">
-                      ${(selectedRune.market_cap / 1000000).toFixed(1)}M
+                      {selectedRune.supply > 0 ? `${(selectedRune.supply / 1_000_000).toFixed(1)}M` : '--'}
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 mb-1">24h Volume</div>
+                    <div className="text-xs text-gray-400 mb-1">Transfers</div>
                     <div className="text-lg font-bold text-white">
-                      ${(selectedRune.volume_24h / 1000).toFixed(0)}K
+                      {selectedRune.volume_24h > 0 ? selectedRune.volume_24h.toLocaleString() : '--'}
                     </div>
                   </div>
                   <div>
@@ -224,9 +238,9 @@ export default function RunesBloombergTerminal() {
                     </div>
                   </div>
                   <div>
-                    <div className="text-xs text-gray-400 mb-1">TVL</div>
+                    <div className="text-xs text-gray-400 mb-1">Symbol</div>
                     <div className="text-lg font-bold text-white">
-                      ${(selectedRune.tvl / 1000000).toFixed(1)}M
+                      {selectedRune.symbol}
                     </div>
                   </div>
                 </div>
@@ -272,7 +286,7 @@ export default function RunesBloombergTerminal() {
           <CardHeader>
             <CardTitle className="text-green-400 flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Top Gainers
+              Top Runes
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -285,10 +299,10 @@ export default function RunesBloombergTerminal() {
                 >
                   <div>
                     <div className="font-bold text-white text-sm">{rune.symbol}</div>
-                    <div className="text-xs text-gray-400">{formatPrice(rune.price_usd)}</div>
+                    <div className="text-xs text-gray-400">{rune.holders.toLocaleString()} holders</div>
                   </div>
-                  <div className="text-right">
-                    {formatChange(rune.change_24h)}
+                  <div className="text-right text-xs text-gray-400">
+                    {rune.supply > 0 ? `${(rune.supply / 1_000_000).toFixed(1)}M` : '--'}
                   </div>
                 </div>
               ))}
@@ -301,7 +315,7 @@ export default function RunesBloombergTerminal() {
           <CardHeader>
             <CardTitle className="text-red-400 flex items-center gap-2">
               <TrendingDown className="h-5 w-5" />
-              Top Losers
+              More Runes
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -314,10 +328,10 @@ export default function RunesBloombergTerminal() {
                 >
                   <div>
                     <div className="font-bold text-white text-sm">{rune.symbol}</div>
-                    <div className="text-xs text-gray-400">{formatPrice(rune.price_usd)}</div>
+                    <div className="text-xs text-gray-400">{rune.holders.toLocaleString()} holders</div>
                   </div>
-                  <div className="text-right">
-                    {formatChange(rune.change_24h)}
+                  <div className="text-right text-xs text-gray-400">
+                    {rune.supply > 0 ? `${(rune.supply / 1_000_000).toFixed(1)}M` : '--'}
                   </div>
                 </div>
               ))}

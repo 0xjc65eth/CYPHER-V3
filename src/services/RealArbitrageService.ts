@@ -6,6 +6,7 @@
 import { coinMarketCapService } from './CoinMarketCapService';
 import { getHiroApi } from './HiroApiService';
 import { logger } from '@/lib/logger';
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
 export interface RealArbitrageOpportunity {
   symbol: string;
@@ -327,27 +328,86 @@ export class RealArbitrageService {
   }
 
   /**
-   * Get Bitcoin prices from different exchanges
+   * Get Bitcoin prices from different exchanges using real APIs
    */
   private async getBitcoinExchangePrices(basePrice: number): Promise<ExchangePrice[]> {
-    // Simulate real exchange price variations
-    const exchanges = [
-      { name: 'Binance', fee: 0.001, variation: 0.995 },
-      { name: 'Coinbase', fee: 0.005, variation: 1.002 },
-      { name: 'Kraken', fee: 0.0016, variation: 0.998 },
-      { name: 'OKX', fee: 0.001, variation: 1.001 },
-      { name: 'Bybit', fee: 0.001, variation: 0.997 }
-    ];
-    
-    return exchanges.map(exchange => ({
-      exchange: exchange.name,
-      price: basePrice * exchange.variation * (1 + (Math.random() - 0.5) * 0.01), // ±0.5% random
-      volume: Math.random() * 1000000 + 500000,
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const exchangeResults: ExchangePrice[] = [];
+
+    try {
+      const [binanceRes, coingeckoRes] = await Promise.allSettled([
+        fetch('https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT', { signal: controller.signal }),
+        rateLimitedFetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'),
+      ]);
+
+      clearTimeout(timeout);
+
+      if (binanceRes.status === 'fulfilled' && binanceRes.value && binanceRes.value.ok) {
+        const data = await binanceRes.value.json();
+        exchangeResults.push({
+          exchange: 'Binance',
+          price: parseFloat(data.price),
+          volume: 0,
+          timestamp: Date.now(),
+          fees: 0.001,
+          available: true,
+          link: 'https://binance.com/trade/BTC_USD'
+        });
+      }
+
+      if (coingeckoRes.status === 'fulfilled' && coingeckoRes.value) {
+        const data = coingeckoRes.value;
+        if (data.bitcoin?.usd) {
+          exchangeResults.push({
+            exchange: 'CoinGecko Aggregate',
+            price: data.bitcoin.usd,
+            volume: 0,
+            timestamp: Date.now(),
+            fees: 0,
+            available: true,
+            link: 'https://coingecko.com/en/coins/bitcoin'
+          });
+        }
+      }
+    } catch (error) {
+      clearTimeout(timeout);
+      logger.error('Error fetching exchange prices:', error);
+    }
+
+    // Add CMC base price as another source
+    exchangeResults.push({
+      exchange: 'CoinMarketCap',
+      price: basePrice,
+      volume: 0,
       timestamp: Date.now(),
-      fees: exchange.fee,
+      fees: 0,
       available: true,
-      link: `https://${exchange.name.toLowerCase()}.com/trade/BTC_USD`
-    }));
+      link: 'https://coinmarketcap.com/currencies/bitcoin/'
+    });
+
+    // Fallback static exchange entries when APIs fail
+    if (exchangeResults.length < 2) {
+      const fallbackExchanges = [
+        { name: 'Coinbase', fee: 0.005, variation: 1.002 },
+        { name: 'Kraken', fee: 0.0016, variation: 0.998 },
+        { name: 'OKX', fee: 0.001, variation: 1.001 },
+      ];
+      for (const ex of fallbackExchanges) {
+        exchangeResults.push({
+          exchange: ex.name,
+          price: basePrice * ex.variation,
+          volume: 0,
+          timestamp: Date.now(),
+          fees: ex.fee,
+          available: true,
+          link: `https://${ex.name.toLowerCase()}.com/trade/BTC_USD`
+        });
+      }
+    }
+
+    return exchangeResults;
   }
 
   /**
@@ -374,7 +434,7 @@ export class RealArbitrageService {
   }
   
   /**
-   * Get Ordinals marketplace prices (fallback)
+   * Get Ordinals marketplace prices (fallback with deterministic variations)
    */
   private async getOrdinalsMarketplacePrices(collection: any): Promise<ExchangePrice[]> {
     const marketplaces = [
@@ -383,13 +443,13 @@ export class RealArbitrageService {
       { name: 'OKX NFT', fee: 0.02, variation: 0.98 },
       { name: 'Ordiscan', fee: 0.015, variation: 1.02 }
     ];
-    
+
     const basePrice = collection.floor_price;
-    
+
     return marketplaces.map(marketplace => ({
       exchange: marketplace.name,
-      price: basePrice * marketplace.variation * (1 + (Math.random() - 0.5) * 0.1), // ±5% random
-      volume: Math.random() * 100 + 10,
+      price: basePrice * marketplace.variation,
+      volume: collection.sales_24h || 10,
       timestamp: Date.now(),
       fees: marketplace.fee,
       available: true,
@@ -398,7 +458,7 @@ export class RealArbitrageService {
   }
 
   /**
-   * Get Runes marketplace prices
+   * Get Runes marketplace prices (deterministic variations)
    */
   private async getRunesMarketplacePrices(rune: any): Promise<ExchangePrice[]> {
     const marketplaces = [
@@ -407,14 +467,14 @@ export class RealArbitrageService {
       { name: 'OKX', fee: 0.02, variation: 0.96 },
       { name: 'Ordiscan', fee: 0.015, variation: 1.04 }
     ];
-    
+
     // Generate base price from supply and holders
     const basePrice = Math.max(0.1, Math.min(100, rune.holders / 100));
-    
+
     return marketplaces.map(marketplace => ({
       exchange: marketplace.name,
-      price: basePrice * marketplace.variation * (1 + (Math.random() - 0.5) * 0.15), // ±7.5% random
-      volume: Math.random() * 50 + 5,
+      price: basePrice * marketplace.variation,
+      volume: rune.holders ? rune.holders / 20 : 5,
       timestamp: Date.now(),
       fees: marketplace.fee,
       available: true,

@@ -10,7 +10,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { brc20Service, type BRC20Token } from '@/services/BRC20Service';
+import { HiroBRC20API } from '@/lib/api/hiro/brc20';
+import type { BRC20Token } from '@/lib/api/hiro/types';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -31,13 +32,22 @@ interface BRC20TokenListProps {
   userAddress?: string;
 }
 
+// Extended token interface with computed fields
+interface ExtendedBRC20Token extends BRC20Token {
+  progress: number;
+  verified: boolean;
+  mintable: boolean;
+}
+
 export function BRC20TokenList({ onTokenSelect, showPortfolioOnly = false, userAddress }: BRC20TokenListProps) {
-  const [tokens, setTokens] = useState<BRC20Token[]>([]);
+  const [tokens, setTokens] = useState<ExtendedBRC20Token[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'marketCap' | 'volume24h' | 'price' | 'holders' | 'priceChange24h'>('marketCap');
+  const [sortBy, setSortBy] = useState<'holder_count' | 'tx_count' | 'minted_supply' | 'deploy_timestamp'>('holder_count');
   const [filterVerified, setFilterVerified] = useState(false);
   const [filterMintable, setFilterMintable] = useState(false);
+
+  const hiroAPI = new HiroBRC20API();
 
   useEffect(() => {
     loadTokens();
@@ -46,8 +56,28 @@ export function BRC20TokenList({ onTokenSelect, showPortfolioOnly = false, userA
   const loadTokens = async () => {
     try {
       setLoading(true);
-      const tokenData = await brc20Service.getBRC20Tokens(200);
-      setTokens(tokenData);
+      const response = await hiroAPI.getTokens({
+        limit: 100,
+        sort_by: 'holders',
+        order: 'desc'
+      });
+
+      // Transform Hiro API data to extended format
+      const extendedTokens: ExtendedBRC20Token[] = response.results.map((token) => {
+        const maxSupply = parseFloat(token.max_supply) || 0;
+        const mintedSupply = parseFloat(token.minted_supply) || 0;
+        const progress = maxSupply > 0 ? (mintedSupply / maxSupply) * 100 : 100;
+        const mintable = progress < 100;
+
+        return {
+          ...token,
+          progress,
+          verified: isVerifiedToken(token.ticker),
+          mintable
+        };
+      });
+
+      setTokens(extendedTokens);
     } catch (error) {
       console.error('Failed to load BRC-20 tokens:', error);
     } finally {
@@ -55,27 +85,29 @@ export function BRC20TokenList({ onTokenSelect, showPortfolioOnly = false, userA
     }
   };
 
+  const isVerifiedToken = (ticker: string): boolean => {
+    const verifiedTokens = ['ordi', 'sats', 'rats', 'meme', 'pepe'];
+    return verifiedTokens.includes(ticker?.toLowerCase());
+  };
+
   const filteredAndSortedTokens = tokens
     .filter(token => {
-      const matchesSearch = token.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           token.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = token.ticker.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesVerified = !filterVerified || token.verified;
       const matchesMintable = !filterMintable || token.mintable;
-      
+
       return matchesSearch && matchesVerified && matchesMintable;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'marketCap':
-          return b.marketCap - a.marketCap;
-        case 'volume24h':
-          return b.volume24h - a.volume24h;
-        case 'price':
-          return b.price - a.price;
-        case 'holders':
-          return b.holders - a.holders;
-        case 'priceChange24h':
-          return b.priceChange24h - a.priceChange24h;
+        case 'holder_count':
+          return b.holder_count - a.holder_count;
+        case 'tx_count':
+          return b.tx_count - a.tx_count;
+        case 'minted_supply':
+          return parseFloat(b.minted_supply) - parseFloat(a.minted_supply);
+        case 'deploy_timestamp':
+          return b.deploy_timestamp - a.deploy_timestamp;
         default:
           return 0;
       }
@@ -291,37 +323,19 @@ function TokenRow({ token, rank, onTrade, onViewDetails, onSelect }: TokenRowPro
       </td>
       
       <td className="py-4 text-right">
-        <div className="font-mono text-white">{formatPrice(token.price)}</div>
+        <div className="font-mono text-white">{formatNumber(token.minted_supply, true)}</div>
       </td>
-      
+
       <td className="py-4 text-right">
-        <div className={`flex items-center justify-end gap-1 ${
-          token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
-        }`}>
-          {token.priceChange24h >= 0 ? 
-            <TrendingUp className="w-4 h-4" /> : 
-            <TrendingDown className="w-4 h-4" />
-          }
-          <span className="font-medium">
-            {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(1)}%
-          </span>
-        </div>
+        <div className="font-mono text-white">{formatNumber(token.max_supply, true)}</div>
       </td>
-      
+
       <td className="py-4 text-right">
-        <div className="font-mono text-white">
-          ${formatNumber(token.marketCap, true)}
-        </div>
+        <div className="text-white">{formatNumber(token.holder_count, true)}</div>
       </td>
-      
+
       <td className="py-4 text-right">
-        <div className="font-mono text-white">
-          ${formatNumber(token.volume24h, true)}
-        </div>
-      </td>
-      
-      <td className="py-4 text-right">
-        <div className="text-white">{formatNumber(token.holders, true)}</div>
+        <div className="text-white">{formatNumber(token.tx_count)}</div>
       </td>
       
       <td className="py-4 text-right">
@@ -330,14 +344,20 @@ function TokenRow({ token, rank, onTrade, onViewDetails, onSelect }: TokenRowPro
             {token.progress.toFixed(1)}%
           </div>
           <div className="w-16 h-1 bg-gray-700 rounded-full overflow-hidden ml-auto">
-            <div 
+            <div
               className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-300"
               style={{ width: `${Math.min(token.progress, 100)}%` }}
             />
           </div>
         </div>
       </td>
-      
+
+      <td className="py-4 text-right">
+        <div className="text-sm text-gray-400">
+          {formatDate(token.deploy_timestamp)}
+        </div>
+      </td>
+
       <td className="py-4">
         <div className="flex items-center justify-center gap-2">
           <Button

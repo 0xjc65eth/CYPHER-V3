@@ -71,7 +71,7 @@ export default function SentimentAnalysis() {
 
   useEffect(() => {
     generateSentimentData();
-    const interval = setInterval(generateSentimentData, 30000);
+    const interval = setInterval(generateSentimentData, 60000); // CoinGecko rate limit: increased to 60s
     return () => clearInterval(interval);
   }, []);
 

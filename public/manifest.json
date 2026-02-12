@@ -1,7 +1,7 @@
 {
-  "name": "CYPHER ORDI FUTURE V3.0",
-  "short_name": "CYPHER AI",
-  "description": "Advanced Bitcoin Analytics & Trading Platform with AI-Powered Insights",
+  "name": "CYPHER",
+  "short_name": "CYPHER",
+  "description": "CYPHER - Professional Bitcoin Trading Terminal with AI-Powered Analytics",
   "version": "3.0.0",
   "manifest_version": 2,
   "start_url": "/",

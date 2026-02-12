@@ -389,7 +389,7 @@ export function RunesTabFixed() {
     loadRunesData();
     
     if (autoRefresh) {
-      refreshIntervalRef.current = setInterval(loadRunesData, 30000);
+      refreshIntervalRef.current = setInterval(loadRunesData, 60000); // CoinGecko rate limit: increased to 60s
       return () => {
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current);

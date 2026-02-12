@@ -85,6 +85,21 @@ module.exports = {
             600: '#D97706',
           },
         },
+        // CYPHER Design System
+        cypher: {
+          accent: '#F7931A',
+          'accent-dim': '#F7931A80',
+          'accent-bright': '#FFB347',
+          surface: {
+            0: '#000000',
+            1: '#0a0a0a',
+            2: '#111111',
+            3: '#1a1a1a',
+            4: '#222222',
+          },
+          border: '#1e1e1e',
+          'border-active': '#F7931A40',
+        },
         // Legacy color system for backward compatibility
         background: 'var(--background)',
         foreground: 'var(--foreground)',
@@ -146,6 +161,20 @@ module.exports = {
         'terminal-lg': '12px',
         'terminal-xl': '16px',
         'terminal-2xl': '24px',
+        'terminal-3xl': '32px',
+        'terminal-4xl': '48px',
+      },
+      borderRadius: {
+        'terminal': '4px',
+        'terminal-sm': '2px',
+        'terminal-lg': '8px',
+        'terminal-xl': '12px',
+      },
+      transitionTimingFunction: {
+        'terminal': 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+      transitionDuration: {
+        'terminal': '200ms',
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-in-out',
@@ -157,6 +186,7 @@ module.exports = {
         'data-scroll': 'data-scroll 20s linear infinite',
         'price-flash': 'price-flash 0.5s ease-in-out',
         'number-update': 'number-update 0.3s ease-in-out',
+        'shimmer': 'shimmer 1.5s infinite',
       },
       keyframes: {
         'fade-in': {
@@ -193,6 +223,9 @@ module.exports = {
           '50%': { transform: 'scale(1.05)', color: '#F7931A' },
           '100%': { transform: 'scale(1)' },
         },
+        'shimmer': {
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
       backdropBlur: {
         'terminal': '8px',
@@ -201,6 +234,9 @@ module.exports = {
         'terminal': '0 0 0 1px rgba(247, 147, 26, 0.1), 0 4px 16px rgba(0, 0, 0, 0.8)',
         'terminal-inner': 'inset 0 0 0 1px rgba(247, 147, 26, 0.2)',
         'terminal-glow': '0 0 20px rgba(247, 147, 26, 0.3)',
+        'glow-sm': '0 0 4px rgba(247, 147, 26, 0.3)',
+        'glow-md': '0 0 8px rgba(247, 147, 26, 0.4)',
+        'glow-lg': '0 0 16px rgba(247, 147, 26, 0.5)',
       },
     },
   },

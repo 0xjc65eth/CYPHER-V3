@@ -1,15 +1,32 @@
-import { Header } from '@/components/header'
+'use client'
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardCard } from '@/components/dashboard-card'
+
 export default function TermsPage() {
   return (
     <main className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-2">TERMS</h1>
         <h2 className="text-lg text-muted-foreground mb-6">TERMS OF SERVICE</h2>
-        <div className="grid gap-6 md:grid-cols-2">
-          <TermsOfServiceCard />
-          <PrivacyPolicyCard />
-        </div>
+        <Tabs defaultValue="terms" className="w-full">
+          <div className="border-b border-[#1a1a2e] mb-6">
+            <TabsList className="bg-transparent border-0 p-0 h-auto">
+              <TabsTrigger value="terms" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                Terms of Service
+              </TabsTrigger>
+              <TabsTrigger value="privacy" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                Privacy Policy
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="terms">
+            <TermsOfServiceCard />
+          </TabsContent>
+          <TabsContent value="privacy">
+            <PrivacyPolicyCard />
+          </TabsContent>
+        </Tabs>
       </div>
     </main>
   )
@@ -53,4 +70,4 @@ function PrivacyPolicyCard() {
       </div>
     </DashboardCard>
   )
-} 
+}

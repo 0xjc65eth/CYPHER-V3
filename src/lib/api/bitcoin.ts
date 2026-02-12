@@ -3,6 +3,7 @@
 import { API_CONFIG } from './config'
 import { cacheService, cacheKeys, cacheTTL } from '@/lib/cache'
 import { devLogger } from '@/lib/logger'
+import { coinGeckoService } from './coingecko-service'
 
 export interface BitcoinPrice {
   usd: number
@@ -89,58 +90,50 @@ export class BitcoinService {
   }
 
   private async fetchFromAPI(): Promise<MarketData> {
-    const APIs = [
-      {
-        name: 'CoinGecko',
-        url: 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true',
-        parser: (data: any) => {
-          const btc = data.bitcoin
-          return {
-            price: btc.usd,
-            change24h: btc.usd_24h_change,
-            volume24h: btc.usd_24h_vol,
-            marketCap: btc.usd_market_cap,
-            lastUpdated: new Date().toISOString(),
-            source: 'api' as const
-          }
-        }
-      },
-      {
-        name: 'CoinAPI',
-        url: 'https://rest.coinapi.io/v1/exchangerate/BTC/USD',
-        parser: (data: any) => ({
+    try {
+      // Use centralized CoinGecko service with rate limiting
+      devLogger.log('API', 'Fetching Bitcoin price from CoinGecko (rate-limited)')
+      const data = await coinGeckoService.getBitcoinPrice()
+
+      const marketData: MarketData = {
+        price: data.price,
+        change24h: data.change24h,
+        volume24h: data.volume24h,
+        marketCap: data.marketCap,
+        lastUpdated: new Date().toISOString(),
+        source: 'api'
+      }
+
+      // Cache successful result
+      await cacheService.set(cacheKeys.bitcoinPrice(), marketData, cacheTTL.prices)
+
+      devLogger.log('API', 'Successfully fetched from CoinGecko')
+      return marketData
+
+    } catch (error) {
+      devLogger.log('API', `CoinGecko failed: ${error}`)
+
+      // Try fallback CoinAPI
+      try {
+        devLogger.log('API', 'Trying fallback CoinAPI')
+        const data = await apiClient.fetch('https://rest.coinapi.io/v1/exchangerate/BTC/USD')
+        const marketData: MarketData = {
           price: data.rate,
           change24h: 0, // CoinAPI doesn't provide this in simple endpoint
           volume24h: 0,
           marketCap: 0,
           lastUpdated: new Date().toISOString(),
-          source: 'api' as const
-        })
-      }
-    ]
+          source: 'api'
+        }
 
-    let lastError: Error | null = null
-
-    for (const api of APIs) {
-      try {
-        devLogger.log('API', `Fetching Bitcoin price from ${api.name}`)
-        const data = await apiClient.fetch(api.url)
-        const marketData = api.parser(data)
-
-        // Cache successful result
         await cacheService.set(cacheKeys.bitcoinPrice(), marketData, cacheTTL.prices)
-        
-        devLogger.log('API', `Successfully fetched from ${api.name}`)
         return marketData
 
-      } catch (error) {
-        lastError = error as Error
-        devLogger.log('API', `${api.name} failed: ${error}`)
-        continue
+      } catch (fallbackError) {
+        devLogger.log('API', `Fallback API also failed: ${fallbackError}`)
+        throw error // Throw original error
       }
     }
-
-    throw lastError || new Error('All API sources failed')
   }
 
   private getFallbackData(): MarketData {
@@ -153,14 +146,13 @@ export class BitcoinService {
 
   async getMarketChart(days: number = 7): Promise<any> {
     const cacheKey = `bitcoin:chart:${days}days`
-    
+
     try {
       return await cacheService.getOrCompute(
         cacheKey,
         async () => {
-          devLogger.log('API', `Fetching Bitcoin chart for ${days} days`)
-          const url = `https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`
-          return await apiClient.fetch(url)
+          devLogger.log('API', `Fetching Bitcoin chart for ${days} days (rate-limited)`)
+          return await coinGeckoService.getMarketChart('bitcoin', 'usd', days)
         },
         cacheTTL.prices * 5 // Cache por 5 minutos para gráficos
       )

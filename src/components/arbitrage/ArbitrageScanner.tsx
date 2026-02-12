@@ -266,7 +266,7 @@ export function ArbitrageScanner() {
     
     // Setup auto-refresh if enabled
     if (autoRefresh) {
-      const interval = setInterval(loadOpportunities, 15000); // Refresh every 15 seconds
+      const interval = setInterval(loadOpportunities, 60000); // CoinGecko rate limit: increased to 60s
       setRefreshInterval(interval);
       
       return () => {

@@ -1,44 +1,39 @@
-"use client"
+'use client'
 
-import Link from 'next/link'
+import { useEffect } from 'react'
+import { CypherLogo } from '@/components/ui/CypherLogo'
 
-export default function ErrorPage() {
+export default function ErrorPage({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    console.error('[CYPHER] Unhandled error:', error)
+  }, [error])
+
   return (
-    <main className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="max-w-2xl w-full space-y-6">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-red-500 mb-2">Error</h1>
-          <p className="text-lg text-muted-foreground">An unexpected error occurred</p>
+    <main className="min-h-screen bg-cypher-surface-0 flex items-center justify-center p-6">
+      <div className="flex flex-col items-center gap-6 max-w-md text-center">
+        <CypherLogo size="lg" animated />
+
+        <div className="space-y-2">
+          <h1 className="font-mono text-lg font-bold text-red-400 uppercase tracking-wider">
+            System Error
+          </h1>
+          <p className="text-sm text-gray-400 leading-relaxed">
+            {error.message || 'An unexpected error occurred. Please try again.'}
+          </p>
         </div>
-        
-        <div className="bg-card rounded-lg p-6 space-y-4">
-          <div>
-            <h3 className="text-lg font-medium mb-2">Error Details</h3>
-            <p className="text-red-500">500 Internal Server Error</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              An unexpected error occurred on our servers. Our team has been notified.
-            </p>
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-2">What you can do:</h3>
-            <ul className="list-disc pl-5 space-y-1 text-sm">
-              <li>Refresh the page</li>
-              <li>Check our <Link href="/status" className="text-orange-500 hover:underline">system status</Link></li>
-              <li>Clear your browser cache</li>
-              <li>Try again in a few minutes</li>
-            </ul>
-          </div>
-          
-          <div className="pt-4 border-t">
-            <Link 
-              href="/" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-            >
-              Return to Dashboard
-            </Link>
-          </div>
-        </div>
+
+        <button
+          onClick={reset}
+          className="terminal-button-primary font-mono text-xs uppercase tracking-widest px-6 py-3"
+        >
+          Retry
+        </button>
       </div>
     </main>
   )

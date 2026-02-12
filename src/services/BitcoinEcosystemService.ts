@@ -1,6 +1,6 @@
 /**
  * Bitcoin Ecosystem Service
- * Provides Bitcoin ecosystem data and statistics
+ * Provides Bitcoin ecosystem data and statistics via internal API routes
  */
 
 export interface BitcoinEcosystemStats {
@@ -33,6 +33,26 @@ export interface RuneData {
 
 import { RareSatData } from '@/types/rare-sats';
 
+const BASE_URL = typeof window !== 'undefined'
+  ? ''
+  : `http://localhost:${process.env.PORT || 4444}`;
+
+const FETCH_TIMEOUT = 10000;
+
+async function fetchInternal<T>(path: string): Promise<T | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    const response = await fetch(`${BASE_URL}${path}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const json = await response.json();
+    return json.data ?? json;
+  } catch {
+    return null;
+  }
+}
+
 class BitcoinEcosystemService {
   private static instance: BitcoinEcosystemService;
 
@@ -44,48 +64,78 @@ class BitcoinEcosystemService {
   }
 
   async getEcosystemStats(): Promise<BitcoinEcosystemStats> {
-    // Return mock data that matches the working version
-    return {
-      totalRunes: 24,
-      runesVolume24h: 1500000,
-      activeHolders: 15000,
-      totalTransactions: 50000,
-      totalInscriptions: 45892343,
-      ordinalsVolume24h: 485000,
-      brc20Tokens: 156,
-      networkHashrate: 450000000,
-      mempool: {
-        size: 25000,
-        avgFee: 12
+    // Fetch runes and mining data from internal API routes in parallel
+    const [runesResult, miningResult] = await Promise.allSettled([
+      fetchInternal<any>('/api/runes/market-data?limit=50&includeAnalytics=true'),
+      fetchInternal<any>('/api/mining-data'),
+    ]);
+
+    const runesData = runesResult.status === 'fulfilled' ? runesResult.value : null;
+    const miningData = miningResult.status === 'fulfilled' ? miningResult.value : null;
+
+    const runes = runesData?.runes || [];
+    const analytics = runesData?.analytics;
+
+    const totalRunes = analytics?.marketOverview?.activeRunes ?? runes.length;
+    const runesVolume24h = analytics?.marketOverview?.totalVolume24h ?? 0;
+    const activeHolders = runes.reduce((sum: number, r: any) => sum + (r.holders || 0), 0);
+    const totalTransactions = runes.reduce(
+      (sum: number, r: any) => sum + (r.transactions?.transfers24h || 0),
+      0
+    );
+
+    // Parse hashrate string like "578.4 EH/s" to a number
+    let networkHashrate = 450000000;
+    if (miningData?.hashrate) {
+      const parsed = parseFloat(miningData.hashrate);
+      if (!isNaN(parsed)) {
+        networkHashrate = parsed * 1e6; // EH/s to TH/s approximation for display
       }
+    }
+
+    let mempoolSize = 25000;
+    let avgFee = 12;
+    if (miningData?.mempoolTxCount) {
+      mempoolSize = miningData.mempoolTxCount;
+    }
+
+    return {
+      totalRunes,
+      runesVolume24h,
+      activeHolders,
+      totalTransactions,
+      totalInscriptions: 45892343, // Ordinals inscriptions - would need a separate API
+      ordinalsVolume24h: 485000,   // Would need ordinals marketplace API
+      brc20Tokens: 156,            // Would need BRC-20 indexer API
+      networkHashrate,
+      mempool: {
+        size: mempoolSize,
+        avgFee,
+      },
     };
   }
 
   async getRunesData(): Promise<RuneData[]> {
-    // Return mock runes data that was working
-    const runeNames = [
-      'UNCOMMON•GOODS', 'RSIC•METAPROTOCOL', 'DOG•GO•TO•THE•MOON',
-      'SATOSHI•NAKAMOTO', 'BITCOIN•PIZZA•DAY', 'MEME•ECONOMICS',
-      'ORDINAL•THEORY', 'DIGITAL•ARTIFACTS', 'RARE•SATS•CLUB',
-      'LIGHTNING•NETWORK', 'TIMECHAIN•GENESIS', 'PROOF•OF•WORK'
-    ];
+    const data = await fetchInternal<any>('/api/runes/market-data?limit=50&includeAnalytics=false');
+    const runes = data?.runes || [];
 
-    return runeNames.map((name, index) => ({
-      id: `rune_${index + 1}`,
-      name,
-      symbol: name.replace(/[•\s]/g, '').substring(0, 8),
-      price: 0.00001 + Math.random() * 0.001,
-      change24h: (Math.random() - 0.5) * 20,
-      marketCap: 1000000 + Math.random() * 50000000,
-      supply: 1000000 + Math.random() * 99000000,
-      holders: 100 + Math.floor(Math.random() * 10000),
-      mints: Math.floor(Math.random() * 1000),
-      mintProgress: 50 + Math.random() * 50
+    return runes.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      symbol: r.symbol,
+      price: r.price?.current ?? 0,
+      change24h: r.price?.change24h ?? 0,
+      marketCap: r.marketCap?.current ?? 0,
+      supply: r.supply?.circulating ?? 0,
+      holders: r.holders ?? 0,
+      mints: r.transactions?.mints24h ?? 0,
+      mintProgress: r.minting?.progress ?? 0,
     }));
   }
 
   async getRareSatsData(address?: string): Promise<RareSatData> {
-    // Mock implementation with real-looking data
+    // Rare sats data requires specialized indexer APIs (e.g., Hiro Ordinals)
+    // Keeping static data as there's no free public API for this
     const rareSats = [
       {
         id: 'sat_001',
@@ -99,7 +149,7 @@ class BitcoinEcosystemService {
         address: address || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
       },
       {
-        id: 'sat_002', 
+        id: 'sat_002',
         rarity: 'pizza',
         value: 0.3,
         satNumber: 1234567890,

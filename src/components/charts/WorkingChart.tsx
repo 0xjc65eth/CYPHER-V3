@@ -53,7 +53,7 @@ export const WorkingChart: React.FC<WorkingChartProps> = ({
         // Only load lightweight-charts if we have data
         if (typeof window !== 'undefined' && mounted) {
           try {
-            const { createChart } = await import('lightweight-charts');
+            const { createChart, CandlestickSeries } = await import('lightweight-charts');
             
             if (!mounted || !containerRef.current) return;
 
@@ -86,7 +86,7 @@ export const WorkingChart: React.FC<WorkingChartProps> = ({
             });
 
             // Add candlestick series
-            const candleSeries = chart.addCandlestickSeries({
+            const candleSeries = chart.addSeries(CandlestickSeries, {
               upColor: '#26a69a',
               downColor: '#ef5350',
               borderVisible: false,

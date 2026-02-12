@@ -1,3 +1,5 @@
+import { STANDARD_DEX_FEE_RATE, MAX_FEE_USD } from '@/config/fee-config';
+
 // Quick Trade System Types
 export interface Token {
   address: string
@@ -138,8 +140,8 @@ export interface AggregatorSettings {
   includeGasCosts: boolean
   prioritizeSpeed: boolean
   minAmountUSD: number // $10 minimum
-  cypherFeeRate: number // 0.05% = 0.0005 (V3.0.0)
-  maxFeeUSD: number // $100 maximum fee cap
+  cypherFeeRate: number // From fee-config.ts
+  maxFeeUSD: number // From fee-config.ts
   enabledDEXs: DEXType[]
   enabledNetworks: number[]
 }
@@ -304,8 +306,8 @@ export const DEFAULT_SETTINGS: AggregatorSettings = {
   includeGasCosts: true,
   prioritizeSpeed: false,
   minAmountUSD: 10,
-  cypherFeeRate: 0.0005, // 0.05% (V3.0.0)
-  maxFeeUSD: 100, // $100 maximum fee cap
+  cypherFeeRate: STANDARD_DEX_FEE_RATE,
+  maxFeeUSD: MAX_FEE_USD,
   enabledDEXs: [
     DEXType.UNISWAP_V3,
     DEXType.JUPITER,

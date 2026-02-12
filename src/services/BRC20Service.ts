@@ -7,6 +7,12 @@
 import { hiroAPI } from '@/lib/hiro-api';
 import { realPriceService } from './RealPriceService';
 import { devLogger } from '@/lib/logger';
+import {
+  fetchUnisatBRC20Info,
+  fetchBTCPrice,
+  fetchAggregatedPrice,
+  type TokenPrice
+} from '@/lib/price-apis';
 
 // Enhanced BRC-20 Token Interface
 export interface BRC20Token {
@@ -120,42 +126,43 @@ class BRC20Service {
         throw new Error('No BRC-20 tokens received');
       }
 
-      // Get real ORDI price for reference
-      const ordiPrice = await realPriceService.getRealPrice('ORDI');
+      // Fetch real prices for all tokens in parallel
+      const processedTokens: BRC20Token[] = await Promise.all(
+        response.results.map(async (token: any) => {
+          const maxSupply = parseFloat(token.max_supply) || 0;
+          const mintedSupply = parseFloat(token.minted_supply) || 0;
 
-      const processedTokens: BRC20Token[] = response.results.map((token: any) => {
-        const maxSupply = parseFloat(token.max_supply) || 0;
-        const mintedSupply = parseFloat(token.minted_supply) || 0;
-        const isOrdi = token.ticker?.toLowerCase() === 'ordi';
-        const price = isOrdi && ordiPrice ? ordiPrice.price : this.generateTokenPrice(token.ticker);
-        
-        return {
-          ticker: token.ticker || 'UNKN',
-          name: token.ticker || 'Unknown Token',
-          supply: mintedSupply,
-          maxSupply: maxSupply,
-          mintedSupply: mintedSupply,
-          limitPerMint: parseFloat(token.mint_limit) || 0,
-          holders: this.estimateHolders(token.ticker, token.tx_count),
-          price: price,
-          priceChange24h: this.generatePriceChange(),
-          change24h: this.generatePriceChange(),
-          volume24h: this.generateVolume(token.ticker, token.tx_count),
-          marketCap: price * mintedSupply,
-          deployedAt: token.deploy_timestamp || new Date().toISOString(),
-          deployer: token.address || this.generateAddress(),
-          deployBlock: token.deploy_block_height || 840000,
-          progress: maxSupply > 0 ? Math.min((mintedSupply / maxSupply) * 100, 100) : 100,
-          transfers: token.tx_count || 0,
-          mintable: mintedSupply < maxSupply,
-          verified: this.isVerifiedToken(token.ticker),
-          description: this.getTokenDescription(token.ticker),
-          website: this.getTokenWebsite(token.ticker),
-          twitter: this.getTokenTwitter(token.ticker),
-          telegram: this.getTokenTelegram(token.ticker),
-          logo: this.getTokenLogo(token.ticker)
-        };
-      });
+          // Get REAL price data from UniSat API
+          const priceData = await this.getTokenPrice(token.ticker);
+
+          return {
+            ticker: token.ticker || 'UNKN',
+            name: token.ticker || 'Unknown Token',
+            supply: mintedSupply,
+            maxSupply: maxSupply,
+            mintedSupply: mintedSupply,
+            limitPerMint: parseFloat(token.mint_limit) || 0,
+            holders: this.estimateHolders(token.ticker, token.tx_count),
+            price: priceData.price,
+            priceChange24h: priceData.priceChange24h,
+            change24h: priceData.priceChange24h,
+            volume24h: priceData.volume24h,
+            marketCap: priceData.price * mintedSupply,
+            deployedAt: token.deploy_timestamp || new Date().toISOString(),
+            deployer: token.address || this.generateAddress(),
+            deployBlock: token.deploy_block_height || 840000,
+            progress: maxSupply > 0 ? Math.min((mintedSupply / maxSupply) * 100, 100) : 100,
+            transfers: token.tx_count || 0,
+            mintable: mintedSupply < maxSupply,
+            verified: this.isVerifiedToken(token.ticker),
+            description: this.getTokenDescription(token.ticker),
+            website: this.getTokenWebsite(token.ticker),
+            twitter: this.getTokenTwitter(token.ticker),
+            telegram: this.getTokenTelegram(token.ticker),
+            logo: this.getTokenLogo(token.ticker)
+          };
+        })
+      );
 
       // Sort by market cap
       processedTokens.sort((a, b) => b.marketCap - a.marketCap);
@@ -182,7 +189,7 @@ class BRC20Service {
         throw new Error(`Token ${ticker} not found`);
       }
 
-      const token = this.processTokenData(response);
+      const token = await this.processTokenData(response);
       this.setCache(cacheKey, token);
       
       return token;
@@ -208,26 +215,34 @@ class BRC20Service {
         throw new Error('Failed to fetch portfolio data');
       }
 
-      const balances: BRC20Balance[] = response.data.results.map((token: any) => {
-        const balance = parseFloat(token.overall_balance || token.balance || '0');
-        const transferable = parseFloat(token.transferable_balance || token.available_balance || '0');
-        const price = this.generateTokenPrice(token.ticker);
-        const value = balance * price;
+      // Fetch real prices for all portfolio tokens in parallel
+      const balances: BRC20Balance[] = await Promise.all(
+        response.data.results.map(async (token: any) => {
+          const balance = parseFloat(token.overall_balance || token.balance || '0');
+          const transferable = parseFloat(token.transferable_balance || token.available_balance || '0');
 
-        return {
-          ticker: token.ticker,
-          balance: token.overall_balance || token.balance || '0',
-          transferable: token.transferable_balance || token.available_balance || '0',
-          available: token.available_balance || '0',
-          value: value,
-          valueUSD: value, // Assuming USD for now
-          percentage: 0, // Will be calculated below
-          lastUpdate: new Date().toISOString()
-        };
-      });
+          // Get REAL price data from UniSat API
+          const priceData = await this.getTokenPrice(token.ticker);
+          const value = balance * priceData.price;
+          const btcPrice = await fetchBTCPrice();
+          const valueUSD = value * btcPrice;
+
+          return {
+            ticker: token.ticker,
+            balance: token.overall_balance || token.balance || '0',
+            transferable: token.transferable_balance || token.available_balance || '0',
+            available: token.available_balance || '0',
+            value: value,
+            valueUSD: valueUSD,
+            percentage: 0, // Will be calculated below
+            lastUpdate: new Date().toISOString()
+          };
+        })
+      );
 
       const totalValue = balances.reduce((sum, balance) => sum + balance.value, 0);
-      
+      const totalValueUSD = balances.reduce((sum, balance) => sum + balance.valueUSD, 0);
+
       // Calculate percentages
       balances.forEach(balance => {
         balance.percentage = totalValue > 0 ? (balance.value / totalValue) * 100 : 0;
@@ -236,12 +251,12 @@ class BRC20Service {
       const portfolio: BRC20Portfolio = {
         address,
         totalValue,
-        totalValueUSD: totalValue,
+        totalValueUSD,
         tokenCount: balances.length,
         balances,
-        performance24h: this.generatePerformance(),
-        performance7d: this.generatePerformance(),
-        performance30d: this.generatePerformance(),
+        performance24h: 0, // TODO: Calculate real performance from historical data
+        performance7d: 0,
+        performance30d: 0,
         lastUpdate: new Date().toISOString()
       };
 
@@ -272,13 +287,13 @@ class BRC20Service {
         price: token.price,
         priceChange24h: token.priceChange24h,
         volume24h: token.volume24h,
-        volumeChange24h: this.generateVolumeChange(),
+        volumeChange24h: 0, // TODO: Calculate from historical volume data
         marketCap: token.marketCap,
         holders: token.holders,
         transfers24h: Math.floor(token.transfers * 0.1), // Estimate daily transfers
-        highestPrice24h: token.price * (1 + Math.random() * 0.2),
-        lowestPrice24h: token.price * (1 - Math.random() * 0.2),
-        avgPrice24h: token.price * (1 + (Math.random() - 0.5) * 0.1),
+        highestPrice24h: token.price, // TODO: Fetch from price history API
+        lowestPrice24h: token.price, // TODO: Fetch from price history API
+        avgPrice24h: token.price, // TODO: Calculate from OHLCV data
         liquidityScore: this.calculateLiquidityScore(token),
         volatilityScore: this.calculateVolatilityScore(token)
       };
@@ -361,10 +376,12 @@ class BRC20Service {
 
   // ==================== HELPER METHODS ====================
 
-  private processTokenData(rawToken: any): BRC20Token {
+  private async processTokenData(rawToken: any): Promise<BRC20Token> {
     const maxSupply = parseFloat(rawToken.max_supply) || 0;
     const mintedSupply = parseFloat(rawToken.minted_supply) || 0;
-    const price = this.generateTokenPrice(rawToken.ticker);
+
+    // Get REAL price data from UniSat API
+    const priceData = await this.getTokenPrice(rawToken.ticker);
 
     return {
       ticker: rawToken.ticker || 'UNKN',
@@ -374,11 +391,11 @@ class BRC20Service {
       mintedSupply: mintedSupply,
       limitPerMint: parseFloat(rawToken.mint_limit) || 0,
       holders: this.estimateHolders(rawToken.ticker, rawToken.tx_count),
-      price: price,
-      priceChange24h: this.generatePriceChange(),
-      change24h: this.generatePriceChange(),
-      volume24h: this.generateVolume(rawToken.ticker, rawToken.tx_count),
-      marketCap: price * mintedSupply,
+      price: priceData.price,
+      priceChange24h: priceData.priceChange24h,
+      change24h: priceData.priceChange24h,
+      volume24h: priceData.volume24h,
+      marketCap: priceData.price * mintedSupply,
       deployedAt: rawToken.deploy_timestamp || new Date().toISOString(),
       deployer: rawToken.address || this.generateAddress(),
       deployBlock: rawToken.deploy_block_height || 840000,
@@ -394,36 +411,48 @@ class BRC20Service {
     };
   }
 
-  private generateTokenPrice(ticker: string): number {
-    const popularTokens: { [key: string]: number } = {
-      'ordi': 45.0,
-      'sats': 0.0000005,
-      'rats': 0.000015,
-      'meme': 0.0025,
-      'pepe': 0.000008,
-      'wojak': 0.000012
-    };
+  /**
+   * Get real token price from UniSat API
+   * Replaces the old generateTokenPrice() function that used random numbers
+   */
+  private async getTokenPrice(ticker: string): Promise<{ price: number; priceChange24h: number; volume24h: number }> {
+    try {
+      // Try to get real price from UniSat
+      const priceData = await fetchUnisatBRC20Info(ticker);
 
-    const basePrice = popularTokens[ticker?.toLowerCase()] || Math.random() * 0.01;
-    return basePrice * (1 + (Math.random() - 0.5) * 0.4); // Add some variance
+      if (priceData && priceData.price > 0) {
+        return {
+          price: priceData.price,
+          priceChange24h: priceData.priceChange24h,
+          volume24h: priceData.volume24h
+        };
+      }
+
+      // Fallback: try aggregated price from multiple sources
+      const aggregatedData = await fetchAggregatedPrice(ticker, 'brc20');
+
+      if (aggregatedData && aggregatedData.price > 0) {
+        return {
+          price: aggregatedData.price,
+          priceChange24h: aggregatedData.priceChange24h,
+          volume24h: aggregatedData.volume24h
+        };
+      }
+
+      // If no real data available, return zeros (better than fake random data)
+      devLogger.warn('BRC20Service', `No real price data available for ${ticker}, returning 0`);
+      return { price: 0, priceChange24h: 0, volume24h: 0 };
+    } catch (error) {
+      devLogger.error(error, `Failed to fetch real price for ${ticker}`);
+      return { price: 0, priceChange24h: 0, volume24h: 0 };
+    }
   }
 
-  private generatePriceChange(): number {
-    return (Math.random() - 0.5) * 40; // -20% to +20%
-  }
-
-  private generateVolume(ticker: string, txCount: number): number {
-    const base = txCount ? txCount * 100 : Math.random() * 100000;
-    return base * (1 + Math.random() * 5);
-  }
-
-  private generateVolumeChange(): number {
-    return (Math.random() - 0.5) * 100; // -50% to +50%
-  }
-
-  private generatePerformance(): number {
-    return (Math.random() - 0.5) * 30; // -15% to +15%
-  }
+  /**
+   * REMOVED: generatePriceChange(), generateVolume(), generateVolumeChange(), generatePerformance()
+   * These functions generated fake random data.
+   * Now using real data from getTokenPrice() and API integrations.
+   */
 
   private estimateHolders(ticker: string, txCount: number): number {
     if (ticker?.toLowerCase() === 'ordi') return 15000;

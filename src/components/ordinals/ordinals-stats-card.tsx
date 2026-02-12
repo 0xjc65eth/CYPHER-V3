@@ -288,12 +288,15 @@ export function OrdinalsStatsCard() {
                 </svg>
                 Top Collections
               </p>
-              <a href="#" className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-lg transition-colors">
+              <button
+                onClick={() => window.location.href = '/ordinals'}
+                className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 px-2 py-1 bg-blue-500/10 border border-blue-500/30 rounded-lg transition-colors"
+              >
                 View All
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </a>
+              </button>
             </div>
             <ul className="space-y-2">
               {ordinalsData.popular_collections.slice(0, 3).map((collection: any, index: number) => {

@@ -1,9 +1,9 @@
 /**
  * 🔥 REAL ANALYTICS DATA SERVICE - CYPHER ORDI FUTURE v3.2.0
- * 
+ *
  * This service replaces all mock/fake data with real data from Hiro APIs
  * and other reliable data sources for comprehensive Bitcoin ecosystem analytics.
- * 
+ *
  * Features:
  * - Real Ordinals & Runes market data
  * - Live Bitcoin network metrics
@@ -12,6 +12,8 @@
  * - Transaction activity data
  * - Mining and network health metrics
  */
+
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
 import { hiroAPI } from '@/lib/hiro-api';
 import { devLogger } from '@/lib/logger';
@@ -593,8 +595,8 @@ class RealAnalyticsDataService {
     } catch {}
 
     try {
-      // Test CoinGecko
-      await fetch('https://api.coingecko.com/api/v3/ping');
+      // Test CoinGecko with rate limiting
+      await rateLimitedFetch('https://api.coingecko.com/api/v3/ping');
       services.coinGecko = true;
     } catch {}
 

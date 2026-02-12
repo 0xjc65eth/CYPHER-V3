@@ -1,11 +1,12 @@
 /**
  * Portfolio Service
- * 
+ *
  * Serviço responsável por gerenciar dados de portfólio, incluindo ativos,
  * transações, métricas de desempenho e análises preditivas.
  */
 
 import { walletConnector, WalletInfo } from './wallet-connector';
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
 // Define Asset and Transaction types
 export interface Asset {
@@ -257,15 +258,10 @@ class PortfolioService {
    */
   private async fetchBitcoinPriceFromCoinGecko(): Promise<number> {
     try {
-      const response = await fetch(
+      const data = await rateLimitedFetch(
         'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
       );
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+
       return data.bitcoin.usd;
     } catch (error) {
       console.error('Error fetching from CoinGecko:', error);

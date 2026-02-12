@@ -1,475 +1,402 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { TopNavLayout } from '@/components/layout/TopNavLayout'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { NoSSRWrapper } from '@/components/ui/NoSSRWrapper'
-import { bitcoinEcosystemService, type RareSatData } from '@/services/BitcoinEcosystemService'
-import { 
-  Crown, 
-  Gem, 
-  Star, 
-  Search, 
-  TrendingUp, 
-  Activity, 
-  Users, 
-  DollarSign,
-  Bitcoin,
-  Layers,
-  Clock,
-  Filter,
-  Eye,
-  ExternalLink,
-  Sparkles,
-  Zap,
-  Shield,
-  Award
-} from 'lucide-react'
+
+function formatNum(n: number | string | null | undefined): string {
+  if (n == null) return '--'
+  const v = typeof n === 'string' ? parseFloat(n) : n
+  if (isNaN(v)) return '--'
+  if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`
+  return v.toLocaleString()
+}
+
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse bg-[#2a2a3e] rounded ${className}`} />
+}
+
+interface RareSatCategory {
+  name: string
+  description: string
+  rarity: string
+  estimated_total: number
+  frequency: string
+  example_sat: string
+  supply_info: string
+}
+
+const RARITY_COLORS: Record<string, { bg: string; border: string; text: string; badge: string }> = {
+  mythic: { bg: 'bg-red-900/20', border: 'border-red-500/40', text: 'text-red-400', badge: 'bg-red-500/20 text-red-400' },
+  legendary: { bg: 'bg-yellow-900/20', border: 'border-yellow-500/40', text: 'text-yellow-400', badge: 'bg-yellow-500/20 text-yellow-400' },
+  epic: { bg: 'bg-purple-900/20', border: 'border-purple-500/40', text: 'text-purple-400', badge: 'bg-purple-500/20 text-purple-400' },
+  rare: { bg: 'bg-blue-900/20', border: 'border-blue-500/40', text: 'text-blue-400', badge: 'bg-blue-500/20 text-blue-400' },
+  very_rare: { bg: 'bg-cyan-900/20', border: 'border-cyan-500/40', text: 'text-cyan-400', badge: 'bg-cyan-500/20 text-cyan-400' },
+  uncommon: { bg: 'bg-green-900/20', border: 'border-green-500/40', text: 'text-green-400', badge: 'bg-green-500/20 text-green-400' },
+  common: { bg: 'bg-gray-800/40', border: 'border-gray-600/40', text: 'text-gray-400', badge: 'bg-gray-500/20 text-gray-400' },
+}
+
+function getColors(rarity: string) {
+  return RARITY_COLORS[rarity] || RARITY_COLORS.common
+}
+
+// Rarity order for sorting
+const RARITY_ORDER: Record<string, number> = {
+  mythic: 0, legendary: 1, epic: 2, very_rare: 3, rare: 4, uncommon: 5, common: 6,
+}
+
+const EDUCATION_CONTENT = [
+  {
+    title: 'Mythic Sats',
+    rarity: 'mythic',
+    description: 'The rarest of all satoshis. Mythic sats are the very first satoshi of each new difficulty adjustment period. Only one exists per difficulty epoch, making them extraordinarily rare and valuable.',
+    examples: 'The Genesis Sat (sat #0) is the most famous mythic satoshi, mined by Satoshi Nakamoto.',
+  },
+  {
+    title: 'Legendary Sats',
+    rarity: 'legendary',
+    description: 'Legendary sats are the first satoshi of each halving epoch. Since Bitcoin only has 4 halvings total (with a potential 5th), there are extremely few legendary sats in existence.',
+    examples: 'First sat of the 2012, 2016, 2020, and 2024 halving blocks.',
+  },
+  {
+    title: 'Epic Sats',
+    rarity: 'epic',
+    description: 'Epic sats are the first satoshi of each difficulty adjustment period. Difficulty adjustments happen approximately every 2016 blocks, making these sats quite scarce.',
+    examples: 'The first sat mined after each difficulty retarget.',
+  },
+  {
+    title: 'Rare Sats',
+    rarity: 'rare',
+    description: 'Rare sats are the first satoshi of each new day (based on Bitcoin block time). As blocks are mined roughly every 10 minutes, a new "day" in Bitcoin happens every ~144 blocks.',
+    examples: 'First sat of any block that starts a new Bitcoin day.',
+  },
+  {
+    title: 'Uncommon Sats',
+    rarity: 'uncommon',
+    description: 'Uncommon sats are the first satoshi of each new block. Since a new block is mined approximately every 10 minutes, there are about 144 uncommon sats created per day.',
+    examples: 'The coinbase (first) satoshi of any mined block.',
+  },
+]
+
+const MOCK_MARKET_LISTINGS = [
+  { id: 1, name: 'Uncommon Sat #450231', rarity: 'uncommon', price: 0.0012, currency: 'BTC', seller: 'sat_collector', listed: '2h ago' },
+  { id: 2, name: 'Rare Sat #18902', rarity: 'rare', price: 0.025, currency: 'BTC', seller: 'ordinal_whale', listed: '5h ago' },
+  { id: 3, name: 'Epic Sat #312', rarity: 'epic', price: 0.45, currency: 'BTC', seller: 'btc_maxi', listed: '1d ago' },
+  { id: 4, name: 'Legendary Halving Sat', rarity: 'legendary', price: 2.5, currency: 'BTC', seller: 'genesis_hoarder', listed: '3d ago' },
+  { id: 5, name: 'Uncommon Sat #781002', rarity: 'uncommon', price: 0.0009, currency: 'BTC', seller: 'rare_hunter', listed: '30m ago' },
+  { id: 6, name: 'Rare Sat #29411', rarity: 'rare', price: 0.018, currency: 'BTC', seller: 'sat_dealer', listed: '12h ago' },
+]
 
 export default function RareSatsPage() {
-  const [rareSats, setRareSats] = useState<RareSatData[]>([])
+  const [categories, setCategories] = useState<RareSatCategory[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRarity, setSelectedRarity] = useState<string>('all')
-  const [selectedTab, setSelectedTab] = useState('overview')
+  const [error, setError] = useState<string | null>(null)
+  const [lastUpdated, setLastUpdated] = useState(Date.now())
+  const [explorerQuery, setExplorerQuery] = useState('')
+  const [explorerResult, setExplorerResult] = useState<string | null>(null)
 
-  useEffect(() => {
-    const loadRareSatsData = async () => {
-      try {
-        setLoading(true)
-        console.log('💎 Loading Rare Sats data...')
-        
-        const rareSatsData = await bitcoinEcosystemService.getRareSatsData()
-        setRareSats(rareSatsData)
-        
-        console.log('✅ Loaded', rareSatsData.length, 'rare sats')
-      } catch (error) {
-        console.error('❌ Error loading rare sats data:', error)
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = useCallback(async () => {
+    try {
+      setError(null)
+      const res = await fetch('/api/rare-sats/categories')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const d = await res.json()
+      if (!d.success) throw new Error(d.error || 'API returned error')
+      setCategories(d.data || d.categories || [])
+      setLastUpdated(Date.now())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to fetch data')
+    } finally {
+      setLoading(false)
     }
-    
-    loadRareSatsData()
   }, [])
 
-  const filteredSats = Array.isArray(rareSats) ? rareSats.filter(sat => {
-    const matchesSearch = sat.satNumber.toString().includes(searchQuery) ||
-                         sat.rarityType.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesRarity = selectedRarity === 'all' || sat.rarityType === selectedRarity
-    return matchesSearch && matchesRarity
-  }) : []
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 60_000)
+    return () => clearInterval(interval)
+  }, [fetchData])
 
-  const rarityStats = Array.isArray(rareSats) ? rareSats.reduce((acc, sat) => {
-    acc[sat.rarityType] = (acc[sat.rarityType] || 0) + 1
-    return acc
-  }, {} as Record<string, number>) : {}
+  const sortedCategories = [...categories].sort(
+    (a, b) => (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99)
+  )
 
-  const totalValue = Array.isArray(rareSats) ? rareSats.reduce((sum, sat) => sum + sat.estimatedValue, 0) : 0
-  const avgValue = Array.isArray(rareSats) && rareSats.length > 0 ? totalValue / rareSats.length : 0
-
-  const getRarityColor = (rarity: RareSatData['rarityType']) => {
-    const colors = {
-      'common': 'text-gray-400 bg-gray-400/10',
-      'uncommon': 'text-green-400 bg-green-400/10',
-      'rare': 'text-blue-400 bg-blue-400/10',
-      'epic': 'text-purple-400 bg-purple-400/10',
-      'legendary': 'text-orange-400 bg-orange-400/10',
-      'mythic': 'text-red-400 bg-red-400/10'
-    }
-    return colors[rarity] || 'text-gray-400 bg-gray-400/10'
+  const handleExplorerSearch = () => {
+    if (!explorerQuery.trim()) return
+    setExplorerResult(`Searching for sat/block "${explorerQuery}"... Explorer API integration coming soon.`)
   }
 
-  const getRarityIcon = (rarity: RareSatData['rarityType']) => {
-    const icons = {
-      'common': Star,
-      'uncommon': Gem,
-      'rare': Crown,
-      'epic': Award,
-      'legendary': Shield,
-      'mythic': Sparkles
-    }
-    const Icon = icons[rarity] || Star
-    return <Icon className="w-4 h-4" />
-  }
-
-  const formatSatNumber = (satNumber: number) => {
-    return satNumber.toLocaleString()
+  if (error && categories.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] font-mono">
+        <div className="flex flex-col items-center justify-center py-32">
+          <div className="text-red-400 text-lg mb-4">Error: {error}</div>
+          <button
+            onClick={() => { setLoading(true); fetchData() }}
+            className="px-6 py-2 bg-[#f59e0b] text-black font-bold rounded hover:bg-[#d97706] transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <TopNavLayout>
-      <div className="space-y-6">
-        {/* Professional Header */}
-        <div className="border-b border-gray-700 pb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                Rare Sats Intelligence Hub
-              </h1>
-              <p className="text-gray-400 mt-1">
-                Professional-grade analytics and marketplace for rare Bitcoin satoshis
-              </p>
+    <div className="min-h-screen bg-[#0a0a0f] font-mono text-gray-200">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-[#f59e0b]">RARE SATS</h1>
+          <span className="text-xs text-gray-500">
+            Last updated: {Math.floor((Date.now() - lastUpdated) / 1000)}s ago
+          </span>
+        </div>
+
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: 'Total Categories', value: formatNum(categories.length) },
+            { label: 'Mythic/Legendary', value: formatNum(categories.filter(c => c.rarity === 'mythic' || c.rarity === 'legendary').length) },
+            { label: 'Epic/Rare', value: formatNum(categories.filter(c => c.rarity === 'epic' || c.rarity === 'rare' || c.rarity === 'very_rare').length) },
+            { label: 'Common/Uncommon', value: formatNum(categories.filter(c => c.rarity === 'common' || c.rarity === 'uncommon').length) },
+          ].map(s => (
+            <div key={s.label} className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
+              <div className="text-xs text-gray-500 mb-1">{s.label}</div>
+              {loading ? <Skeleton className="h-6 w-16" /> : (
+                <div className="text-lg font-bold text-[#f59e0b]">{s.value}</div>
+              )}
             </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="relative w-80">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search by sat number or rarity..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-gray-800 border-gray-600"
-                />
-              </div>
-              <select
-                value={selectedRarity}
-                onChange={(e) => setSelectedRarity(e.target.value)}
-                className="bg-gray-900 text-white text-sm rounded px-3 py-2 border border-gray-600 focus:border-purple-500 focus:outline-none cursor-pointer hover:bg-gray-800"
-              >
-                <option value="all">All Rarities</option>
-                <option value="common">Common</option>
-                <option value="uncommon">Uncommon</option>
-                <option value="rare">Rare</option>
-                <option value="epic">Epic</option>
-                <option value="legendary">Legendary</option>
-                <option value="mythic">Mythic</option>
-              </select>
-            </div>
+          ))}
+        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="categories" className="w-full">
+          <div className="border-b border-[#1a1a2e] mb-6">
+            <TabsList className="bg-transparent border-0 p-0 h-auto">
+              <TabsTrigger value="categories" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#f59e0b] data-[state=active]:bg-transparent data-[state=active]:text-[#f59e0b] text-gray-500 px-4 py-2 text-sm font-mono">
+                Categories
+              </TabsTrigger>
+              <TabsTrigger value="explorer" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#f59e0b] data-[state=active]:bg-transparent data-[state=active]:text-[#f59e0b] text-gray-500 px-4 py-2 text-sm font-mono">
+                Explorer
+              </TabsTrigger>
+              <TabsTrigger value="market" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#f59e0b] data-[state=active]:bg-transparent data-[state=active]:text-[#f59e0b] text-gray-500 px-4 py-2 text-sm font-mono">
+                Market
+              </TabsTrigger>
+              <TabsTrigger value="education" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#f59e0b] data-[state=active]:bg-transparent data-[state=active]:text-[#f59e0b] text-gray-500 px-4 py-2 text-sm font-mono">
+                Education
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </div>
 
-        {/* Enhanced Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-6">
-          <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-purple-500/20 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Total Rare Sats</p>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-700 rounded w-16 mt-1"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">
-                    {rareSats?.length?.toLocaleString() || '0'}
-                  </p>
-                )}
-              </div>
-              <Crown className="w-8 h-8 text-purple-500" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-green-500/20 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Total Value</p>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-700 rounded w-20 mt-1"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">
-                    ₿{totalValue.toFixed(2)}
-                  </p>
-                )}
-              </div>
-              <DollarSign className="w-8 h-8 text-green-500" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Avg Value</p>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-700 rounded w-16 mt-1"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">
-                    ₿{avgValue.toFixed(4)}
-                  </p>
-                )}
-              </div>
-              <TrendingUp className="w-8 h-8 text-blue-500" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border-orange-500/20 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Mythic Sats</p>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-700 rounded w-12 mt-1"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">
-                    {rarityStats.mythic || 0}
-                  </p>
-                )}
-              </div>
-              <Sparkles className="w-8 h-8 text-orange-500" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-yellow-500/20 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Legendary</p>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-700 rounded w-12 mt-1"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">
-                    {rarityStats.legendary || 0}
-                  </p>
-                )}
-              </div>
-              <Shield className="w-8 h-8 text-yellow-500" />
-            </div>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-500/20 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-400">Epic Sats</p>
-                {loading ? (
-                  <div className="animate-pulse">
-                    <div className="h-8 bg-gray-700 rounded w-12 mt-1"></div>
-                  </div>
-                ) : (
-                  <p className="text-2xl font-bold text-white">
-                    {rarityStats.epic || 0}
-                  </p>
-                )}
-              </div>
-              <Award className="w-8 h-8 text-indigo-500" />
-            </div>
-          </Card>
-        </div>
-
-        {/* Professional Tabs Interface */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="explorer" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Explorer
-            </TabsTrigger>
-            <TabsTrigger value="rarity" className="flex items-center gap-2">
-              <Crown className="h-4 w-4" />
-              Rarity Guide
-            </TabsTrigger>
-            <TabsTrigger value="marketplace" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Marketplace
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <NoSSRWrapper fallback={
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-6 animate-pulse">
-                  <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
-                  <div className="space-y-3">
-                    {Array.from({length: 6}).map((_, i) => (
-                      <div key={i} className="h-12 bg-gray-700 rounded"></div>
-                    ))}
-                  </div>
-                </Card>
-                <Card className="p-6 animate-pulse">
-                  <div className="h-6 bg-gray-700 rounded w-1/3 mb-4"></div>
-                  <div className="h-64 bg-gray-700 rounded"></div>
-                </Card>
-              </div>
-            }>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-gray-900 border-gray-700 p-6">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Star className="h-5 w-5 text-yellow-400" />
-                    Rarity Distribution
-                  </h3>
-                  <div className="space-y-3">
-                    {Object.entries(rarityStats).map(([rarity, count]) => (
-                      <div key={rarity} className="flex items-center justify-between p-3 bg-gray-800 rounded">
-                        <div className="flex items-center gap-3">
-                          <Badge className={getRarityColor(rarity as RareSatData['rarityType'])}>
-                            {getRarityIcon(rarity as RareSatData['rarityType'])}
-                            <span className="ml-1 capitalize">{rarity}</span>
-                          </Badge>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-white font-bold">{count.toLocaleString()}</div>
-                          <div className="text-gray-400 text-xs">
-                            {((count / rareSats.length) * 100).toFixed(1)}%
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                <Card className="bg-gray-900 border-gray-700 p-6">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Crown className="h-5 w-5 text-purple-400" />
-                    Most Valuable Sats
-                  </h3>
-                  <div className="space-y-3">
-                    {rareSats
-                      .sort((a, b) => b.estimatedValue - a.estimatedValue)
-                      .slice(0, 8)
-                      .map((sat, index) => (
-                        <div key={sat.satNumber} className="flex items-center justify-between p-3 bg-gray-800 rounded">
-                          <div className="flex items-center gap-3">
-                            <span className="text-gray-400 text-sm w-6">#{index + 1}</span>
-                            <div>
-                              <div className="text-white font-mono text-sm">
-                                Sat #{formatSatNumber(sat.satNumber)}
-                              </div>
-                              <Badge className={getRarityColor(sat.rarityType)} size="sm">
-                                {sat.rarityType}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-white font-bold">₿{sat.estimatedValue.toFixed(4)}</div>
-                            <div className="text-gray-400 text-xs">{sat.rarity}</div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                </Card>
-              </div>
-            </NoSSRWrapper>
-          </TabsContent>
-
-          <TabsContent value="explorer" className="space-y-6">
-            <Card className="bg-gray-900 border-gray-700">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Search className="h-5 w-5 text-blue-500" />
-                    Rare Sats Explorer ({filteredSats.length.toLocaleString()})
-                  </h3>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="border-b border-gray-700">
-                      <tr className="text-left text-gray-400 text-sm">
-                        <th className="pb-3 font-medium">#</th>
-                        <th className="pb-3 font-medium">Sat Number</th>
-                        <th className="pb-3 font-medium">Rarity</th>
-                        <th className="pb-3 font-medium">Block</th>
-                        <th className="pb-3 font-medium">Value</th>
-                        <th className="pb-3 font-medium">Cycle</th>
-                        <th className="pb-3 font-medium">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredSats.slice(0, 50).map((sat, index) => (
-                        <tr key={sat.satNumber} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                          <td className="py-4 text-gray-400 font-mono">{index + 1}</td>
-                          <td className="py-4">
-                            <div className="font-mono text-white">{formatSatNumber(sat.satNumber)}</div>
-                          </td>
-                          <td className="py-4">
-                            <Badge className={getRarityColor(sat.rarityType)}>
-                              {getRarityIcon(sat.rarityType)}
-                              <span className="ml-1 capitalize">{sat.rarityType}</span>
-                            </Badge>
-                          </td>
-                          <td className="py-4">
-                            <div className="text-white">{sat.blockHeight.toLocaleString()}</div>
-                            <div className="text-gray-400 text-xs">{new Date(sat.blockTime).toLocaleDateString()}</div>
-                          </td>
-                          <td className="py-4">
-                            <div className="font-mono text-white">₿{sat.estimatedValue.toFixed(6)}</div>
-                          </td>
-                          <td className="py-4">
-                            <div className="text-white">{sat.cycle}</div>
-                          </td>
-                          <td className="py-4">
-                            <div className="flex items-center gap-2">
-                              <Button size="sm" variant="outline" className="border-gray-600">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                                <ExternalLink className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="rarity" className="space-y-6">
-            <Card className="bg-gray-900 border-gray-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Rare Satoshi Rarity Guide</h3>
+          {/* Categories Tab */}
+          <TabsContent value="categories">
+            {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { type: 'common' as const, desc: 'First sat of each block', freq: 'Every ~10 minutes' },
-                  { type: 'uncommon' as const, desc: 'First sat of each difficulty adjustment', freq: 'Every ~2 weeks' },
-                  { type: 'rare' as const, desc: 'First sat of each halving epoch', freq: 'Every ~4 years' },
-                  { type: 'epic' as const, desc: 'First sat of each cycle', freq: 'Every ~8 years' },
-                  { type: 'legendary' as const, desc: 'First sat of each halving', freq: 'Every ~4 years' },
-                  { type: 'mythic' as const, desc: 'Genesis block sat', freq: 'Only one exists' }
-                ].map((rarity) => (
-                  <div key={rarity.type} className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge className={getRarityColor(rarity.type)}>
-                        {getRarityIcon(rarity.type)}
-                        <span className="ml-1 capitalize">{rarity.type}</span>
-                      </Badge>
-                    </div>
-                    <p className="text-gray-300 text-sm mb-2">{rarity.desc}</p>
-                    <p className="text-gray-400 text-xs">Frequency: {rarity.freq}</p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      Count: {rarityStats[rarity.type] || 0}
-                    </p>
-                  </div>
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <Skeleton key={i} className="h-48" />
                 ))}
               </div>
-            </Card>
+            ) : sortedCategories.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">No rare sat categories available</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sortedCategories.map((cat) => {
+                  const colors = getColors(cat.rarity)
+                  return (
+                    <div
+                      key={cat.name}
+                      className={`${colors.bg} border ${colors.border} rounded-lg p-5 hover:scale-[1.02] transition-transform`}
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className={`text-lg font-bold ${colors.text}`}>{cat.name}</h3>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors.badge}`}>
+                          {cat.rarity.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-gray-400 text-sm mb-3 leading-relaxed">{cat.description}</p>
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Estimated Count</span>
+                          <span className="text-gray-300">{formatNum(cat.estimated_total)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Frequency</span>
+                          <span className="text-gray-300 text-right max-w-[60%]">{cat.frequency}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Example Sat</span>
+                          <span className="text-gray-300 truncate max-w-[60%]">{cat.example_sat}</span>
+                        </div>
+                      </div>
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        <p className="text-xs text-gray-500 leading-relaxed">{cat.supply_info}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </TabsContent>
 
-          <TabsContent value="marketplace" className="space-y-6">
-            <Card className="bg-gray-900 border-gray-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Rare Sats Marketplace</h3>
-              <div className="text-gray-400">
-                Professional marketplace integration coming soon...
+          {/* Explorer Tab */}
+          <TabsContent value="explorer">
+            <div className="space-y-6">
+              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-6">
+                <h2 className="text-lg font-bold text-[#f59e0b] mb-4">Satoshi / Block Explorer</h2>
+                <p className="text-gray-400 text-sm mb-4">Search by satoshi number or block height to discover rare sats.</p>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={explorerQuery}
+                    onChange={(e) => setExplorerQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleExplorerSearch()}
+                    placeholder="Enter sat number or block height..."
+                    className="flex-1 bg-[#0d0d1a] border border-[#2a2a3e] rounded-lg px-4 py-2.5 text-gray-200 text-sm font-mono placeholder:text-gray-600 focus:outline-none focus:border-[#f59e0b] transition-colors"
+                  />
+                  <button
+                    onClick={handleExplorerSearch}
+                    className="px-6 py-2.5 bg-[#f59e0b] text-black font-bold rounded-lg hover:bg-[#d97706] transition-colors text-sm"
+                  >
+                    Search
+                  </button>
+                </div>
+                {explorerResult && (
+                  <div className="mt-4 p-4 bg-[#0d0d1a] border border-[#2a2a3e] rounded-lg">
+                    <p className="text-gray-300 text-sm">{explorerResult}</p>
+                  </div>
+                )}
               </div>
-            </Card>
+
+              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-6">
+                <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Quick Lookup</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {[
+                    { label: 'Genesis Block', value: 'Block #0', detail: 'Jan 3, 2009 - Satoshi Nakamoto' },
+                    { label: 'First Halving', value: 'Block #210,000', detail: 'Nov 28, 2012 - 25 BTC reward' },
+                    { label: 'Second Halving', value: 'Block #420,000', detail: 'Jul 9, 2016 - 12.5 BTC reward' },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="bg-[#0d0d1a] border border-[#2a2a3e] rounded-lg p-4 hover:border-[#f59e0b]/40 transition-colors cursor-pointer"
+                      onClick={() => { setExplorerQuery(item.value); setExplorerResult(`Looking up ${item.value}... Explorer API integration coming soon.`) }}
+                    >
+                      <div className="text-xs text-gray-500 mb-1">{item.label}</div>
+                      <div className="text-sm font-bold text-[#f59e0b]">{item.value}</div>
+                      <div className="text-xs text-gray-400 mt-1">{item.detail}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
-          <TabsContent value="analytics" className="space-y-6">
-            <Card className="bg-gray-900 border-gray-700 p-6">
-              <h3 className="text-lg font-bold text-white mb-4">Advanced Analytics</h3>
-              <div className="text-gray-400">
-                Advanced analytics dashboard coming soon...
+          {/* Market Tab */}
+          <TabsContent value="market">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-[#f59e0b]">Marketplace Listings</h2>
+                <span className="text-xs text-gray-500 bg-[#1a1a2e] border border-[#2a2a3e] px-3 py-1 rounded">
+                  {MOCK_MARKET_LISTINGS.length} listings
+                </span>
               </div>
-            </Card>
+
+              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-[#2a2a3e]">
+                      <th className="text-left p-4 text-xs text-gray-500 uppercase tracking-wider">Item</th>
+                      <th className="text-left p-4 text-xs text-gray-500 uppercase tracking-wider">Rarity</th>
+                      <th className="text-right p-4 text-xs text-gray-500 uppercase tracking-wider">Price</th>
+                      <th className="text-left p-4 text-xs text-gray-500 uppercase tracking-wider">Seller</th>
+                      <th className="text-right p-4 text-xs text-gray-500 uppercase tracking-wider">Listed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {MOCK_MARKET_LISTINGS.map((listing) => {
+                      const colors = getColors(listing.rarity)
+                      return (
+                        <tr key={listing.id} className="border-b border-[#2a2a3e]/50 hover:bg-white/[0.02] transition-colors">
+                          <td className="p-4">
+                            <span className="text-sm font-bold text-gray-200">{listing.name}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors.badge}`}>
+                              {listing.rarity.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <span className="text-sm font-bold text-[#f59e0b] font-mono">{listing.price} {listing.currency}</span>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-sm text-gray-400">{listing.seller}</span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <span className="text-xs text-gray-500">{listing.listed}</span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="text-center py-4">
+                <p className="text-xs text-gray-500">Marketplace data is simulated. Live integration coming soon.</p>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Education Tab */}
+          <TabsContent value="education">
+            <div className="space-y-6">
+              <div className="mb-4">
+                <h2 className="text-lg font-bold text-[#f59e0b] mb-2">Understanding Rare Satoshis</h2>
+                <p className="text-gray-400 text-sm">Learn about the different rarity levels of satoshis based on the Ordinals theory by Casey Rodarmor.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {EDUCATION_CONTENT.map((item) => {
+                  const colors = getColors(item.rarity)
+                  return (
+                    <div
+                      key={item.title}
+                      className={`${colors.bg} border ${colors.border} rounded-lg p-6`}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <h3 className={`text-lg font-bold ${colors.text}`}>{item.title}</h3>
+                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors.badge}`}>
+                          {item.rarity.toUpperCase()}
+                        </span>
+                      </div>
+                      <p className="text-gray-300 text-sm mb-3 leading-relaxed">{item.description}</p>
+                      <div className="pt-3 border-t border-white/5">
+                        <div className="text-xs text-gray-500 mb-1">Examples</div>
+                        <p className="text-xs text-gray-400 leading-relaxed">{item.examples}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-6">
+                <h3 className="text-sm font-bold text-[#f59e0b] mb-3">Rarity Hierarchy</h3>
+                <div className="flex flex-wrap gap-2">
+                  {['Mythic', 'Legendary', 'Epic', 'Rare', 'Uncommon', 'Common'].map((level, i) => {
+                    const colors = getColors(level.toLowerCase())
+                    return (
+                      <div key={level} className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded text-xs font-bold ${colors.badge}`}>{level}</span>
+                        {i < 5 && <span className="text-gray-600">&gt;</span>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
-    </TopNavLayout>
+    </div>
   )
 }

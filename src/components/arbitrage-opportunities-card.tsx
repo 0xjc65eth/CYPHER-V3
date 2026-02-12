@@ -48,9 +48,10 @@ export function ArbitrageOpportunitiesCard() {
   // Get arbitrage opportunities from data
   const arbitrageOpportunities = data?.arbitrageOpportunities || []
 
-  // Filter for Ordinals and Runes opportunities
+  // Filter for Ordinals and Runes opportunities with positive profit only
   const filteredOpportunities = arbitrageOpportunities.filter(
-    opp => opp.asset.includes('Ordinal') || opp.asset.includes('Rune') || opp.asset.includes('BTC')
+    opp => (opp.asset.includes('Ordinal') || opp.asset.includes('Rune') || opp.asset.includes('BTC')) &&
+           opp.estimatedProfit > 0
   )
 
   // Sort by estimated profit (highest first)

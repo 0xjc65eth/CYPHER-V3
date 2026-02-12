@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query'
 import { bitcoinService } from '@/lib/api/bitcoin'
 import { realAnalyticsDataService } from '@/services/RealAnalyticsDataService'
+import { coinGeckoService } from '@/lib/api/coingecko-service'
 
 export function useBitcoinPrice() {
   return useQuery({
@@ -97,27 +98,24 @@ export function useMarketData() {
       }
 
       try {
-        // Fallback to CoinGecko
-        const response = await fetch('https://api.coingecko.com/api/v3/global');
-        const result = await response.json();
-        
-        // Also get Bitcoin specific data
-        const btcResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true');
-        const btcResult = await btcResponse.json();
-        const btcData = btcResult.bitcoin;
-        
+        // Fallback to CoinGecko using centralized service
+        const [globalData, btcData] = await Promise.all([
+          coinGeckoService.getGlobal(),
+          coinGeckoService.getBitcoinPrice(),
+        ]);
+
         setData({
           marketCap: {
-            total: result.data.total_market_cap.usd,
-            change24h: result.data.market_cap_change_percentage_24h_usd
+            total: globalData.data.total_market_cap.usd,
+            change24h: globalData.data.market_cap_change_percentage_24h_usd
           },
           volume24h: {
-            total: result.data.total_volume.usd,
+            total: globalData.data.total_volume.usd,
             change24h: 0 // CoinGecko doesn't provide this in global endpoint
           },
-          btcPrice: btcData.usd,
-          btcChange24h: btcData.usd_24h_change,
-          btcDominance: result.data.market_cap_percentage.btc,
+          btcPrice: btcData.price,
+          btcChange24h: btcData.change24h,
+          btcDominance: globalData.data.market_cap_percentage.btc,
           loading: false,
           error: null,
           isLoading: false,

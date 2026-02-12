@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { coinGeckoService } from '@/lib/api/coingecko-service';
 
 interface CryptoPrice {
   id: string;
@@ -26,11 +27,11 @@ export function useTopCryptoPrices() {
   useEffect(() => {
     const fetchTopCrypto = async () => {
       try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false'
-        );
-        const result = await response.json();
-        
+        const result = await coinGeckoService.getCoinsMarkets('usd', {
+          perPage: 20,
+          page: 1,
+        });
+
         const prices: CryptoPrice[] = result.map((coin: any) => ({
           id: coin.id,
           symbol: coin.symbol,
@@ -40,7 +41,7 @@ export function useTopCryptoPrices() {
           volume24h: coin.total_volume,
           marketCap: coin.market_cap
         }));
-        
+
         setData({
           prices,
           loading: false,
@@ -60,7 +61,7 @@ export function useTopCryptoPrices() {
           { id: 'polkadot', symbol: 'dot', name: 'Polkadot', price: 8.76, change24h: -2.34, volume24h: 654321098, marketCap: 11234567890 },
           { id: 'chainlink', symbol: 'link', name: 'Chainlink', price: 23.45, change24h: 3.21, volume24h: 543210987, marketCap: 13456789012 }
         ];
-        
+
         setData({
           prices: simulatedPrices,
           loading: false,
@@ -70,7 +71,7 @@ export function useTopCryptoPrices() {
     };
 
     fetchTopCrypto();
-    const interval = setInterval(fetchTopCrypto, 60000); // Update every minute
+    const interval = setInterval(fetchTopCrypto, 60000); // Update every minute (service handles rate limiting)
 
     return () => clearInterval(interval);
   }, []);

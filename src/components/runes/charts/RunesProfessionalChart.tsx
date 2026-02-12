@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { createChart, IChartApi, ISeriesApi, ColorType } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, ColorType, CandlestickSeries, LineSeries, AreaSeries, HistogramSeries } from 'lightweight-charts';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { 
   Select, 
@@ -217,8 +217,8 @@ export default function RunesProfessionalChart({
       // Add price series based on chart type
       switch (chartType) {
         case 'candlestick':
-          if (chartRef.current && typeof chartRef.current.addCandlestickSeries === 'function') {
-            seriesRef.current = chartRef.current.addCandlestickSeries({
+          if (chartRef.current) {
+            seriesRef.current = chartRef.current.addSeries(CandlestickSeries, {
               upColor: '#10b981',
               downColor: '#ef4444',
               borderUpColor: '#10b981',
@@ -227,43 +227,37 @@ export default function RunesProfessionalChart({
               wickDownColor: '#ef4444'
             });
             seriesRef.current.setData(data);
-          } else {
-            console.error('addCandlestickSeries is not available');
           }
           break;
 
         case 'line':
-          if (chartRef.current && typeof chartRef.current.addLineSeries === 'function') {
-            seriesRef.current = chartRef.current.addLineSeries({
+          if (chartRef.current) {
+            seriesRef.current = chartRef.current.addSeries(LineSeries, {
               color: '#fb923c',
               lineWidth: 2,
               priceLineVisible: true,
               lastValueVisible: true
             });
             seriesRef.current.setData(data.map(d => ({ time: d.time, value: d.close! })));
-          } else {
-            console.error('addLineSeries is not available');
           }
           break;
 
         case 'area':
-          if (chartRef.current && typeof chartRef.current.addAreaSeries === 'function') {
-            seriesRef.current = chartRef.current.addAreaSeries({
+          if (chartRef.current) {
+            seriesRef.current = chartRef.current.addSeries(AreaSeries, {
               topColor: 'rgba(251, 146, 60, 0.4)',
               bottomColor: 'rgba(251, 146, 60, 0.0)',
               lineColor: '#fb923c',
               lineWidth: 2
             });
             seriesRef.current.setData(data.map(d => ({ time: d.time, value: d.close! })));
-          } else {
-            console.error('addAreaSeries is not available');
           }
           break;
       }
 
       // Add volume histogram
-      if (chartType !== 'volume' && chartRef.current && typeof chartRef.current.addHistogramSeries === 'function') {
-        volumeSeriesRef.current = chartRef.current.addHistogramSeries({
+      if (chartType !== 'volume' && chartRef.current) {
+        volumeSeriesRef.current = chartRef.current.addSeries(HistogramSeries, {
           color: '#374151',
           priceFormat: {
             type: 'volume'

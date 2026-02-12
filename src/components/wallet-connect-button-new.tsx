@@ -2,22 +2,25 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useLaserEyes } from '@omnisat/lasereyes-react'
-import {
-  MAINNET,
-  UNISAT,
-  XVERSE,
-  MAGIC_EDEN,
-  OYL,
-  LEATHER,
-  WIZZ,
-  PHANTOM,
-  ORANGE
-} from '@omnisat/lasereyes-core'
+// Use safe provider to avoid BigInt crash from @omnisat/lasereyes-react
+import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
+
+// Wallet provider constants (replicate from lasereyes-core to avoid BigInt crash on import)
+const MAINNET = 'mainnet'
+const UNISAT = 'unisat'
+const XVERSE = 'xverse'
+const MAGIC_EDEN = 'magic-eden'
+const OYL = 'oyl'
+const LEATHER = 'leather'
+const WIZZ = 'wizz'
+const PHANTOM = 'phantom'
+const ORANGE = 'orange'
 import { RiWallet3Line, RiCloseLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine, RiLockLine } from 'react-icons/ri'
-import { PREMIUM_COLLECTIONS, isPremiumCollection } from '@/config/premium-collections'
+import { PREMIUM_COLLECTIONS, isPremiumCollection, YHP_COLLECTION_NAME } from '@/config/premium-collections'
 import { usePremium } from '@/contexts/PremiumContext'
 import { PremiumThankYouModal } from './premium-thank-you-modal'
+import { useEthWallet } from '@/hooks/useEthWallet'
+import { useYHPVerification } from '@/hooks/useYHPVerification'
 
 // List of collections to check for premium access
 const COLLECTIONS_TO_CHECK = [
@@ -84,6 +87,10 @@ export function WalletConnectButton() {
   const [verificationAttempted, setVerificationAttempted] = useState(false)
   const [showThankYouModal, setShowThankYouModal] = useState(false)
   const [foundPremiumCollection, setFoundPremiumCollection] = useState<string | null>(null)
+
+  // ETH wallet
+  const { address: ethAddress, isConnected: ethConnected, connecting: ethConnecting, connectEth, disconnectEth } = useEthWallet()
+  const { isHolder: isYHPHolder, loading: yhpLoading } = useYHPVerification(ethAddress)
 
   // Refs para animações
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -507,6 +514,34 @@ export function WalletConnectButton() {
     }, 3000);
   }
 
+  // Handle ETH wallet connect from modal
+  const handleEthConnect = async () => {
+    try {
+      const addr = await connectEth()
+      if (addr) {
+        setIsModalOpen(false)
+        // YHP verification happens automatically in the hook
+        // If holder, the walletConnected event fires and PremiumContext picks it up
+        // We also show the thank-you modal after verification completes
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        alert(error.message)
+      }
+    }
+  }
+
+  // Show thank-you modal when YHP holder is detected via ETH
+  useEffect(() => {
+    if (isYHPHolder && ethAddress && !yhpLoading) {
+      setFoundPremiumCollection(YHP_COLLECTION_NAME)
+      setShowThankYouModal(true)
+      if (buttonRef.current) {
+        createConfettiEffect(buttonRef.current)
+      }
+    }
+  }, [isYHPHolder, ethAddress, yhpLoading])
+
   // Função para desconectar carteira
   const handleDisconnect = async () => {
     try {
@@ -729,6 +764,30 @@ export function WalletConnectButton() {
                   <span className="text-white font-medium">LEATHER</span>
                 </div>
               </button>
+            </div>
+
+            {/* Ethereum Wallets Section */}
+            <div className="mt-4 pt-4 border-t border-[#3D3D3D]">
+              <h4 className="text-sm font-bold text-orange-400 mb-3">ETHEREUM WALLETS</h4>
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  onClick={handleEthConnect}
+                  disabled={ethConnecting}
+                  className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-500 hover:to-orange-400 rounded-md transition-all duration-200 disabled:opacity-50"
+                >
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 bg-black rounded-md flex items-center justify-center mr-3 border border-orange-500/30">
+                      <span className="text-orange-400 font-bold text-sm">🦊</span>
+                    </div>
+                    <div className="text-left">
+                      <span className="text-white font-medium block">
+                        {ethConnecting ? 'Connecting...' : 'METAMASK'}
+                      </span>
+                      <span className="text-white/60 text-xs">Verify YHP Holder Status</span>
+                    </div>
+                  </div>
+                </button>
+              </div>
             </div>
 
             <div className="mt-6 text-xs text-gray-400 text-center">

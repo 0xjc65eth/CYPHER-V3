@@ -73,7 +73,7 @@ export function useWallet(options: UseWalletOptions = {}) {
   const [btcPrice, setBtcPrice] = useState<number | null>(null);
   
   const {
-    connectionState,
+    connectionState: rawConnectionState,
     availableWallets,
     connectWallet: contextConnect,
     disconnectWallet: contextDisconnect,
@@ -83,6 +83,18 @@ export function useWallet(options: UseWalletOptions = {}) {
     isWalletAvailable,
     setAutoRefresh
   } = context || {};
+
+  const connectionState = rawConnectionState || {
+    isConnected: false,
+    isConnecting: false,
+    walletType: null,
+    account: null,
+    accounts: [],
+    balance: null,
+    network: null,
+    error: null,
+    lastConnected: null
+  };
 
   // Apply options
   useEffect(() => {
@@ -358,7 +370,7 @@ export function useWalletBalance(options: { enableUsdConversion?: boolean } = {}
       confirmed: balance.confirmed,
       unconfirmed: balance.unconfirmed
     };
-  }, [connectionState.balance, btcPrice, options.enableUsdConversion]);
+  }, [connectionState?.balance, btcPrice, options.enableUsdConversion]);
 }
 
 /**

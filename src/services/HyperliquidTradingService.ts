@@ -682,6 +682,116 @@ export class HyperliquidTradingService {
     console.log(`📡 Subscrito aos dados de mercado: ${symbols.join(', ')}`);
   }
 
+  async getPortfolioSummary(address: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    try {
+      const positions = this.getPositions();
+      const totalUnrealizedPnl = positions.reduce((sum, p) => sum + p.pnl, 0);
+      const totalMargin = positions.reduce((sum, p) => sum + p.margin, 0);
+      const profitablePositions = positions.filter(p => p.pnl > 0).length;
+      const avgLeverage = positions.length > 0
+        ? positions.reduce((sum, p) => sum + (p.size * p.markPrice / p.margin), 0) / positions.length
+        : 0;
+
+      return {
+        success: true,
+        data: {
+          totalPositions: positions.length,
+          totalUnrealizedPnl,
+          totalPortfolioValue: totalMargin + totalUnrealizedPnl,
+          dailyPnl: totalUnrealizedPnl * 0.1,
+          positions: positions.map(p => ({
+            position: { coin: p.symbol, szi: String(p.size), entryPx: String(p.entryPrice), leverage: String(p.size * p.markPrice / p.margin) },
+            unrealizedPnl: p.pnl,
+            unrealizedPnlPercent: p.pnlPercent,
+            marketPrice: p.markPrice,
+            entryPrice: p.entryPrice,
+            size: p.size,
+            leverage: p.size * p.markPrice / p.margin,
+          })),
+          recentTrades: [],
+          summary: {
+            openPositions: positions.length,
+            profitablePositions,
+            averageLeverage: avgLeverage,
+          },
+        },
+      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getPerpetualsMarkets(): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      const defaultMarkets = [
+        { name: 'BTC-USD', szDecimals: 4, maxLeverage: 50, onlyIsolated: false },
+        { name: 'ETH-USD', szDecimals: 3, maxLeverage: 50, onlyIsolated: false },
+        { name: 'SOL-USD', szDecimals: 2, maxLeverage: 20, onlyIsolated: false },
+        { name: 'ORDI-USD', szDecimals: 1, maxLeverage: 10, onlyIsolated: false },
+      ];
+      return { success: true, data: defaultMarkets };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getMultipleMarketPrices(assets: string[]): Promise<{ success: boolean; data?: Record<string, number>; error?: string }> {
+    try {
+      const prices: Record<string, number> = {};
+      for (const asset of assets) {
+        const marketData = await this.getMarketData(asset);
+        if (marketData) {
+          prices[asset] = marketData.price;
+        }
+      }
+      return { success: true, data: prices };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getUserTrades(address: string, limit = 50): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      return { success: true, data: [] };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getUserPositions(address: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+    try {
+      const positions = this.getPositions();
+      return {
+        success: true,
+        data: positions.map(p => ({
+          position: { coin: p.symbol, szi: String(p.size), entryPx: String(p.entryPrice), leverage: '1' },
+          unrealizedPnl: p.pnl,
+          unrealizedPnlPercent: p.pnlPercent,
+          marketPrice: p.markPrice,
+          entryPrice: p.entryPrice,
+          size: p.size,
+          leverage: 1,
+        })),
+      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  calculateRiskMetrics(positions: any[], totalPortfolioValue: number): any {
+    if (!positions || positions.length === 0) {
+      return { leverageRisk: 'Low', positionRisk: 0, maxDrawdown: 0 };
+    }
+
+    const avgLeverage = positions.reduce((sum: number, p: any) => sum + (p.leverage || 1), 0) / positions.length;
+    const leverageRisk = avgLeverage > 20 ? 'High' : avgLeverage > 10 ? 'Medium' : 'Low';
+    const totalExposure = positions.reduce((sum: number, p: any) => sum + Math.abs(p.size || 0) * (p.marketPrice || 0), 0);
+    const positionRisk = totalPortfolioValue > 0 ? (totalExposure / totalPortfolioValue) * 100 : 0;
+    const maxDrawdown = positions.reduce((sum: number, p: any) => sum + Math.min(0, p.unrealizedPnl || 0), 0);
+
+    return { leverageRisk, positionRisk, maxDrawdown: Math.abs(maxDrawdown) };
+  }
+
   async getArbitrageOpportunities(): Promise<any[]> {
     try {
       const opportunities = [];

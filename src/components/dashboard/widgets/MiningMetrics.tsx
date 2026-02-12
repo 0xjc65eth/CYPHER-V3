@@ -5,32 +5,53 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Hammer, DollarSign, Gauge, Users, TrendingUp } from 'lucide-react';
 
+const FALLBACK_MINING = {
+  profitability: { btcPerTH: 0.0000073, usdPerTH: 0.47, change24h: -2.3 },
+  pools: [
+    { name: 'Foundry', hashrate: 28.5, blocks: 42 },
+    { name: 'AntPool', hashrate: 22.3, blocks: 35 },
+    { name: 'F2Pool', hashrate: 15.7, blocks: 24 },
+    { name: 'Others', hashrate: 33.5, blocks: 53 }
+  ],
+  efficiency: { avgWattPerTH: 29.5, breakEven: 0.08, roi: 245 }
+};
+
 export function MiningMetrics() {
   const [isMounted, setIsMounted] = useState(false);
+  const [miningData, setMiningData] = useState(FALLBACK_MINING);
 
   useEffect(() => {
     setIsMounted(true);
-  }, []);
 
-  // Static data to prevent hydration issues
-  const miningData = {
-    profitability: {
-      btcPerTH: 0.0000073,
-      usdPerTH: 0.47,
-      change24h: -2.3
-    },
-    pools: [
-      { name: 'Foundry', hashrate: 28.5, blocks: 42 },
-      { name: 'AntPool', hashrate: 22.3, blocks: 35 },
-      { name: 'F2Pool', hashrate: 15.7, blocks: 24 },
-      { name: 'Others', hashrate: 33.5, blocks: 53 }
-    ],
-    efficiency: {
-      avgWattPerTH: 29.5,
-      breakEven: 0.08,
-      roi: 245
-    }
-  };
+    const fetchMiningData = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch('/api/mining-data', { signal: controller.signal });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const d = json.data;
+            setMiningData({
+              profitability: {
+                btcPerTH: d.profitability ? d.profitability / 10000 : FALLBACK_MINING.profitability.btcPerTH,
+                usdPerTH: d.profitability ? (d.profitability / 10000) * 65000 : FALLBACK_MINING.profitability.usdPerTH,
+                change24h: FALLBACK_MINING.profitability.change24h
+              },
+              pools: d.pools || FALLBACK_MINING.pools,
+              efficiency: d.efficiency || FALLBACK_MINING.efficiency
+            });
+          }
+        }
+      } catch {
+        console.log('Mining API unavailable, using fallback');
+      }
+    };
+
+    fetchMiningData();
+  }, []);
 
   const totalBlocks = miningData.pools.reduce((sum, pool) => sum + pool.blocks, 0);
 

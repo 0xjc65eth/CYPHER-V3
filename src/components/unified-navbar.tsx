@@ -209,7 +209,7 @@ export function UnifiedNavbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#1A1A1A] via-[#2D2D2D] to-[#1A1A1A] text-[#FFFFFF] px-6 py-4 flex justify-between items-center font-inter border-b border-[#3D3D3D] backdrop-blur-md">
+    <nav aria-label="Main navigation" className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#1A1A1A] via-[#2D2D2D] to-[#1A1A1A] text-[#FFFFFF] px-6 py-4 flex justify-between items-center font-inter border-b border-[#3D3D3D] backdrop-blur-md">
       <div className="flex items-center space-x-2">
         <div className="text-xl font-bold font-montserrat bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#8B5CF6] text-transparent bg-clip-text">CYPHER ORDI FUTURE</div>
       </div>
@@ -285,7 +285,7 @@ export function UnifiedNavbar() {
 
       {/* Modal de seleção de carteira */}
       {isModalOpen && isBrowser && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-fadeIn">
+        <div role="dialog" aria-label="Wallet connection" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-fadeIn">
           <div className="bg-[#121212] border border-[#3D3D3D] rounded-lg p-6 max-w-md w-full mx-4 animate-scaleIn">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#8B5CF6] text-transparent bg-clip-text">
@@ -293,9 +293,10 @@ export function UnifiedNavbar() {
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Close wallet dialog"
                 className="text-white hover:text-gray-300 transition-colors bg-[#2D2D2D] rounded-full w-8 h-8 flex items-center justify-center"
               >
-                <RiCloseLine className="w-5 h-5" />
+                <RiCloseLine className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 

@@ -58,16 +58,18 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   return (
     <div className="min-h-screen bg-gray-950">
       {/* Top Navigation Bar */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800">
+      <nav aria-label="Main navigation" className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Mobile Menu */}
             <div className="flex items-center">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
+                aria-label={sidebarOpen ? "Close menu" : "Open menu"}
+                aria-expanded={sidebarOpen}
                 className="lg:hidden p-2 rounded-md text-gray-400 hover:text-white"
               >
-                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                {sidebarOpen ? <X className="w-6 h-6" aria-hidden="true" /> : <Menu className="w-6 h-6" aria-hidden="true" />}
               </button>
               
               <Link href="/" className="flex items-center gap-2 ml-2 lg:ml-0">
@@ -112,10 +114,13 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
             {/* Right Actions */}
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
-                <Bell className="w-5 h-5" />
+              <button
+                aria-label={`Notifications${notifications > 0 ? ` (${notifications} unread)` : ''}`}
+                className="relative p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <Bell className="w-5 h-5" aria-hidden="true" />
                 {notifications > 0 && (
-                  <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
+                  <span className="absolute top-0 right-0 w-5 h-5 bg-red-500 rounded-full text-xs text-white flex items-center justify-center" aria-hidden="true">
                     {notifications}
                   </span>
                 )}
@@ -124,9 +129,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               {/* Theme Toggle */}
               <button
                 onClick={() => setDarkMode(!darkMode)}
+                aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
                 className="p-2 text-gray-400 hover:text-white transition-colors"
               >
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {darkMode ? <Sun className="w-5 h-5" aria-hidden="true" /> : <Moon className="w-5 h-5" aria-hidden="true" />}
               </button>
 
               {/* Wallet Connection */}
@@ -159,8 +165,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
               )}
 
               {/* User Menu */}
-              <button className="p-2 text-gray-400 hover:text-white transition-colors">
-                <User className="w-5 h-5" />
+              <button aria-label="User menu" className="p-2 text-gray-400 hover:text-white transition-colors">
+                <User className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -169,11 +175,11 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
       {/* Mobile Sidebar */}
       {sidebarOpen && (
-        <div className="lg:hidden fixed inset-0 z-40 flex">
+        <div role="dialog" aria-label="Mobile navigation" aria-modal="true" className="lg:hidden fixed inset-0 z-40 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
           <div className="relative flex-1 flex flex-col max-w-xs w-full bg-gray-900">
             <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
-              <nav className="mt-5 px-2 space-y-1">
+              <nav aria-label="Mobile navigation" className="mt-5 px-2 space-y-1">
                 {navigation.map((item) => {
                   const Icon = item.icon
                   const isActive = pathname === item.href

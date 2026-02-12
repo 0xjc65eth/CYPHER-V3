@@ -103,7 +103,7 @@ function WorkspaceIndicator() {
   return (
     <div className="flex items-center space-x-2 px-3 py-2 bg-gray-800 rounded-lg">
       <Users className="h-4 w-4 text-gray-400" />
-      <select className="bg-transparent text-sm text-white outline-none cursor-pointer">
+      <select aria-label="Select workspace" className="bg-transparent text-sm text-white outline-none cursor-pointer">
         <option>Main Workspace</option>
         <option>Test Environment</option>
         <option>Paper Trading</option>
@@ -215,7 +215,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-[calc(100vh-4rem)] bg-gray-950">
       {/* Professional Sidebar */}
-      <div className={cn(
+      <aside aria-label="Sidebar navigation" className={cn(
         "bg-gray-900 border-r border-gray-800 transition-all duration-200 flex flex-col",
         sidebarOpen ? "w-56" : "w-14"
       )}>
@@ -232,6 +232,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             )}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
+              aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
               className="text-gray-500 hover:text-white p-1 rounded hover:bg-gray-800 transition-colors"
             >
               {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -244,10 +245,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <div className="px-3 py-2">
             <button
               onClick={() => setCommandPaletteOpen(true)}
+              aria-label="Open command palette (Cmd+K)"
               className="w-full flex items-center justify-between px-3 py-1.5 text-sm bg-gray-800 hover:bg-gray-750 rounded-md transition-colors text-gray-400 hover:text-white"
             >
               <div className="flex items-center space-x-2">
-                <Search className="h-3.5 w-3.5" />
+                <Search className="h-3.5 w-3.5" aria-hidden="true" />
                 <span className="text-xs">Search...</span>
               </div>
               <kbd className="text-xs bg-gray-700 px-1.5 py-0.5 rounded">⌘K</kbd>
@@ -256,7 +258,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Main Navigation */}
-        <nav className="flex-1 px-3 py-2 overflow-y-auto">
+        <nav aria-label="Dashboard navigation" className="flex-1 px-3 py-2 overflow-y-auto">
           <div className="space-y-1">
             {navigation.map(item => renderNavItem(item))}
           </div>
@@ -265,18 +267,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* System Status */}
         {sidebarOpen && (
           <div className="px-3 py-2 border-t border-gray-800">
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-3 gap-2 text-center" role="status" aria-label="System status">
               <div>
-                <Server className="h-3.5 w-3.5 mx-auto mb-1 text-green-500" />
-                <div className="text-xs text-gray-500">API</div>
+                <Server className="h-3.5 w-3.5 mx-auto mb-1 text-green-500" aria-hidden="true" />
+                <div className="text-xs text-gray-400">API</div>
               </div>
               <div>
-                <Database className="h-3.5 w-3.5 mx-auto mb-1 text-green-500" />
-                <div className="text-xs text-gray-500">DB</div>
+                <Database className="h-3.5 w-3.5 mx-auto mb-1 text-green-500" aria-hidden="true" />
+                <div className="text-xs text-gray-400">DB</div>
               </div>
               <div>
-                <Gauge className="h-3.5 w-3.5 mx-auto mb-1 text-yellow-500" />
-                <div className="text-xs text-gray-500">42%</div>
+                <Gauge className="h-3.5 w-3.5 mx-auto mb-1 text-yellow-500" aria-hidden="true" />
+                <div className="text-xs text-gray-400">42%</div>
               </div>
             </div>
           </div>
@@ -288,7 +290,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             {bottomNavigation.map(item => renderNavItem(item))}
           </div>
         </div>
-      </div>
+      </aside>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -323,20 +325,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Command Palette Modal */}
       {commandPaletteOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" onClick={() => setCommandPaletteOpen(false)}>
+        <div
+          role="dialog"
+          aria-label="Command palette"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={() => setCommandPaletteOpen(false)}
+        >
           <div className="fixed top-20 left-1/2 -translate-x-1/2 w-full max-w-2xl bg-gray-900 rounded-lg shadow-2xl border border-gray-800" onClick={e => e.stopPropagation()}>
             <div className="flex items-center border-b border-gray-800 px-4 py-3">
-              <Command className="h-5 w-5 text-gray-500 mr-3" />
+              <Command className="h-5 w-5 text-gray-500 mr-3" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Type a command or search..."
-                className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none"
+                aria-label="Search commands"
+                className="flex-1 bg-transparent text-white placeholder-gray-400 outline-none"
                 autoFocus
               />
-              <kbd className="text-xs text-gray-500">ESC</kbd>
+              <kbd className="text-xs text-gray-400">ESC</kbd>
             </div>
             <div className="p-4">
-              <p className="text-sm text-gray-500">Quick actions will appear here...</p>
+              <p className="text-sm text-gray-400">Quick actions will appear here...</p>
             </div>
           </div>
         </div>

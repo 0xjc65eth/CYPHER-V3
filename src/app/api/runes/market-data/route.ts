@@ -1,11 +1,22 @@
 /**
- * 🪙 RUNES MARKET DATA API
- * Real-time Runes market data and analytics
+ * RUNES MARKET DATA API - DEPRECATED
+ *
+ * ⚠️ WARNING: This endpoint contains incomplete data:
+ * - Price data = 0 (not available from Hiro API)
+ * - Volume data = 0 (not available from Hiro API)
+ * - Market cap = 0 (not available from Hiro API)
+ * - Technical analysis = hardcoded placeholders
+ * - Sentiment = hardcoded placeholders
+ *
+ * ✅ USE INSTEAD: /api/runes/list (real Hiro data only)
+ *
+ * This endpoint is kept for backward compatibility but should NOT be used
+ * for production features that require accurate market data.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { 
+import {
   withMiddleware,
   createSuccessResponse,
   createErrorResponse,
@@ -118,130 +129,261 @@ interface RunesAnalytics {
   };
 }
 
-class RunesDataEngine {
-  private static instance: RunesDataEngine;
-  private runesData: RuneMarketData[] = [];
-  private lastUpdate = 0;
-  private readonly CACHE_DURATION = 30000; // 30 seconds
+const HIRO_API_BASE = 'https://api.hiro.so/runes/v1';
+const FETCH_TIMEOUT = 10000;
 
-  static getInstance(): RunesDataEngine {
-    if (!RunesDataEngine.instance) {
-      RunesDataEngine.instance = new RunesDataEngine();
+// In-memory cache
+let cachedRunesData: RuneMarketData[] = [];
+let cacheTimestamp = 0;
+const CACHE_DURATION = 60000; // 60 seconds
+
+async function fetchWithTimeout(url: string, timeoutMs: number = FETCH_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+interface HiroRuneEntry {
+  id: string;
+  name: string;
+  spaced_name: string;
+  number: number;
+  supply: {
+    current: string;
+    minted: string;
+    mint_percentage: string;
+    mintable: boolean;
+    burned: string;
+    premine: string;
+    total_mints: string;
+    cap: string;
+  };
+  turbo: boolean;
+  divisibility: number;
+  symbol: string;
+  timestamp: number;
+}
+
+async function fetchRunesFromHiro(limit: number): Promise<RuneMarketData[]> {
+  const listResponse = await fetchWithTimeout(`${HIRO_API_BASE}?offset=0&count=${Math.min(limit, 60)}`);
+  if (!listResponse.ok) {
+    throw new Error(`Hiro API returned ${listResponse.status}`);
+  }
+
+  const listData = await listResponse.json();
+  const entries: HiroRuneEntry[] = listData.results || [];
+
+  // Fetch holder counts and activity in parallel for each rune (limited batch)
+  const runeDetails = await Promise.allSettled(
+    entries.slice(0, limit).map(async (entry, index) => {
+      const encodedName = encodeURIComponent(entry.spaced_name || entry.name);
+
+      let holders = 0;
+      let activityCount = 0;
+      try {
+        const holdersRes = await fetchWithTimeout(`${HIRO_API_BASE}/${encodedName}/holders?offset=0&count=1`);
+        if (holdersRes.ok) {
+          const holdersData = await holdersRes.json();
+          holders = holdersData.total || 0;
+        }
+      } catch { /* fallback to 0 */ }
+
+      try {
+        const activityRes = await fetchWithTimeout(`${HIRO_API_BASE}/${encodedName}/activity?offset=0&count=1`);
+        if (activityRes.ok) {
+          const activityData = await activityRes.json();
+          activityCount = activityData.total || 0;
+        }
+      } catch { /* fallback to 0 */ }
+
+      return mapHiroEntryToRuneMarketData(entry, index, holders, activityCount);
+    })
+  );
+
+  return runeDetails
+    .filter((r): r is PromiseFulfilledResult<RuneMarketData> => r.status === 'fulfilled')
+    .map(r => r.value);
+}
+
+function mapHiroEntryToRuneMarketData(
+  entry: HiroRuneEntry,
+  index: number,
+  holders: number,
+  activityCount: number
+): RuneMarketData {
+  const currentSupply = parseInt(entry.supply?.current || '0') / Math.pow(10, entry.divisibility || 0);
+  const maxSupply = parseInt(entry.supply?.cap || '0') / Math.pow(10, entry.divisibility || 0);
+  const totalMints = parseInt(entry.supply?.total_mints || '0');
+  const mintPercentage = parseFloat(entry.supply?.mint_percentage || '0');
+  const burned = parseInt(entry.supply?.burned || '0') / Math.pow(10, entry.divisibility || 0);
+
+  // We don't have price data from Hiro directly, so set to 0
+  // Consumers should layer in price data from DEX APIs if needed
+  const price = 0;
+  const marketCap = 0;
+  const volume24h = 0;
+
+  return {
+    id: entry.id || `rune_${entry.number}`,
+    name: entry.spaced_name || entry.name,
+    symbol: entry.symbol || entry.name.replace(/[•\s]/g, '').substring(0, 8),
+    price: {
+      current: price,
+      change24h: 0,
+      change7d: 0,
+      high24h: 0,
+      low24h: 0
+    },
+    marketCap: {
+      current: marketCap,
+      rank: index + 1,
+      change24h: 0
+    },
+    volume: {
+      volume24h,
+      change24h: 0,
+      volumeRank: index + 1
+    },
+    supply: {
+      circulating: currentSupply,
+      total: currentSupply,
+      max: maxSupply || currentSupply,
+      percentage: mintPercentage
+    },
+    holders,
+    transactions: {
+      transfers24h: activityCount,
+      mints24h: totalMints,
+      burns24h: burned > 0 ? 1 : 0
+    },
+    minting: {
+      progress: mintPercentage,
+      remaining: maxSupply - currentSupply,
+      rate: totalMints,
+      estimatedCompletion: entry.supply?.mintable ? Date.now() + 86400000 * 30 : 0
+    },
+    liquidity: {
+      pools: [],
+      totalLiquidity: 0
+    },
+    technicalAnalysis: {
+      rsi: 50,
+      macd: 0,
+      bollinger: {
+        upper: 0,
+        middle: 0,
+        lower: 0
+      },
+      support: 0,
+      resistance: 0,
+      trend: 'neutral'
+    },
+    sentiment: {
+      score: 50,
+      mentions24h: 0,
+      bullishPercentage: 50
+    },
+    lastUpdate: Date.now()
+  };
+}
+
+function buildAnalytics(runes: RuneMarketData[]): RunesAnalytics {
+  const totalMarketCap = runes.reduce((sum, r) => sum + r.marketCap.current, 0);
+  const totalVolume24h = runes.reduce((sum, r) => sum + r.volume.volume24h, 0);
+  const averageChange24h = runes.length > 0
+    ? runes.reduce((sum, r) => sum + r.price.change24h, 0) / runes.length
+    : 0;
+
+  const gainers = runes
+    .filter(r => r.price.change24h > 0)
+    .sort((a, b) => b.price.change24h - a.price.change24h)
+    .slice(0, 5);
+
+  const losers = runes
+    .filter(r => r.price.change24h < 0)
+    .sort((a, b) => a.price.change24h - b.price.change24h)
+    .slice(0, 5);
+
+  const volumeLeaders = [...runes]
+    .sort((a, b) => b.volume.volume24h - a.volume.volume24h)
+    .slice(0, 5);
+
+  return {
+    marketOverview: {
+      totalMarketCap,
+      totalVolume24h,
+      averageChange24h,
+      activeRunes: runes.length,
+      newRunes24h: 0,
+      marketSentiment: averageChange24h > 2 ? 'bullish' : averageChange24h < -2 ? 'bearish' : 'neutral'
+    },
+    topPerformers: {
+      gainers24h: gainers,
+      losers24h: losers,
+      volumeLeaders
+    },
+    crossChainMetrics: {
+      bridgeVolume24h: 0,
+      activeBridges: 0,
+      averageBridgeTime: 0
+    },
+    liquidityMetrics: {
+      totalLiquidity: 0,
+      averageApr: 0,
+      topPools: []
     }
-    return RunesDataEngine.instance;
-  }
+  };
+}
 
-  private constructor() {
-    this.initializeRunesData();
-  }
+// Handler function
+async function handleRunesMarketData(request: NextRequest): Promise<NextResponse> {
+  try {
+    const url = new URL(request.url);
+    const searchParams = Object.fromEntries(url.searchParams.entries());
 
-  private initializeRunesData() {
-    const runeNames = [
-      'UNCOMMON•GOODS', 'RSIC•METAPROTOCOL', 'DOG•GO•TO•THE•MOON',
-      'SATOSHI•NAKAMOTO', 'BITCOIN•PIZZA•DAY', 'MEME•ECONOMICS',
-      'ORDINAL•THEORY', 'DIGITAL•ARTIFACTS', 'RARE•SATS•CLUB',
-      'LIGHTNING•NETWORK', 'TIMECHAIN•GENESIS', 'PROOF•OF•WORK',
-      'HASH•POWER•UNITE', 'BLOCK•HEIGHT•MOON', 'MINERS•DELIGHT',
-      'SATS•FOR•LIFE', 'ORANGE•PILL•MAXI', 'HODL•FOREVER',
-      'STACK•SATS•DAILY', 'TWENTY•ONE•MILLION', 'GENESIS•BLOCK•FUN',
-      'DIFFICULTY•ADJUST', 'MERKLE•TREE•MAGIC', 'NONCE•DISCOVERY'
-    ];
+    // Convert query params
+    const processedParams = {
+      ...searchParams,
+      limit: searchParams.limit ? parseInt(searchParams.limit) : undefined,
+      includeAnalytics: searchParams.includeAnalytics !== 'false'
+    };
 
-    this.runesData = runeNames.map((name, index) => {
-      const basePrice = 0.00001 + Math.random() * 0.001;
-      const marketCap = basePrice * (1000000 + Math.random() * 50000000);
-      const volume24h = marketCap * (0.05 + Math.random() * 0.3);
-      const change24h = (Math.random() - 0.5) * 20; // -10% to +10%
-      const holders = 100 + Math.floor(Math.random() * 10000);
-      
-      return {
-        id: `rune_${index + 1}`,
-        name,
-        symbol: name.replace(/[•\s]/g, '').substring(0, 8),
-        price: {
-          current: basePrice,
-          change24h,
-          change7d: (Math.random() - 0.5) * 40,
-          high24h: basePrice * (1 + Math.random() * 0.2),
-          low24h: basePrice * (0.8 + Math.random() * 0.2)
-        },
-        marketCap: {
-          current: marketCap,
-          rank: index + 1,
-          change24h: change24h * 0.8 // Market cap change usually less volatile
-        },
-        volume: {
-          volume24h,
-          change24h: (Math.random() - 0.5) * 100,
-          volumeRank: Math.floor(Math.random() * runeNames.length) + 1
-        },
-        supply: {
-          circulating: 1000000 + Math.random() * 99000000,
-          total: 100000000,
-          max: 100000000,
-          percentage: 50 + Math.random() * 50
-        },
-        holders,
-        transactions: {
-          transfers24h: Math.floor(Math.random() * 1000),
-          mints24h: Math.floor(Math.random() * 100),
-          burns24h: Math.floor(Math.random() * 10)
-        },
-        minting: {
-          progress: 50 + Math.random() * 50,
-          remaining: Math.floor(Math.random() * 1000000),
-          rate: Math.floor(Math.random() * 1000),
-          estimatedCompletion: Date.now() + Math.random() * 86400000 * 30 // 30 days
-        },
-        liquidity: {
-          pools: [
-            {
-              exchange: 'UniSat',
-              liquidity: volume24h * 2,
-              apr: 5 + Math.random() * 20
-            },
-            {
-              exchange: 'OrdSwap', 
-              liquidity: volume24h * 1.5,
-              apr: 8 + Math.random() * 15
-            }
-          ],
-          totalLiquidity: volume24h * 3.5
-        },
-        technicalAnalysis: {
-          rsi: 30 + Math.random() * 40,
-          macd: (Math.random() - 0.5) * 0.001,
-          bollinger: {
-            upper: basePrice * 1.1,
-            middle: basePrice,
-            lower: basePrice * 0.9
-          },
-          support: basePrice * 0.95,
-          resistance: basePrice * 1.05,
-          trend: change24h > 2 ? 'bullish' : change24h < -2 ? 'bearish' : 'neutral'
-        },
-        sentiment: {
-          score: 50 + (Math.random() - 0.5) * 60,
-          mentions24h: Math.floor(Math.random() * 100),
-          bullishPercentage: 30 + Math.random() * 40
-        },
-        lastUpdate: Date.now()
-      };
-    });
-
-    this.lastUpdate = Date.now();
-  }
-
-  async getRunesData(request: z.infer<typeof RunesRequestSchema>): Promise<RuneMarketData[]> {
-    // Refresh data if cache expired
-    if (Date.now() - this.lastUpdate > this.CACHE_DURATION) {
-      this.updatePrices();
+    // Validate request
+    const validationResult = RunesRequestSchema.safeParse(processedParams);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        createErrorResponse('Invalid request parameters', {
+          errors: validationResult.error.errors
+        }),
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    let sortedData = [...this.runesData];
+    const runesRequest = validationResult.data;
+
+    // Use cache if still fresh
+    let runesData: RuneMarketData[];
+    if (cachedRunesData.length > 0 && Date.now() - cacheTimestamp < CACHE_DURATION) {
+      runesData = cachedRunesData;
+    } else {
+      try {
+        runesData = await fetchRunesFromHiro(runesRequest.limit);
+        cachedRunesData = runesData;
+        cacheTimestamp = Date.now();
+      } catch (error) {
+        console.error('Hiro Runes API error, using cached data:', error);
+        runesData = cachedRunesData.length > 0 ? cachedRunesData : [];
+      }
+    }
 
     // Sort data
-    switch (request.sortBy) {
+    let sortedData = [...runesData];
+    switch (runesRequest.sortBy) {
       case 'marketCap':
         sortedData.sort((a, b) => b.marketCap.current - a.marketCap.current);
         break;
@@ -256,136 +398,18 @@ class RunesDataEngine {
         break;
     }
 
-    if (request.order === 'asc') {
+    if (runesRequest.order === 'asc') {
       sortedData.reverse();
     }
 
-    return sortedData.slice(0, request.limit);
-  }
+    sortedData = sortedData.slice(0, runesRequest.limit);
 
-  private updatePrices() {
-    this.runesData.forEach(rune => {
-      // Small price movements
-      const priceChange = (Math.random() - 0.5) * 0.02; // ±1%
-      rune.price.current *= (1 + priceChange);
-      rune.price.change24h += priceChange * 100;
-      
-      // Update market cap
-      rune.marketCap.current = rune.price.current * rune.supply.circulating;
-      
-      // Update volume (more volatile)
-      const volumeChange = (Math.random() - 0.5) * 0.1; // ±5%
-      rune.volume.volume24h *= (1 + volumeChange);
-      
-      // Update last update time
-      rune.lastUpdate = Date.now();
-    });
-
-    this.lastUpdate = Date.now();
-  }
-
-  getAnalytics(): RunesAnalytics {
-    const totalMarketCap = this.runesData.reduce((sum, rune) => sum + rune.marketCap.current, 0);
-    const totalVolume24h = this.runesData.reduce((sum, rune) => sum + rune.volume.volume24h, 0);
-    const averageChange24h = this.runesData.reduce((sum, rune) => sum + rune.price.change24h, 0) / this.runesData.length;
-    
-    const gainers = this.runesData
-      .filter(rune => rune.price.change24h > 0)
-      .sort((a, b) => b.price.change24h - a.price.change24h)
-      .slice(0, 5);
-    
-    const losers = this.runesData
-      .filter(rune => rune.price.change24h < 0)
-      .sort((a, b) => a.price.change24h - b.price.change24h)
-      .slice(0, 5);
-    
-    const volumeLeaders = [...this.runesData]
-      .sort((a, b) => b.volume.volume24h - a.volume.volume24h)
-      .slice(0, 5);
-
-    return {
-      marketOverview: {
-        totalMarketCap,
-        totalVolume24h,
-        averageChange24h,
-        activeRunes: this.runesData.length,
-        newRunes24h: Math.floor(Math.random() * 5),
-        marketSentiment: averageChange24h > 2 ? 'bullish' : averageChange24h < -2 ? 'bearish' : 'neutral'
-      },
-      topPerformers: {
-        gainers24h: gainers,
-        losers24h: losers,
-        volumeLeaders
-      },
-      crossChainMetrics: {
-        bridgeVolume24h: totalVolume24h * 0.1,
-        activeBridges: 3,
-        averageBridgeTime: 300 + Math.random() * 600 // 5-15 minutes
-      },
-      liquidityMetrics: {
-        totalLiquidity: totalVolume24h * 2.5,
-        averageApr: 12.5,
-        topPools: [
-          {
-            name: 'UNCOMMON•GOODS/BTC',
-            liquidity: 1500000,
-            apr: 18.5,
-            volume24h: 500000
-          },
-          {
-            name: 'DOG•GO•TO•THE•MOON/BTC',
-            liquidity: 1200000,
-            apr: 15.2,
-            volume24h: 350000
-          },
-          {
-            name: 'SATOSHI•NAKAMOTO/BTC',
-            liquidity: 1000000,
-            apr: 13.8,
-            volume24h: 300000
-          }
-        ]
-      }
-    };
-  }
-}
-
-// Handler function
-async function handleRunesMarketData(request: NextRequest): Promise<NextResponse> {
-  try {
-    const url = new URL(request.url);
-    const searchParams = Object.fromEntries(url.searchParams.entries());
-    
-    // Convert query params
-    const processedParams = {
-      ...searchParams,
-      limit: searchParams.limit ? parseInt(searchParams.limit) : undefined,
-      includeAnalytics: searchParams.includeAnalytics !== 'false'
-    };
-    
-    // Validate request
-    const validationResult = RunesRequestSchema.safeParse(processedParams);
-    if (!validationResult.success) {
-      return NextResponse.json(
-        createErrorResponse('Invalid request parameters', {
-          errors: validationResult.error.errors
-        }),
-        { status: 400, headers: corsHeaders }
-      );
-    }
-
-    const runesRequest = validationResult.data;
-    const engine = RunesDataEngine.getInstance();
-    
-    // Get runes data
-    const runesData = await engine.getRunesData(runesRequest);
-    
     // Prepare response
-    const responseData: any = {
-      runes: runesData,
+    const responseData: Record<string, unknown> = {
+      runes: sortedData,
       pagination: {
         limit: runesRequest.limit,
-        total: runesData.length,
+        total: sortedData.length,
         sortBy: runesRequest.sortBy,
         order: runesRequest.order
       },
@@ -394,7 +418,7 @@ async function handleRunesMarketData(request: NextRequest): Promise<NextResponse
 
     // Include analytics if requested
     if (runesRequest.includeAnalytics) {
-      responseData.analytics = engine.getAnalytics();
+      responseData.analytics = buildAnalytics(sortedData);
     }
 
     return NextResponse.json(
@@ -404,7 +428,7 @@ async function handleRunesMarketData(request: NextRequest): Promise<NextResponse
 
   } catch (error) {
     console.error('Runes market data error:', error);
-    
+
     return NextResponse.json(
       createErrorResponse('Failed to retrieve runes market data', {
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -418,11 +442,11 @@ async function handleRunesMarketData(request: NextRequest): Promise<NextResponse
 // Export handlers
 export const GET = withMiddleware(handleRunesMarketData, {
   rateLimit: {
-    windowMs: 60000, // 1 minute
-    maxRequests: 120, // 2 requests per second
+    windowMs: 60000,
+    maxRequests: 120,
   },
   cache: {
-    ttl: 30, // 30 seconds cache
+    ttl: 30,
   }
 });
 

@@ -1,213 +1,301 @@
-/**
- * 🔄 LOADING STATES - CYPHER ORDi FUTURE V3
- * Componentes de loading e fallback para dados
- */
+'use client'
 
-import React from 'react';
-import { Card } from './card';
-import { Skeleton } from './skeleton';
+import React from 'react'
+import { CypherLogo } from './CypherLogo'
 
-interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
-  color?: 'orange' | 'blue' | 'green';
-  className?: string;
+// ---------------------------------------------------------------------------
+// CypherLoadingState
+// ---------------------------------------------------------------------------
+interface CypherLoadingStateProps {
+  message?: string
+  className?: string
 }
 
-export function LoadingSpinner({ size = 'md', color = 'orange', className = '' }: LoadingSpinnerProps) {
-  const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-16 h-16'
-  };
-
-  const colorClasses = {
-    orange: 'border-orange-500 border-t-transparent',
-    blue: 'border-blue-500 border-t-transparent',
-    green: 'border-green-500 border-t-transparent'
-  };
-
+export function CypherLoadingState({
+  message = 'Loading...',
+  className = '',
+}: CypherLoadingStateProps) {
   return (
-    <div className={`${sizeClasses[size]} border-2 ${colorClasses[color]} rounded-full animate-spin ${className}`} />
-  );
-}
-
-interface TerminalLoadingProps {
-  message?: string;
-  subtitle?: string;
-}
-
-export function TerminalLoading({ message = 'LOADING DASHBOARD...', subtitle = 'BLOOMBERG TERMINAL' }: TerminalLoadingProps) {
-  return (
-    <div className="bg-black min-h-screen flex items-center justify-center">
-      <div className="text-center">
-        <div className="mb-4">
-          <LoadingSpinner size="lg" color="orange" className="mx-auto" />
-        </div>
-        <h2 className="text-xl font-mono text-orange-500">{subtitle}</h2>
-        <p className="text-sm text-orange-500/60 font-mono mt-2">{message}</p>
-      </div>
+    <div
+      role="status"
+      aria-live="polite"
+      className={`flex flex-col items-center justify-center gap-4 ${className}`}
+    >
+      <CypherLogo size="lg" animated />
+      <p className="font-mono text-sm text-cypher-accent/60 tracking-wider uppercase">
+        {message}
+      </p>
+      <span className="sr-only">{message}</span>
     </div>
-  );
+  )
 }
 
-interface DataLoadingCardProps {
-  title: string;
-  rows?: number;
-  columns?: number;
-  className?: string;
+// ---------------------------------------------------------------------------
+// CypherErrorState
+// ---------------------------------------------------------------------------
+interface CypherErrorStateProps {
+  message?: string
+  onRetry?: () => void
+  className?: string
 }
 
-export function DataLoadingCard({ title, rows = 3, columns = 2, className = '' }: DataLoadingCardProps) {
-  return (
-    <Card className={`bg-gray-900 border-gray-700 p-4 ${className}`}>
-      <div className="flex items-center justify-between mb-4">
-        <Skeleton className="h-5 w-24 bg-gray-800" />
-        <Skeleton className="h-4 w-16 bg-gray-800" />
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: rows }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <Skeleton className="h-4 w-20 bg-gray-800" />
-            <Skeleton className="h-4 w-16 bg-gray-800" />
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-interface GridLoadingProps {
-  cards: number;
-  className?: string;
-}
-
-export function GridLoading({ cards = 6, className = '' }: GridLoadingProps) {
-  return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${className}`}>
-      {Array.from({ length: cards }).map((_, i) => (
-        <DataLoadingCard key={i} title="Loading..." />
-      ))}
-    </div>
-  );
-}
-
-interface ErrorFallbackProps {
-  title?: string;
-  message?: string;
-  onRetry?: () => void;
-  className?: string;
-}
-
-export function ErrorFallback({ 
-  title = 'Data Unavailable', 
-  message = 'Unable to load data. Please try again.', 
+export function CypherErrorState({
+  message = 'An unexpected error occurred.',
   onRetry,
-  className = '' 
-}: ErrorFallbackProps) {
+  className = '',
+}: CypherErrorStateProps) {
   return (
-    <Card className={`bg-gray-900 border-red-500/50 p-6 text-center ${className}`}>
-      <div className="text-red-500 mb-2">⚠️</div>
-      <h3 className="text-red-400 font-medium mb-2">{title}</h3>
-      <p className="text-gray-400 text-sm mb-4">{message}</p>
+    <div
+      role="alert"
+      className={`flex flex-col items-center justify-center gap-5 ${className}`}
+    >
+      <div className="w-16 h-16 rounded-full border-2 border-red-500/40 bg-red-500/10 flex items-center justify-center">
+        <svg
+          width="28"
+          height="28"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-red-400"
+        >
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+          <line x1="12" y1="9" x2="12" y2="13" />
+          <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      </div>
+
+      <div className="text-center space-y-1">
+        <h3 className="font-mono text-sm font-semibold text-red-400 uppercase tracking-wider">
+          Error
+        </h3>
+        <p className="text-sm text-gray-400 max-w-sm">{message}</p>
+      </div>
+
       {onRetry && (
-        <button 
+        <button
           onClick={onRetry}
-          className="px-4 py-2 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30 transition-colors text-sm"
+          className="terminal-button font-mono text-xs uppercase tracking-widest"
         >
           Retry
         </button>
       )}
-    </Card>
-  );
+    </div>
+  )
 }
 
-interface SafeDataDisplayProps {
-  data: any;
-  fallback?: React.ReactNode;
-  loading?: boolean;
-  error?: string | null;
-  onRetry?: () => void;
-  children: (data: any) => React.ReactNode;
+// ---------------------------------------------------------------------------
+// CypherEmptyState
+// ---------------------------------------------------------------------------
+interface CypherEmptyStateProps {
+  message?: string
+  actionLabel?: string
+  onAction?: () => void
+  className?: string
 }
 
-export function SafeDataDisplay({ 
-  data, 
-  fallback, 
-  loading = false, 
-  error = null, 
-  onRetry,
-  children 
-}: SafeDataDisplayProps) {
-  if (loading) {
-    return <DataLoadingCard title="Loading..." />;
-  }
-
-  if (error) {
-    return <ErrorFallback message={error} onRetry={onRetry} />;
-  }
-
-  if (!data) {
-    return fallback || <ErrorFallback title="No Data" message="No data available to display" onRetry={onRetry} />;
-  }
-
-  try {
-    return <>{children(data)}</>;
-  } catch (renderError) {
-    console.error('SafeDataDisplay render error:', renderError);
-    return <ErrorFallback title="Display Error" message="Error rendering data" onRetry={onRetry} />;
-  }
-}
-
-interface BloombergLoadingProps {
-  sections?: string[];
-}
-
-export function BloombergLoading({ sections = ['Market Data', 'Portfolio', 'Trading Bot', 'Analytics'] }: BloombergLoadingProps) {
+export function CypherEmptyState({
+  message = 'No data available.',
+  actionLabel,
+  onAction,
+  className = '',
+}: CypherEmptyStateProps) {
   return (
-    <div className="bg-black min-h-screen pt-20 p-4">
-      <div className="border-b-2 border-orange-500 mb-6">
-        <div className="grid grid-cols-12 gap-0 text-orange-500 font-mono text-xs">
-          <div className="col-span-2 p-3 border-r border-orange-500/30">
-            <Skeleton className="h-4 w-16 bg-orange-500/20" />
-          </div>
-          <div className="col-span-10 p-3 flex justify-between">
-            <Skeleton className="h-4 w-32 bg-orange-500/20" />
-            <Skeleton className="h-4 w-24 bg-orange-500/20" />
-          </div>
-        </div>
+    <div className={`flex flex-col items-center justify-center gap-4 py-12 ${className}`}>
+      <div className="w-14 h-14 rounded-full border border-cypher-border bg-cypher-surface-2 flex items-center justify-center">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-cypher-accent/40"
+        >
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <line x1="9" y1="9" x2="15" y2="15" />
+          <line x1="15" y1="9" x2="9" y2="15" />
+        </svg>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-8 space-y-6">
-          {sections.map((section, i) => (
-            <div key={i}>
-              <div className="flex items-center justify-between mb-4">
-                <Skeleton className="h-6 w-32 bg-gray-800" />
-                <Skeleton className="h-4 w-16 bg-gray-800" />
-              </div>
-              <GridLoading cards={3} />
-            </div>
+      <p className="font-mono text-sm text-gray-500 text-center max-w-xs">{message}</p>
+
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className="terminal-button font-mono text-xs uppercase tracking-widest"
+        >
+          {actionLabel}
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// TableSkeleton
+// ---------------------------------------------------------------------------
+interface TableSkeletonProps {
+  rows?: number
+  cols?: number
+  className?: string
+}
+
+export function TableSkeleton({ rows = 5, cols = 4, className = '' }: TableSkeletonProps) {
+  return (
+    <div className={`w-full space-y-0 ${className}`} role="status" aria-label="Loading table">
+      {/* Header row */}
+      <div className="flex gap-3 px-3 py-2 border-b border-cypher-border">
+        {Array.from({ length: cols }).map((_, c) => (
+          <div
+            key={`h-${c}`}
+            className="h-3 flex-1 rounded bg-cypher-surface-3 animate-pulse"
+            style={{ maxWidth: c === 0 ? '30%' : '20%' }}
+          />
+        ))}
+      </div>
+      {/* Data rows */}
+      {Array.from({ length: rows }).map((_, r) => (
+        <div
+          key={r}
+          className="flex gap-3 px-3 py-3 border-b border-cypher-surface-2"
+        >
+          {Array.from({ length: cols }).map((_, c) => (
+            <div
+              key={`${r}-${c}`}
+              className="h-3 flex-1 rounded bg-cypher-surface-3 animate-pulse"
+              style={{
+                maxWidth: c === 0 ? '30%' : '20%',
+                animationDelay: `${(r * cols + c) * 60}ms`,
+              }}
+            />
           ))}
         </div>
-
-        {/* Sidebar */}
-        <div className="lg:col-span-4 space-y-6">
-          <DataLoadingCard title="Live Activity" rows={5} />
-          <DataLoadingCard title="Mining Metrics" rows={4} />
-          <DataLoadingCard title="Trading Opportunities" rows={6} />
-        </div>
-      </div>
+      ))}
+      <span className="sr-only">Loading table data</span>
     </div>
-  );
+  )
 }
 
-export default {
-  LoadingSpinner,
-  TerminalLoading,
-  DataLoadingCard,
-  GridLoading,
-  ErrorFallback,
-  SafeDataDisplay,
-  BloombergLoading
-};
+// ---------------------------------------------------------------------------
+// ChartSkeleton
+// ---------------------------------------------------------------------------
+interface ChartSkeletonProps {
+  className?: string
+}
+
+export function ChartSkeleton({ className = '' }: ChartSkeletonProps) {
+  return (
+    <div
+      role="status"
+      aria-label="Loading chart"
+      className={`relative w-full h-64 rounded bg-cypher-surface-1 border border-cypher-border overflow-hidden ${className}`}
+    >
+      {/* Y-axis labels */}
+      <div className="absolute left-2 top-4 bottom-10 flex flex-col justify-between">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-2 w-8 rounded bg-cypher-surface-3 animate-pulse" />
+        ))}
+      </div>
+      {/* Chart area */}
+      <div className="absolute left-14 right-4 top-4 bottom-10">
+        <svg className="w-full h-full" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="chart-skeleton-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#F7931A" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#F7931A" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,80 Q50,60 100,70 T200,50 T300,65 T400,40 T500,55 L500,120 L0,120 Z"
+            fill="url(#chart-skeleton-grad)"
+            className="animate-pulse"
+          />
+          <path
+            d="M0,80 Q50,60 100,70 T200,50 T300,65 T400,40 T500,55"
+            fill="none"
+            stroke="#F7931A"
+            strokeWidth="1.5"
+            opacity="0.25"
+            className="animate-pulse"
+          />
+        </svg>
+      </div>
+      {/* X-axis labels */}
+      <div className="absolute left-14 right-4 bottom-2 flex justify-between">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="h-2 w-6 rounded bg-cypher-surface-3 animate-pulse" />
+        ))}
+      </div>
+      <span className="sr-only">Loading chart data</span>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// OrderBookSkeleton
+// ---------------------------------------------------------------------------
+interface OrderBookSkeletonProps {
+  rows?: number
+  className?: string
+}
+
+export function OrderBookSkeleton({ rows = 8, className = '' }: OrderBookSkeletonProps) {
+  return (
+    <div
+      role="status"
+      aria-label="Loading order book"
+      className={`w-full border border-cypher-border rounded bg-cypher-surface-1 overflow-hidden ${className}`}
+    >
+      {/* Header */}
+      <div className="flex border-b border-cypher-border">
+        <div className="flex-1 px-3 py-2 text-center">
+          <div className="h-2.5 w-12 rounded bg-green-900/40 animate-pulse mx-auto" />
+        </div>
+        <div className="flex-1 px-3 py-2 text-center">
+          <div className="h-2.5 w-12 rounded bg-red-900/40 animate-pulse mx-auto" />
+        </div>
+      </div>
+      {/* Rows */}
+      <div className="flex">
+        {/* Bid side */}
+        <div className="flex-1 border-r border-cypher-surface-2 space-y-0">
+          {Array.from({ length: rows }).map((_, i) => {
+            const width = 40 + Math.random() * 50
+            return (
+              <div key={`bid-${i}`} className="relative flex items-center justify-between px-3 py-1.5">
+                <div
+                  className="absolute inset-y-0 right-0 bg-green-500/5 animate-pulse"
+                  style={{ width: `${width}%`, animationDelay: `${i * 80}ms` }}
+                />
+                <div className="h-2.5 w-14 rounded bg-cypher-surface-3 animate-pulse relative z-10" style={{ animationDelay: `${i * 80}ms` }} />
+                <div className="h-2.5 w-10 rounded bg-cypher-surface-3 animate-pulse relative z-10" style={{ animationDelay: `${i * 80 + 40}ms` }} />
+              </div>
+            )
+          })}
+        </div>
+        {/* Ask side */}
+        <div className="flex-1 space-y-0">
+          {Array.from({ length: rows }).map((_, i) => {
+            const width = 40 + Math.random() * 50
+            return (
+              <div key={`ask-${i}`} className="relative flex items-center justify-between px-3 py-1.5">
+                <div
+                  className="absolute inset-y-0 left-0 bg-red-500/5 animate-pulse"
+                  style={{ width: `${width}%`, animationDelay: `${i * 80}ms` }}
+                />
+                <div className="h-2.5 w-10 rounded bg-cypher-surface-3 animate-pulse relative z-10" style={{ animationDelay: `${i * 80}ms` }} />
+                <div className="h-2.5 w-14 rounded bg-cypher-surface-3 animate-pulse relative z-10" style={{ animationDelay: `${i * 80 + 40}ms` }} />
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      <span className="sr-only">Loading order book data</span>
+    </div>
+  )
+}

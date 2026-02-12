@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
 interface AnalyticsMetrics {
   price: {
@@ -127,12 +128,12 @@ export async function GET(request: NextRequest) {
     // Try to fetch real data from multiple sources
     const promises = [];
     
-    // CoinGecko for price data
+    // CoinGecko for price data with rate limiting
     if (metrics.includes('all') || metrics.includes('price')) {
       promises.push(
-        fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_7d_change=true')
-          .then(res => res.json())
-          .catch(() => null)
+        rateLimitedFetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_7d_change=true'
+        ).catch(() => null)
       );
     }
 

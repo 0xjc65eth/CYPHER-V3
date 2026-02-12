@@ -12,7 +12,7 @@ import '@/app/wallet-conflict-init'
 import '@/app/wallet-providers-init'
 
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { Providers } from './providers'
 import { ConditionalNavigation } from '@/components/navigation/ConditionalNavigation'
@@ -20,6 +20,10 @@ import { ClientScriptLoader } from '@/components/ClientScriptLoader'
 import { DEFAULT_META } from '@/lib/constants/routes'
 
 const inter = Inter({ subsets: ['latin'] })
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-jetbrains-mono',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://cypher-ordi.com'),
@@ -99,11 +103,10 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         {/* Critical Performance Optimizations */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.coingecko.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://mempool.space" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.hiro.so" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://api.binance.com" />
-        <link rel="dns-prefetch" href="https://api.coingecko.com" />
-        <link rel="dns-prefetch" href="https://mempool.space" />
         
         {/* PWA Meta Tags */}
         <meta name="application-name" content="CYPHER ORDI" />
@@ -144,11 +147,19 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} bg-black text-white antialiased`} suppressHydrationWarning>
+      <body className={`${inter.className} ${jetbrainsMono.variable} bg-black text-white antialiased`} suppressHydrationWarning>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[99999] focus:px-4 focus:py-2 focus:bg-[#F7931A] focus:text-black focus:font-bold focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-white"
+        >
+          Skip to main content
+        </a>
         <ClientScriptLoader />
         <Providers>
           <ConditionalNavigation>
-            {children}
+            <main id="main-content">
+              {children}
+            </main>
           </ConditionalNavigation>
         </Providers>
       </body>

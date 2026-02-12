@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
 export function useSimpleBitcoinPrice() {
   const [data, setData] = useState<number | null>(null);
@@ -27,21 +28,10 @@ export function useSimpleBitcoinPrice() {
           console.log('API failed, trying CoinGecko...');
         }
 
-        // Fallback to CoinGecko
-        const coinGeckoResponse = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd',
-          {
-            headers: {
-              'Accept': 'application/json',
-            }
-          }
+        // Fallback to CoinGecko with rate limiting
+        const coinGeckoData = await rateLimitedFetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
         );
-        
-        if (!coinGeckoResponse.ok) {
-          throw new Error('Failed to fetch from CoinGecko');
-        }
-        
-        const coinGeckoData = await coinGeckoResponse.json();
         const price = coinGeckoData?.bitcoin?.usd;
         
         if (price) {
@@ -63,9 +53,9 @@ export function useSimpleBitcoinPrice() {
     };
 
     fetchPrice();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPrice, 30000);
+
+    // CoinGecko rate limit: increased to 60s
+    const interval = setInterval(fetchPrice, 60000);
     
     return () => clearInterval(interval);
   }, []);

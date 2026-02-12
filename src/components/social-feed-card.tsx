@@ -162,7 +162,13 @@ function SocialFeedCard({ posts }: { posts: any[] }) {
                   const tagColor = colors[i % colors.length];
 
                   return (
-                    <a href="#" key={i} className={`inline-block mr-3 ${tagColor} font-medium transition-colors`}>#{tag}</a>
+                    <button
+                      key={i}
+                      onClick={() => window.location.href = `/search?tag=${encodeURIComponent(tag)}`}
+                      className={`inline-block mr-3 ${tagColor} font-medium transition-colors cursor-pointer`}
+                    >
+                      #{tag}
+                    </button>
                   );
                 })}
               </div>
@@ -188,12 +194,15 @@ function SocialFeedCard({ posts }: { posts: any[] }) {
                     {post.shares.toLocaleString()}
                   </div>
                 </div>
-                <a href="#" className="text-xs text-pink-400 hover:text-pink-300 px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-lg transition-colors flex items-center gap-1">
+                <button
+                  onClick={() => post.url && window.open(post.url, '_blank')}
+                  className="text-xs text-pink-400 hover:text-pink-300 px-3 py-1.5 bg-pink-500/10 border border-pink-500/30 rounded-lg transition-colors flex items-center gap-1"
+                >
                   View original post
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                   </svg>
-                </a>
+                </button>
               </div>
 
               <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-slate-700/30">

@@ -2,9 +2,36 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import dynamic from 'next/dynamic'
+import { Component, type ReactNode } from 'react'
 import { ThemeToggle } from './theme-toggle'
 import { CardID } from './card-id'
-import { WalletConnectButton } from './wallet-connect-button-new'
+
+// Dynamic import to prevent BigInt serialization crash from @omnisat/lasereyes-react
+const WalletConnectButton = dynamic(
+  () => import('./wallet-connect-button-new').then(mod => ({ default: mod.WalletConnectButton })),
+  { ssr: false, loading: () => <div className="px-4 py-2 text-xs text-gray-500">Loading wallet...</div> }
+)
+
+// Error boundary to catch lasereyes BigInt crashes without taking down the page
+class WalletErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  componentDidCatch(error: Error) {
+    console.warn('[CYPHER] Wallet component error (BigInt):', error.message)
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div className="px-4 py-2 text-xs text-gray-500">Wallet unavailable</div>
+    }
+    return this.props.children
+  }
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/' },
@@ -41,7 +68,7 @@ export function Header({ title, description }: HeaderProps) {
               CYPHER ORDI FUTURE
             </span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
+          <nav aria-label="Main navigation" className="flex items-center space-x-6 text-sm font-medium">
             {navigation.map((item) => (
               <Link
                 key={item.href}
@@ -61,7 +88,9 @@ export function Header({ title, description }: HeaderProps) {
           </div>
           <nav className="flex items-center space-x-4">
             <div className="mr-2">
-              <WalletConnectButton />
+              <WalletErrorBoundary>
+                <WalletConnectButton />
+              </WalletErrorBoundary>
             </div>
             <ThemeToggle />
           </nav>

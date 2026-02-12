@@ -1,3 +1,7 @@
+// YHP Ethereum contract
+export const YHP_CONTRACT_ADDRESS = '0xf4b6f2ab709703aa1a3e47fa0183ec700017c62b'
+export const YHP_COLLECTION_NAME = 'YIELD HACKER PASS'
+
 // Premium collections for access verification
 export const PREMIUM_COLLECTIONS = [
   'OCM GENESIS',

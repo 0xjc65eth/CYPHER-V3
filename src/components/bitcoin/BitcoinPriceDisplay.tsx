@@ -83,34 +83,35 @@ export function BitcoinPriceDisplay() {
   const isConnected = !error && bitcoinData !== null;
 
   return (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center space-x-3" aria-live="polite" aria-atomic="true">
       <div className="flex items-center space-x-1">
         <span className="text-sm text-gray-400">BTC:</span>
         <span className={`text-sm font-medium text-white transition-all duration-300 ${
-          priceFlash === 'up' ? 'text-green-400 scale-105' : 
+          priceFlash === 'up' ? 'text-green-400 scale-105' :
           priceFlash === 'down' ? 'text-red-400 scale-105' : ''
         }`}>
           {priceFormatted}
         </span>
       </div>
-      
+
       <div className={`flex items-center space-x-1 ${changeColor}`}>
         {isPositive ? (
-          <TrendingUp className="h-3 w-3" />
+          <TrendingUp className="h-3 w-3" aria-hidden="true" />
         ) : (
-          <TrendingDown className="h-3 w-3" />
+          <TrendingDown className="h-3 w-3" aria-hidden="true" />
         )}
         <span className="text-xs font-medium">{changeFormatted}</span>
       </div>
 
       {/* Connection indicator */}
-      <div className="flex items-center">
+      <div className="flex items-center" aria-label={isConnected ? "Price feed connected" : "Price feed disconnected"}>
         {isConnected ? (
-          <Activity className="h-3 w-3 text-green-400 animate-pulse" />
+          <Activity className="h-3 w-3 text-green-400 animate-pulse" aria-hidden="true" />
         ) : error ? (
-          <AlertCircle className="h-3 w-3 text-red-400" />
+          <AlertCircle className="h-3 w-3 text-red-400" aria-hidden="true" />
         ) : null}
       </div>
+      <span className="sr-only">Bitcoin price: {priceFormatted}, 24h change: {changeFormatted}</span>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter } from '@/lib/rateLimiter';
+import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
 export const dynamic = 'force-dynamic'; // Essential for Netlify
 
@@ -160,9 +161,10 @@ export async function GET(request: NextRequest) {
         throw new Error('SKIP_TO_HARDCODED');
       }
       
-      // Fallback to a free API
-      const fallbackResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true');
-      const fallbackData = await fallbackResponse.json();
+      // Fallback to a free API with rate limiting
+      const fallbackData = await rateLimitedFetch(
+        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true'
+      );
       
       const processedFallback = {
         current: {

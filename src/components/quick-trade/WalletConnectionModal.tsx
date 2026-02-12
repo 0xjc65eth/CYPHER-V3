@@ -373,14 +373,20 @@ const WalletConnectionModal: React.FC<WalletConnectionModalProps> = ({
                 By connecting a wallet, you agree to our Terms of Service
               </p>
               <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
-                <a href="#" className="hover:text-cyan-400 flex items-center gap-1">
+                <button
+                  onClick={() => window.open('/docs/security', '_blank')}
+                  className="hover:text-cyan-400 flex items-center gap-1"
+                >
                   Security Guide
                   <ExternalLink className="w-3 h-3" />
-                </a>
-                <a href="#" className="hover:text-cyan-400 flex items-center gap-1">
+                </button>
+                <button
+                  onClick={() => window.open('/docs/wallets', '_blank')}
+                  className="hover:text-cyan-400 flex items-center gap-1"
+                >
                   Supported Wallets
                   <ExternalLink className="w-3 h-3" />
-                </a>
+                </button>
               </div>
             </div>
           </CardContent>

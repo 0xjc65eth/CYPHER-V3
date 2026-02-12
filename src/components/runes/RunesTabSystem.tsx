@@ -1,288 +1,310 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  Target, 
-  Brain, 
-  Building2, 
-  BarChart3, 
-  TrendingUp,
-  Eye,
-  Zap,
+import {
+  BarChart3,
   Activity,
   Timer,
-  Star,
   Settings,
-  Bell,
   Crown,
-  Flame,
-  LineChart
+  Clock,
+  ShoppingCart,
+  ArrowLeftRight,
+  Radio,
+  Keyboard,
+  RefreshCw
 } from 'lucide-react';
 
-// Lazy load components
-const BloombergTerminalDashboard = lazy(() => import('./BloombergTerminalDashboardNew'));
-const WallStreetTradingFloor = lazy(() => import('../trading/WallStreetTradingFloor'));
-const ProfessionalOrderBook = lazy(() => import('../trading/ProfessionalOrderBook'));
-
-// New Analysis Components
-const TechnicalAnalysis = lazy(() => import('./analysis/TechnicalAnalysis'));
-const SentimentAnalysis = lazy(() => import('./analysis/SentimentAnalysis'));
-const MarketDepthAnalysis = lazy(() => import('./analysis/MarketDepthAnalysis'));
-const AdvancedCharts = lazy(() => import('./analysis/AdvancedCharts'));
-const RiskManagement = lazy(() => import('./analysis/RiskManagement'));
+// Lazy-loaded tab components
+const RunesMarketOverviewFixed = lazy(() => import('./RunesMarketOverviewFixed'));
+const RunesEtchingHistory = lazy(() => import('./RunesEtchingHistory'));
+const RunesMarketplace = lazy(() => import('./RunesMarketplace'));
+const RunesArbitrage = lazy(() => import('./RunesArbitrage'));
+const RunesLiveFeed = lazy(() => import('./RunesLiveFeed'));
+const RunesAnalyticsFixed = lazy(() => import('./RunesAnalyticsFixed'));
 
 interface Tab {
   id: string;
   label: string;
+  shortLabel: string;
   icon: React.ComponentType<any>;
   component: React.ComponentType<any>;
   badge?: string;
   color: string;
   description: string;
-  premium?: boolean;
+  hotkey: string;
 }
 
 const tabs: Tab[] = [
   {
-    id: 'terminal',
-    label: 'Terminal',
-    icon: Target,
-    component: BloombergTerminalDashboard,
-    color: 'orange',
-    description: 'Bloomberg-style professional trading interface'
-  },
-  {
-    id: 'technical',
-    label: 'Technical Analysis',
-    icon: BarChart3,
-    component: TechnicalAnalysis,
-    badge: 'NEW',
-    color: 'blue',
-    description: 'Advanced technical indicators and chart analysis'
-  },
-  {
-    id: 'orderbook',
-    label: 'Order Book',
-    icon: Brain,
-    component: ProfessionalOrderBook,
-    color: 'cyan',
-    description: 'Level II market data and professional order entry'
-  },
-  {
-    id: 'trading-floor',
-    label: 'Trading Floor',
-    icon: Building2,
-    component: WallStreetTradingFloor,
-    color: 'green',
-    description: 'Wall Street style trading floor simulation'
-  },
-  {
-    id: 'sentiment',
-    label: 'Sentiment',
-    icon: Eye,
-    component: SentimentAnalysis,
-    badge: 'AI',
-    color: 'purple',
-    description: 'AI-powered market sentiment analysis',
-    premium: true
-  },
-  {
-    id: 'depth',
-    label: 'Market Depth',
+    id: 'market',
+    label: 'Market Overview',
+    shortLabel: 'Market',
     icon: Activity,
-    component: MarketDepthAnalysis,
+    component: RunesMarketOverviewFixed,
+    badge: 'LIVE',
+    color: 'orange',
+    description: 'Real-time Runes market data — Supply, holders, watchlist',
+    hotkey: '1'
+  },
+  {
+    id: 'etchings',
+    label: 'Etching History',
+    shortLabel: 'Etchings',
+    icon: Clock,
+    component: RunesEtchingHistory,
+    badge: 'LIVE',
+    color: 'purple',
+    description: 'Recently created Runes — Mint status, premine, supply details',
+    hotkey: '2'
+  },
+  {
+    id: 'marketplace',
+    label: 'Marketplace',
+    shortLabel: 'Market',
+    icon: ShoppingCart,
+    component: RunesMarketplace,
+    color: 'green',
+    description: 'Active listings, order book, and trade history across marketplaces',
+    hotkey: '3'
+  },
+  {
+    id: 'arbitrage',
+    label: 'Arbitrage',
+    shortLabel: 'Arb',
+    icon: ArrowLeftRight,
+    component: RunesArbitrage,
+    color: 'cyan',
+    description: 'Cross-marketplace arbitrage opportunities and spread analysis',
+    hotkey: '4'
+  },
+  {
+    id: 'live',
+    label: 'Live Feed',
+    shortLabel: 'Live',
+    icon: Radio,
+    component: RunesLiveFeed,
+    badge: 'LIVE',
     color: 'red',
-    description: 'Deep market microstructure analysis'
+    description: 'Real-time activity feed — Mints, trades, transfers, whale alerts',
+    hotkey: '5'
   },
   {
-    id: 'charts',
-    label: 'Advanced Charts',
-    icon: LineChart,
-    component: AdvancedCharts,
-    badge: 'PRO',
-    color: 'yellow',
-    description: 'Professional charting with multiple timeframes',
-    premium: true
-  },
-  {
-    id: 'risk',
-    label: 'Risk Management',
-    icon: Zap,
-    component: RiskManagement,
-    color: 'pink',
-    description: 'Portfolio risk analysis and management tools'
+    id: 'analytics',
+    label: 'Analytics',
+    shortLabel: 'Analytics',
+    icon: BarChart3,
+    component: RunesAnalyticsFixed,
+    badge: 'LIVE',
+    color: 'blue',
+    description: 'Comprehensive analytics — Top by holders, supply, turbo runes',
+    hotkey: '6'
   }
 ];
 
-const LoadingSpinner = ({ tab }: { tab: Tab }) => (
-  <div className="min-h-[600px] flex items-center justify-center">
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="text-center"
-    >
-      <div className="relative mb-4">
-        <div className={`w-16 h-16 border-4 border-${tab.color}-400/20 rounded-full animate-spin`}>
-          <div className={`absolute inset-2 border-4 border-${tab.color}-400 border-t-transparent rounded-full animate-spin`} 
-               style={{ animationDuration: '0.8s', animationDirection: 'reverse' }} />
-        </div>
+const colorMap: Record<string, Record<string, string>> = {
+  orange: { text: 'text-orange-400', border: 'border-orange-400', bg: 'bg-orange-400', bgSoft: 'bg-orange-400/20' },
+  blue: { text: 'text-blue-400', border: 'border-blue-400', bg: 'bg-blue-400', bgSoft: 'bg-blue-400/20' },
+  purple: { text: 'text-purple-400', border: 'border-purple-400', bg: 'bg-purple-400', bgSoft: 'bg-purple-400/20' },
+  green: { text: 'text-green-400', border: 'border-green-400', bg: 'bg-green-400', bgSoft: 'bg-green-400/20' },
+  cyan: { text: 'text-cyan-400', border: 'border-cyan-400', bg: 'bg-cyan-400', bgSoft: 'bg-cyan-400/20' },
+  red: { text: 'text-red-400', border: 'border-red-400', bg: 'bg-red-400', bgSoft: 'bg-red-400/20' },
+};
+
+const getColor = (color: string, type: string) => colorMap[color]?.[type] || 'text-gray-400';
+
+interface TickerRune {
+  spaced_name: string;
+  holders: number | null;
+  symbol: string;
+}
+
+function TopRunesTicker() {
+  const [topRunes, setTopRunes] = useState<TickerRune[]>([]);
+  const [totalRunes, setTotalRunes] = useState<number>(0);
+
+  useEffect(() => {
+    async function fetchTicker() {
+      try {
+        const res = await fetch('/api/runes/popular?limit=60&offset=0');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.data) {
+          setTopRunes(data.data.map((r: any) => ({
+            spaced_name: r.spaced_name || r.name,
+            holders: r.holders,
+            symbol: r.symbol || ''
+          })));
+          setTotalRunes(data.total || 0);
+        }
+      } catch { /* silent */ }
+    }
+    fetchTicker();
+    const interval = setInterval(fetchTicker, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (topRunes.length === 0) return null;
+
+  return (
+    <div className="bg-gray-900/80 border-b border-gray-800 px-4 py-1.5 overflow-hidden">
+      <div className="flex items-center gap-6 text-xs overflow-x-auto scrollbar-hide">
+        <span className="text-gray-500 font-medium whitespace-nowrap flex-shrink-0">
+          {totalRunes.toLocaleString()} RUNES
+        </span>
+        <span className="text-gray-700">|</span>
+        {topRunes.map((rune, i) => (
+          <span key={i} className="flex items-center gap-1.5 whitespace-nowrap flex-shrink-0">
+            <span className="text-gray-400">{rune.symbol}</span>
+            <span className="text-white font-medium">{rune.spaced_name}</span>
+            {rune.holders != null && (
+              <span className="text-blue-400">{rune.holders.toLocaleString()} holders</span>
+            )}
+          </span>
+        ))}
       </div>
-      <h3 className={`text-xl font-bold text-${tab.color}-400 mb-2`}>
-        Loading {tab.label}
-      </h3>
-      <p className="text-gray-400 text-sm">{tab.description}</p>
-    </motion.div>
-  </div>
-);
+    </div>
+  );
+}
+
+function TabLoadingFallback({ tab }: { tab: Tab }) {
+  return (
+    <div className="min-h-[600px] flex items-center justify-center">
+      <div className="text-center">
+        <div className="relative mb-4 mx-auto w-16 h-16">
+          <div className="w-16 h-16 border-4 border-gray-700 rounded-full">
+            <div className={`absolute inset-2 border-4 ${getColor(tab.color, 'border')} border-t-transparent rounded-full animate-spin`}
+              style={{ animationDuration: '0.8s' }} />
+          </div>
+        </div>
+        <h3 className={`text-xl font-bold ${getColor(tab.color, 'text')} mb-2`}>
+          Loading {tab.label}
+        </h3>
+        <p className="text-gray-400 text-sm">{tab.description}</p>
+      </div>
+    </div>
+  );
+}
 
 export default function RunesTabSystem() {
-  const [activeTab, setActiveTab] = useState('terminal');
-  const [notifications, setNotifications] = useState<string[]>([]);
-  const [isLive, setIsLive] = useState(true);
+  const [activeTab, setActiveTab] = useState('market');
+  const [showKeyHints, setShowKeyHints] = useState(false);
 
   const activeTabData = tabs.find(tab => tab.id === activeTab);
 
-  // Simulate notifications
+  // Keyboard navigation
   useEffect(() => {
-    if (!isLive) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only respond if not typing in an input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
-    const interval = setInterval(() => {
-      const messages = [
-        'New market opportunity detected',
-        'Price alert triggered',
-        'Volume spike detected',
-        'Technical pattern formed',
-        'Risk threshold reached'
-      ];
-      
-      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-      setNotifications(prev => [randomMessage, ...prev.slice(0, 4)]);
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, [isLive]);
-
-  const getTabColorClass = (color: string, type: 'text' | 'border' | 'bg' = 'text') => {
-    const colorMap: Record<string, Record<string, string>> = {
-      orange: { text: 'text-orange-400', border: 'border-orange-400', bg: 'bg-orange-400' },
-      blue: { text: 'text-blue-400', border: 'border-blue-400', bg: 'bg-blue-400' },
-      cyan: { text: 'text-cyan-400', border: 'border-cyan-400', bg: 'bg-cyan-400' },
-      green: { text: 'text-green-400', border: 'border-green-400', bg: 'bg-green-400' },
-      purple: { text: 'text-purple-400', border: 'border-purple-400', bg: 'bg-purple-400' },
-      red: { text: 'text-red-400', border: 'border-red-400', bg: 'bg-red-400' },
-      yellow: { text: 'text-yellow-400', border: 'border-yellow-400', bg: 'bg-yellow-400' },
-      pink: { text: 'text-pink-400', border: 'border-pink-400', bg: 'bg-pink-400' }
+      const key = e.key;
+      if (key >= '1' && key <= '6') {
+        const index = parseInt(key) - 1;
+        if (tabs[index]) {
+          setActiveTab(tabs[index].id);
+        }
+      }
     };
-    return colorMap[color]?.[type] || 'text-gray-400';
-  };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {/* Top Ticker */}
+      <TopRunesTicker />
+
       {/* Header with Status Bar */}
       <div className="border-b border-gray-800 bg-black/95 backdrop-blur-sm sticky top-0 z-40">
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Crown className="h-8 w-8 text-yellow-500" />
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-yellow-500 bg-clip-text text-transparent">
-                    RUNES PROFESSIONAL TERMINAL
-                  </h1>
-                  <p className="text-sm text-gray-400">Bloomberg-Style Trading Interface</p>
-                </div>
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <Crown className="h-7 w-7 text-yellow-500" />
+              <div>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-orange-400 to-yellow-500 bg-clip-text text-transparent">
+                  RUNES PROFESSIONAL TERMINAL
+                </h1>
+                <p className="text-xs text-gray-500">Real-time data from Hiro API</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              {/* Live Status */}
-              <Badge className={`${isLive ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-red-500/20 border-red-500 text-red-400'}`}>
-                <div className={`w-2 h-2 ${isLive ? 'bg-green-400' : 'bg-red-400'} rounded-full mr-2 ${isLive ? 'animate-pulse' : ''}`} />
-                {isLive ? 'LIVE' : 'OFFLINE'}
+            <div className="flex items-center gap-3">
+              <Badge className="bg-green-500/20 border-green-500 text-green-400 text-xs">
+                <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5 animate-pulse" />
+                LIVE
               </Badge>
 
-              {/* Notifications */}
-              <div className="relative">
-                <Button variant="outline" size="sm" className="border-gray-600">
-                  <Bell className="h-4 w-4" />
-                  {notifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {notifications.length}
-                    </span>
-                  )}
-                </Button>
-              </div>
-
-              {/* Settings */}
-              <Button variant="outline" size="sm" className="border-gray-600">
-                <Settings className="h-4 w-4" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-500 hover:text-gray-300 text-xs gap-1"
+                onClick={() => setShowKeyHints(!showKeyHints)}
+              >
+                <Keyboard className="h-3.5 w-3.5" />
+                {showKeyHints ? 'Hide' : '1-6'}
               </Button>
             </div>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
 
               return (
-                <motion.button
+                <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                    isActive 
-                      ? `${getTabColorClass(tab.color, 'bg')}/20 ${getTabColorClass(tab.color, 'border')} border ${getTabColorClass(tab.color, 'text')}` 
-                      : 'text-gray-400 hover:text-white hover:bg-gray-800 border border-transparent'
+                  className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150 whitespace-nowrap ${
+                    isActive
+                      ? `${getColor(tab.color, 'bgSoft')} ${getColor(tab.color, 'border')} border ${getColor(tab.color, 'text')}`
+                      : 'text-gray-400 hover:text-white hover:bg-gray-800/60 border border-transparent'
                   }`}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className="h-3.5 w-3.5" />
                   <span>{tab.label}</span>
-                  
-                  {tab.badge && (
-                    <Badge className="text-xs px-1 py-0 bg-yellow-500/20 border-yellow-500 text-yellow-400">
-                      {tab.badge}
-                    </Badge>
+
+                  {showKeyHints && (
+                    <span className="text-[10px] px-1 py-0 rounded bg-gray-700 text-gray-300 font-mono">
+                      {tab.hotkey}
+                    </span>
                   )}
-                  
-                  {tab.premium && (
-                    <Star className="h-3 w-3 text-yellow-400" />
+
+                  {tab.badge && (
+                    <span className={`text-[10px] px-1 rounded ${
+                      tab.badge === 'LIVE' ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-300'
+                    }`}>
+                      {tab.badge}
+                    </span>
                   )}
 
                   {isActive && (
-                    <motion.div
-                      layoutId="activeTab"
-                      className={`absolute bottom-0 left-0 right-0 h-0.5 ${getTabColorClass(tab.color, 'bg')} rounded-full`}
-                      initial={false}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    />
+                    <div className={`absolute bottom-0 left-1 right-1 h-0.5 ${getColor(tab.color, 'bg')} rounded-full`} />
                   )}
-                </motion.button>
+                </button>
               );
             })}
           </div>
         </div>
       </div>
 
-      {/* Active Tab Description */}
+      {/* Active Tab Description Bar */}
       {activeTabData && (
-        <div className="bg-gray-900/50 border-b border-gray-800 px-4 py-3">
+        <div className="bg-gray-900/40 border-b border-gray-800/50 px-4 py-2">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-2 h-2 ${getTabColorClass(activeTabData.color, 'bg')} rounded-full animate-pulse`} />
-              <span className="text-sm text-gray-400">{activeTabData.description}</span>
-            </div>
-            
             <div className="flex items-center gap-2">
-              <Timer className="h-4 w-4 text-gray-400" />
-              <span className="text-xs text-gray-500">
-                Last updated: {new Date().toLocaleTimeString()}
+              <div className={`w-1.5 h-1.5 ${getColor(activeTabData.color, 'bg')} rounded-full animate-pulse`} />
+              <span className="text-xs text-gray-500">{activeTabData.description}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Timer className="h-3 w-3 text-gray-600" />
+              <span className="text-[10px] text-gray-600">
+                {new Date().toLocaleTimeString()}
               </span>
             </div>
           </div>
@@ -291,63 +313,12 @@ export default function RunesTabSystem() {
 
       {/* Tab Content */}
       <div className="relative">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="w-full"
-          >
-            {activeTabData && (
-              <Suspense fallback={<LoadingSpinner tab={activeTabData} />}>
-                <activeTabData.component />
-              </Suspense>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Notifications Panel */}
-      <AnimatePresence>
-        {notifications.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, x: 300 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 300 }}
-            className="fixed top-20 right-4 w-80 z-50"
-          >
-            <Card className="bg-black/95 border-gray-700 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-bold text-white">Live Notifications</h3>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setNotifications([])}
-                    className="text-gray-400 hover:text-white h-6 w-6 p-0"
-                  >
-                    ×
-                  </Button>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {notifications.map((notification, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="p-2 bg-gray-800/50 rounded text-xs text-gray-300 border-l-2 border-orange-400"
-                    >
-                      {notification}
-                    </motion.div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {activeTabData && (
+          <Suspense fallback={<TabLoadingFallback tab={activeTabData} />}>
+            <activeTabData.component />
+          </Suspense>
         )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

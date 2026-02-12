@@ -1,51 +1,55 @@
 import { NextResponse } from 'next/server';
-import { hiroAPI } from '@/lib/hiro-api';
 
 export async function GET() {
   try {
-    console.log('📊 Buscando estatísticas de Ordinals');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
 
-    // Tentar buscar dados reais da API Hiro
-    try {
-      const data = await hiroAPI.getInscriptionStats();
-      
-      return NextResponse.json({
-        success: true,
-        data: {
-          total_inscriptions: data.total_inscriptions || 52300000,
-          volume_24h: data.volume_24h || 234.5,
-          collections: data.collections || 1842,
-          avg_fee: data.avg_fee || 47,
-          ...data
-        },
-        timestamp: Date.now()
-      });
-    } catch (hiroError) {
-      console.log('⚠️ Hiro API não disponível, usando dados simulados');
-      
-      // Dados simulados caso a API não esteja disponível
-      return NextResponse.json({
-        success: true,
-        data: {
-          total_inscriptions: 52300000 + Math.floor(Math.random() * 100000),
-          volume_24h: 234.5 + (Math.random() - 0.5) * 50,
-          collections: 1842 + Math.floor(Math.random() * 20),
-          avg_fee: 47 + Math.floor(Math.random() * 10),
-          change_24h: (Math.random() - 0.5) * 10,
-          new_inscriptions_24h: Math.floor(Math.random() * 50000),
-          active_wallets: Math.floor(15000 + Math.random() * 5000)
-        },
-        timestamp: Date.now(),
-        source: 'simulated'
-      });
+    // Fetch inscription stats from Hiro
+    const response = await fetch(
+      'https://api.hiro.so/ordinals/v1/stats/inscriptions',
+      {
+        headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
+      }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      return NextResponse.json(
+        { success: false, error: `Hiro API error: ${response.status} ${response.statusText}` },
+        { status: response.status, headers: { 'Cache-Control': 'no-cache' } }
+      );
     }
 
-  } catch (error) {
-    console.error('❌ Erro na API Ordinals Stats:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Erro ao buscar estatísticas',
-      message: error.message
-    }, { status: 500 });
+    const data = await response.json();
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          total_inscriptions: data.total_inscriptions ?? data.count ?? null,
+          unconfirmed_inscriptions: data.unconfirmed_inscriptions ?? null,
+          cursed_inscriptions: data.cursed_inscriptions ?? null,
+          blessed_inscriptions: data.blessed_inscriptions ?? null,
+          current_block_height: data.current_block_height ?? null,
+          ...data,
+        },
+        timestamp: Date.now(),
+        source: 'hiro',
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+        },
+      }
+    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Ordinals stats API error:', message);
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch inscription stats', message },
+      { status: 500, headers: { 'Cache-Control': 'no-cache' } }
+    );
   }
 }

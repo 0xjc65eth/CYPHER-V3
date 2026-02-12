@@ -95,8 +95,8 @@ export const FinalChart: React.FC<FinalChartProps> = ({
     if (!containerRef.current) return;
 
     try {
-      const { createChart } = await import('lightweight-charts');
-      
+      const { createChart, CandlestickSeries } = await import('lightweight-charts');
+
       // Clear any existing content
       if (containerRef.current) {
         containerRef.current.innerHTML = '';
@@ -126,7 +126,7 @@ export const FinalChart: React.FC<FinalChartProps> = ({
           },
         });
 
-        const candleSeries = chart.addCandlestickSeries({
+        const candleSeries = chart.addSeries(CandlestickSeries, {
           upColor: '#10b981',
           downColor: '#ef4444',
           borderVisible: false,

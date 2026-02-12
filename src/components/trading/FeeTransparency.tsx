@@ -28,6 +28,7 @@ interface FeeTransparencyProps {
   amountIn?: string;
   amountOut?: string;
   selectedNetwork?: string;
+  isPremium?: boolean;
 }
 
 interface FeeBreakdown {
@@ -58,12 +59,13 @@ interface FeeBreakdown {
   totalFeePercentage: number;
 }
 
-export function FeeTransparency({ 
-  tokenIn, 
-  tokenOut, 
-  amountIn, 
-  amountOut, 
-  selectedNetwork = 'ethereum' 
+export function FeeTransparency({
+  tokenIn,
+  tokenOut,
+  amountIn,
+  amountOut,
+  selectedNetwork = 'ethereum',
+  isPremium = false
 }: FeeTransparencyProps) {
   const [feeBreakdown, setFeeBreakdown] = useState<FeeBreakdown | null>(null);
   const [feeAddresses, setFeeAddresses] = useState<FeeAddresses | null>(null);
@@ -155,9 +157,15 @@ export function FeeTransparency({
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-blue-400" />
             <CardTitle className="text-white text-lg">Transparência de Taxas</CardTitle>
-            <Badge variant="outline" className="text-xs bg-green-900/20 text-green-400 border-green-500/30">
-              0.34% Taxa Fixa
-            </Badge>
+            {isPremium ? (
+              <Badge variant="outline" className="text-xs bg-green-900/20 text-green-400 border-green-500/30">
+                YHP Member — 0% fees
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs bg-green-900/20 text-green-400 border-green-500/30">
+                0.3% Taxa
+              </Badge>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -188,16 +196,30 @@ export function FeeTransparency({
             ) : feeBreakdown ? (
               <div className="space-y-4">
                 {/* Cypher Fee */}
-                <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                <div className={`${isPremium ? 'bg-green-900/20 border-green-500/30' : 'bg-blue-900/20 border-blue-500/30'} border rounded-lg p-4`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-blue-400" />
-                      <span className="text-blue-400 font-medium">Taxa CYPHER</span>
+                      <DollarSign className={`w-4 h-4 ${isPremium ? 'text-green-400' : 'text-blue-400'}`} />
+                      <span className={`${isPremium ? 'text-green-400' : 'text-blue-400'} font-medium`}>
+                        CYPHER Fee{isPremium ? ': 0% (YHP Member)' : ''}
+                      </span>
                     </div>
-                    <Badge variant="outline" className="text-blue-400 border-blue-500/30">
-                      {feeBreakdown.cypherFee.percentage}%
-                    </Badge>
+                    {isPremium ? (
+                      <Badge variant="outline" className="text-green-400 border-green-500/30">
+                        YHP Member
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-blue-400 border-blue-500/30">
+                        {feeBreakdown.cypherFee.percentage}%
+                      </Badge>
+                    )}
                   </div>
+                  {!isPremium && (
+                    <div className="mt-2 text-xs text-yellow-400/70 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      Get YHP for 0% fees
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <div className="text-gray-400">Valor</div>
@@ -403,9 +425,15 @@ export function FeeTransparency({
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Taxa CYPHER</span>
-                    <Badge variant="outline" className="text-blue-400 border-blue-500/30">
-                      0.34% Fixa
-                    </Badge>
+                    {isPremium ? (
+                      <Badge variant="outline" className="text-green-400 border-green-500/30">
+                        0% (YHP Member)
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-blue-400 border-blue-500/30">
+                        0.3%
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300">Taxas DEX</span>
@@ -429,7 +457,7 @@ export function FeeTransparency({
                   <div className="text-sm text-green-200">
                     <div className="font-medium mb-1">Segurança e Transparência</div>
                     <ul className="text-xs space-y-1 list-disc list-inside">
-                      <li>Taxa fixa de 0.34% aplicada a todas as operações</li>
+                      <li>{isPremium ? 'YHP Members: 0% CYPHER fee on all operations' : 'Taxa de 0.3% aplicada a todas as operações (0% para YHP Members)'}</li>
                       <li>Endereços de taxa publicamente verificáveis</li>
                       <li>Cálculos transparentes e auditáveis</li>
                       <li>Sem taxas ocultas ou custos adicionais</li>

@@ -13,8 +13,9 @@ import { BRC20TokenList } from '@/components/brc20/BRC20TokenList';
 import { BRC20Portfolio } from '@/components/brc20/BRC20Portfolio';
 import { BRC20Analytics } from '@/components/brc20/BRC20Analytics';
 import { BRC20Trading } from '@/components/brc20/BRC20Trading';
+import { BRC20MintTracker } from '@/components/brc20/BRC20MintTracker';
+import { BRC20DEXActivity } from '@/components/brc20/BRC20DEXActivity';
 import { brc20Service, type BRC20Token } from '@/services/BRC20Service';
-import { realPriceService } from '@/services/RealPriceService';
 import { useLaserEyes } from '@omnisat/lasereyes';
 import { 
   TrendingUp, 
@@ -50,12 +51,12 @@ const BRC20Page = () => {
   const [activeTab, setActiveTab] = useState('market');
   const [brc20Tokens, setBrc20Tokens] = useState<BRC20Token[]>([]);
   const [marketStats, setMarketStats] = useState<MarketStats>({
-    totalMarketCap: 2145678900,
-    volume24h: 89456123,
-    totalTokens: 45678,
-    activeTraders: 12345,
-    change24h: 5.67,
-    dominance: 0.089
+    totalMarketCap: 0,
+    volume24h: 0,
+    totalTokens: 0,
+    activeTraders: 0,
+    change24h: 0,
+    dominance: 0
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -67,7 +68,7 @@ const BRC20Page = () => {
     const loadTokens = async () => {
       try {
         setLoading(true);
-        const tokens = await brc20Service.getTokenList();
+        const tokens = await brc20Service.getBRC20Tokens();
         setBrc20Tokens(tokens);
         
         // Calculate market stats
@@ -83,29 +84,7 @@ const BRC20Page = () => {
     loadTokens();
   }, []);
 
-  // Subscribe to real-time price updates
-  useEffect(() => {
-    const symbols = brc20Tokens.map(token => token.tick);
-    if (symbols.length === 0) return;
-
-    const unsubscribe = realPriceService.subscribeToPrices(symbols, (updates) => {
-      setBrc20Tokens(prevTokens => {
-        return prevTokens.map(token => {
-          const update = updates.find(u => u.symbol === token.tick);
-          if (update) {
-            return {
-              ...token,
-              price: update.price,
-              change24h: update.change24h || token.change24h
-            };
-          }
-          return token;
-        });
-      });
-    });
-
-    return () => unsubscribe();
-  }, [brc20Tokens.length]);
+  // Price subscriptions removed - Hiro API provides static snapshots, not streams
 
   const calculateMarketStats = (tokens: BRC20Token[]): MarketStats => {
     const totalMarketCap = tokens.reduce((acc, token) => {
@@ -133,7 +112,7 @@ const BRC20Page = () => {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const tokens = await brc20Service.getTokenList();
+      const tokens = await brc20Service.getBRC20Tokens();
       setBrc20Tokens(tokens);
       const stats = calculateMarketStats(tokens);
       setMarketStats(stats);
@@ -145,7 +124,7 @@ const BRC20Page = () => {
   };
 
   const filteredTokens = brc20Tokens.filter(token =>
-    token.tick.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    token.ticker.toLowerCase().includes(searchQuery.toLowerCase()) ||
     token.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -264,6 +243,14 @@ const BRC20Page = () => {
               <Wallet className="w-4 h-4 mr-2" />
               Portfolio
             </TabsTrigger>
+            <TabsTrigger value="minttracker" className="data-[state=active]:bg-orange-500/20">
+              <Activity className="w-4 h-4 mr-2" />
+              Mint Tracker
+            </TabsTrigger>
+            <TabsTrigger value="dex" className="data-[state=active]:bg-orange-500/20">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              DEX Activity
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="data-[state=active]:bg-orange-500/20">
               <BarChart3 className="w-4 h-4 mr-2" />
               Analytics
@@ -293,6 +280,14 @@ const BRC20Page = () => {
                 tokens={brc20Tokens}
               />
             </NoSSRWrapper>
+          </TabsContent>
+
+          <TabsContent value="minttracker" className="space-y-4">
+            <BRC20MintTracker limit={50} />
+          </TabsContent>
+
+          <TabsContent value="dex" className="space-y-4">
+            <BRC20DEXActivity limit={50} />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">

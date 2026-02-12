@@ -72,7 +72,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Footer */}
           <div className="p-4 border-t border-gray-800">
-            <p className="text-xs text-gray-400">© 2024 CYPHER ORDI FUTURE</p>
+            <p className="text-xs text-gray-400">© 2025 CYPHER ORDI FUTURE</p>
           </div>
         </div>
       </div>
