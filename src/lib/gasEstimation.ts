@@ -286,7 +286,6 @@ export class AdvancedGasEstimator {
               return gasPrice;
             }
           } catch (error) {
-            console.warn(`Erro ao obter gas de ${endpoint}:`, error);
           }
         }
       }

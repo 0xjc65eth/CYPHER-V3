@@ -20,54 +20,49 @@ export function useBitcoinPriceHistory(timeframe: string = '24h') {
   });
 
   useEffect(() => {
-    const generateHistoricalData = () => {
-      const now = Date.now();
-      const points: PricePoint[] = [];
-      let dataPoints = 24;
-      let interval = 3600000; // 1 hour in ms
-      
-      switch (timeframe) {
-        case '24h':
-          dataPoints = 24;
-          interval = 3600000;
-          break;
-        case '7d':
-          dataPoints = 7 * 24;
-          interval = 3600000;
-          break;
-        case '30d':
-          dataPoints = 30;
-          interval = 86400000; // 1 day
-          break;
-        case '1y':
-          dataPoints = 52;
-          interval = 604800000; // 1 week
-          break;
+    const fetchHistoricalData = async () => {
+      try {
+        // Map timeframe to CoinGecko days parameter
+        let days = '1';
+        switch (timeframe) {
+          case '24h': days = '1'; break;
+          case '7d': days = '7'; break;
+          case '30d': days = '30'; break;
+          case '1y': days = '365'; break;
+        }
+
+        const res = await fetch(
+          '/api/coingecko?endpoint=/coins/bitcoin/market_chart&params=' +
+            encodeURIComponent(`vs_currency=usd&days=${days}`)
+        );
+
+        if (res.ok) {
+          const result = await res.json();
+          const prices = result.prices || [];
+          const volumes = result.total_volumes || [];
+
+          const points: PricePoint[] = prices.map((p: [number, number], i: number) => ({
+            timestamp: p[0],
+            price: p[1],
+            volume: volumes[i] ? volumes[i][1] : 0
+          }));
+
+          setData({ data: points, loading: false, error: null });
+          return;
+        }
+      } catch {
+        // API failed
       }
 
-      const basePrice = 98000;
-      let currentPrice = basePrice;
-
-      for (let i = dataPoints; i >= 0; i--) {
-        // Add some realistic price movement
-        const change = (Math.random() - 0.5) * 2000;
-        currentPrice = Math.max(90000, Math.min(105000, currentPrice + change));
-        
-        points.push({
-          timestamp: now - (i * interval),
-          price: currentPrice,
-          volume: 10000000000 + Math.random() * 5000000000
-        });
-      }
-
+      // Fallback: empty data with error
       setData({
-        data: points,
+        data: [],
         loading: false,
-        error: null
+        error: 'Failed to fetch Bitcoin price history'
       });
     };
 
-    generateHistoricalData();
+    fetchHistoricalData();
   }, [timeframe]);
 
   return data;

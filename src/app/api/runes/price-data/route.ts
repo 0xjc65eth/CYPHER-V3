@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const HIRO_API_KEY = '3100ea7623797d267da3bd6dc94f47f9';
+const HIRO_API_KEY = process.env.HIRO_API_KEY || '';
 const HIRO_BASE_URL = 'https://api.hiro.so/runes/v1';
 
 // Cache com TTL de 1 minuto para dados de preço (muito voláteis)
@@ -165,15 +165,13 @@ export async function GET(request: NextRequest) {
         'API_REQUEST_FAILED'
       );
       
-      // Fallback para dados mock se API falhar
-      const mockData = await generateMockPriceData(interval, period, limitNum);
-      
+      // Retornar erro real - SEM DADOS MOCK
       return NextResponse.json({
         success: false,
-        data: mockData,
-        source: 'hiro-runes-api-fallback',
+        data: null,
+        source: 'hiro-runes-api',
         timestamp: new Date().toISOString(),
-        error: `API request failed with status ${apiResponse.status}`,
+        error: `Hiro API request failed with status ${apiResponse.status}. No real data available.`,
         responseTime: Date.now() - startTime
       }, { status: apiResponse.status });
     }
@@ -229,16 +227,14 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Generic fallback data
-    const fallbackData = await generateMockPriceData('1h', '24h', 100);
-
+    // Retornar erro real - SEM DADOS MOCK
     return NextResponse.json(
       {
         success: false,
-        data: fallbackData,
-        source: 'hiro-runes-api-fallback',
+        data: null,
+        source: 'hiro-runes-api',
         timestamp: new Date().toISOString(),
-        error: error.message || 'Internal server error',
+        error: error.message || 'Failed to fetch real price data from Hiro API',
         responseTime: Date.now() - startTime
       },
       { status: 500 }
@@ -310,28 +306,8 @@ async function fetchMultipleRunePrices(symbols: string[], interval: string, peri
   };
 }
 
-async function generateMockPriceData(interval: string, period: string, limit: number) {
-  // Mock data para quando a API falha
-  const mockRunes = ['UNCOMMON•GOODS', 'RSIC•GENESIS•RUNE', 'DOG•GO•TO•THE•MOON'];
-  
-  return {
-    interval,
-    period,
-    total_runes: mockRunes.length,
-    results: mockRunes.map((rune, index) => ({
-      etching: rune,
-      symbol: rune,
-      price_usd: (Math.random() * 100 + 1).toFixed(6),
-      price_btc: (Math.random() * 0.001 + 0.0001).toFixed(8),
-      volume_24h: (Math.random() * 1000000 + 10000).toFixed(2),
-      market_cap: (Math.random() * 10000000 + 100000).toFixed(2),
-      price_change_24h: ((Math.random() - 0.5) * 20).toFixed(2),
-      price_change_percentage_24h: ((Math.random() - 0.5) * 20).toFixed(2),
-      last_updated: new Date().toISOString(),
-      error: 'Mock data - API unavailable'
-    }))
-  };
-}
+// REMOVIDO: generateMockPriceData - Não usamos dados MOCK/FAKE
+// Todas as falhas de API retornam erro apropriado
 
 function formatAmount(amount: string | number): string {
   if (!amount) return '0';

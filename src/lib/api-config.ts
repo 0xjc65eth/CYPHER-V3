@@ -6,9 +6,9 @@
 export const API_CONFIG = {
   COINMARKETCAP: {
     BASE_URL: 'https://pro-api.coinmarketcap.com',
-    API_KEY: 'c045d2a9-6f2d-44e9-8297-a88ab83b463b',
+    API_KEY: process.env.CMC_API_KEY || '',
     HEADERS: {
-      'X-CMC_PRO_API_KEY': 'c045d2a9-6f2d-44e9-8297-a88ab83b463b',
+      'X-CMC_PRO_API_KEY': process.env.CMC_API_KEY || '',
       'Accept': 'application/json',
       'Content-Type': 'application/json'
     },
@@ -26,7 +26,7 @@ export const API_CONFIG = {
   },
 
   HYPERLIQUID: {
-    API_KEY: '0x130832d9de3087dff97d4e0bece2e7b970e7a01f24a8c809134b9efaa627430a',
+    API_KEY: process.env.HYPERLIQUID_API_KEY || '',
     BASE_URL: 'https://api.hyperliquid.xyz',
     TESTNET_URL: 'https://api.hyperliquid-testnet.xyz',
     ENDPOINTS: {
@@ -41,10 +41,10 @@ export const API_CONFIG = {
   },
 
   ELEVENLABS: {
-    API_KEY: 'sk_9c2c1f484f2d3d452cc0a3b2858a82bfa61761766c329415',
+    API_KEY: process.env.ELEVENLABS_API_KEY || '',
     BASE_URL: 'https://api.elevenlabs.io/v1',
     HEADERS: {
-      'xi-api-key': 'sk_9c2c1f484f2d3d452cc0a3b2858a82bfa61761766c329415',
+      'xi-api-key': process.env.ELEVENLABS_API_KEY || '',
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
@@ -163,6 +163,78 @@ export const API_CONFIG = {
     }
   },
 
+  TWELVEDATA: {
+    BASE_URL: 'https://api.twelvedata.com',
+    API_KEY: process.env.TWELVEDATA_API_KEY || '',
+    HEADERS: {
+      'Accept': 'application/json',
+      'User-Agent': 'CypherOrdi-Future/3.0'
+    },
+    ENDPOINTS: {
+      QUOTE: '/quote',
+      TIME_SERIES: '/time_series',
+      EXCHANGE_RATE: '/exchange_rate',
+      PRICE: '/price'
+    },
+    RATE_LIMIT: {
+      REQUESTS_PER_MINUTE: 8,
+      REQUESTS_PER_DAY: 800
+    },
+    SYMBOLS: {
+      FOREX: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD'],
+      COMMODITIES: ['XAU/USD', 'XAG/USD'],
+      INDICES: ['SPX', 'IXIC', 'DJI', 'RUT'],
+      STOCKS: ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META']
+    }
+  },
+
+  FRED: {
+    BASE_URL: 'https://api.stlouisfed.org/fred',
+    API_KEY: process.env.FRED_API_KEY || '',
+    HEADERS: {
+      'Accept': 'application/json'
+    },
+    ENDPOINTS: {
+      SERIES_OBSERVATIONS: '/series/observations'
+    },
+    SERIES: {
+      GDP: 'GDP',
+      CPI: 'CPIAUCSL',
+      UNEMPLOYMENT: 'UNRATE',
+      FED_FUNDS: 'FEDFUNDS',
+      TREASURY_10Y: 'DGS10',
+      TREASURY_2Y: 'DGS2',
+      TREASURY_30Y: 'DGS30',
+      TREASURY_1M: 'DGS1MO',
+      TREASURY_3M: 'DGS3MO',
+      TREASURY_6M: 'DGS6MO',
+      TREASURY_1Y: 'DGS1',
+      TREASURY_5Y: 'DGS5',
+      TREASURY_20Y: 'DGS20',
+      M2_MONEY_SUPPLY: 'M2SL',
+      CONSUMER_CONFIDENCE: 'UMCSENT'
+    },
+    RATE_LIMIT: {
+      REQUESTS_PER_MINUTE: 120
+    }
+  },
+
+  NEWSAPI: {
+    BASE_URL: 'https://newsapi.org/v2',
+    API_KEY: process.env.NEWSAPI_KEY || '',
+    HEADERS: {
+      'Accept': 'application/json',
+      'User-Agent': 'CypherOrdi-Future/3.0'
+    },
+    ENDPOINTS: {
+      EVERYTHING: '/everything',
+      TOP_HEADLINES: '/top-headlines'
+    },
+    RATE_LIMIT: {
+      REQUESTS_PER_DAY: 100
+    }
+  },
+
   // Configurações gerais
   GENERAL: {
     DEFAULT_TIMEOUT: 10000,
@@ -175,7 +247,11 @@ export const API_CONFIG = {
       ORDINALS_DATA: 300,  // 5 minutes
       RUNES_DATA: 180,     // 3 minutes
       PORTFOLIO_DATA: 120, // 2 minutes
-      STATIC_DATA: 3600    // 1 hour
+      STATIC_DATA: 3600,   // 1 hour
+      MULTI_ASSET: 300,    // 5 minutes (Twelve Data)
+      ECONOMIC_DATA: 3600, // 1 hour (FRED)
+      NEWS_DATA: 1800,     // 30 minutes (NewsAPI)
+      FED_DATA: 3600       // 1 hour (FRED/FOMC)
     }
   },
 

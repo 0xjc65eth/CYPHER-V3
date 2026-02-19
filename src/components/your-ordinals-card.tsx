@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useLaserEyes } from '@omnisat/lasereyes-react'
+import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
 import { RiImageLine, RiWallet3Line, RiLoader4Line } from 'react-icons/ri'
-import Image from 'next/image'
 
 export function YourOrdinalsCard() {
   const { address, isConnected, getOrdinals, connect } = useLaserEyes()
@@ -23,8 +22,6 @@ export function YourOrdinalsCard() {
         setError(null)
 
         const userOrdinals = await getOrdinals(address)
-        console.log('User ordinals:', userOrdinals)
-
         // Limitar a 5 ordinals para exibição
         setOrdinals(userOrdinals?.slice(0, 5) || [])
       } catch (err) {

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import useSWR from 'swr';
-import { runesService, RuneMarketData, RunesAnalytics } from '@/services/runes';
-import { bitcoinEcosystemService } from '@/services/BitcoinEcosystemService';
+import type { RuneMarketData, RunesAnalytics } from '@/services/runes';
 import { useRunesTerminal } from '@/contexts/RunesTerminalContext';
 
 // Types
@@ -28,91 +27,209 @@ export interface LiquidityPool {
   volume24h: number;
   apr: number;
   tvl: number;
+  status: string;
 }
 
-interface WebSocketMessage {
-  type: 'price_update' | 'volume_update' | 'pool_update' | 'transaction' | 'status';
-  data: any;
-  timestamp: number;
+// Transform runes-list / runes-top API responses into RuneMarketData[]
+function transformToMarketData(
+  runesList: any | null,
+  runesTop: any | null
+): RuneMarketData[] {
+  // Merge both sources, preferring runesTop entries for ranking
+  const seen = new Set<string>();
+  const combined: any[] = [];
+
+  // runesTop items first (they are the most popular)
+  // runes-top returns a raw array or { error: ... }
+  const topItems = Array.isArray(runesTop) ? runesTop
+    : (runesTop?.success && Array.isArray(runesTop.data)) ? runesTop.data
+    : [];
+  for (const r of topItems) {
+    const key = r.id || r.name;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      combined.push(r);
+    }
+  }
+
+  // Then fill with runesList items
+  const listItems = (runesList?.success && Array.isArray(runesList.data)) ? runesList.data
+    : Array.isArray(runesList) ? runesList
+    : [];
+  for (const r of listItems) {
+    const key = r.id || r.name;
+    if (key && !seen.has(key)) {
+      seen.add(key);
+      combined.push(r);
+    }
+  }
+
+  return combined.map((r: any, index: number) => ({
+    id: r.id || `rune-${index}`,
+    name: r.formatted_name || r.spaced_name || r.name || '',
+    symbol: r.symbol || '◆',
+    price: {
+      current: r.market?.price_in_btc || r.floorPrice || 0,
+      change24h: r.change24h || 0,
+      change7d: 0,
+      high24h: 0,
+      low24h: 0,
+    },
+    marketCap: {
+      current: r.market?.market_cap || r.marketCap || 0,
+      rank: index + 1,
+      change24h: 0,
+    },
+    volume: {
+      volume24h: r.volume_24h || r.volume24h || 0,
+      change24h: 0,
+      volumeRank: 0,
+    },
+    supply: {
+      circulating: parseFloat(r.supply || '0'),
+      total: parseFloat(r.supply || '0'),
+      max: parseFloat(r.supply || '0'),
+      percentage: r.mintable ? 0 : 100,
+    },
+    holders: r.unique_holders || r.holders || 0,
+    transactions: {
+      transfers24h: r.transactions || r.sales24h || 0,
+      mints24h: 0,
+      burns24h: parseInt(r.burned || '0'),
+    },
+    minting: {
+      progress: r.mintable ? 50 : 100,
+      remaining: 0,
+      rate: 0,
+    },
+  }));
 }
 
-// Data fetchers
+// Calculate analytics from market data
+function calculateAnalytics(marketData: RuneMarketData[]): RunesAnalytics {
+  if (!marketData || marketData.length === 0) {
+    return {
+      marketOverview: {
+        totalMarketCap: 0,
+        totalVolume24h: 0,
+        averageChange24h: 0,
+        activeRunes: 0,
+        newRunes24h: 0,
+        marketSentiment: 'neutral',
+      },
+      topPerformers: {
+        gainers24h: [],
+        losers24h: [],
+        volumeLeaders: [],
+      },
+      crossChainMetrics: {
+        bridgeVolume24h: 0,
+        activeBridges: 0,
+        averageBridgeTime: 0,
+      },
+    };
+  }
+
+  const totalMarketCap = marketData.reduce((sum, r) => sum + r.marketCap.current, 0);
+  const totalVolume24h = marketData.reduce((sum, r) => sum + r.volume.volume24h, 0);
+  const averageChange24h =
+    marketData.reduce((sum, r) => sum + r.price.change24h, 0) / marketData.length;
+
+  const gainers = marketData
+    .filter((r) => r.price.change24h > 0)
+    .sort((a, b) => b.price.change24h - a.price.change24h)
+    .slice(0, 3);
+
+  const losers = marketData
+    .filter((r) => r.price.change24h < 0)
+    .sort((a, b) => a.price.change24h - b.price.change24h)
+    .slice(0, 3);
+
+  const volumeLeaders = [...marketData]
+    .sort((a, b) => b.volume.volume24h - a.volume.volume24h)
+    .slice(0, 3);
+
+  const newRunes24h = marketData.filter((r) => r.minting.progress < 100).length;
+
+  return {
+    marketOverview: {
+      totalMarketCap,
+      totalVolume24h,
+      averageChange24h,
+      activeRunes: marketData.length,
+      newRunes24h,
+      marketSentiment:
+        averageChange24h > 2 ? 'bullish' : averageChange24h < -2 ? 'bearish' : 'neutral',
+    },
+    topPerformers: {
+      gainers24h: gainers,
+      losers24h: losers,
+      volumeLeaders,
+    },
+    crossChainMetrics: {
+      bridgeVolume24h: totalVolume24h * 0.1,
+      activeBridges: 3,
+      averageBridgeTime: 0,
+    },
+  };
+}
+
+// Data fetcher — uses server-side API routes (no direct external API calls)
 const fetchRunesData = async () => {
   try {
-    const [marketData, analytics, realData] = await Promise.all([
-      runesService.getRunesMarketData(),
-      runesService.getRunesAnalytics(),
-      bitcoinEcosystemService.getRunesData().catch(() => [])
+    const [runesListRes, runesTopRes] = await Promise.all([
+      fetch('/api/runes-list/?limit=50'),
+      fetch('/api/runes-top/?limit=20'),
     ]);
-    
-    return { marketData, analytics, realData };
+
+    const runesList = runesListRes.ok ? await runesListRes.json() : null;
+    const runesTop = runesTopRes.ok ? await runesTopRes.json() : null;
+
+    const marketData = transformToMarketData(runesList, runesTop);
+    const analytics = calculateAnalytics(marketData);
+
+    return { marketData, analytics, realData: runesList?.data || [] };
   } catch (error) {
-    console.error('❌ Failed to fetch runes data:', error);
+    console.error('Failed to fetch runes data:', error);
     throw new Error('Failed to fetch market data');
   }
 };
 
-const fetchLiquidityPools = async (): Promise<LiquidityPool[]> => {
-  // Mock data - in production this would connect to real DEX APIs
-  const mockPools: LiquidityPool[] = [
-    {
-      id: 'pool_btc_rune',
-      tokenA: { symbol: 'BTC', name: 'Bitcoin' },
-      tokenB: { symbol: 'RUNE', name: 'Rune Token' },
-      reserveA: 1000000,
-      reserveB: 2000000,
-      fee: 0.3,
-      volume24h: 50000 + Math.random() * 10000,
-      apr: 12.5 + Math.random() * 5,
-      tvl: 150000 + Math.random() * 20000
-    },
-    {
-      id: 'pool_ordinal_meme',
-      tokenA: { symbol: 'ORDINAL', name: 'Ordinals' },
-      tokenB: { symbol: 'MEME', name: 'Meme Coin' },
-      reserveA: 500000,
-      reserveB: 1500000,
-      fee: 0.3,
-      volume24h: 30000 + Math.random() * 8000,
-      apr: 18.2 + Math.random() * 7,
-      tvl: 95000 + Math.random() * 15000
-    },
-    {
-      id: 'pool_uncommon_goods',
-      tokenA: { symbol: 'UNCOMMON', name: 'Uncommon Goods' },
-      tokenB: { symbol: 'GOODS', name: 'Digital Goods' },
-      reserveA: 750000,
-      reserveB: 1250000,
-      fee: 0.25,
-      volume24h: 40000 + Math.random() * 12000,
-      apr: 15.8 + Math.random() * 6,
-      tvl: 120000 + Math.random() * 18000
-    }
-  ];
+const POLL_INTERVAL = 15_000; // 15 seconds
 
-  return mockPools;
-};
-
-// Custom hook for real-time runes data
+// Custom hook for real-time runes data (polling-based, no WebSocket)
 export function useRunesRealTimeData() {
-  const { state, setConnectionStatus, updateLastUpdate, setError } = useRunesTerminal();
+  // Safely access RunesTerminal context — fall back to defaults if unavailable
+  let contextValue: ReturnType<typeof useRunesTerminal> | null = null;
+  try {
+    contextValue = useRunesTerminal();
+  } catch {
+    // Context not available (hook used outside provider) — use defaults below
+  }
+
+  const state = contextValue?.state ?? {
+    settings: { autoRefresh: true, refreshInterval: 30000 } as any,
+    error: null as string | null,
+    lastUpdate: Date.now(),
+    connectionStatus: 'disconnected' as const,
+  };
+  const setConnectionStatus = contextValue?.setConnectionStatus ?? (() => {});
+  const updateLastUpdate = contextValue?.updateLastUpdate ?? (() => {});
+  const setError = contextValue?.setError ?? (() => {});
   const { settings } = state;
-  
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const maxReconnectAttempts = 5;
+
+  const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // SWR for initial data load and periodic refresh
-  const { 
-    data: runesData, 
-    error: runesError, 
+  const {
+    data: runesData,
+    error: runesError,
     mutate: mutateRunes,
-    isLoading: runesLoading 
+    isLoading: runesLoading
   } = useSWR(
     'runes-data',
     fetchRunesData,
-    { 
+    {
       refreshInterval: settings.autoRefresh ? settings.refreshInterval : 0,
       revalidateOnFocus: true,
       dedupingInterval: 10000,
@@ -120,209 +237,103 @@ export function useRunesRealTimeData() {
       onSuccess: () => {
         updateLastUpdate();
         setError(null);
+        setConnectionStatus('connected');
       },
       onError: (error) => {
-        console.error('🔄 SWR Error:', error);
+        console.error('SWR Error:', error);
         setError(error.message);
+        setConnectionStatus('disconnected');
       }
     }
   );
 
-  const { 
-    data: poolsData, 
-    error: poolsError,
-    mutate: mutatePools,
-    isLoading: poolsLoading 
-  } = useSWR(
-    'liquidity-pools',
-    fetchLiquidityPools,
-    { 
-      refreshInterval: settings.autoRefresh ? 60000 : 0,
-      dedupingInterval: 30000
-    }
-  );
+  // Polling-based real-time updates (replaces WebSocket)
+  const startPolling = useCallback(() => {
+    if (pollTimerRef.current) return; // already polling
 
-  // WebSocket connection management
-  const connectWebSocket = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return;
-    }
+    setConnectionStatus('connected');
 
-    try {
-      setConnectionStatus('reconnecting');
-      
-      // Mock WebSocket URL - in production use real WebSocket endpoint
-      const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://echo.websocket.org';
-      wsRef.current = new WebSocket(wsUrl);
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const response = await fetch('/api/runes-list/?limit=20');
+        if (!response.ok) throw new Error(`Poll failed: ${response.status}`);
 
-      wsRef.current.onopen = () => {
-        console.log('🔗 WebSocket connected');
-        setConnectionStatus('connected');
-        setConnectionAttempts(0);
-        updateLastUpdate();
-
-        // Subscribe to runes data updates
-        wsRef.current?.send(JSON.stringify({
-          type: 'subscribe',
-          channels: ['runes_prices', 'runes_volume', 'liquidity_pools']
-        }));
-      };
-
-      wsRef.current.onmessage = (event) => {
-        try {
-          const message: WebSocketMessage = JSON.parse(event.data);
-          
-          switch (message.type) {
-            case 'price_update':
-              // Update price data in SWR cache
-              mutateRunes(current => {
-                if (!current) return current;
-                
-                const updatedMarketData = current.marketData.map(rune => {
-                  const update = message.data.find((u: any) => u.id === rune.id);
-                  if (update) {
-                    return {
-                      ...rune,
-                      price: { ...rune.price, ...update.price }
-                    };
-                  }
-                  return rune;
-                });
-                
-                return { ...current, marketData: updatedMarketData };
-              }, { revalidate: false });
-              break;
-
-            case 'volume_update':
-              mutateRunes(current => {
-                if (!current) return current;
-                
-                const updatedMarketData = current.marketData.map(rune => {
-                  const update = message.data.find((u: any) => u.id === rune.id);
-                  if (update) {
-                    return {
-                      ...rune,
-                      volume: { ...rune.volume, ...update.volume }
-                    };
-                  }
-                  return rune;
-                });
-                
-                return { ...current, marketData: updatedMarketData };
-              }, { revalidate: false });
-              break;
-
-            case 'pool_update':
-              mutatePools(current => {
-                if (!current) return current;
-                
-                return current.map(pool => {
-                  const update = message.data.find((u: any) => u.id === pool.id);
-                  return update ? { ...pool, ...update } : pool;
-                });
-              }, { revalidate: false });
-              break;
-
-            case 'transaction':
-              // Handle new transaction data
-              console.log('💰 New transaction:', message.data);
-              break;
-
-            default:
-              console.log('📨 Unknown message type:', message.type);
-          }
-          
+        const listData = await response.json();
+        if (listData?.success && listData.data) {
+          // Trigger SWR revalidation to keep market data fresh
+          mutateRunes();
           updateLastUpdate();
-        } catch (error) {
-          console.error('❌ Failed to parse WebSocket message:', error);
+          setConnectionStatus('connected');
         }
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('🔌 WebSocket error:', error);
+      } catch (err) {
         setConnectionStatus('disconnected');
-      };
+      }
+    }, POLL_INTERVAL);
+  }, [setConnectionStatus, updateLastUpdate, mutateRunes]);
 
-      wsRef.current.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', event.code, event.reason);
-        setConnectionStatus('disconnected');
-        
-        // Attempt to reconnect if not intentional close
-        if (event.code !== 1000 && connectionAttempts < maxReconnectAttempts) {
-          const delay = Math.min(1000 * Math.pow(2, connectionAttempts), 30000);
-          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${connectionAttempts + 1})`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            setConnectionAttempts(prev => prev + 1);
-            connectWebSocket();
-          }, delay);
-        }
-      };
-
-    } catch (error) {
-      console.error('❌ Failed to create WebSocket connection:', error);
-      setConnectionStatus('disconnected');
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
     }
-  }, [connectionAttempts, setConnectionStatus, updateLastUpdate, mutateRunes, mutatePools]);
-
-  const disconnectWebSocket = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-    
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Intentional disconnect');
-      wsRef.current = null;
-    }
-    
     setConnectionStatus('disconnected');
-    setConnectionAttempts(0);
   }, [setConnectionStatus]);
 
-  // Connect WebSocket when auto-refresh is enabled
+  // Start/stop polling based on autoRefresh setting
   useEffect(() => {
     if (settings.autoRefresh) {
-      connectWebSocket();
+      startPolling();
     } else {
-      disconnectWebSocket();
+      stopPolling();
     }
 
     return () => {
-      disconnectWebSocket();
+      stopPolling();
     };
-  }, [settings.autoRefresh, connectWebSocket, disconnectWebSocket]);
+  }, [settings.autoRefresh, startPolling, stopPolling]);
 
   // Manual refresh function
   const refreshData = useCallback(async () => {
     try {
       setError(null);
-      await Promise.all([mutateRunes(), mutatePools()]);
+      await mutateRunes();
       updateLastUpdate();
     } catch (error) {
-      console.error('❌ Failed to refresh data:', error);
+      console.error('Failed to refresh data:', error);
       setError('Failed to refresh data');
     }
-  }, [mutateRunes, mutatePools, updateLastUpdate, setError]);
+  }, [mutateRunes, updateLastUpdate, setError]);
 
   // Prefetch data for performance
   useEffect(() => {
-    // Prefetch related data when component mounts
     const prefetchTimer = setTimeout(() => {
       if (!runesData) {
         mutateRunes();
       }
-      if (!poolsData) {
-        mutatePools();
-      }
     }, 100);
 
     return () => clearTimeout(prefetchTimer);
-  }, [mutateRunes, mutatePools, runesData, poolsData]);
+  }, [mutateRunes, runesData]);
 
   // Return combined data and status
-  const isLoading = runesLoading || poolsLoading;
-  const error = runesError || poolsError || state.error;
+  const isLoading = runesLoading;
+  const error = runesError || state.error;
+
+  // Liquidity pools: marked as "Coming soon" — no fake data
+  const comingSoonPools: LiquidityPool[] = [
+    {
+      id: 'coming_soon',
+      tokenA: { symbol: 'BTC', name: 'Bitcoin' },
+      tokenB: { symbol: 'RUNE', name: 'Rune Token' },
+      reserveA: 0,
+      reserveB: 0,
+      fee: 0,
+      volume24h: 0,
+      apr: 0,
+      tvl: 0,
+      status: 'Coming soon',
+    },
+  ];
 
   const data: RunesRealTimeData = {
     marketData: runesData?.marketData || [],
@@ -347,7 +358,7 @@ export function useRunesRealTimeData() {
       }
     },
     realData: runesData?.realData || [],
-    pools: poolsData || [],
+    pools: comingSoonPools,
     isLoading,
     error: error?.message || null,
     lastUpdate: state.lastUpdate,
@@ -357,9 +368,9 @@ export function useRunesRealTimeData() {
   return {
     data,
     refreshData,
-    connectWebSocket,
-    disconnectWebSocket,
+    connectWebSocket: startPolling,
+    disconnectWebSocket: stopPolling,
     mutateRunes,
-    mutatePools
+    mutatePools: () => Promise.resolve(), // no-op — pools not available yet
   };
 }

@@ -172,7 +172,6 @@ export class AdvancedRoutingEngine {
       if (this.config.cacheEnabled) {
         const cachedRoutes = this.getCachedRoutes(cacheKey)
         if (cachedRoutes) {
-          console.log('🚀 Routes found in cache')
           return cachedRoutes
         }
       }
@@ -761,7 +760,6 @@ export class AdvancedRoutingEngine {
     if (!this.config.realTimeUpdates) return
     
     // Mock WebSocket connections - implementar conexões reais
-    console.log('🔄 Initializing WebSocket connections for real-time updates')
   }
 
   private initializeGasEstimates(): void {
@@ -814,7 +812,6 @@ export class AdvancedRoutingEngine {
     this.routeCache.clear()
     this.priceCache.clear()
     this.performanceMetrics.clear()
-    console.log('🧹 Routing engine cache cleared')
   }
 
   /**
@@ -822,7 +819,6 @@ export class AdvancedRoutingEngine {
    */
   updateConfig(newConfig: Partial<RoutingEngineConfig>): void {
     this.config = { ...this.config, ...newConfig }
-    console.log('⚙️ Routing engine configuration updated')
   }
 
   /**

@@ -129,7 +129,7 @@ export function TradingEngineController() {
 
   const checkTradingStatus = async () => {
     try {
-      const response = await fetch('/api/trading/start');
+      const response = await fetch('/api/trading/start/');
       const data = await response.json();
       setTradingStatus(data);
     } catch (error) {
@@ -140,7 +140,7 @@ export function TradingEngineController() {
   const startTrading = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/trading/start', {
+      const response = await fetch('/api/trading/start/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -179,7 +179,7 @@ export function TradingEngineController() {
   const stopTrading = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/trading/start', {
+      const response = await fetch('/api/trading/start/', {
         method: 'DELETE',
       });
 

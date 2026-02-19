@@ -130,7 +130,6 @@ const HyperLiquidTradingInterface: React.FC = () => {
 
     try {
       // TODO: Implement actual order submission via HyperLiquid API
-      console.log('Submitting order:', orderData);
       
       // Simulate order submission
       alert(`Order submitted: ${orderData.side.toUpperCase()} ${orderData.size} ${orderData.asset} at ${orderData.leverage}x leverage`);

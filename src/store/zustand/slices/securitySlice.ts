@@ -292,7 +292,7 @@ export const createSecuritySlice: StateCreator<
     set((state) => {
       const newEvent: SecurityEvent = {
         ...event,
-        id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `event_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         timestamp: Date.now(),
       }
       state.security.events.unshift(newEvent)
@@ -526,7 +526,7 @@ export const createSecuritySlice: StateCreator<
     set((state) => {
       const newAlert = {
         ...alert,
-        id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `alert_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         timestamp: Date.now(),
         dismissed: false,
       }

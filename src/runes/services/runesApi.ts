@@ -297,8 +297,8 @@ export async function processRunes(
       priceChange24h: stat.priceChange24h || 0,
       priceChange7d: stat.priceChange7d || 0,
 
-      volumeHistory7d: generateMockHistory(volume7dBtc, 7),
-      priceHistory7d: generateMockHistory(floorBtc, 7),
+      volumeHistory7d: [], // Real historical data fetched separately via activities API
+      priceHistory7d: [], // Real historical data fetched separately via activities API
 
       verified: VERIFIED_RUNES.has(stat.rune),
       featured: FEATURED_RUNES.has(stat.rune),
@@ -314,19 +314,90 @@ export async function processRunes(
   return processed;
 }
 
-function generateMockHistory(currentValue: number, points: number): number[] {
-  if (currentValue === 0) return Array(points).fill(0);
+/**
+ * Fetch real historical price data from rune activities
+ * Uses Magic Eden activities API to build accurate price history
+ */
+export async function fetchRunePriceHistory(
+  rune: string,
+  days: number = 7
+): Promise<number[]> {
+  try {
+    const activities = await fetchRuneActivities(rune, {
+      limit: 100,
+      type: 'sale' as any, // Only sales have price data
+    });
 
-  const history: number[] = [];
-  let value = currentValue * (0.8 + Math.random() * 0.4);
+    if (!activities || activities.length === 0) {
+      return [];
+    }
 
-  for (let i = 0; i < points - 1; i++) {
-    history.push(value);
-    value = value * (0.9 + Math.random() * 0.2);
+    // Group sales by day and calculate average price per day
+    const now = Date.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const dailyPrices: number[][] = Array.from({ length: days }, () => []);
+
+    activities.forEach((activity: any) => {
+      if (activity.kind === 'sale' && activity.unitPrice) {
+        const timestamp = new Date(activity.createdAt).getTime();
+        const daysAgo = Math.floor((now - timestamp) / msPerDay);
+
+        if (daysAgo < days && daysAgo >= 0) {
+          const price = satsToBtc(activity.unitPrice);
+          dailyPrices[days - 1 - daysAgo].push(price);
+        }
+      }
+    });
+
+    // Calculate average price for each day
+    return dailyPrices.map(prices => {
+      if (prices.length === 0) return 0;
+      return prices.reduce((sum, p) => sum + p, 0) / prices.length;
+    });
+  } catch (error) {
+    return [];
   }
+}
 
-  history.push(currentValue);
-  return history;
+/**
+ * Fetch real historical volume data from rune activities
+ * Uses Magic Eden activities API to build accurate volume history
+ */
+export async function fetchRuneVolumeHistory(
+  rune: string,
+  days: number = 7
+): Promise<number[]> {
+  try {
+    const activities = await fetchRuneActivities(rune, {
+      limit: 200,
+      type: 'sale' as any,
+    });
+
+    if (!activities || activities.length === 0) {
+      return Array(days).fill(0);
+    }
+
+    // Group sales by day and sum volume per day
+    const now = Date.now();
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const dailyVolumes: number[] = Array(days).fill(0);
+
+    activities.forEach((activity: any) => {
+      if (activity.kind === 'sale' && activity.totalPrice) {
+        const timestamp = new Date(activity.createdAt).getTime();
+        const daysAgo = Math.floor((now - timestamp) / msPerDay);
+
+        if (daysAgo < days && daysAgo >= 0) {
+          const volume = satsToBtc(activity.totalPrice);
+          dailyVolumes[days - 1 - daysAgo] += volume;
+        }
+      }
+    });
+
+    return dailyVolumes;
+  } catch (error) {
+    return Array(days).fill(0);
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -402,6 +473,8 @@ export const runesApi = {
   fetchWalletRuneActivities,
   fetchWalletRuneBalance,
   fetchBtcPrice,
+  fetchRunePriceHistory,
+  fetchRuneVolumeHistory,
   satsToBtc,
   formatRuneName,
   processRunes,

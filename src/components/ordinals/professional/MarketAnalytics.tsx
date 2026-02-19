@@ -105,11 +105,9 @@ export default function MarketAnalytics() {
 
   const priceRangeData = marketStats?.price_ranges || []
 
-  const marketActivityData = volumeTrendData.map((item, index) => ({
+  const marketActivityData = volumeTrendData.map((item) => ({
     time: item.date,
-    newListings: Math.floor(Math.random() * 50) + 20,
     activeTrades: item.sales,
-    uniqueTraders: Math.floor(Math.random() * 100) + 50,
     volume: item.volume
   }))
 
@@ -121,12 +119,21 @@ export default function MarketAnalytics() {
     marketCap: collection.floor_price * collection.total_supply
   })) || []
 
-  const liquidityMetrics = topCollections?.map(collection => ({
-    name: collection.name,
-    liquidity: (collection.listed_count / collection.total_supply) * 100,
-    velocity: collection.volume_24h / (collection.floor_price * collection.total_supply) * 100,
-    depth: Math.random() * 50 + 25 // Mock depth score
-  })) || []
+  const liquidityMetrics = topCollections?.map(collection => {
+    const marketCap = collection.floor_price * collection.total_supply;
+    const liquidity = collection.total_supply > 0 ? (collection.listed_count / collection.total_supply) * 100 : 0;
+    const velocity = marketCap > 0 ? (collection.volume_24h / marketCap) * 100 : 0;
+    // Depth score based on listed count relative to volume - higher listed count with active trading = deeper market
+    const depth = collection.listed_count > 0 && collection.volume_24h > 0
+      ? Math.min((collection.listed_count / 100) * (velocity + 1), 100)
+      : liquidity * 0.5;
+    return {
+      name: collection.name,
+      liquidity,
+      velocity,
+      depth,
+    };
+  }) || []
 
   const isLoading = isLoadingStats || isLoadingCollections || isLoadingSales
 
@@ -449,9 +456,8 @@ export default function MarketAnalytics() {
                       contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
                       labelStyle={{ color: '#999' }}
                     />
-                    <Bar dataKey="newListings" stackId="a" fill="#fed7aa" />
-                    <Bar dataKey="activeTrades" stackId="a" fill="#fdba74" />
-                    <Bar dataKey="uniqueTraders" stackId="a" fill="#fb923c" />
+                    <Bar dataKey="activeTrades" fill="#fdba74" name="Trades" />
+                    <Bar dataKey="volume" fill="#f97316" name="Volume (BTC)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

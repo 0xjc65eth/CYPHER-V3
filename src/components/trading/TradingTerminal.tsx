@@ -262,7 +262,6 @@ const OrderEntry: React.FC<{ symbol: string; currentPrice: number }> = ({
       timeInForce
     };
     
-    console.log('Submitting order:', order);
     // Implement order submission logic
   };
 

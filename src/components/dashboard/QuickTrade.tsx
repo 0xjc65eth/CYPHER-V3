@@ -82,33 +82,50 @@ class SmartFractionalTrading {
   }
 }
 
-// Hook para preços em tempo real
+// Hook para precos em tempo real via CoinGecko API
 const useLivePrices = () => {
   const [prices, setPrices] = useState<Record<string, number>>({
-    BTC: 104390.25,
-    ETH: 2285.50,
-    SOL: 98.75,
+    BTC: 0,
+    ETH: 0,
+    SOL: 0,
     USDC: 1.00,
-    BNB: 312.45,
-    AVAX: 35.20
+    BNB: 0,
+    AVAX: 0
   });
-  
-  const [loading, setLoading] = useState(false);
-  
+
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    // Simular atualização de preços
-    const interval = setInterval(() => {
-      setPrices(prev => ({
-        ...prev,
-        BTC: prev.BTC * (1 + (Math.random() - 0.5) * 0.001),
-        ETH: prev.ETH * (1 + (Math.random() - 0.5) * 0.002),
-        SOL: prev.SOL * (1 + (Math.random() - 0.5) * 0.003)
-      }));
-    }, 5000);
-    
+    const fetchPrices = async () => {
+      try {
+        const res = await fetch(
+          '/api/coingecko?endpoint=/simple/price&params=' +
+            encodeURIComponent('ids=bitcoin,ethereum,solana,binancecoin,avalanche-2&vs_currencies=usd')
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && typeof data === 'object') {
+          setPrices(prev => ({
+            ...prev,
+            BTC: data.bitcoin?.usd || prev.BTC,
+            ETH: data.ethereum?.usd || prev.ETH,
+            SOL: data.solana?.usd || prev.SOL,
+            BNB: data.binancecoin?.usd || prev.BNB,
+            AVAX: data['avalanche-2']?.usd || prev.AVAX,
+          }));
+        }
+      } catch (err) {
+        console.error('QuickTrade price fetch error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPrices();
+    const interval = setInterval(fetchPrices, 30000); // Refresh every 30s
     return () => clearInterval(interval);
   }, []);
-  
+
   return { prices, loading };
 };
 
@@ -196,7 +213,6 @@ const QuickTrade: React.FC = () => {
       // Simular processamento
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Trade executado:', fractionalOrder);
       alert(`✅ Trade executado: ${fractionalOrder.displayAmount} ${fractionalOrder.asset}`);
       
       // Resetar formulário

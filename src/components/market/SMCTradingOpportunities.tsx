@@ -41,10 +41,9 @@ export function SMCTradingOpportunities() {
     // Fetch real SMC opportunities using CoinMarketCap data
     const fetchOpportunities = async () => {
       try {
-        console.log('🔍 Fetching real SMC opportunities from CoinMarketCap...');
         
         // Fetch real market data for top trading pairs
-        const response = await fetch('/api/coinmarketcap?symbols=SOL,ETH,MATIC,ARB,BNB,ADA&limit=10');
+        const response = await fetch('/api/coinmarketcap/?symbols=SOL,ETH,MATIC,ARB,BNB,ADA&limit=10');
         const cmcData = await response.json();
         
         if (cmcData.success && cmcData.data?.current) {
@@ -122,11 +121,9 @@ export function SMCTradingOpportunities() {
             });
           });
           
-          console.log('✅ Generated SMC opportunities from real CoinMarketCap data:', realOpportunities.length);
           setOpportunities(realOpportunities);
         } else {
           // Fallback to enhanced mock data if API fails
-          console.log('⚠️ CoinMarketCap API failed, using enhanced mock data');
           const fallbackOpportunities = generateFallbackOpportunities();
           setOpportunities(fallbackOpportunities);
         }

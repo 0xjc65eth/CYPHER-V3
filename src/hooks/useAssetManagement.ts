@@ -25,7 +25,7 @@ import { rateLimitedFetch } from '@/lib/rateLimitedFetch'
 
 // Asset price fetching service
 class AssetPriceService {
-  private static readonly BASE_URL = 'https://api.coingecko.com/api/v3'
+  private static readonly BASE_URL = typeof window !== 'undefined' ? '/api/coingecko' : 'https://api.coingecko.com/api/v3'
   
   static async fetchAssetPrice(symbol: string): Promise<{
     price: number

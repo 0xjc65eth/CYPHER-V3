@@ -147,9 +147,9 @@ const CypherAIV2: React.FC = () => {
       try {
         cypherAI.current = new CypherAI({
           apiKeys: {
-            openai: process.env.NEXT_PUBLIC_OPENAI_API_KEY!,
-            elevenlabs: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY!,
-            coingecko: process.env.NEXT_PUBLIC_COINGECKO_API_KEY!
+            openai: '', // AI calls routed through /api/cypher-ai/chat server-side
+            elevenlabs: '', // Voice calls routed through /api/ai/text-to-speech server-side
+            coingecko: '' // Market calls routed through /api/coingecko server-side
           },
           personality: selectedPersonality,
           language: 'pt-BR',
@@ -184,26 +184,21 @@ const CypherAIV2: React.FC = () => {
           {
             onResult: (transcript, isFinal) => {
               if (isFinal && transcript.trim()) {
-                console.log('🎤 Recognized:', transcript);
                 const voiceCommand = EnhancedVoiceCommandProcessor.processCommand(transcript);
                 
                 if (voiceCommand.command && voiceCommand.confidence > 0.2) {
-                  console.log('🎤 Executing command:', voiceCommand.command);
                   handleQuickCommand(voiceCommand.command);
                 } else {
                   // Treat as regular message
-                  console.log('🎤 Processing as message:', transcript);
                   setInputValue(transcript);
                   setTimeout(() => handleSendMessage(), 200);
                 }
               }
             },
             onStart: () => {
-              console.log('🎤 Enhanced voice listening started');
               setAIState(prev => ({ ...prev, isListening: true }));
             },
             onEnd: () => {
-              console.log('🎤 Enhanced voice listening ended');
               setAIState(prev => ({ ...prev, isListening: false }));
             },
             onError: (error) => {
@@ -294,7 +289,7 @@ const CypherAIV2: React.FC = () => {
 
     try {
       // Call the real API
-      const response = await fetch('/api/ai/command', {
+      const response = await fetch('/api/ai/command/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -22,7 +22,7 @@ export default function OpportunitiesList({ address }: OpportunitiesListProps) {
     setExecutingId(opportunityId)
 
     try {
-      const response = await fetch('/api/portfolio/execute-transaction', {
+      const response = await fetch('/api/portfolio/execute-transaction/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

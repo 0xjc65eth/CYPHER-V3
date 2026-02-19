@@ -5,7 +5,7 @@
 
 import { EventEmitter } from 'events';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
-import { hmacSecurity } from '@/lib/security/HMACSecuritySystem';
+import crypto from 'crypto';
 
 // WebSocket Connection Types
 export interface WebSocketConfig {
@@ -302,7 +302,7 @@ export class WebSocketConnection extends EventEmitter {
           method: 'auth',
           apiKey,
           timestamp,
-          signature: hmacSecurity.createSignature('GET', '/ws/auth', null, timestamp, '', secretKey)
+          signature: crypto.createHmac('sha256', secretKey).update(`GET/ws/auth${timestamp}`).digest('hex')
         };
         this.send(authMessage);
         break;

@@ -8,7 +8,7 @@ export class OrdiscanClient {
   private baseURL: string;
 
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_ORDISCAN_API_KEY || 'e227a764-b31b-43cf-a60c-be5daa50cd2c';
+    this.apiKey = process.env.ORDISCAN_API_KEY || '';
     this.baseURL = process.env.NEXT_PUBLIC_ORDISCAN_API_URL || 'https://api.ordiscan.com/v1';
   }
 

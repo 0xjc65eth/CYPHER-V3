@@ -499,7 +499,6 @@ class VoiceCommandService {
           break;
 
         default:
-          console.warn('Unknown command type:', command.action.type);
       }
 
       this.emit('command_executed', command);

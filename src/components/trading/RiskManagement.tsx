@@ -152,7 +152,6 @@ const RiskManagement: React.FC = () => {
       // Close all positions (simulation)
       for (const position of positions) {
         if (position.size && Math.abs(position.size) > 0) {
-          console.log(`Emergency closing position: ${position.position.coin}`);
           // await hyperLiquidService.closePosition(address, position.position.coin, position.size, '');
         }
       }

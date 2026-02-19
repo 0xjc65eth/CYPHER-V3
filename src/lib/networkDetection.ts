@@ -262,7 +262,6 @@ export class NetworkDetectionService {
           availableWallets.push(wallet);
         }
       } catch (error) {
-        console.warn(`Error checking wallet ${wallet.id}:`, error);
       }
     }
     
@@ -296,7 +295,6 @@ export class NetworkDetectionService {
       return NETWORKS.bitcoin;
       
     } catch (error) {
-      console.warn('Error detecting current network:', error);
       return null;
     }
   }

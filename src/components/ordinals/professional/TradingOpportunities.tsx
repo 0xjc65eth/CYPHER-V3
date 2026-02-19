@@ -73,31 +73,87 @@ export default function TradingOpportunities() {
       const stats = await ordinalsService.getOrdinalsStats()
       const collections = await ordinalsService.getTopCollections(10)
       
-      // Generate trading opportunities based on real data
-      const opportunities: TradingOpportunity[] = collections.map((collection, index) => ({
-        id: `opp-${collection.id}-${index}`,
-        type: ['arbitrage', 'floor_sweep', 'rarity_play', 'volume_spike', 'whale_movement'][index % 5] as TradingOpportunity['type'],
-        collection: collection.name,
-        inscription_number: 1000000 + index * 1000,
-        opportunity_score: 75 + Math.random() * 25,
-        profit_potential: Math.random() * 50 + 10,
-        risk_level: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as 'low' | 'medium' | 'high',
-        time_sensitivity: ['immediate', 'short', 'medium', 'long'][Math.floor(Math.random() * 4)] as TradingOpportunity['time_sensitivity'],
-        current_price: collection.floor_price,
-        target_price: collection.floor_price * (1 + Math.random() * 0.3),
-        marketplaces: ['Magic Eden', 'Gamma', 'OKX'],
-        description: `${collection.name} showing strong momentum with ${collection.volume_change_24h > 0 ? 'increasing' : 'decreasing'} volume`,
-        analysis: {
-          support_level: collection.floor_price * 0.9,
-          resistance_level: collection.floor_price * 1.15,
-          volume_change_24h: collection.volume_change_24h,
-          rarity_score: Math.random() * 100,
-          holder_concentration: Math.random() * 50 + 25
-        },
-        recommendation: ['strong_buy', 'buy', 'hold'][Math.floor(Math.random() * 3)] as TradingOpportunity['recommendation'],
-        confidence: 75 + Math.random() * 25,
-        last_updated: Date.now() - Math.random() * 300000
-      }))
+      // Generate trading opportunities based on real data analysis
+      const opportunities: TradingOpportunity[] = collections.map((collection, index) => {
+        // Determine opportunity type based on real metrics
+        const volChange = collection.volume_change_24h || 0;
+        const type: TradingOpportunity['type'] = volChange > 50
+          ? 'volume_spike'
+          : volChange < -20
+          ? 'floor_sweep'
+          : index % 3 === 0
+          ? 'arbitrage'
+          : index % 3 === 1
+          ? 'rarity_play'
+          : 'whale_movement';
+
+        // Score based on volume change magnitude and floor price stability
+        const absVolChange = Math.abs(volChange);
+        const opportunityScore = Math.min(100, 50 + absVolChange * 0.5);
+
+        // Risk based on volume change direction
+        const riskLevel: 'low' | 'medium' | 'high' = absVolChange < 10
+          ? 'low'
+          : absVolChange < 30
+          ? 'medium'
+          : 'high';
+
+        // Time sensitivity based on volume momentum
+        const timeSensitivity: TradingOpportunity['time_sensitivity'] = absVolChange > 40
+          ? 'immediate'
+          : absVolChange > 20
+          ? 'short'
+          : absVolChange > 10
+          ? 'medium'
+          : 'long';
+
+        // Profit potential based on support/resistance spread
+        const profitPotential = collection.floor_price > 0
+          ? Math.min(50, (collection.floor_price * 0.15 / collection.floor_price) * 100)
+          : 0;
+
+        // Recommendation based on volume trend
+        const recommendation: TradingOpportunity['recommendation'] = volChange > 20
+          ? 'strong_buy'
+          : volChange > 5
+          ? 'buy'
+          : 'hold';
+
+        // Confidence based on how much data we have
+        const confidence = collection.volume_24h > 0 && collection.floor_price > 0
+          ? Math.min(95, 60 + absVolChange * 0.3)
+          : 40;
+
+        // Holder concentration from real data if available
+        const holderConcentration = collection.holders_count > 0 && collection.total_supply > 0
+          ? (collection.holders_count / collection.total_supply) * 100
+          : 0;
+
+        return {
+          id: `opp-${collection.id}-${index}`,
+          type,
+          collection: collection.name,
+          inscription_number: 1000000 + index * 1000,
+          opportunity_score: opportunityScore,
+          profit_potential: profitPotential,
+          risk_level: riskLevel,
+          time_sensitivity: timeSensitivity,
+          current_price: collection.floor_price,
+          target_price: collection.floor_price * 1.15, // 15% target based on support/resistance
+          marketplaces: ['Magic Eden', 'Gamma', 'OKX'],
+          description: `${collection.name} showing ${volChange > 0 ? 'bullish' : volChange < 0 ? 'bearish' : 'neutral'} momentum with ${volChange > 0 ? 'increasing' : volChange < 0 ? 'decreasing' : 'stable'} volume (${volChange.toFixed(1)}% change)`,
+          analysis: {
+            support_level: collection.floor_price * 0.9,
+            resistance_level: collection.floor_price * 1.15,
+            volume_change_24h: collection.volume_change_24h,
+            rarity_score: undefined,
+            holder_concentration: holderConcentration,
+          },
+          recommendation,
+          confidence,
+          last_updated: Date.now(),
+        };
+      })
 
       return opportunities.filter(opp => 
         (riskFilter === 'all' || opp.risk_level === riskFilter) &&
@@ -108,28 +164,8 @@ export default function TradingOpportunities() {
     staleTime: 15000
   })
 
-  // Mock price alerts
-  const mockAlerts: PriceAlert[] = [
-    {
-      id: 'alert-1',
-      collection: 'NodeMonkes',
-      inscription_number: 12345,
-      alert_type: 'floor_below',
-      target_value: 0.045,
-      current_value: 0.0485,
-      created_at: Date.now() - 3600000,
-      triggered: false
-    },
-    {
-      id: 'alert-2',
-      collection: 'Bitcoin Puppets',
-      alert_type: 'volume_spike',
-      target_value: 100,
-      current_value: 89.7,
-      created_at: Date.now() - 7200000,
-      triggered: false
-    }
-  ]
+  // Price alerts - populated from user-created alerts (no mock data)
+  const userAlerts: PriceAlert[] = []
 
   const getOpportunityTypeIcon = (type: TradingOpportunity['type']) => {
     switch (type) {
@@ -363,7 +399,7 @@ export default function TradingOpportunities() {
           </div>
 
           <div className="space-y-3">
-            {mockAlerts.map((alert) => (
+            {userAlerts.map((alert) => (
               <Card key={alert.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">

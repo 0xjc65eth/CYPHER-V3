@@ -64,21 +64,18 @@ export function useMempoolDataSafe(options: UseMempoolDataOptions = {}) {
         newData.stats = statsResult.value;
       } else if (enableFallback) {
         newData.stats = getFallbackStats();
-        console.warn('Using fallback mempool stats:', statsResult.reason);
       }
 
       if (feesResult.status === 'fulfilled') {
         newData.fees = feesResult.value;
       } else if (enableFallback) {
         newData.fees = getFallbackFees();
-        console.warn('Using fallback fees:', feesResult.reason);
       }
 
       if (blocksResult.status === 'fulfilled') {
         newData.blocks = blocksResult.value;
       } else if (enableFallback) {
         newData.blocks = getFallbackBlocks();
-        console.warn('Using fallback blocks:', blocksResult.reason);
       }
 
       setData(prev => ({ ...prev, ...newData }));

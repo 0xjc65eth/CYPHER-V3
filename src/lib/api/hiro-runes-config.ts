@@ -1,6 +1,6 @@
 // Configuração central para as APIs Hiro Runes
 export const HIRO_RUNES_CONFIG = {
-  API_KEY: '3100ea7623797d267da3bd6dc94f47f9',
+  API_KEY: process.env.HIRO_API_KEY || '',
   BASE_URL: 'https://api.hiro.so/runes/v1',
   
   // Cache TTL por tipo de dados

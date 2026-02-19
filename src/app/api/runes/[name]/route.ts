@@ -1,6 +1,7 @@
 // pages/api/runes/[name].js - API para detalhes de um Rune
 import { hiroAPI } from '@/lib/hiro-api';
 import { NextResponse } from 'next/server';
+import { createSafeBigIntResponse } from '@/lib/utils/bigint-serializer';
 
 export async function GET(
   request: Request,
@@ -16,7 +17,6 @@ export async function GET(
       }, { status: 400 });
     }
 
-    console.log(`🏃 Buscando detalhes do Rune: ${name}`);
 
     // Buscar dados paralelos
     const [details, holders, activity] = await Promise.allSettled([
@@ -32,17 +32,17 @@ export async function GET(
       timestamp: Date.now()
     };
 
-    return NextResponse.json({
+    return createSafeBigIntResponse({
       success: true,
       data: result
     });
 
-  } catch (error) {
-    console.error('❌ Erro na API Rune Details:', error);
+  } catch (error: unknown) {
+    console.error('Erro na API Rune Details:', error);
     return NextResponse.json({
       success: false,
       error: 'Erro ao buscar detalhes do Rune',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

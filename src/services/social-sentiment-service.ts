@@ -44,13 +44,12 @@ export class SocialSentimentService extends EventEmitter {
   private lastUpdate: string = new Date().toISOString();
   private isCollecting: boolean = false;
   private collectionInterval: NodeJS.Timeout | null = null;
-  private apiKey: string = 'c045d2a9-6f2d-44e9-8297-a88ab83b463b'; // CoinMarketCap API key (também usada para outras APIs)
+  private apiKey: string = process.env.CMC_API_KEY || '';
 
   // Construtor privado para implementar Singleton
   private constructor() {
     super();
     this.initializeData();
-    console.log('Social Sentiment Service initialized');
   }
 
   // Método para obter a instância única
@@ -94,7 +93,6 @@ export class SocialSentimentService extends EventEmitter {
         }
       }
     } catch (error) {
-      console.log('Fear & Greed API unavailable, using fallback');
     }
     // Fallback
     this.fngData = { value: 50, classification: 'Neutral', timestamp: new Date().toISOString() };
@@ -239,12 +237,10 @@ export class SocialSentimentService extends EventEmitter {
   // Iniciar coleta de dados
   public startDataCollection(): void {
     if (this.isCollecting) {
-      console.log('Social sentiment data collection is already running');
       return;
     }
     
     this.isCollecting = true;
-    console.log('Starting social sentiment data collection...');
     
     // Coletar dados imediatamente
     this.collectData();
@@ -263,12 +259,10 @@ export class SocialSentimentService extends EventEmitter {
   // Parar coleta de dados
   public stopDataCollection(): void {
     if (!this.isCollecting) {
-      console.log('Social sentiment data collection is not running');
       return;
     }
     
     this.isCollecting = false;
-    console.log('Stopping social sentiment data collection...');
     
     if (this.collectionInterval) {
       clearInterval(this.collectionInterval);
@@ -283,7 +277,6 @@ export class SocialSentimentService extends EventEmitter {
   
   // Coletar dados de sentimento social
   private async collectData(): Promise<void> {
-    console.log('Collecting social sentiment data...');
 
     try {
       await this.fetchFearAndGreedData();
@@ -393,7 +386,6 @@ export class SocialSentimentService extends EventEmitter {
   
   // Forçar atualização dos dados
   public forceUpdate(): void {
-    console.log('Forcing social sentiment data update...');
     this.collectData();
   }
 }

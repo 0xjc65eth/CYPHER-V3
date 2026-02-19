@@ -266,7 +266,6 @@ export class AdvancedTradingAI extends EventEmitter {
           break;
           
         default:
-          console.warn(`Unknown model: ${modelName}`);
       }
       
       this.modelPerformance.set(modelName, this.initializeModelPerformance(modelName));

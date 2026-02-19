@@ -289,9 +289,9 @@ async function fetchPortfolioData(address: string) {
 
     return {
       totalValue,
-      totalCost: totalValue * 0.85, // Mock cost basis
-      totalPnL: totalValue * 0.15, // Mock P&L
-      totalPnLPercent: 17.65, // Mock P&L percentage
+      totalCost: 0, // Cost basis requires historical tracking - not available yet
+      totalPnL: 0,
+      totalPnLPercent: 0,
       assets,
       transactions: txHistory,
       performance
@@ -305,36 +305,47 @@ async function fetchPortfolioData(address: string) {
 
 async function fetchBitcoinBalance(address: string): Promise<number> {
   try {
-    // This would integrate with a Bitcoin node or API
-    // For now, return mock data
-    return Math.random() * 10;
+    const response = await fetch(`https://mempool.space/api/address/${address}`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 30 },
+    })
+    if (!response.ok) throw new Error(`Mempool API error: ${response.status}`)
+    const data = await response.json()
+    const chainStats = data.chain_stats || {}
+    const mempoolStats = data.mempool_stats || {}
+    const confirmed = (chainStats.funded_txo_sum || 0) - (chainStats.spent_txo_sum || 0)
+    const unconfirmed = (mempoolStats.funded_txo_sum || 0) - (mempoolStats.spent_txo_sum || 0)
+    return (confirmed + unconfirmed) / 1e8
   } catch (error) {
-    console.error('Error fetching Bitcoin balance:', error);
-    return 0;
+    console.error('Error fetching Bitcoin balance from Mempool:', error)
+    return 0
   }
 }
 
 async function fetchTransactionHistory(address: string) {
   try {
-    // This would fetch actual transaction history
-    // For now, return mock data
-    return [
-      {
-        id: `tx_${Date.now()}`,
-        type: 'buy' as const,
-        asset: 'BTC',
-        amount: 0.1,
-        price: 98000,
-        value: 9800,
-        fee: 50,
-        timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-        txHash: `${Math.random().toString(36).substring(7)}`,
-        status: 'confirmed' as const
-      }
-    ];
+    const response = await fetch(`https://mempool.space/api/address/${address}/txs`, {
+      headers: { 'Accept': 'application/json' },
+      next: { revalidate: 60 },
+    })
+    if (!response.ok) throw new Error(`Mempool txs API error: ${response.status}`)
+    const txs = await response.json()
+    // Map to our transaction format (most recent 20)
+    return (txs || []).slice(0, 20).map((tx: any) => ({
+      id: tx.txid,
+      type: 'transfer' as const,
+      asset: 'BTC',
+      amount: (tx.vout || []).reduce((s: number, o: any) => s + (o.value || 0), 0) / 1e8,
+      price: 0,
+      value: 0,
+      fee: (tx.fee || 0) / 1e8,
+      timestamp: tx.status?.block_time ? new Date(tx.status.block_time * 1000) : new Date(),
+      txHash: tx.txid,
+      status: tx.status?.confirmed ? 'confirmed' as const : 'pending' as const,
+    }))
   } catch (error) {
-    console.error('Error fetching transaction history:', error);
-    return [];
+    console.error('Error fetching transaction history:', error)
+    return []
   }
 }
 
@@ -346,45 +357,66 @@ async function getCurrentBitcoinPrice(): Promise<number> {
       return cachedPrice;
     }
 
-    // Fetch from API (mock for now)
-    const price = 98000 + (Math.random() - 0.5) * 2000;
-    
-    // Cache for 5 seconds
-    await cacheInstances.prices.set('btc-price', price, {
-      ttl: 5,
-      tags: ['price', 'bitcoin']
-    });
-    
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true',
+      { next: { revalidate: 60 } }
+    )
+    if (!response.ok) throw new Error('CoinGecko price fetch failed')
+    const data = await response.json()
+    const price = data?.bitcoin?.usd || 0
+
+    if (price > 0) {
+      await cacheInstances.prices.set('btc-price', price, {
+        ttl: 60,
+        tags: ['price', 'bitcoin']
+      });
+    }
+
     return price;
   } catch (error) {
     console.error('Error fetching Bitcoin price:', error);
-    return 98000; // Fallback price
+    return 0;
   }
 }
 
 async function getBitcoinChange24h(): Promise<number> {
-  return (Math.random() - 0.5) * 10; // Mock 24h change
+  try {
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true',
+      { next: { revalidate: 60 } }
+    )
+    if (!response.ok) return 0
+    const data = await response.json()
+    return data?.bitcoin?.usd_24h_change || 0
+  } catch {
+    return 0
+  }
 }
 
 async function getInscriptionValue(inscriptionId: string): Promise<number> {
-  return Math.random() * 50000; // Mock inscription value
+  // TODO: Implementar busca real via Magic Eden/UniSat APIs
+  return 0;
 }
 
 async function getRunePrice(runeName: string): Promise<number> {
-  return Math.random() * 0.01; // Mock rune price
+  // TODO: Implementar busca real via Hiro/Magic Eden Runes APIs
+  return 0;
 }
 
 async function getBRC20Price(ticker: string): Promise<number> {
-  return Math.random() * 100; // Mock BRC-20 price
+  // TODO: Implementar busca real via UniSat/OKX BRC-20 APIs
+  return 0;
 }
 
-async function calculatePerformance(address: string, assets: any[]) {
+async function calculatePerformance(_address: string, _assets: any[]) {
+  // Performance tracking requires historical snapshots which are not yet implemented.
+  // Return zeros instead of fake random data.
   return {
-    '24h': (Math.random() - 0.5) * 10,
-    '7d': (Math.random() - 0.5) * 20,
-    '30d': (Math.random() - 0.5) * 50,
-    '90d': (Math.random() - 0.5) * 100,
-    '1y': (Math.random() - 0.5) * 300
+    '24h': 0,
+    '7d': 0,
+    '30d': 0,
+    '90d': 0,
+    '1y': 0,
   };
 }
 
@@ -396,7 +428,7 @@ async function processPortfolioUpdate(update: {
   price: number;
   timestamp: Date;
 }): Promise<string> {
-  // This would process the portfolio update in the database
-  // For now, just return a mock transaction ID
-  return `tx_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  // Generate a proper transaction ID using crypto
+  const { randomUUID } = await import('crypto')
+  return `tx_${Date.now()}_${randomUUID().slice(0, 8)}`;
 }

@@ -201,7 +201,6 @@ export function AnalyticsSystem() {
   const loadAnalyticsData = async () => {
     setIsLoading(true);
     try {
-      console.log('Loading real analytics data...');
       
       // Fetch real market data
       const [realMarketData, realNetworkData] = await Promise.allSettled([
@@ -231,9 +230,7 @@ export function AnalyticsSystem() {
         });
         
         setRealDataLoaded(true);
-        console.log('Real market data loaded successfully:', marketData.source);
       } else {
-        console.warn('Failed to load some real data, using fallback');
         setRealDataLoaded(false);
       }
       

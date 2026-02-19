@@ -1,55 +1,50 @@
+/**
+ * Trading Status API
+ * Returns status of the trading agent system.
+ */
+
 import { NextResponse } from 'next/server';
-import { AdvancedTradingEngine } from '@/core/AdvancedTradingEngine';
-import { PortfolioManager } from '@/core/PortfolioManager';
-import { AdvancedTradingAI } from '@/ai/AdvancedTradingAI';
-import { AdvancedRiskManagement } from '@/risk/AdvancedRiskManagement';
 
 export async function GET() {
   try {
-    // Check if modules can be imported
-    const modules = {
-      tradingEngine: !!AdvancedTradingEngine,
-      portfolioManager: !!PortfolioManager,
-      tradingAI: !!AdvancedTradingAI,
-      riskManagement: !!AdvancedRiskManagement
+    // Lazy require to avoid webpack chunk splitting issues
+    const { getOrchestrator } = require('@/agent/core/AgentOrchestrator') as {
+      getOrchestrator: () => any;
     };
 
-    // Get implementation details
-    const details = {
-      tradingEngine: {
-        available: modules.tradingEngine,
-        features: ['Multi-exchange support', 'Advanced order types', 'Risk management', 'Portfolio tracking']
-      },
-      portfolioManager: {
-        available: modules.portfolioManager,
-        features: ['Mean-variance optimization', 'Risk parity', 'Black-Litterman', 'Dynamic rebalancing']
-      },
-      tradingAI: {
-        available: modules.tradingAI,
-        features: ['LSTM predictions', 'Transformer models', 'XGBoost signals', 'Reinforcement learning']
-      },
-      riskManagement: {
-        available: modules.riskManagement,
-        features: ['VaR/CVaR', 'Monte Carlo', 'Stress testing', 'Position sizing']
-      }
-    };
+    const orchestrator = getOrchestrator();
+    const state = orchestrator.getState();
+    const config = orchestrator.getConfig();
+    const performance = orchestrator.getPerformance();
 
     return NextResponse.json({
       status: 'operational',
       timestamp: new Date().toISOString(),
+      agent: {
+        status: state.status,
+        uptime: state.uptime,
+        startedAt: state.startedAt,
+      },
+      performance,
+      config: {
+        markets: config.markets?.filter((m: any) => m.enabled).length || 0,
+        capitalTotal: config.capitalAllocation?.total || 0,
+        autoCompound: config.autoCompound?.enabled || false,
+      },
       implementation: {
-        complete: true,
-        modules,
-        details,
-        totalFiles: 8,
-        totalSize: '238KB of real implementation code'
-      }
+        modules: {
+          orchestrator: true,
+          consensus: true,
+          persistence: true,
+          connectors: true,
+        },
+      },
     });
   } catch (error) {
     return NextResponse.json({
       status: 'error',
       message: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     }, { status: 500 });
   }
 }

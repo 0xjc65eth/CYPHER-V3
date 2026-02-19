@@ -54,7 +54,7 @@ export function SystemStatus() {
 
   const fetchSystemStatus = async () => {
     try {
-      const response = await fetch('/api/system/status')
+      const response = await fetch('/api/system/status/')
       const data = await response.json()
       setSystemMetrics(data)
       setLastUpdate(new Date())

@@ -82,7 +82,6 @@ export class IntervalManager {
       this.executeTask(id);
     }
 
-    console.log(`📊 Interval registered: ${id} (${interval}ms, ${priority} priority)`);
   }
 
   /**
@@ -98,7 +97,6 @@ export class IntervalManager {
     const task = this.tasks.get(id);
     if (task) {
       this.tasks.delete(id);
-      console.log(`📊 Interval unregistered: ${id}`);
       return true;
     }
 
@@ -117,7 +115,6 @@ export class IntervalManager {
    */
   pauseAll(): void {
     this.isActive = false;
-    console.log('📊 All intervals paused');
   }
 
   /**
@@ -125,7 +122,6 @@ export class IntervalManager {
    */
   resumeAll(): void {
     this.isActive = true;
-    console.log('📊 All intervals resumed');
   }
 
   /**
@@ -176,7 +172,6 @@ export class IntervalManager {
       // Remove tasks that haven't run for a long time and aren't running
       if (!task.isRunning && now - task.lastRun > staleThreshold) {
         this.unregister(id);
-        console.log(`📊 Cleaned up stale task: ${id}`);
       }
 
       // Reset retry count for tasks that haven't failed recently
@@ -195,7 +190,6 @@ export class IntervalManager {
     for (const id of this.tasks.keys()) {
       this.unregister(id);
     }
-    console.log('📊 Interval manager destroyed');
   }
 
   /**
@@ -209,13 +203,11 @@ export class IntervalManager {
 
     // Check if task is already running and is singleton
     if (task.singleton && task.isRunning) {
-      console.log(`📊 Skipping ${id} - already running (singleton)`);
       return false;
     }
 
     // Check if task has exceeded retry limit
     if (task.retryCount >= task.maxRetries) {
-      console.log(`📊 Task ${id} has exceeded retry limit`);
       return false;
     }
 
@@ -242,7 +234,6 @@ export class IntervalManager {
       const executionTime = Date.now() - startTime;
       this.updateAverageExecutionTime(executionTime);
 
-      console.log(`📊 Task ${id} completed in ${executionTime}ms`);
       return true;
 
     } catch (error) {

@@ -30,7 +30,7 @@ export function MiningPoolDistribution() {
 
   const fetchPools = useCallback(async () => {
     try {
-      const res = await fetch('/api/onchain/mining')
+      const res = await fetch('/api/onchain/mining/')
       if (!res.ok) throw new Error('Failed to fetch mining pools')
       const data = await res.json()
       if (data.error) throw new Error(data.error)

@@ -3,8 +3,8 @@ class IntervalManager {
   private intervals: Map<string, ReturnType<typeof setInterval>> = new Map();
   private static instance: IntervalManager | null = null;
 
-  constructor() {
-    console.log('🔄 Interval Manager initialized');
+  private constructor() {
+    // Singleton - only log once
   }
 
   static getInstance(): IntervalManager {
@@ -17,8 +17,7 @@ class IntervalManager {
   register(key: string, callback: () => void, interval: number): void {
     // Clear existing interval if it exists
     this.clear(key);
-    
-    console.log(`⏰ Registering interval: ${key} (${interval}ms)`);
+
     const id = setInterval(callback, interval);
     this.intervals.set(key, id);
   }
@@ -26,14 +25,12 @@ class IntervalManager {
   clear(key: string): void {
     const id = this.intervals.get(key);
     if (id) {
-      console.log(`🗑️ Clearing interval: ${key}`);
       clearInterval(id);
       this.intervals.delete(key);
     }
   }
 
   clearAll(): void {
-    console.log(`🧹 Clearing all intervals (${this.intervals.size} active)`);
     this.intervals.forEach((id, key) => {
       clearInterval(id);
     });

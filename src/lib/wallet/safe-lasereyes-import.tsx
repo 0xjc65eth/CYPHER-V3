@@ -24,12 +24,10 @@ export const SafeLaserEyesProvider = ({ children }: { children: ReactNode }) => 
   const value = {
     connected,
     connect: async () => {
-      console.log('Wallet connection simulated');
       setConnected(true);
       return true;
     },
     disconnect: async () => {
-      console.log('Wallet disconnection simulated');
       setConnected(false);
     },
     address: connected ? 'bc1qexample...' : '',

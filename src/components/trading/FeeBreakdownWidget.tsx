@@ -97,7 +97,7 @@ export const FeeBreakdownWidget: React.FC<FeeBreakdownWidgetProps> = ({
     setError(null)
     
     try {
-      const response = await fetch('/api/fees/calculate', {
+      const response = await fetch('/api/fees/calculate/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

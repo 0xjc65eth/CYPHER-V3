@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   try {
     // Check rate limit
     if (!rateLimiter.canMakeRequest('lightning-api')) {
-      console.log('Lightning API rate limit protection activated');
       return NextResponse.json({
         success: true,
         data: getFallbackLightningData(),
@@ -66,7 +65,6 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (apiError) {
-      console.log('Mempool.space Lightning API unavailable, using fallback:', apiError);
     }
 
     return NextResponse.json({

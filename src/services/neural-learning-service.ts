@@ -130,7 +130,6 @@ export class NeuralLearningService extends EventEmitter {
     super();
     this.initializeModels();
     this.loadFromCloud();
-    console.log('Neural Learning Service initialized');
   }
 
   // Método para obter a instância única
@@ -144,12 +143,10 @@ export class NeuralLearningService extends EventEmitter {
   // Carregar dados do armazenamento em nuvem (Supabase)
   private async loadFromCloud(): Promise<void> {
     if (!this.config.useCloudStorage) {
-      console.log('Cloud storage is disabled. Skipping cloud data loading.');
       return;
     }
 
     try {
-      console.log('Loading data from cloud storage...');
 
       // Carregar modelos
       const cloudModels = await supabaseService.loadAllModels();
@@ -163,12 +160,10 @@ export class NeuralLearningService extends EventEmitter {
             const localDate = new Date(localModel.lastTraining).getTime();
 
             if (cloudDate > localDate) {
-              console.log(`Updating local model ${cloudModel.id} with cloud data`);
               this.models.set(cloudModel.id, cloudModel);
             }
           } else {
             // Se o modelo não existir localmente, adicione-o
-            console.log(`Adding new model ${cloudModel.id} from cloud`);
             this.models.set(cloudModel.id, cloudModel);
           }
         });
@@ -217,7 +212,6 @@ export class NeuralLearningService extends EventEmitter {
         }
       }
 
-      console.log('Data loaded from cloud storage successfully');
 
       // Emitir evento de carregamento de dados da nuvem
       this.emit('cloud-data-loaded', {
@@ -239,12 +233,10 @@ export class NeuralLearningService extends EventEmitter {
   // Salvar dados no armazenamento em nuvem (Supabase)
   private async saveToCloud(): Promise<void> {
     if (!this.config.useCloudStorage) {
-      console.log('Cloud storage is disabled. Skipping cloud data saving.');
       return;
     }
 
     try {
-      console.log('Saving data to cloud storage...');
 
       // Salvar modelos
       for (const model of this.models.values()) {
@@ -274,7 +266,6 @@ export class NeuralLearningService extends EventEmitter {
         await supabaseService.saveInsights(recentInsights);
       }
 
-      console.log('Data saved to cloud storage successfully');
 
       // Emitir evento de salvamento de dados na nuvem
       this.emit('cloud-data-saved', {
@@ -296,12 +287,10 @@ export class NeuralLearningService extends EventEmitter {
   // Iniciar o serviço de aprendizado contínuo
   public startContinuousLearning(): void {
     if (this.isLearning) {
-      console.log('Neural learning is already running');
       return;
     }
 
     this.isLearning = true;
-    console.log('Starting continuous neural learning...');
 
     // Inicializar o progresso de aprendizado
     this.updateLearningProgress('data_collection', 0);
@@ -330,7 +319,6 @@ export class NeuralLearningService extends EventEmitter {
         this.detectAndCorrectInconsistencies();
       }, this.config.correctionInterval);
 
-      console.log('Auto-correction scheduled every', this.config.correctionInterval / 60000, 'minutes');
     }
 
     // Iniciar sincronização com a nuvem
@@ -339,7 +327,6 @@ export class NeuralLearningService extends EventEmitter {
         this.saveToCloud();
       }, this.config.cloudSyncInterval);
 
-      console.log('Cloud sync scheduled every', this.config.cloudSyncInterval / 3600000, 'hours');
     }
 
     // Emitir evento de início
@@ -410,12 +397,10 @@ export class NeuralLearningService extends EventEmitter {
   // Parar o serviço de aprendizado
   public stopContinuousLearning(): void {
     if (!this.isLearning) {
-      console.log('Neural learning is not running');
       return;
     }
 
     this.isLearning = false;
-    console.log('Stopping continuous neural learning...');
 
     if (this.dataCollectionInterval) {
       clearInterval(this.dataCollectionInterval);
@@ -439,9 +424,7 @@ export class NeuralLearningService extends EventEmitter {
 
     // Salvar dados na nuvem antes de parar completamente
     if (this.config.useCloudStorage) {
-      console.log('Saving data to cloud before stopping...');
       this.saveToCloud().then(() => {
-        console.log('Final cloud sync completed');
       }).catch(error => {
         console.error('Error during final cloud sync:', error);
       });
@@ -502,12 +485,10 @@ export class NeuralLearningService extends EventEmitter {
   // Forçar sincronização com a nuvem
   public async forceSyncWithCloud(): Promise<void> {
     if (!this.config.useCloudStorage) {
-      console.log('Cloud storage is disabled. Enable it in config first.');
       return;
     }
 
     try {
-      console.log('Forcing cloud sync...');
 
       // Primeiro carregue dados da nuvem
       await this.loadFromCloud();
@@ -517,7 +498,6 @@ export class NeuralLearningService extends EventEmitter {
 
       this.lastCloudSync = new Date().toISOString();
 
-      console.log('Forced cloud sync completed successfully');
 
       // Emitir evento de sincronização forçada
       this.emit('forced-cloud-sync', {
@@ -576,7 +556,6 @@ export class NeuralLearningService extends EventEmitter {
   // Atualizar configuração
   public updateConfig(newConfig: Partial<typeof this.config>): void {
     this.config = { ...this.config, ...newConfig };
-    console.log('Neural learning config updated:', this.config);
 
     // Reiniciar intervalos se necessário
     if (this.isLearning) {
@@ -720,13 +699,12 @@ export class NeuralLearningService extends EventEmitter {
   }
 
   private async collectData(): Promise<void> {
-    console.log('Collecting real data for neural learning...');
 
     try {
       // Coletar dados reais de mercado do Bitcoin da API do CoinMarketCap
       let marketData;
       try {
-        const response = await fetch('/api/bitcoin-price');
+        const response = await fetch('/api/bitcoin-price/');
         if (response.ok) {
           const data = await response.json();
           marketData = {
@@ -736,7 +714,6 @@ export class NeuralLearningService extends EventEmitter {
             marketCap: data.marketCap,
             timestamp: data.lastUpdated || new Date().toISOString()
           };
-          console.log('Collected real Bitcoin market data:', marketData);
         } else {
           throw new Error('Failed to fetch Bitcoin price data');
         }
@@ -750,13 +727,12 @@ export class NeuralLearningService extends EventEmitter {
           marketCap: 1900000000000 + (Math.random() * 50000000000),
           timestamp: new Date().toISOString()
         };
-        console.log('Using fallback Bitcoin market data');
       }
 
       // Coletar dados reais do mempool da API do mempool.space
       let mempoolData;
       try {
-        const response = await fetch('/api/mempool-data');
+        const response = await fetch('/api/mempool-data/');
         if (response.ok) {
           const data = await response.json();
           mempoolData = {
@@ -765,7 +741,6 @@ export class NeuralLearningService extends EventEmitter {
             mempoolSize: data.mempoolSize,
             timestamp: data.lastUpdated || new Date().toISOString()
           };
-          console.log('Collected real mempool data:', mempoolData);
         } else {
           throw new Error('Failed to fetch mempool data');
         }
@@ -778,13 +753,12 @@ export class NeuralLearningService extends EventEmitter {
           mempoolSize: 20000 + Math.floor(Math.random() * 5000),
           timestamp: new Date().toISOString()
         };
-        console.log('Using fallback mempool data');
       }
 
       // Coletar dados reais de Ordinals da API do Ordiscan
       let ordinalData;
       try {
-        const response = await fetch('/api/ordinals-stats');
+        const response = await fetch('/api/ordinals-stats/');
         if (response.ok) {
           const data = await response.json();
           ordinalData = {
@@ -794,7 +768,6 @@ export class NeuralLearningService extends EventEmitter {
             inscriptionRate: data.inscription_rate || 5000 + Math.floor(Math.random() * 1000),
             timestamp: new Date().toISOString()
           };
-          console.log('Collected real Ordinals data:', ordinalData);
         } else {
           throw new Error('Failed to fetch Ordinals data');
         }
@@ -808,13 +781,12 @@ export class NeuralLearningService extends EventEmitter {
           inscriptionRate: 5000 + Math.floor(Math.random() * 1000),
           timestamp: new Date().toISOString()
         };
-        console.log('Using fallback Ordinals data');
       }
 
       // Coletar dados reais de Runes
       let runeData;
       try {
-        const response = await fetch('/api/runes-stats');
+        const response = await fetch('/api/runes-stats/');
         if (response.ok) {
           const data = await response.json();
           runeData = {
@@ -824,7 +796,6 @@ export class NeuralLearningService extends EventEmitter {
             mintRate: data.mint_rate || 3000 + Math.floor(Math.random() * 800),
             timestamp: new Date().toISOString()
           };
-          console.log('Collected real Runes data:', runeData);
         } else {
           throw new Error('Failed to fetch Runes data');
         }
@@ -838,7 +809,6 @@ export class NeuralLearningService extends EventEmitter {
           mintRate: 3000 + Math.floor(Math.random() * 800),
           timestamp: new Date().toISOString()
         };
-        console.log('Using fallback Runes data');
       }
 
     // Adicionar dados ao conjunto de treinamento
@@ -865,15 +835,12 @@ export class NeuralLearningService extends EventEmitter {
 
   private trainModels(): void {
     if (this.trainingData.marketData.length < this.config.minDataPointsForTraining) {
-      console.log(`Not enough data points for training (${this.trainingData.marketData.length}/${this.config.minDataPointsForTraining})`);
       return;
     }
 
-    console.log('Training neural models...');
 
     // Treinar cada modelo
     for (const [id, model] of this.models.entries()) {
-      console.log(`Training model: ${model.name}`);
 
       // Simular treinamento
       const previousAccuracy = model.accuracy;
@@ -938,7 +905,6 @@ export class NeuralLearningService extends EventEmitter {
   }
 
   private generateInsights(): void {
-    console.log('Generating neural insights...');
 
     // Gerar insights baseados nos modelos treinados
     const newInsights: NeuralInsight[] = [];
@@ -1120,7 +1086,6 @@ export class NeuralLearningService extends EventEmitter {
   }
 
   private pruneOldData(): void {
-    console.log('Pruning old training data...');
 
     // Calcular data limite para retenção
     const cutoffDate = new Date();
@@ -1176,7 +1141,6 @@ export class NeuralLearningService extends EventEmitter {
       return;
     }
 
-    console.log('Detecting and correcting data inconsistencies...');
 
     try {
       // Verificar inconsistências nos dados de mercado
@@ -1256,7 +1220,6 @@ export class NeuralLearningService extends EventEmitter {
 
           this.autoCorrections.push(correction);
 
-          console.log(`Detected market data inconsistency: ${correction.explanation}`);
         }
       }
     }
@@ -1315,7 +1278,6 @@ export class NeuralLearningService extends EventEmitter {
 
           this.autoCorrections.push(correction);
 
-          console.log(`Detected Ordinals data inconsistency: ${correction.explanation}`);
         }
       }
     }
@@ -1374,7 +1336,6 @@ export class NeuralLearningService extends EventEmitter {
 
           this.autoCorrections.push(correction);
 
-          console.log(`Detected Runes data inconsistency: ${correction.explanation}`);
         }
       }
     }
@@ -1391,7 +1352,6 @@ export class NeuralLearningService extends EventEmitter {
       return;
     }
 
-    console.log(`Applying ${pendingCorrections.length} pending corrections with high confidence...`);
 
     // Aplicar cada correção
     for (const correction of pendingCorrections) {
@@ -1407,14 +1367,12 @@ export class NeuralLearningService extends EventEmitter {
             this.applyRunesDataCorrection(correction);
             break;
           default:
-            console.log(`Unknown data type: ${correction.dataType}`);
             continue;
         }
 
         // Marcar correção como aplicada
         correction.status = 'applied';
 
-        console.log(`Applied correction: ${correction.explanation}`);
       } catch (error) {
         console.error(`Error applying correction ${correction.id}:`, error);
       }
@@ -1432,7 +1390,6 @@ export class NeuralLearningService extends EventEmitter {
       if (dataPoint) {
         // Aplicar correção
         dataPoint.btcPrice = Number(correction.newValue);
-        console.log(`Corrected market data: btcPrice from ${correction.oldValue} to ${correction.newValue}`);
       }
     }
   }
@@ -1448,7 +1405,6 @@ export class NeuralLearningService extends EventEmitter {
       if (dataPoint) {
         // Aplicar correção
         dataPoint.volume24h = Number(correction.newValue);
-        console.log(`Corrected Ordinals data: volume24h from ${correction.oldValue} to ${correction.newValue}`);
       }
     }
   }
@@ -1464,7 +1420,6 @@ export class NeuralLearningService extends EventEmitter {
       if (dataPoint) {
         // Aplicar correção
         dataPoint.mintRate = Number(correction.newValue);
-        console.log(`Corrected Runes data: mintRate from ${correction.oldValue} to ${correction.newValue}`);
       }
     }
   }

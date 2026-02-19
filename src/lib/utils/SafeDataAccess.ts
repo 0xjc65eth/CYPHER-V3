@@ -58,13 +58,11 @@ export class SafeDataAccess {
       const date = new Date(value);
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.warn(`Invalid date value: ${value}`);
         return defaultValue;
       }
       // Check if date is within reasonable bounds (1900-2100)
       const year = date.getFullYear();
       if (year < 1900 || year > 2100) {
-        console.warn(`Date out of bounds: ${value}`);
         return defaultValue;
       }
       return date;

@@ -521,10 +521,8 @@ export class SecurityLogger {
         console.debug(message, entry.details);
         break;
       case LogLevel.INFO:
-        console.info(message, entry.details);
         break;
       case LogLevel.WARN:
-        console.warn(message, entry.details);
         break;
       case LogLevel.ERROR:
       case LogLevel.CRITICAL:

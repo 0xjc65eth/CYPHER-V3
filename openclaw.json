@@ -1,0 +1,71 @@
+{
+  // Configuracao principal do Cypher AgenteBot
+  // Agente autonomo de desenvolvimento com ClawBot/OpenClaw
+
+  "agent": {
+    "model": "anthropic/claude-opus-4-6",
+    "workspace": "./",
+    "defaults": {
+      "temperature": 0.3,
+      "maxTokens": 8192
+    },
+    "sandbox": {
+      "mode": "non-main",
+      "scope": "agent"
+    }
+  },
+
+  "agents": {
+    "list": [
+      {
+        "id": "cypher-dev",
+        "identity": {
+          "name": "Cypher Dev Agent",
+          "emoji": "🔧",
+          "theme": "dark"
+        },
+        "model": "anthropic/claude-opus-4-6",
+        "workspace": "./",
+        "skills": [
+          "code-writer",
+          "debugger",
+          "refactor",
+          "test-runner",
+          "git-ops",
+          "claude-code-bridge",
+          "researcher",
+          "carmack-mode"
+        ]
+      }
+    ]
+  },
+
+  "skills": {
+    "directory": "./skills",
+    "entries": {
+      "code-writer": { "enabled": true },
+      "debugger": { "enabled": true },
+      "refactor": { "enabled": true },
+      "test-runner": { "enabled": true },
+      "git-ops": { "enabled": true },
+      "claude-code-bridge": { "enabled": true },
+      "researcher": { "enabled": true },
+      "carmack-mode": { "enabled": true }
+    }
+  },
+
+  "gateway": {
+    "port": 18789,
+    "bind": "loopback"
+  },
+
+  "channels": {
+    "cli": {
+      "enabled": true
+    }
+  },
+
+  "policies": {
+    "approvalPolicy": "./policies/approve-all.yaml"
+  }
+}

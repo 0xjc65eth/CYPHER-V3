@@ -29,7 +29,7 @@ export function useRealTimePrice(symbols: string[]) {
       try {
         // Use request deduplicator to prevent duplicate API calls
         const data = await requestDeduplicator.dedupe(requestKey, async () => {
-          const response = await fetch(`/api/realtime-prices?symbols=${symbolsParam}`, {
+          const response = await fetch(`/api/realtime-prices/?symbols=${symbolsParam}`, {
             signal: abortController.signal // Cancel request if component unmounts
           });
           

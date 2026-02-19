@@ -61,7 +61,6 @@ export function useRealTimeData(channels: string[] = []) {
         try {
           unsubscribe();
         } catch (error) {
-          console.warn('Error unsubscribing:', error);
         }
       });
     };

@@ -185,22 +185,18 @@ export class IntelligentRiskManager {
     
     // Verificar limites
     if (portfolioRisk.currentDrawdown >= profile.maxDrawdown * 0.8) {
-      console.log('Risk Manager: Approaching max drawdown limit');
       return false;
     }
     
     if (portfolioRisk.dailyLoss >= profile.maxDailyLoss * this.accountBalance) {
-      console.log('Risk Manager: Daily loss limit reached');
       return false;
     }
     
     if (portfolioRisk.openPositions >= profile.maxOpenPositions) {
-      console.log('Risk Manager: Max open positions reached');
       return false;
     }
     
     if (portfolioRisk.riskScore > 80) {
-      console.log('Risk Manager: Portfolio risk too high');
       return false;
     }
     

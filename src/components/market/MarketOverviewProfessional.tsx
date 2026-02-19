@@ -129,7 +129,6 @@ export default function MarketOverviewProfessional() {
   const loadMarketData = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Loading market data...');
       
       const fetchOptions = {
         method: 'GET',
@@ -140,20 +139,18 @@ export default function MarketOverviewProfessional() {
       };
 
       const [tickersRes, sentimentRes, signalsRes, newsRes, indicatorsRes] = await Promise.allSettled([
-        fetch('/api/market/tickers', fetchOptions),
-        fetch('/api/market/sentiment', fetchOptions),
-        fetch('/api/market/signals', fetchOptions),
-        fetch('/api/market/news', fetchOptions),
-        fetch('/api/market/indicators', fetchOptions)
+        fetch('/api/market/tickers/', fetchOptions),
+        fetch('/api/market/sentiment/', fetchOptions),
+        fetch('/api/market/signals/', fetchOptions),
+        fetch('/api/market/news/', fetchOptions),
+        fetch('/api/market/indicators/', fetchOptions)
       ]);
 
       // Process tickers
       if (tickersRes.status === 'fulfilled' && tickersRes.value.ok) {
         const data = await tickersRes.value.json();
-        console.log('✅ Tickers loaded:', data.data?.length || 0, 'items');
         setTickers(data.data || []);
       } else {
-        console.warn('❌ Failed to load tickers');
         // Fallback data for tickers - Comprehensive market data
         setTickers([
           { symbol: 'BTC', name: 'Bitcoin', type: 'crypto', price: 104000, change24h: 2500, changePercent24h: 2.4, volume24h: 35000000000, marketCap: 2050000000000, high24h: 105000, low24h: 102000, lastUpdate: Date.now(), trending: true, volatility: 'medium' },
@@ -170,10 +167,8 @@ export default function MarketOverviewProfessional() {
       // Process sentiment
       if (sentimentRes.status === 'fulfilled' && sentimentRes.value.ok) {
         const data = await sentimentRes.value.json();
-        console.log('✅ Sentiment loaded:', data.data?.score || 'unknown');
         setSentiment(data.data);
       } else {
-        console.warn('❌ Failed to load sentiment');
         // Fallback sentiment data
         setSentiment({
           overall: 'greed',
@@ -195,10 +190,8 @@ export default function MarketOverviewProfessional() {
       // Process signals
       if (signalsRes.status === 'fulfilled' && signalsRes.value.ok) {
         const data = await signalsRes.value.json();
-        console.log('✅ Signals loaded:', data.data?.length || 0, 'items');
         setSignals(data.data || []);
       } else {
-        console.warn('❌ Failed to load signals');
         // Fallback signals - Professional trading signals
         setSignals([
           { asset: 'BTC', type: 'buy', confidence: 78, price: 104000, target: 108000, stopLoss: 101500, reasoning: 'Strong support at $102k, RSI oversold at 28. Volume spike indicates accumulation', timestamp: Date.now() },
@@ -212,10 +205,8 @@ export default function MarketOverviewProfessional() {
       // Process news
       if (newsRes.status === 'fulfilled' && newsRes.value.ok) {
         const data = await newsRes.value.json();
-        console.log('✅ News loaded:', data.data?.length || 0, 'items');
         setNews(data.data || []);
       } else {
-        console.warn('❌ Failed to load news');
         // Fallback news - Professional market news
         setNews([
           { title: 'Bitcoin ETF Sees Record $500M Daily Inflow', summary: 'Institutional investors pour money into Bitcoin ETFs, marking highest single-day inflow on record', sentiment: 'bullish', source: 'Bloomberg', timestamp: Date.now() - 300000 },
@@ -229,10 +220,8 @@ export default function MarketOverviewProfessional() {
       // Process indicators
       if (indicatorsRes.status === 'fulfilled' && indicatorsRes.value.ok) {
         const data = await indicatorsRes.value.json();
-        console.log('✅ Indicators loaded:', data.data?.length || 0, 'items');
         setIndicators(data.data || []);
       } else {
-        console.warn('❌ Failed to load indicators');
         // Fallback indicators - Comprehensive market indicators
         setIndicators([
           { name: 'Hash Rate', value: 590, change: 2.5, impact: 'bullish', description: 'Network security at all-time high, miners showing confidence' },
@@ -245,7 +234,6 @@ export default function MarketOverviewProfessional() {
       }
 
       setLastUpdate(Date.now());
-      console.log('✅ Market data loading complete');
     } catch (error) {
       console.error('❌ Error loading market data:', error);
     } finally {
@@ -256,7 +244,6 @@ export default function MarketOverviewProfessional() {
   // WebSocket integration and data loading
   useEffect(() => {
     // Force immediate data load
-    console.log('🚀 MarketOverviewProfessional component mounted, loading data...');
     loadMarketData();
 
     let ws: WebSocket | null = null;
@@ -268,7 +255,6 @@ export default function MarketOverviewProfessional() {
         ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
-          console.log('✅ WebSocket conectado ao Market Overview');
         };
         
         ws.onmessage = (event) => {

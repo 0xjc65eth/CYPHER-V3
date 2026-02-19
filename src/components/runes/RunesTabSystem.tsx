@@ -1,29 +1,29 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   BarChart3,
   Activity,
   Timer,
-  Settings,
   Crown,
   Clock,
   ShoppingCart,
   ArrowLeftRight,
   Radio,
   Keyboard,
-  RefreshCw
+  HelpCircle
 } from 'lucide-react';
+import { KeyboardShortcutsModal, defaultRunesShortcuts } from '@/components/ui/professional';
 
-// Lazy-loaded tab components
-const RunesMarketOverviewFixed = lazy(() => import('./RunesMarketOverviewFixed'));
-const RunesEtchingHistory = lazy(() => import('./RunesEtchingHistory'));
+// Lazy-loaded tab components - Professional versions
+const RunesMarketOverviewFixed = lazy(() => import('./professional/MarketOverviewPro'));
+const RunesEtchingHistory = lazy(() => import('./professional/EtchingsPro'));
 const RunesMarketplace = lazy(() => import('./RunesMarketplace'));
 const RunesArbitrage = lazy(() => import('./RunesArbitrage'));
 const RunesLiveFeed = lazy(() => import('./RunesLiveFeed'));
-const RunesAnalyticsFixed = lazy(() => import('./RunesAnalyticsFixed'));
+const RunesAnalyticsFixed = lazy(() => import('./professional/AnalyticsPro'));
 
 interface Tab {
   id: string;
@@ -128,7 +128,7 @@ function TopRunesTicker() {
   useEffect(() => {
     async function fetchTicker() {
       try {
-        const res = await fetch('/api/runes/popular?limit=60&offset=0');
+        const res = await fetch('/api/runes/popular/?limit=60&offset=0');
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && data.data) {
@@ -191,8 +191,25 @@ function TabLoadingFallback({ tab }: { tab: Tab }) {
 export default function RunesTabSystem() {
   const [activeTab, setActiveTab] = useState('market');
   const [showKeyHints, setShowKeyHints] = useState(false);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
 
   const activeTabData = tabs.find(tab => tab.id === activeTab);
+
+  // Update time on client only (prevents hydration errors)
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentTime(new Date().toLocaleTimeString());
+    };
+
+    // Set initial time
+    updateTime();
+
+    // Update every second
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Keyboard navigation
   useEffect(() => {
@@ -201,11 +218,24 @@ export default function RunesTabSystem() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       const key = e.key;
+
+      // Tab navigation (1-6)
       if (key >= '1' && key <= '6') {
         const index = parseInt(key) - 1;
         if (tabs[index]) {
           setActiveTab(tabs[index].id);
         }
+      }
+
+      // Show shortcuts modal (?)
+      if (key === '?' || (e.shiftKey && key === '/')) {
+        e.preventDefault();
+        setShowShortcutsModal(true);
+      }
+
+      // Close modal (Esc)
+      if (key === 'Escape') {
+        setShowShortcutsModal(false);
       }
     };
 
@@ -237,6 +267,17 @@ export default function RunesTabSystem() {
                 <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-1.5 animate-pulse" />
                 LIVE
               </Badge>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-gray-500 hover:text-orange-400 text-xs gap-1"
+                onClick={() => setShowShortcutsModal(true)}
+                title="Keyboard Shortcuts (?)"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Help</span>
+              </Button>
 
               <Button
                 variant="ghost"
@@ -304,7 +345,7 @@ export default function RunesTabSystem() {
             <div className="flex items-center gap-1.5">
               <Timer className="h-3 w-3 text-gray-600" />
               <span className="text-[10px] text-gray-600">
-                {new Date().toLocaleTimeString()}
+                {currentTime}
               </span>
             </div>
           </div>
@@ -319,6 +360,13 @@ export default function RunesTabSystem() {
           </Suspense>
         )}
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      <KeyboardShortcutsModal
+        isOpen={showShortcutsModal}
+        onClose={() => setShowShortcutsModal(false)}
+        shortcuts={defaultRunesShortcuts}
+      />
     </div>
   );
 }

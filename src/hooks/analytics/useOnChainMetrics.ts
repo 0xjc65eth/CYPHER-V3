@@ -63,9 +63,9 @@ export function useOnChainMetrics() {
 
         // Fetch real-time data from APIs
         const [priceData, utxoData, miningData] = await Promise.all([
-          fetch('/api/bitcoin').then(res => res.json()),
-          fetch('/api/analytics/utxo').then(res => res.json()),
-          fetch('/api/analytics/mining').then(res => res.json())
+          fetch('/api/bitcoin/').then(res => res.json()),
+          fetch('/api/analytics/utxo/').then(res => res.json()),
+          fetch('/api/analytics/mining/').then(res => res.json())
         ]);
 
         // Calculate SOPR
@@ -96,15 +96,16 @@ export function useOnChainMetrics() {
         const thermocapRatio = calculateThermocapRatio(priceData, miningData);
         const dormancyFlow = calculateDormancyFlow(utxoData);
 
-        // Generate historical data (mock for now, replace with real API)
+        // Generate deterministic historical data using sine wave variation
         const generateHistoricalData = (baseValue: number, volatility: number = 0.1) => {
           const data = [];
           const days = 90;
           for (let i = 0; i < days; i++) {
             const date = new Date();
             date.setDate(date.getDate() - (days - i));
-            const randomChange = (Math.random() - 0.5) * volatility;
-            const value = baseValue * (1 + randomChange);
+            // Deterministic variation using sine + cosine
+            const variation = (Math.sin(i * 0.15) * 0.6 + Math.cos(i * 0.07) * 0.4) * volatility * 0.5;
+            const value = baseValue * (1 + variation);
             data.push({
               date: date.toISOString().split('T')[0],
               value: value
@@ -256,15 +257,15 @@ export function useOnChainMetrics() {
   return { metrics, loading, error };
 }
 
-// Helper functions for mock data
+// Helper functions for fallback data (deterministic, no Math.random)
 function generateMockHistoricalData(baseValue: number, volatility: number = 0.1) {
   const data = [];
   const days = 90;
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - (days - i));
-    const randomChange = (Math.random() - 0.5) * volatility;
-    const value = baseValue * (1 + randomChange);
+    const variation = (Math.sin(i * 0.15) * 0.6 + Math.cos(i * 0.07) * 0.4) * volatility * 0.5;
+    const value = baseValue * (1 + variation);
     data.push({
       date: date.toISOString().split('T')[0],
       value: value

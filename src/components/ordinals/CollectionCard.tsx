@@ -32,9 +32,12 @@ export const CollectionCardGrid = memo<CollectionCardGridProps>(({
   hasActiveAlert = false,
   className
 }) => {
-  // Format BTC values
+  // Format BTC values - data is already in BTC from the API, NOT in satoshis
   const formatBTC = useCallback((value: number) => {
-    return (value / 1e8).toFixed(8);
+    if (value >= 1) return value.toFixed(4);
+    if (value >= 0.01) return value.toFixed(6);
+    if (value >= 0.0001) return value.toFixed(6);
+    return value.toFixed(8);
   }, []);
 
   // Format large numbers with K/M suffixes
@@ -151,15 +154,22 @@ export const CollectionCardGrid = memo<CollectionCardGridProps>(({
         {/* Volume Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <div className="text-[10px] text-gray-500 font-semibold mb-0.5">24H VOL</div>
+            <div className="text-[10px] text-gray-500 font-semibold mb-0.5">
+              {collection.volume24h > 0 ? '24H VOL' : 'TOTAL VOL'}
+            </div>
             <div className="text-xs font-mono text-white">
-              {formatBTC(collection.volume24h)} BTC
+              {formatBTC(collection.volume24h > 0 ? collection.volume24h : (collection.totalVolume ?? 0))} BTC
             </div>
           </div>
           <div>
-            <div className="text-[10px] text-gray-500 font-semibold mb-0.5">7D VOL</div>
+            <div className="text-[10px] text-gray-500 font-semibold mb-0.5">
+              {collection.volume7d > 0 ? '7D VOL' : 'LISTED'}
+            </div>
             <div className="text-xs font-mono text-white">
-              {formatBTC(collection.volume7d)} BTC
+              {collection.volume7d > 0
+                ? `${formatBTC(collection.volume7d)} BTC`
+                : formatNumber(collection.listed)
+              }
             </div>
           </div>
         </div>
@@ -205,9 +215,12 @@ export const CollectionCardTable = memo<CollectionCardTableProps>(({
   hasActiveAlert = false,
   className
 }) => {
-  // Format BTC values
+  // Format BTC values - data is already in BTC from the API, NOT in satoshis
   const formatBTC = useCallback((value: number) => {
-    return (value / 1e8).toFixed(8);
+    if (value >= 1) return value.toFixed(4);
+    if (value >= 0.01) return value.toFixed(6);
+    if (value >= 0.0001) return value.toFixed(6);
+    return value.toFixed(8);
   }, []);
 
   // Format large numbers with K/M suffixes
@@ -281,20 +294,24 @@ export const CollectionCardTable = memo<CollectionCardTableProps>(({
         <div className="text-[10px] text-gray-500">BTC</div>
       </div>
 
-      {/* 24h Volume */}
+      {/* Volume (24h or Total) */}
       <div className="text-right">
         <div className="text-xs font-mono text-white">
-          {formatBTC(collection.volume24h)}
+          {formatBTC(collection.volume24h > 0 ? collection.volume24h : (collection.totalVolume ?? 0))}
         </div>
-        <div className="text-[10px] text-gray-500">BTC</div>
+        <div className="text-[10px] text-gray-500">
+          {collection.volume24h > 0 ? '24h' : 'total'} BTC
+        </div>
       </div>
 
-      {/* 7d Volume */}
+      {/* 7d Volume or Listed */}
       <div className="text-right">
         <div className="text-xs font-mono text-white">
-          {formatBTC(collection.volume7d)}
+          {collection.volume7d > 0 ? formatBTC(collection.volume7d) : formatNumber(collection.listed)}
         </div>
-        <div className="text-[10px] text-gray-500">BTC</div>
+        <div className="text-[10px] text-gray-500">
+          {collection.volume7d > 0 ? 'BTC' : 'listed'}
+        </div>
       </div>
 
       {/* Market Cap */}
@@ -392,8 +409,8 @@ export const CollectionTableHeader = memo<TableHeaderProps>(({
       <div className="text-xs font-bold text-gray-500"></div>
       <HeaderCell field="name" label="COLLECTION" />
       <HeaderCell field="floorPrice" label="FLOOR" align="right" />
-      <HeaderCell field="volume24h" label="24H VOL" align="right" />
-      <HeaderCell field="volume7d" label="7D VOL" align="right" />
+      <HeaderCell field="volume24h" label="VOLUME" align="right" />
+      <HeaderCell field="volume7d" label="7D/LISTED" align="right" />
       <HeaderCell field="marketCap" label="MARKET CAP" align="right" />
       <HeaderCell field="priceChange24h" label="24H %" align="right" />
       <div className="text-xs font-bold text-gray-500 text-center">TREND</div>

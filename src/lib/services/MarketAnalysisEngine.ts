@@ -189,7 +189,6 @@ export class MarketAnalysisEngine {
   }
 
   private initializeEngine(): void {
-    console.log('Market Analysis Engine initialized with SMC parameters');
   }
 
   async analyzeMarketStructure(

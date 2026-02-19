@@ -20,7 +20,7 @@ export function SimpleChart() {
   useEffect(() => {
     const fetchChartData = async () => {
       try {
-        const response = await fetch(`/api/binance/klines?symbol=BTCUSDT&interval=${selectedTimeframe}&limit=50`);
+        const response = await fetch(`/api/binance/klines/?symbol=BTCUSDT&interval=${selectedTimeframe}&limit=50`);
         if (!response.ok) throw new Error('Failed to fetch chart data');
         
         const data = await response.json();

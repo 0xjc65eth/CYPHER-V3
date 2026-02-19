@@ -1,0 +1,12 @@
+{
+  "version": "1.0.0",
+  "createdAt": "2026-02-12T00:00:00Z",
+  "lastSnapshot": null,
+  "collections": [],
+  "config": {
+    "snapshotTime": "00:00",
+    "timezone": "UTC",
+    "retentionDays": 365,
+    "enabled": true
+  }
+}

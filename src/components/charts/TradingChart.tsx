@@ -445,7 +445,6 @@ export default function TradingChart({
               value={timeframe}
               onChange={(e) => {
                 // Implementar mudança de timeframe
-                console.log('Timeframe:', e.target.value);
               }}
               className="bg-gray-800 text-green-400 border border-gray-600 rounded px-2 py-1 text-sm"
             >

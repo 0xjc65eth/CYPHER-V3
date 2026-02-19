@@ -85,7 +85,7 @@ export async function importLibrary<T>(
   try {
     return await importFunction();
   } catch (error) {
-    console.warn('Failed to import library:', error);
+    console.error('Failed to import library:', error);
     if (fallback) {
       return fallback;
     }
@@ -115,7 +115,6 @@ export const bundleMetrics = {
     if (typeof window !== 'undefined' && window.performance) {
       const mark = `component-${componentName}-loaded`;
       window.performance.mark(mark);
-      console.log(`Dynamic component loaded: ${componentName}`);
     }
   },
   
@@ -123,7 +122,6 @@ export const bundleMetrics = {
     if (typeof window !== 'undefined' && window.performance) {
       const mark = `library-${libraryName}-loaded`;
       window.performance.mark(mark);
-      console.log(`Dynamic library loaded: ${libraryName}`);
     }
   }
 };

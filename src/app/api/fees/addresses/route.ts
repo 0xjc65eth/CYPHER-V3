@@ -80,7 +80,6 @@ export async function GET(request: NextRequest) {
     }
 
     // Log access (for monitoring)
-    console.log(`Fee addresses request from ${clientIP} for network: ${sanitizedNetwork || 'all'}`);
 
     // Return addresses with warnings if any
     const response: any = addresses;
@@ -125,7 +124,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',

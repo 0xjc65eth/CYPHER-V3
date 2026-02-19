@@ -104,8 +104,6 @@ export function AssetSwitchProvider({
     const oldAsset = selectedAsset
     
     try {
-      console.log(`🔄 Asset switch initiated: ${oldAsset} → ${newAsset}`)
-      
       // Update Redux state to show loading
       dispatch(setSelectedAsset({ asset, symbol }))
       
@@ -117,8 +115,6 @@ export function AssetSwitchProvider({
       
       // Complete the switch
       dispatch(setAssetSwitchComplete())
-      
-      console.log(`✅ Asset switch completed: ${oldAsset} → ${newAsset}`)
       
     } catch (error: any) {
       console.error(`❌ Asset switch failed: ${oldAsset} → ${newAsset}`, error)
@@ -140,7 +136,6 @@ export function AssetSwitchProvider({
     try {
       await cacheManager.refreshCurrentAsset()
       refreshListeners.forEach(listener => listener(selectedAsset))
-      console.log(`🔄 Refreshed data for ${selectedAsset}`)
     } catch (error) {
       console.error(`❌ Failed to refresh ${selectedAsset}:`, error)
       throw error
@@ -151,7 +146,6 @@ export function AssetSwitchProvider({
   const preloadAssetsFunc = useCallback(async (assets: string[]) => {
     try {
       await cacheManager.preloadAssets(assets)
-      console.log(`📦 Preloaded assets: ${assets.join(', ')}`)
     } catch (error) {
       console.error('❌ Failed to preload assets:', error)
       throw error

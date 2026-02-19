@@ -47,7 +47,7 @@ export function useTechnicalAnalysis(options: UseTechnicalAnalysisOptions): UseT
         params.append('symbols', symbols.join(','));
       }
 
-      const response = await fetch(`/api/technical-analysis?${params.toString()}`);
+      const response = await fetch(`/api/technical-analysis/?${params.toString()}`);
       const data = await response.json();
 
       if (!data.success) {
@@ -69,7 +69,7 @@ export function useTechnicalAnalysis(options: UseTechnicalAnalysisOptions): UseT
 
   const clearHistory = useCallback(async (targetSymbol?: string) => {
     try {
-      const response = await fetch('/api/technical-analysis', {
+      const response = await fetch('/api/technical-analysis/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

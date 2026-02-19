@@ -40,7 +40,6 @@ const RUNE_MARKETPLACES = {
 
 export async function GET() {
   try {
-    console.log('Fetching Runes stats from multiple sources...')
 
     // Tentar obter dados reais de Runes
     // Vamos usar múltiplas fontes para garantir dados reais
@@ -76,7 +75,6 @@ export async function GET() {
           uniqueHolders = runesData.reduce((sum: number, rune: any) => sum + (rune.holders || 0), 0)
           uniqueHolders = Math.round(uniqueHolders * 0.7) // Estimativa com 30% de sobreposição
 
-          console.log(`Fetched ${runesData.length} runes from Unisat API`)
         }
       }
     } catch (error) {
@@ -97,10 +95,10 @@ export async function GET() {
             runesData = mempoolData.slice(0, 20).map((rune: any) => ({
               name: rune.ticker || rune.name,
               ticker: rune.ticker || rune.name,
-              price: rune.price || (0.00001 + Math.random() * 0.0001),
-              volume_24h: rune.volume_24h || (1000 + Math.random() * 10000),
-              market_cap: rune.market_cap || (10000000 + Math.random() * 100000000),
-              holders: rune.holders || (5000 + Math.floor(Math.random() * 20000)),
+              price: rune.price || 0,
+              volume_24h: rune.volume_24h || 0,
+              market_cap: rune.market_cap || 0,
+              holders: rune.holders || 0,
               supply: rune.supply || rune.max_supply || 21000000000
             }))
 
@@ -110,7 +108,6 @@ export async function GET() {
             uniqueHolders = runesData.reduce((sum: number, rune: any) => sum + (rune.holders || 0), 0)
             uniqueHolders = Math.round(uniqueHolders * 0.7) // Estimativa com 30% de sobreposição
 
-            console.log(`Fetched ${runesData.length} runes from Mempool.space API`)
           }
         }
       } catch (error) {
@@ -136,10 +133,10 @@ export async function GET() {
             runesData = ordiscanData.data.map((rune: any) => ({
               name: rune.ticker || rune.name,
               ticker: rune.ticker || rune.name,
-              price: rune.price || (0.00001 + Math.random() * 0.0001),
-              volume_24h: rune.volume_24h || (1000 + Math.random() * 10000),
-              market_cap: rune.market_cap || (10000000 + Math.random() * 100000000),
-              holders: rune.holders || (5000 + Math.floor(Math.random() * 20000)),
+              price: rune.price || 0,
+              volume_24h: rune.volume_24h || 0,
+              market_cap: rune.market_cap || 0,
+              holders: rune.holders || 0,
               supply: rune.supply || rune.max_supply || 21000000000
             }))
 
@@ -149,7 +146,6 @@ export async function GET() {
             uniqueHolders = runesData.reduce((sum: number, rune: any) => sum + (rune.holders || 0), 0)
             uniqueHolders = Math.round(uniqueHolders * 0.7) // Estimativa com 30% de sobreposição
 
-            console.log(`Fetched ${runesData.length} runes from Ordiscan API`)
           }
         }
       } catch (error) {
@@ -159,7 +155,6 @@ export async function GET() {
 
     // Quarta fonte: Dados reais de runas verificadas
     if (runesData.length === 0) {
-      console.log('Using verified runes data with realistic metrics')
 
       // Dados reais para runas verificadas
       const btcPrice = 65000 // Preço estimado do BTC em USD
@@ -169,19 +164,19 @@ export async function GET() {
         const popularity = 1 - (index / VERIFIED_RUNES.length)
 
         // Preço em BTC (maior para runas mais populares)
-        const priceInBtc = (0.00001 + (0.0001 * popularity)) * (0.9 + Math.random() * 0.2)
+        const priceInBtc = (0.00001 + (0.0001 * popularity))
 
         // Volume em USD (maior para runas mais populares)
-        const volume = (10000 + (1000000 * popularity)) * (0.8 + Math.random() * 0.4)
+        const volume = (10000 + (1000000 * popularity))
 
         // Market cap em USD
-        const marketCap = volume * 10 * (0.9 + Math.random() * 0.2)
+        const marketCap = volume * 10
 
         // Holders (maior para runas mais populares)
-        const holders = Math.floor((5000 + (100000 * popularity)) * (0.9 + Math.random() * 0.2))
+        const holders = Math.floor((5000 + (100000 * popularity)))
 
         // Supply
-        const supply = Math.floor(21000000 * (0.5 + Math.random()))
+        const supply = 21000000
 
         return {
           name: runeName,
@@ -207,12 +202,11 @@ export async function GET() {
     const mintRate = Math.round(runesData.reduce((sum: number, rune: any) => sum + (rune.supply || 0), 0) / 365)
 
     // Calcular mudanças de volume e preço (simuladas, mas realistas)
-    const volumeChange24h = (Math.random() * 20) - 5 // -5% a +15%
-    const priceChange24h = (Math.random() * 15) - 3 // -3% a +12%
+    const volumeChange24h = 0 // -5% a +15%
+    const priceChange24h = 0 // -3% a +12%
 
     // Garantir que temos dados para exibir, mesmo se as APIs falharem
     if (runesData.length === 0) {
-      console.log('No runes data fetched from APIs, using verified runes data')
 
       // Usar dados de runas verificadas como fallback
       const btcPrice = 65000 // Preço estimado do BTC em USD
@@ -222,19 +216,19 @@ export async function GET() {
         const popularity = 1 - (index / VERIFIED_RUNES.length)
 
         // Preço em BTC (maior para runas mais populares)
-        const priceInBtc = (0.00001 + (0.0001 * popularity)) * (0.9 + Math.random() * 0.2)
+        const priceInBtc = (0.00001 + (0.0001 * popularity))
 
         // Volume em USD (maior para runas mais populares)
-        const volume = (10000 + (1000000 * popularity)) * (0.8 + Math.random() * 0.4)
+        const volume = (10000 + (1000000 * popularity))
 
         // Market cap em USD
-        const marketCap = volume * 10 * (0.9 + Math.random() * 0.2)
+        const marketCap = volume * 10
 
         // Holders (maior para runas mais populares)
-        const holders = Math.floor((5000 + (100000 * popularity)) * (0.9 + Math.random() * 0.2))
+        const holders = Math.floor((5000 + (100000 * popularity)))
 
         // Supply
-        const supply = Math.floor(21000000 * (0.5 + Math.random()))
+        const supply = 21000000
 
         return {
           name: runeName,
@@ -246,7 +240,7 @@ export async function GET() {
           supply: supply,
           price_usd: priceInBtc * btcPrice,
           verified: true,
-          change_24h: (Math.random() * 20) - 5 // -5% a +15%
+          change_24h: 0 // -5% a +15%
         }
       })
 
@@ -278,15 +272,15 @@ export async function GET() {
         return {
           name: runeName,
           formatted_name: runeName,
-          volume_24h: rune.volume_24h || 100000 + Math.random() * 1000000,
+          volume_24h: rune.volume_24h || 0,
           market: {
-            price_in_btc: rune.price || 0.00001 + Math.random() * 0.0001,
-            price_in_usd: rune.price_usd || (rune.price * 65000) || 0.65 + Math.random() * 10
+            price_in_btc: rune.price || 0,
+            price_in_usd: rune.price_usd || (rune.price * 65000) || 0
           },
-          unique_holders: rune.holders || 5000 + Math.floor(Math.random() * 50000),
-          supply: rune.supply || 1000000 + Math.floor(Math.random() * 20000000),
+          unique_holders: rune.holders || 0,
+          supply: rune.supply || 0,
           verified: isVerified,
-          change_24h: rune.change_24h || (Math.random() * 20) - 5, // -5% a +15%
+          change_24h: rune.change_24h || 0, // -5% a +15%
           marketplaces: finalMarketplaces.map(marketplace => ({
             name: marketplace,
             url: `https://${marketplace}/market/rune/${runeName.toLowerCase()}`
@@ -301,7 +295,6 @@ export async function GET() {
       last_updated: new Date().toISOString()
     }
 
-    console.log(`Returning data for ${formattedData.popular_runes.length} runes with total volume: $${formattedData.volume_24h.toLocaleString()}`)
     return NextResponse.json(formattedData)
   } catch (error) {
     console.error('Error fetching Runes stats:', error)
@@ -315,10 +308,10 @@ export async function GET() {
       const popularity = 1 - (index / 10)
 
       // Preço em BTC (maior para runas mais populares)
-      const priceInBtc = (0.00001 + (0.0001 * popularity)) * (0.9 + Math.random() * 0.2)
+      const priceInBtc = (0.00001 + (0.0001 * popularity))
 
       // Volume em USD (maior para runas mais populares)
-      const volume = (10000 + (1000000 * popularity)) * (0.8 + Math.random() * 0.4)
+      const volume = (10000 + (1000000 * popularity))
 
       // Obter marketplaces para esta runa
       const marketplaces = RUNE_MARKETPLACES[runeName as keyof typeof RUNE_MARKETPLACES] || ['unisat.io', 'magiceden.io'];
@@ -331,10 +324,10 @@ export async function GET() {
           price_in_btc: priceInBtc,
           price_in_usd: priceInBtc * btcPrice
         },
-        unique_holders: Math.floor((5000 + (100000 * popularity)) * (0.9 + Math.random() * 0.2)),
-        supply: Math.floor(21000000 * (0.5 + Math.random())),
+        unique_holders: Math.floor((5000 + (100000 * popularity))),
+        supply: 21000000,
         verified: true,
-        change_24h: (Math.random() * 20) - 5, // -5% a +15%
+        change_24h: 0, // -5% a +15%
         marketplaces: marketplaces.map(marketplace => ({
           name: marketplace,
           url: `https://${marketplace}/market/rune/${runeName.toLowerCase()}`
@@ -348,19 +341,18 @@ export async function GET() {
 
     const fallbackData = {
       volume_24h: 245890000, // $245.89M volume
-      volume_change_24h: (Math.random() * 20) - 5, // -5% a +15%
-      price_change_24h: (Math.random() * 15) - 3, // -3% a +12%
+      volume_change_24h: 0, // -5% a +15%
+      price_change_24h: 0, // -3% a +12%
       market_cap: 1245678900, // $1.24B market cap
       unique_holders: 180000,
       available_supply: verifiedRunesData.reduce((sum: number, rune: any) => sum + rune.supply, 0),
-      mint_rate: 3000 + Math.floor(Math.random() * 800),
+      mint_rate: 0,
       total_runes: VERIFIED_RUNES.length,
       popular_runes: verifiedRunesData,
       verified_runes: VERIFIED_RUNES,
       last_updated: new Date().toISOString()
     }
 
-    console.log(`Returning fallback data for ${fallbackData.popular_runes.length} verified runes`)
     return NextResponse.json(fallbackData)
   }
 }

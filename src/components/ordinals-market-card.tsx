@@ -1,8 +1,26 @@
-import { useState, useEffect, useMemo } from 'react'
+'use client'
+
+import { useState, useEffect } from 'react'
 import { RiCoinLine, RiExchangeDollarLine, RiLineChartLine, RiArrowUpSLine, RiArrowDownSLine } from 'react-icons/ri'
 import { useOrdinalsMarket } from '@/hooks/useOrdinalsMarket'
-import { ProfessionalChart } from '@/components/charts/ProfessionalChartSystem'
-import { TrendingUp, Activity, BarChart3 } from 'lucide-react'
+import { Activity, BarChart3 } from 'lucide-react'
+
+function formatNumber(num: number, decimals = 0): string {
+  if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`
+  if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`
+  if (num >= 1e3) return `$${(num / 1e3).toFixed(2)}K`
+  return `$${num.toFixed(decimals)}`
+}
+
+function formatBTC(sats: number): string {
+  return (sats / 1e8).toFixed(8)
+}
+
+function formatCount(num: number): string {
+  if (num >= 1e6) return `${(num / 1e6).toFixed(2)}M`
+  if (num >= 1e3) return `${(num / 1e3).toFixed(1)}K`
+  return num.toLocaleString()
+}
 
 export function OrdinalsMarketCard() {
   const { data: ordinalsMarket, isLoading: isLoadingMarket } = useOrdinalsMarket()
@@ -14,49 +32,32 @@ export function OrdinalsMarketCard() {
 
   const isLoading = isLoadingMarket || !mounted
 
-  // Generate Ordinals market chart data
-  const ordinalsChartData = useMemo(() => {
-    const basePrice = 2345678900 // Market cap
-    const hours = 24
-    const seed = 98765
+  const trend = ordinalsMarket?.trend || '--'
+  const trendIsPositive = typeof trend === 'string' && trend.startsWith('+')
+  const TrendIcon = trendIsPositive ? RiArrowUpSLine : RiArrowDownSLine
+  const trendColor = trendIsPositive ? 'text-emerald-400' : 'text-red-400'
 
-    const pseudoRandom = (index: number) => {
-      const x = Math.sin(seed + index) * 10000
-      return x - Math.floor(x)
-    }
+  const signalStyles = ordinalsMarket?.neuralSignal === 'Long'
+    ? { bg: 'from-emerald-500/10 to-emerald-600/5', border: 'border-emerald-500/20', icon: 'text-emerald-400', text: 'text-emerald-400' }
+    : ordinalsMarket?.neuralSignal === 'Short'
+      ? { bg: 'from-red-500/10 to-red-600/5', border: 'border-red-500/20', icon: 'text-red-400', text: 'text-red-400' }
+      : { bg: 'from-yellow-500/10 to-yellow-600/5', border: 'border-yellow-500/20', icon: 'text-yellow-400', text: 'text-yellow-400' }
 
-    return Array.from({ length: hours }, (_, i) => {
-      const timeAgo = hours - i
-      const now = new Date()
-      const time = new Date(now.getTime() - timeAgo * 60 * 60 * 1000)
-      
-      const trendFactor = 1 + (Math.sin(i * 0.12) * 0.006)
-      const volatility = 0.025
-      const randomFactor = 1 + (pseudoRandom(i) * volatility * 2 - volatility)
-      const marketCap = basePrice * trendFactor * randomFactor
-      const volume = 200000000 + pseudoRandom(i + 100) * 300000000
-      
-      return {
-        time: time.toISOString(),
-        value: marketCap,
-        volume
-      }
-    }).reverse()
-  }, [mounted])
+  const confidenceBadge = ordinalsMarket?.confidence === 'High'
+    ? 'bg-emerald-500/20 text-emerald-300'
+    : ordinalsMarket?.confidence === 'Medium'
+      ? 'bg-yellow-500/20 text-yellow-300'
+      : 'bg-red-500/20 text-red-300'
 
-  // Chart configuration
-  const chartConfig = useMemo(() => ({
-    type: 'area' as const,
-    height: 120,
-    theme: 'dark' as const,
-    showGrid: false,
-    showCrosshair: true,
-    showTooltip: true,
-    colors: ['#06B6D4', '#0891B2'],
-    precision: 0,
-    realtime: true,
-    library: 'recharts' as const
-  }), [])
+  const topCollection = ordinalsMarket?.topCollections?.[0]
+
+  const insightsText = ordinalsMarket
+    ? `Ordinals market ${trendIsPositive ? 'shows positive momentum' : 'is experiencing a pullback'} with ${trend} movement.${
+        topCollection ? ` Top collection ${topCollection.name} leads with ${topCollection.sales.toLocaleString()} sales in 24h.` : ''
+      } Market cap at ${formatNumber(ordinalsMarket.marketCap)} with 24h volume of ${formatNumber(ordinalsMarket.volume)}.${
+        ordinalsMarket.holders ? ` ${formatCount(ordinalsMarket.holders)} unique holders tracked.` : ''
+      }`
+    : 'Loading market insights...'
 
   return (
     <div className="bg-gradient-to-br from-[#1A2A3A] to-[#2A3A4A] border border-cyan-500/20 rounded-lg overflow-hidden shadow-xl">
@@ -74,7 +75,7 @@ export function OrdinalsMarketCard() {
           Real-time Data
         </div>
       </div>
-      
+
       <div className="p-4">
         {/* Market Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -83,50 +84,50 @@ export function OrdinalsMarketCard() {
             {isLoading ? (
               <div className="h-6 bg-slate-700/50 animate-pulse rounded"></div>
             ) : (
-              <p className="text-lg font-bold text-white">$2,345,678,900</p>
+              <p className="text-lg font-bold text-white">{ordinalsMarket?.marketCap ? formatNumber(ordinalsMarket.marketCap) : '--'}</p>
             )}
             <div className="flex items-center mt-1">
-              <RiArrowUpSLine className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs text-emerald-400">+5.7% (24h)</span>
+              <TrendIcon className={`w-3 h-3 ${trendColor}`} />
+              <span className={`text-xs ${trendColor}`}>{trend} (24h)</span>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-3 border border-cyan-500/20">
             <p className="text-xs text-cyan-300 mb-1">24h Volume</p>
             {isLoading ? (
               <div className="h-6 bg-slate-700/50 animate-pulse rounded"></div>
             ) : (
-              <p className="text-lg font-bold text-white">$345,890,000</p>
+              <p className="text-lg font-bold text-white">{ordinalsMarket?.volume ? formatNumber(ordinalsMarket.volume) : '--'}</p>
             )}
             <div className="flex items-center mt-1">
-              <RiArrowUpSLine className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs text-emerald-400">+9.2% (24h)</span>
+              <TrendIcon className={`w-3 h-3 ${trendColor}`} />
+              <span className={`text-xs ${trendColor}`}>{trend} (24h)</span>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-3 border border-cyan-500/20">
-            <p className="text-xs text-cyan-300 mb-1">Inscriptions</p>
+            <p className="text-xs text-cyan-300 mb-1">Collections</p>
             {isLoading ? (
               <div className="h-6 bg-slate-700/50 animate-pulse rounded"></div>
             ) : (
-              <p className="text-lg font-bold text-white">32,456,789</p>
+              <p className="text-lg font-bold text-white">{ordinalsMarket?.topCollections?.length || '--'}</p>
             )}
             <div className="flex items-center mt-1">
-              <RiArrowUpSLine className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs text-emerald-400">+2.8% (24h)</span>
+              <Activity className={`w-3 h-3 text-cyan-300`} />
+              <span className={`text-xs text-cyan-300 ml-0.5`}>Tracked</span>
             </div>
           </div>
-          
+
           <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 rounded-lg p-3 border border-cyan-500/20">
             <p className="text-xs text-cyan-300 mb-1">Holders</p>
             {isLoading ? (
               <div className="h-6 bg-slate-700/50 animate-pulse rounded"></div>
             ) : (
-              <p className="text-lg font-bold text-white">245,678</p>
+              <p className="text-lg font-bold text-white">{ordinalsMarket?.holders ? formatCount(ordinalsMarket.holders) : '--'}</p>
             )}
             <div className="flex items-center mt-1">
-              <RiArrowUpSLine className="w-3 h-3 text-emerald-400" />
-              <span className="text-xs text-emerald-400">+3.5% (24h)</span>
+              <TrendIcon className={`w-3 h-3 ${trendColor}`} />
+              <span className={`text-xs ${trendColor}`}>{trend} (24h)</span>
             </div>
           </div>
         </div>
@@ -147,79 +148,45 @@ export function OrdinalsMarketCard() {
                 <div key={i} className="h-10 bg-slate-700/50 animate-pulse rounded"></div>
               ))}
             </div>
-          ) : (
+          ) : ordinalsMarket?.topCollections && ordinalsMarket.topCollections.length > 0 ? (
             <div className="space-y-2">
-              <div className="flex justify-between items-center p-2 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center mr-2">
-                    <span className="text-xs font-bold text-white">1</span>
+              {ordinalsMarket.topCollections.map((collection, index) => (
+                <div key={collection.name} className="flex justify-between items-center p-2 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
+                  <div className="flex items-center">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center mr-2">
+                      <span className="text-xs font-bold text-white">{index + 1}</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">{collection.name}</p>
+                      <p className="text-xs text-cyan-300">{collection.sales.toLocaleString()} sales (24h)</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-white">Bitcoin Puppets</p>
-                    <p className="text-xs text-cyan-300">3,567 sales (24h)</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-white">0.01250000</p>
-                  <p className="text-xs text-emerald-400">$750.00</p>
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center p-2 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center mr-2">
-                    <span className="text-xs font-bold text-white">2</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">OCM GENESIS</p>
-                    <p className="text-xs text-cyan-300">2,832 sales (24h)</p>
+                  <div className="text-right">
+                    <p className="font-medium text-white">{collection.floor.toFixed(8)}</p>
+                    <p className="text-xs text-cyan-300">Vol: {collection.volume.toFixed(4)} BTC</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-medium text-white">0.01850000</p>
-                  <p className="text-xs text-emerald-400">$1,110.00</p>
-                </div>
-              </div>
-              
-              <div className="flex justify-between items-center p-2 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center mr-2">
-                    <span className="text-xs font-bold text-white">3</span>
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">SEIZE CTRL</p>
-                    <p className="text-xs text-cyan-300">1,945 sales (24h)</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium text-white">0.00950000</p>
-                  <p className="text-xs text-emerald-400">$570.00</p>
-                </div>
-              </div>
+              ))}
             </div>
+          ) : (
+            <div className="text-center py-4 text-cyan-300/60 text-sm">No collection data available</div>
           )}
         </div>
 
-        {/* Professional Market Chart */}
+        {/* Chart Placeholder */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-sm font-medium text-white flex items-center">
               <Activity className="w-4 h-4 text-cyan-400 mr-2" />
               Market Cap Trend (24h)
             </h3>
-            <span className="text-xs text-cyan-300 font-mono">Real-time</span>
           </div>
-          {mounted && ordinalsChartData.length > 0 ? (
-            <ProfessionalChart
-              data={ordinalsChartData}
-              config={chartConfig}
-              className="bg-transparent border-0 p-0"
-            />
-          ) : (
-            <div className="h-32 bg-cyan-500/10 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-8 h-8 text-cyan-400 animate-pulse" />
+          <div className="h-32 bg-cyan-500/10 rounded-lg flex items-center justify-center border border-cyan-500/10">
+            <div className="text-center">
+              <BarChart3 className="w-8 h-8 text-cyan-400/40 mx-auto mb-1" />
+              <span className="text-xs text-cyan-300/50">Historical data not available</span>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Market Insights */}
@@ -232,36 +199,31 @@ export function OrdinalsMarketCard() {
             {isLoading ? (
               <div className="h-16 bg-slate-700/50 animate-pulse rounded"></div>
             ) : (
-              <>
-                Ordinals market shows strong momentum with increasing volume.
-                Top collection Bitcoin Puppets leads with 3,567 sales in 24h.
-                Market cap currently at $2.34B with 24h growth of 5.7%.
-                New inscriptions rate increased by 12.5% in the last week.
-              </>
+              <>{insightsText}</>
             )}
           </p>
         </div>
 
         {/* Neural Signal */}
-        <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border border-emerald-500/20 p-3 rounded-lg">
+        <div className={`bg-gradient-to-br ${signalStyles.bg} border ${signalStyles.border} p-3 rounded-lg`}>
           <div className="flex justify-between items-center mb-1">
             <div className="flex items-center">
-              <RiLineChartLine className="w-4 h-4 text-emerald-400 mr-2" />
+              <RiLineChartLine className={`w-4 h-4 ${signalStyles.icon} mr-2`} />
               <h3 className="text-sm font-medium text-white">Neural Signal</h3>
             </div>
-            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300">
-              High Confidence
+            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${confidenceBadge}`}>
+              {ordinalsMarket?.confidence ? `${ordinalsMarket.confidence} Confidence` : '--'}
             </span>
           </div>
           <div className="flex items-center">
-            <span className="text-lg font-bold text-emerald-400">
-              Long
+            <span className={`text-lg font-bold ${signalStyles.text}`}>
+              {ordinalsMarket?.neuralSignal || '--'}
             </span>
-            <span className="mx-2 text-white/50">•</span>
-            <span className="text-sm text-white/80">Strong inflow, whale accumulation, and positive price action detected by neural engine.</span>
+            <span className="mx-2 text-white/50">&bull;</span>
+            <span className="text-sm text-white/80">{ordinalsMarket?.rationale || 'Awaiting neural engine analysis...'}</span>
           </div>
         </div>
-        
+
         <div className="mt-3 text-xs text-gray-400 flex justify-between items-center">
           <span>Data from multiple sources</span>
           <span className="flex items-center">

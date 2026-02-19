@@ -89,7 +89,7 @@ export function useMultiExchangeArbitrage(
         minProfitPercent: minProfitPercent.toString(),
       });
 
-      const res = await fetch(`/api/arbitrage/real-opportunities?${queryParams}`);
+      const res = await fetch(`/api/arbitrage/real-opportunities/?${queryParams}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
       const json: ApiResponse = await res.json();

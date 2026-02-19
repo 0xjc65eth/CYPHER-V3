@@ -1,6 +1,9 @@
 /**
- * 💰 FEE SYSTEM - CYPHER ORDi FUTURE V3
+ * FEE SYSTEM - CYPHER ORDi FUTURE V3
  * Sistema de taxas de redirecionamento de 0.35% sem smart contracts
+ *
+ * NOTE: This fee system tracks and persists fee records to Supabase.
+ * Actual on-chain fee collection via PSBT integration is planned for Phase 5.
  */
 
 import { EnhancedLogger } from './enhanced-logger';
@@ -153,19 +156,16 @@ export class FeeSystem {
   }
 
   /**
-   * Processa a coleta da taxa (simula integração com gateway de pagamento)
+   * Processa a coleta da taxa e persiste no Supabase
    */
   private async processFeeCollection(feeRecord: FeeRecord): Promise<void> {
     try {
-      // Simular delay de processamento
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Persist to database
+      await this.persistFeeRecord(feeRecord);
 
-      // Atualizar status
+      // Update status
       feeRecord.status = 'collected';
       this.totalFeesCollected += feeRecord.amount;
-
-      // Em produção, aqui seria feita a transferência real dos fundos
-      this.logFeeToDatabase(feeRecord);
 
       EnhancedLogger.info('Fee processing completed', {
         component: 'FeeSystem',
@@ -180,42 +180,43 @@ export class FeeSystem {
         action: 'processFeeCollection',
         feeId: feeRecord.id
       });
-      
       throw error;
     }
   }
 
   /**
-   * Log de taxa para database (em produção, seria integrado com BD real)
+   * Persist fee record to Supabase via dbService
    */
-  private logFeeToDatabase(feeRecord: FeeRecord): void {
+  private async persistFeeRecord(feeRecord: FeeRecord): Promise<void> {
     try {
-      // Simular insert no database
-      const dbRecord = {
-        fee_id: feeRecord.id,
-        amount: feeRecord.amount,
-        percentage: feeRecord.percentage,
-        exchange: feeRecord.exchange,
-        trading_pair: feeRecord.tradingPair,
-        user_id: feeRecord.userId,
-        timestamp: new Date(feeRecord.timestamp).toISOString(),
-        status: feeRecord.status,
-        original_trade: feeRecord.metadata.originalTrade,
-        net_trade: feeRecord.metadata.netTrade,
-        fee_type: feeRecord.metadata.feeType,
-        created_at: new Date().toISOString()
-      };
+      // Dynamic import to avoid circular dependencies
+      const { dbService } = await import('@/lib/database/db-service');
 
-      EnhancedLogger.info('Fee logged to database', {
+      await dbService.query(
+        `INSERT INTO fee_records (id, amount, percentage, exchange, trading_pair, user_id, timestamp, status, original_trade, net_trade, fee_type, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         ON CONFLICT (id) DO UPDATE SET status = $8`,
+        [
+          feeRecord.id,
+          feeRecord.amount,
+          feeRecord.percentage,
+          feeRecord.exchange,
+          feeRecord.tradingPair,
+          feeRecord.userId || null,
+          new Date(feeRecord.timestamp).toISOString(),
+          feeRecord.status,
+          feeRecord.metadata.originalTrade,
+          feeRecord.metadata.netTrade,
+          feeRecord.metadata.feeType,
+          new Date().toISOString()
+        ]
+      );
+    } catch (dbError) {
+      // If DB fails, log but don't crash - fee record is still in memory
+      EnhancedLogger.warn('Failed to persist fee record to database, keeping in memory', {
         component: 'FeeSystem',
-        database: 'fees_collection',
-        record: dbRecord
-      });
-    } catch (error) {
-      ErrorReporter.report(error as Error, {
-        component: 'FeeSystem',
-        action: 'logFeeToDatabase',
-        feeId: feeRecord.id
+        feeId: feeRecord.id,
+        error: dbError instanceof Error ? dbError.message : String(dbError)
       });
     }
   }
@@ -318,7 +319,22 @@ export class FeeSystem {
    * Gera ID único para transação
    */
   private generateTransactionId(): string {
-    return `FEE_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const array = new Uint8Array(8);
+    if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
+      globalThis.crypto.getRandomValues(array);
+    } else {
+      // Node.js fallback
+      try {
+        const { randomBytes } = require('crypto');
+        const bytes = randomBytes(8);
+        for (let i = 0; i < 8; i++) array[i] = bytes[i];
+      } catch {
+        // Last resort fallback
+        for (let i = 0; i < 8; i++) array[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    const hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `FEE_${Date.now()}_${hex}`;
   }
 
   /**

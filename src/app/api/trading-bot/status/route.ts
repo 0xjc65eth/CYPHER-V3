@@ -264,9 +264,7 @@ class TradingBotEngine {
   setActive(active: boolean) {
     this.isActive = active;
     if (active) {
-      console.log('🤖 Trading Bot activated');
     } else {
-      console.log('🛑 Trading Bot deactivated');
     }
   }
 
@@ -289,7 +287,6 @@ class TradingBotEngine {
   }
 
   updateConfiguration(config: Partial<BotConfiguration>) {
-    console.log('🔧 Bot configuration updated:', config);
     return { success: true, message: 'Configuration updated successfully' };
   }
 

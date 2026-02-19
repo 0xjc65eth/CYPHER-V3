@@ -38,7 +38,7 @@ export function useBitcoinAuth() {
       }
 
       // Verify token with backend
-      const response = await fetch('/api/auth/bitcoin-wallet', {
+      const response = await fetch('/api/auth/bitcoin-wallet/', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`

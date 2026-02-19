@@ -72,59 +72,16 @@ export default function MarketDepth() {
     spread: marketDepthData.spread,
     spreadPercentage: marketDepthData.spreadPercentage
   } : {
-    bids: [
-      { price: 0.0480, amount: 5, total: 0.24, depth: 5 },
-      { price: 0.0475, amount: 8, total: 0.38, depth: 13 },
-      { price: 0.0470, amount: 12, total: 0.564, depth: 25 },
-      { price: 0.0465, amount: 15, total: 0.6975, depth: 40 },
-      { price: 0.0460, amount: 20, total: 0.92, depth: 60 },
-      { price: 0.0455, amount: 25, total: 1.1375, depth: 85 },
-    ],
-    asks: [
-      { price: 0.0485, amount: 3, total: 0.1455, depth: 3 },
-      { price: 0.0490, amount: 7, total: 0.343, depth: 10 },
-      { price: 0.0495, amount: 10, total: 0.495, depth: 20 },
-      { price: 0.0500, amount: 18, total: 0.9, depth: 38 },
-      { price: 0.0505, amount: 22, total: 1.111, depth: 60 },
-      { price: 0.0510, amount: 30, total: 1.53, depth: 90 },
-    ],
-    spread: 0.0005,
-    spreadPercentage: 1.04
+    bids: [],
+    asks: [],
+    spread: 0,
+    spreadPercentage: 0
   }
 
-  // Mock liquidity depth data
-  const liquidityDepthData = [
-    { price: 0.045, buyVolume: 85, sellVolume: 0 },
-    { price: 0.046, buyVolume: 60, sellVolume: 0 },
-    { price: 0.047, buyVolume: 40, sellVolume: 0 },
-    { price: 0.048, buyVolume: 25, sellVolume: 0 },
-    { price: 0.0485, buyVolume: 0, sellVolume: 20 },
-    { price: 0.049, buyVolume: 0, sellVolume: 38 },
-    { price: 0.050, buyVolume: 0, sellVolume: 60 },
-    { price: 0.051, buyVolume: 0, sellVolume: 90 },
-  ]
-
-  // Mock market maker activity
-  const marketMakerActivity = [
-    { time: '00:00', makers: 12, takers: 45, ratio: 0.27 },
-    { time: '04:00', makers: 15, takers: 38, ratio: 0.39 },
-    { time: '08:00', makers: 23, takers: 67, ratio: 0.34 },
-    { time: '12:00', makers: 34, takers: 89, ratio: 0.38 },
-    { time: '16:00', makers: 28, takers: 78, ratio: 0.36 },
-    { time: '20:00', makers: 19, takers: 56, ratio: 0.34 },
-    { time: '24:00', makers: 14, takers: 42, ratio: 0.33 },
-  ]
-
-  // Mock spread analysis
-  const spreadAnalysis = [
-    { time: '00:00', spread: 0.0004, volume: 23 },
-    { time: '04:00', spread: 0.0006, volume: 15 },
-    { time: '08:00', spread: 0.0005, volume: 45 },
-    { time: '12:00', spread: 0.0003, volume: 89 },
-    { time: '16:00', spread: 0.0004, volume: 67 },
-    { time: '20:00', spread: 0.0005, volume: 34 },
-    { time: '24:00', spread: 0.0007, volume: 12 },
-  ]
+  // Real data needed from market depth API - no mock fallback
+  const liquidityDepthData: { price: number; buyVolume: number; sellVolume: number }[] = []
+  const marketMakerActivity: { time: string; makers: number; takers: number; ratio: number }[] = []
+  const spreadAnalysis: { time: string; spread: number; volume: number }[] = []
 
   const collections = [
     { value: 'nodemonkes', label: 'NodeMonkes' },
@@ -271,7 +228,7 @@ export default function MarketDepth() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{marketDepthData?.liquidityScore.toFixed(0) || '75'}</p>
+            <p className="text-2xl font-bold">{marketDepthData?.liquidityScore.toFixed(0) || 'N/A'}</p>
             <p className="text-sm text-muted-foreground">
               {marketDepthData?.liquidityScore > 80 ? 'Excellent' : 
                marketDepthData?.liquidityScore > 60 ? 'Good' : 
@@ -288,7 +245,7 @@ export default function MarketDepth() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{marketDepthData?.depthScore.toFixed(0) || '68'}</p>
+            <p className="text-2xl font-bold">{marketDepthData?.depthScore.toFixed(0) || 'N/A'}</p>
             <p className="text-sm text-muted-foreground">
               {marketDepthData?.depthScore > 80 ? 'High' : 
                marketDepthData?.depthScore > 60 ? 'Medium' : 'Low'} depth
@@ -746,7 +703,7 @@ export default function MarketDepth() {
                     <div className="w-full bg-muted rounded-full h-2">
                       <div 
                         className="bg-gradient-to-r from-green-500 to-orange-500 h-2 rounded-full"
-                        style={{ width: `${(marketDepthData?.liquidityScore || 75)}%` }}
+                        style={{ width: `${(marketDepthData?.liquidityScore || 0)}%` }}
                       />
                     </div>
                     <div className="flex justify-between text-xs text-muted-foreground mt-1">

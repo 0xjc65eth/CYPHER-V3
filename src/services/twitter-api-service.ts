@@ -48,7 +48,7 @@ export async function analyzeTwitterSentiment(text: string): Promise<TwitterSent
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'X-RapidAPI-Key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY || '',
+        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || '', // Should be called server-side only
         'X-RapidAPI-Host': 'twitter-sentiment-analysis2.p.rapidapi.com'
       },
       body: JSON.stringify({
@@ -84,7 +84,7 @@ export async function fetchRecentTweets(query: string = 'bitcoin OR ordinals OR 
     const response = await fetch(`https://twitter-sentiment-analysis2.p.rapidapi.com/twitter-search/?query=${encodeURIComponent(query)}&count=${count}`, {
       method: 'GET',
       headers: {
-        'X-RapidAPI-Key': process.env.NEXT_PUBLIC_RAPIDAPI_KEY || '',
+        'X-RapidAPI-Key': process.env.RAPIDAPI_KEY || '', // Should be called server-side only
         'X-RapidAPI-Host': 'twitter-sentiment-analysis2.p.rapidapi.com'
       }
     });

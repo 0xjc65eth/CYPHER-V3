@@ -178,7 +178,6 @@ export class OrdinalsAnalytics {
       try {
         this.clients = OrdinalsMarketplaceFactory.getAllClients(this.config);
       } catch (error) {
-        console.warn('Failed to initialize Ordinals API clients:', error);
         this.clients = {} as Record<OrdinalsMarketplace, any>;
       }
     }
@@ -232,7 +231,6 @@ export class OrdinalsAnalytics {
           const activities = await this.getActivitiesFromMarketplace(collectionId, mp, client);
           activitiesData.push(...activities.map(a => this.convertActivity(a, mp)));
         } catch (error) {
-          console.warn(`Failed to fetch data from ${mp}:`, error);
         }
       }
 
@@ -354,7 +352,6 @@ export class OrdinalsAnalytics {
             marketplace: mp as OrdinalsMarketplace
           })));
         } catch (error) {
-          console.warn(`Failed to fetch listings from ${mp}:`, error);
         }
       }
 
@@ -434,7 +431,6 @@ export class OrdinalsAnalytics {
             opportunities.push(...meanReversionOps);
           }
         } catch (error) {
-          console.warn(`Failed to analyze ${collectionId} for opportunities:`, error);
         }
       }
 
@@ -1138,7 +1134,6 @@ export class OrdinalsAnalytics {
       const magicEdenCollections = await clients[OrdinalsMarketplace.MAGIC_EDEN].getCollections(limit);
       collections.push(...magicEdenCollections.map((c: any) => c.symbol));
     } catch (error) {
-      console.warn('Failed to fetch Magic Eden collections:', error);
     }
 
     return collections.slice(0, limit);
@@ -1172,7 +1167,6 @@ export class OrdinalsAnalytics {
           return this.convertInscription(inscription, mp);
         }
       } catch (error) {
-        console.warn(`Failed to fetch inscription from ${mp}:`, error);
       }
     }
     
@@ -1245,7 +1239,6 @@ export class OrdinalsAnalytics {
           });
         }
       } catch (error) {
-        console.warn(`Failed to fetch holdings from ${mp}:`, error);
       }
     }
     

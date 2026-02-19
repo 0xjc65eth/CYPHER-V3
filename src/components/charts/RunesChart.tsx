@@ -48,7 +48,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRunesTokenPrices } from '@/hooks/useRunesTokenPrices';
 import { useRunesTradingActivity } from '@/hooks/useRunesTradingActivity';
-import { RuneSelector } from '@/components/runes/RuneSelector';
+// RuneSelector was removed - using inline select instead
 
 // Types
 export interface RuneToken {
@@ -419,16 +419,18 @@ export const RunesChart: React.FC<RunesChartProps> = ({
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {/* Dynamic Token Selector */}
-              <RuneSelector
-                tokens={filteredTokens}
-                selectedToken={selectedToken}
-                onTokenSelect={setSelectedToken}
-                favorites={[]}
-                onToggleFavorite={() => {}}
-                size="md"
-                showAdvancedFilters={true}
-              />
+              {/* Token Selector */}
+              <Select value={selectedToken} onValueChange={setSelectedToken}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="All Tokens" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Tokens</SelectItem>
+                  {filteredTokens.slice(0, 20).map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.symbol}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
               {/* Timeframe Selector */}
               <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>

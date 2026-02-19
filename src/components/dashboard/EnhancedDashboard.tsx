@@ -44,7 +44,7 @@ export const EnhancedDashboard: React.FC = () => {
 
   const fetchMarketStats = async () => {
     try {
-      const response = await fetch('/api/market/stats');
+      const response = await fetch('/api/market/stats/');
       const data = await response.json();
       setMarketStats(data);
     } catch (error) {

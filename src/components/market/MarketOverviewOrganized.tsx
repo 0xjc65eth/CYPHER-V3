@@ -113,11 +113,11 @@ export default function MarketOverviewOrganized() {
       setLoading(true);
       
       const [tickersRes, sentimentRes, signalsRes, newsRes, indicatorsRes] = await Promise.all([
-        fetch('/api/market/tickers'),
-        fetch('/api/market/sentiment'),
-        fetch('/api/market/signals'),
-        fetch('/api/market/news'),
-        fetch('/api/market/indicators')
+        fetch('/api/market/tickers/'),
+        fetch('/api/market/sentiment/'),
+        fetch('/api/market/signals/'),
+        fetch('/api/market/news/'),
+        fetch('/api/market/indicators/')
       ]);
 
       if (tickersRes.ok) {
@@ -166,7 +166,6 @@ export default function MarketOverviewOrganized() {
         ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
-          console.log('✅ WebSocket conectado ao Market Overview');
         };
         
         ws.onmessage = (event) => {

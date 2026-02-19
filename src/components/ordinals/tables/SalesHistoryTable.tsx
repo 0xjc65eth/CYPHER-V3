@@ -44,106 +44,16 @@ export function SalesHistoryTable() {
         timestamp: sale.timestamp,
         marketplace: sale.marketplace,
         txid: sale.tx_id.substring(0, 8) + '...',
-        priceChange: Math.random() * 40 - 20, // Simulated for now
-        miniChart: Array.from({ length: 5 }, (_, i) => ({
-          time: i + 1,
-          price: sale.price * (0.95 + Math.random() * 0.1)
-        }))
+        priceChange: sale.price_change_24h ?? 0,
+        miniChart: undefined // No historical price series available from API
       }))
     },
     refetchInterval: 30000,
     staleTime: 15000
   })
 
-  // Mock sales data for fallback
-  const mockSales: Sale[] = [
-    {
-      id: '1',
-      collection: 'NodeMonkes',
-      item: '#1234',
-      price: 0.123,
-      usdValue: 12345,
-      from: 'bc1q...abc',
-      to: 'bc1q...xyz',
-      timestamp: Date.now() - 120000,
-      marketplace: 'Magic Eden',
-      txid: 'abc123...',
-      priceChange: 15.2,
-      miniChart: [
-        { time: 1, price: 0.105 },
-        { time: 2, price: 0.110 },
-        { time: 3, price: 0.108 },
-        { time: 4, price: 0.115 },
-        { time: 5, price: 0.123 }
-      ]
-    },
-    {
-      id: '2',
-      collection: 'Bitcoin Puppets',
-      item: '#567',
-      price: 0.089,
-      usdValue: 8900,
-      from: 'bc1q...def',
-      to: 'bc1q...ghi',
-      timestamp: Date.now() - 300000,
-      marketplace: 'Gamma',
-      txid: 'def456...',
-      priceChange: -5.3,
-      miniChart: [
-        { time: 1, price: 0.094 },
-        { time: 2, price: 0.092 },
-        { time: 3, price: 0.091 },
-        { time: 4, price: 0.090 },
-        { time: 5, price: 0.089 }
-      ]
-    },
-    {
-      id: '3',
-      collection: 'Runestones',
-      item: '#8901',
-      price: 0.045,
-      usdValue: 4500,
-      from: 'bc1q...jkl',
-      to: 'bc1q...mno',
-      timestamp: Date.now() - 600000,
-      marketplace: 'OKX',
-      txid: 'ghi789...',
-      priceChange: 8.7,
-      miniChart: [
-        { time: 1, price: 0.041 },
-        { time: 2, price: 0.042 },
-        { time: 3, price: 0.043 },
-        { time: 4, price: 0.044 },
-        { time: 5, price: 0.045 }
-      ]
-    },
-    {
-      id: '4',
-      collection: 'Quantum Cats',
-      item: '#234',
-      price: 0.067,
-      usdValue: 6700,
-      from: 'bc1q...pqr',
-      to: 'bc1q...stu',
-      timestamp: Date.now() - 900000,
-      marketplace: 'Magic Eden',
-      txid: 'jkl012...',
-      priceChange: 12.1
-    },
-    {
-      id: '5',
-      collection: 'Bitcoin Frogs',
-      item: '#3456',
-      price: 0.023,
-      usdValue: 2300,
-      from: 'bc1q...vwx',
-      to: 'bc1q...yz1',
-      timestamp: Date.now() - 1200000,
-      marketplace: 'Gamma',
-      txid: 'mno345...',
-      priceChange: -2.8
-    }
-  ]
+  // No mock fallback - empty state shown when no real data available
+  const emptySales: Sale[] = []
 
   const formatTimestamp = (timestamp: number) => {
     const diff = Date.now() - timestamp
@@ -207,7 +117,7 @@ export function SalesHistoryTable() {
               </div>
             </div>
           )}
-          {(salesData || mockSales).map((sale) => (
+          {(salesData || emptySales).map((sale) => (
             <div key={sale.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <div>

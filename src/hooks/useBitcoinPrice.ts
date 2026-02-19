@@ -17,7 +17,7 @@ export function useBitcoinPrice() {
   // Fallback API fetch function
   const fetchBitcoinPrice = async () => {
     try {
-      const response = await fetch('/api/bitcoin-price');
+      const response = await fetch('/api/bitcoin-price/');
       if (!response.ok) throw new Error('API request failed');
       
       const data = await response.json();

@@ -115,14 +115,12 @@ class AdvancedNotificationService {
       case 'email':
         if (this.config.emailEnabled) {
           // Implement email notification via API
-          console.log('Email notification:', notification);
         }
         break;
         
       case 'telegram':
         if (this.config.telegramEnabled) {
           // Implement Telegram notification via bot API
-          console.log('Telegram notification:', notification);
         }
         break;
     }

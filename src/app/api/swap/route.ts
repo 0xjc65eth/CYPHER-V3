@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAffiliateBps, AFFILIATE_CODE } from '@/config/fee-config';
+import { getAffiliateBps, AFFILIATE_CODE, AFFILIATE_ADDRESS } from '@/config/fee-config';
+import { recordFee } from '@/lib/feeCollector';
 
 // THORChain asset identifiers
 const THORCHAIN_ASSETS: Record<string, string> = {
@@ -131,21 +132,32 @@ export async function GET(request: NextRequest) {
     // Fetch USD prices
     const usdPrices = await fetchUsdPrices();
 
-    // Build THORChain quote URL
+    // Build THORChain quote URL with affiliate fee collection
+    // THORChain natively deducts the affiliate fee from the swap output
+    // and sends it to the affiliate address.
+    // Note: BTC source chain has 80-byte OP_RETURN memo limit.
+    // Long affiliate addresses can cause "memo too long" errors for BTC-source swaps.
+    // For BTC source, we skip affiliate to avoid memo overflow.
+    // To collect fees on BTC-source swaps, register a short THORName (e.g. "cypher").
+    const isBtcSource = fromAsset === 'BTC' || fromAsset === 'DOGE' || fromAsset === 'LTC';
+    const useAffiliate = affiliateBps > 0 && !isBtcSource;
+
     const quoteParams = new URLSearchParams({
       from_asset: THORCHAIN_ASSETS[fromAsset],
       to_asset: THORCHAIN_ASSETS[toAsset],
       amount: amountInBaseUnits.toString(),
-      affiliate: AFFILIATE_CODE,
-      affiliate_bps: affiliateBps.toString(),
     });
+
+    if (useAffiliate) {
+      quoteParams.set('affiliate', AFFILIATE_ADDRESS);
+      quoteParams.set('affiliate_bps', affiliateBps.toString());
+    }
 
     if (destination) {
       quoteParams.set('destination', destination);
     }
 
     const quoteUrl = `${THORNODE_BASE}/thorchain/quote/swap?${quoteParams.toString()}`;
-    console.log('[Swap API] Fetching quote from:', quoteUrl);
 
     const quoteRes = await fetch(quoteUrl, {
       headers: { 'Accept': 'application/json' },
@@ -222,6 +234,28 @@ export async function GET(request: NextRequest) {
       expiry: quoteData.expiry ? parseInt(quoteData.expiry) : Math.floor(Date.now() / 1000) + 600,
     };
 
+    // Record fee for tracking/audit (only when affiliate was included)
+    if (useAffiliate && affiliateFeeUsd > 0) {
+      const feeRecord = {
+        id: `tc_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`,
+        protocol: 'thorchain' as const,
+        timestamp: Date.now(),
+        chain: THORCHAIN_ASSETS[fromAsset].split('.')[0],
+        fromToken: fromAsset,
+        toToken: toAsset,
+        tradeAmountUSD: inputUsd,
+        feeAmount: affiliateFee,
+        feeToken: toAsset,
+        feeUSD: affiliateFeeUsd,
+        feeBps: affiliateBps,
+        feeWallet: AFFILIATE_ADDRESS,
+        userAddress: destination || 'unknown',
+        status: 'included' as const,
+        metadata: { affiliateCode: AFFILIATE_CODE, memo: quoteData.memo },
+      };
+      await recordFee(feeRecord);
+    }
+
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -238,9 +272,14 @@ export async function GET(request: NextRequest) {
       quote,
       affiliate: {
         code: AFFILIATE_CODE,
-        feeBps: affiliateBps,
-        feePercent: `${(affiliateBps / 100).toFixed(1)}%`,
+        feeBps: useAffiliate ? affiliateBps : 0,
+        feePercent: useAffiliate ? `${(affiliateBps / 100).toFixed(1)}%` : '0%',
         isPremium,
+        feeWallet: AFFILIATE_ADDRESS,
+        collection: useAffiliate ? 'native' : 'skipped',
+        description: useAffiliate
+          ? 'Fee is automatically deducted by THORChain and sent to affiliate address'
+          : 'Affiliate fee skipped for UTXO-source chains (memo size limit). Register a THORName for short-memo fee collection.',
       },
       thorchainRaw: quoteData,
     });

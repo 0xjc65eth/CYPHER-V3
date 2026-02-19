@@ -1,0 +1,340 @@
+#!/bin/bash
+# oc - OpenClaw → Claude Code bridge para CYPHER-V3
+# Versao 2.0 — Com retry automatico e comandos focados
+
+PROJECT_DIR="$HOME/CYPHER-V3"
+CLAUDE_CMD="claude --dangerously-skip-permissions"
+
+# Cores Bloomberg Terminal
+GREEN='\033[0;32m'
+ORANGE='\033[0;33m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+# ─── Retry com backoff ────────────────────────────────────────────────────────
+run_claude() {
+    local prompt="$1"
+    local label="${2:-tarefa}"
+    local max_retries=3
+    local attempt=1
+
+    echo ""
+    echo -e "${ORANGE}┌─ [OpenClaw → Claude Code] ─────────────────────────────┐${NC}"
+    echo -e "${ORANGE}│${NC} ${BOLD}$label${NC}"
+    echo -e "${ORANGE}└────────────────────────────────────────────────────────┘${NC}"
+
+    while [ $attempt -le $max_retries ]; do
+        if [ $attempt -gt 1 ]; then
+            local wait=$((attempt * 8))
+            echo -e "${CYAN}[retry $attempt/$max_retries — aguardando ${wait}s...]${NC}"
+            sleep $wait
+        fi
+
+        cd "$PROJECT_DIR" && $CLAUDE_CMD -p "$prompt"
+        local exit_code=$?
+
+        if [ $exit_code -eq 0 ]; then
+            echo ""
+            echo -e "${GREEN}✓ Concluido: $label${NC}"
+            return 0
+        fi
+
+        echo -e "${RED}✗ Falhou (exit $exit_code) — tentativa $attempt/$max_retries${NC}"
+        attempt=$((attempt + 1))
+    done
+
+    echo -e "${RED}✗ Falhou apos $max_retries tentativas: $label${NC}"
+    return 1
+}
+
+run_claude_continue() {
+    local prompt="$1"
+    local label="${2:-continuacao}"
+    echo ""
+    echo -e "${ORANGE}┌─ [OpenClaw → Claude Code :: CONTINUAR] ────────────────┐${NC}"
+    echo -e "${ORANGE}│${NC} ${BOLD}$label${NC}"
+    echo -e "${ORANGE}└────────────────────────────────────────────────────────┘${NC}"
+    cd "$PROJECT_DIR" && $CLAUDE_CMD --continue -p "$prompt"
+}
+
+show_help() {
+    echo -e "${ORANGE}╔════════════════════════════════════════════════════╗${NC}"
+    echo -e "${ORANGE}║    CYPHER AgenteBot — OpenClaw + Claude Code      ║${NC}"
+    echo -e "${ORANGE}╚════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${CYAN}COMANDOS PRINCIPAIS:${NC}"
+    echo "  oc \"<pedido>\"         Envia pedido livre pro Claude Code"
+    echo "  oc fix \"<problema>\"   Diagnostica e corrige problema especifico"
+    echo "  oc build              Build + corrige todos os erros"
+    echo "  oc types              TypeScript check + corrige"
+    echo "  oc test               Roda testes + corrige falhas"
+    echo "  oc search \"<query>\"   Pesquisa profunda no codebase"
+    echo "  oc refactor <alvo>    Refatora arquivo/componente"
+    echo "  oc carmack <alvo>     Analise Carmack Mode (performance)"
+    echo "  oc git \"<acao>\"       Operacoes git"
+    echo "  oc continue <msg>     Continua sessao anterior do Claude Code"
+    echo "  oc chat               Abre Claude Code interativo (sem -p)"
+    echo ""
+    echo -e "${CYAN}COMANDOS CYPHER-V3 (SEQUENCIAIS):${NC}"
+    echo "  oc fix-all            Roda todos os fixes em sequencia"
+    echo "  oc fix-wallet         Corrige Connect Wallet"
+    echo "  oc fix-runes          Corrige aba Runes + sub-abas + real-time"
+    echo "  oc fix-ordinals       Corrige aba Ordinals + sub-abas"
+    echo "  oc fix-market         Corrige aba Market + graficos"
+    echo "  oc fix-arbitrage      Corrige Arbitrage com dados reais"
+    echo "  oc fix-agent          Corrige Agent Bot + wallet real"
+    echo "  oc fix-random         Remove Math.random() de dados de preco"
+    echo "  oc fix-build          Build final + corrige erros restantes"
+    echo ""
+    echo -e "${CYAN}EXEMPLOS:${NC}"
+    echo "  oc fix-wallet"
+    echo "  oc fix \"o grafico de candlestick nao renderiza\""
+    echo "  oc carmack \"componente RunesDashboard\""
+    echo "  oc search \"como o arbitrage calcula profit\""
+    echo "  oc fix-all"
+}
+
+# ─── Fixes especificos do CYPHER-V3 ──────────────────────────────────────────
+
+fix_wallet() {
+    run_claude \
+        "No CYPHER-V3, o botao Connect Wallet nao funciona. Faca o seguinte:
+1. Leia src/components/wallet/WalletConnect.tsx e src/context/WalletContext.tsx
+2. Leia src/providers/SimpleLaserEyesProvider.tsx se existir
+3. Leia src/services/walletService.ts ou WalletService.ts
+4. Identifique por que a conexao com Xverse e UniSat falha
+5. Corrija o fluxo de conexao para funcionar com extensoes reais de browser
+6. Rode npm run type-check para confirmar sem erros de TypeScript" \
+        "Fix: Connect Wallet"
+}
+
+fix_runes() {
+    run_claude \
+        "No CYPHER-V3, corrija a aba Runes e suas sub-abas:
+1. Abra src/components/runes/RunesTabSystem.tsx - leia todas as sub-abas
+2. Verifique src/hooks/useRunesRealTimeData.ts - o polling para /api/runes-list/ funciona?
+3. Verifique src/hooks/runes/useRunesWebSocket.ts - o fallback de polling esta correto?
+4. Teste cada sub-aba: Market Overview, Etching History, Marketplace, Arbitrage, Live Feed, Analytics
+5. Corrija os hooks que nao recebem dados
+6. Garanta que o polling de 15s esta ativo e retornando dados reais da Hiro API
+7. Rode npm run type-check apos as correcoes" \
+        "Fix: Runes + sub-abas + real-time"
+}
+
+fix_ordinals() {
+    run_claude \
+        "No CYPHER-V3, corrija a aba Ordinals e suas sub-abas:
+1. Leia src/components/ordinals/OrdinalsPage.tsx - todas as 5 sub-abas
+2. Verifique src/hooks/ordinals/useOrdinalsWebSocket.ts - o polling para /api/ordinals/ funciona?
+3. Teste cada sub-aba: Collections, Inscriptions, Marketplace, Portfolio, Explorer
+4. Verifique src/components/ordinals/MarketplaceTab.tsx - os filtros de tipo estao corretos?
+5. Verifique src/components/ordinals/professional/TransactionExplorer.tsx - null safety
+6. Corrija os componentes com erros de dados ou renderizacao
+7. Rode npm run type-check apos as correcoes" \
+        "Fix: Ordinals + sub-abas"
+}
+
+fix_market() {
+    run_claude \
+        "No CYPHER-V3, corrija a aba Market:
+1. Leia src/app/market/BloombergMarket.tsx (arquivo principal ~800 linhas)
+2. Quais secoes tem erros? Identifique fetchs que falham
+3. Verifique src/components/charts/trading-view-widget.tsx - o widget renderiza?
+4. Verifique src/components/charts/RechartsChart.tsx - os graficos mostram dados?
+5. Teste os endpoints: /api/market/price, /api/market/global, /api/market/orderbook
+6. Corrija os graficos e secoes com dados incorretos ou erros de renderizacao
+7. Rode npm run type-check apos as correcoes" \
+        "Fix: Market + graficos"
+}
+
+fix_arbitrage() {
+    run_claude \
+        "No CYPHER-V3, corrija o sistema de Arbitrage para usar dados reais:
+1. Leia src/services/runes-arbitrage-service.ts
+2. Leia src/lib/arbitrage/arbitrage-scanner.ts
+3. Leia src/app/api/arbitrage/opportunities/route.ts
+4. O endpoint /api/arbitrage/opportunities esta com timeout - por que?
+5. Substitua conexoes diretas com exchanges (Binance/Hyperliquid) por dados das APIs ja funcionando: Magic Eden e UniSat
+6. Remova Math.random() nos calculos de preco - use precos reais das APIs
+7. Garanta que o calculo de profit usa: netProfit = (targetPrice * (1 - targetFee)) - (sourcePrice * (1 + sourceFee))
+8. Rode npm run type-check apos as correcoes" \
+        "Fix: Arbitrage com dados reais"
+}
+
+fix_agent() {
+    run_claude \
+        "No CYPHER-V3, corrija o Agent Bot para usar wallet real:
+1. Leia src/agent/ - mapeie todos os arquivos do agent framework
+2. Como o agent se conecta com wallet? Qual wallet service usa?
+3. Por que o Hyperliquid retorna 422?
+4. Corrija a integracao do agent com a wallet conectada pelo usuario
+5. O agent deve usar o endereco da wallet conectada para operacoes
+6. Rode npm run type-check apos as correcoes" \
+        "Fix: Agent Bot + wallet real"
+}
+
+fix_random() {
+    run_claude \
+        "No CYPHER-V3, remova Math.random() de dados de preco e mercado:
+1. Rode: grep -r 'Math.random' src/ --include='*.ts' --include='*.tsx' -l
+2. Para cada arquivo encontrado, verifique se o Math.random() e usado em dados de preco, volume ou mercado
+3. Substitua por dados reais das APIs ja funcionando (/api/runes-list/, /api/runes-top/, Magic Eden, Hiro)
+4. Math.random() pode permanecer APENAS em: animacoes CSS, IDs temporarios, seed para demos visuais
+5. Rode npm run type-check apos as correcoes" \
+        "Fix: Remove Math.random() de dados reais"
+}
+
+fix_build() {
+    run_claude \
+        "No CYPHER-V3, faca o build de producao e corrija todos os erros:
+1. Rode: npm run type-check - corrija TODOS os erros de TypeScript
+2. Rode: npm run build - corrija cada erro que aparecer
+3. Se houver erros de import, verifique se os arquivos existem
+4. Se houver erros de tipo, adicione os tipos corretos
+5. Continue ate o build compilar sem erros
+6. Reporte: quantos erros foram corrigidos e quais arquivos foram modificados" \
+        "Fix: Build de producao"
+}
+
+fix_all() {
+    echo ""
+    echo -e "${ORANGE}╔════════════════════════════════════════════════════╗${NC}"
+    echo -e "${ORANGE}║    CYPHER FIX-ALL — Executando em sequencia       ║${NC}"
+    echo -e "${ORANGE}╚════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${CYAN}Plano:${NC}"
+    echo "  [1/7] Connect Wallet"
+    echo "  [2/7] Aba Runes + real-time"
+    echo "  [3/7] Aba Ordinals + sub-abas"
+    echo "  [4/7] Aba Market + graficos"
+    echo "  [5/7] Arbitrage dados reais"
+    echo "  [6/7] Remove Math.random()"
+    echo "  [7/7] Build final"
+    echo ""
+    echo -e "${CYAN}Aguarde — cada etapa demora ~5-10 min${NC}"
+    echo "────────────────────────────────────────────────────"
+
+    echo -e "\n${BOLD}[1/7]${NC} Connect Wallet"
+    fix_wallet || echo -e "${RED}[1/7] Falhou — continuando...${NC}"
+    sleep 5
+
+    echo -e "\n${BOLD}[2/7]${NC} Runes"
+    fix_runes || echo -e "${RED}[2/7] Falhou — continuando...${NC}"
+    sleep 5
+
+    echo -e "\n${BOLD}[3/7]${NC} Ordinals"
+    fix_ordinals || echo -e "${RED}[3/7] Falhou — continuando...${NC}"
+    sleep 5
+
+    echo -e "\n${BOLD}[4/7]${NC} Market"
+    fix_market || echo -e "${RED}[4/7] Falhou — continuando...${NC}"
+    sleep 5
+
+    echo -e "\n${BOLD}[5/7]${NC} Arbitrage"
+    fix_arbitrage || echo -e "${RED}[5/7] Falhou — continuando...${NC}"
+    sleep 5
+
+    echo -e "\n${BOLD}[6/7]${NC} Math.random()"
+    fix_random || echo -e "${RED}[6/7] Falhou — continuando...${NC}"
+    sleep 5
+
+    echo -e "\n${BOLD}[7/7]${NC} Build"
+    fix_build || echo -e "${RED}[7/7] Falhou${NC}"
+
+    echo ""
+    echo -e "${ORANGE}╔════════════════════════════════════════════════════╗${NC}"
+    echo -e "${ORANGE}║    CYPHER FIX-ALL — Concluido                     ║${NC}"
+    echo -e "${ORANGE}╚════════════════════════════════════════════════════╝${NC}"
+    echo -e "Verifique o servidor: ${CYAN}http://localhost:4444${NC}"
+}
+
+# ─── Router principal ─────────────────────────────────────────────────────────
+case "${1:-help}" in
+    help|--help|-h)
+        show_help
+        ;;
+
+    # Fixes especificos CYPHER-V3
+    fix-all)      fix_all ;;
+    fix-wallet)   fix_wallet ;;
+    fix-runes)    fix_runes ;;
+    fix-ordinals) fix_ordinals ;;
+    fix-market)   fix_market ;;
+    fix-arbitrage) fix_arbitrage ;;
+    fix-agent)    fix_agent ;;
+    fix-random)   fix_random ;;
+    fix-build)    fix_build ;;
+
+    # Comandos gerais
+    fix)
+        shift
+        if [ -z "$1" ]; then
+            run_claude "Rode npm run type-check no CYPHER-V3 e corrija todos os erros encontrados." "Fix geral"
+        else
+            run_claude "No CYPHER-V3, encontre e corrija este problema: $*. Rode npm run type-check para confirmar." "Fix: $*"
+        fi
+        ;;
+
+    build)
+        run_claude "Rode npm run build no CYPHER-V3. Corrija cada erro. Rode de novo ate compilar sem erros." "Build"
+        ;;
+
+    types)
+        run_claude "Rode npm run type-check no CYPHER-V3. Corrija todos os erros de TypeScript." "TypeScript check"
+        ;;
+
+    test)
+        shift
+        run_claude "Rode npm test no CYPHER-V3. Corrija as falhas. Reporte o resultado. $*" "Testes"
+        ;;
+
+    search|pesquise)
+        shift
+        run_claude "Pesquise no codebase do CYPHER-V3: $*. Mapeie arquivos, trace fluxo, explique como funciona." "Search: $*"
+        ;;
+
+    carmack)
+        shift
+        local alvo="${*:-todo o projeto}"
+        run_claude "MODO CARMACK — Analise '$alvo' no CYPHER-V3. Identifique: re-renders excessivos, API calls duplicadas, abstracoes desnecessarias, state excessivo. Corrija os problemas encontrados." "Carmack Mode: $alvo"
+        ;;
+
+    refactor)
+        shift
+        run_claude "Refatore $* no CYPHER-V3. Mantenha tema Bloomberg Terminal. Remova complexidade desnecessaria. Rode type-check apos." "Refactor: $*"
+        ;;
+
+    git)
+        shift
+        run_claude "Execute no CYPHER-V3: $*" "Git: $*"
+        ;;
+
+    continue)
+        shift
+        run_claude_continue "${*:-continue de onde parou}" "Continuar"
+        ;;
+
+    chat|interactive)
+        echo -e "${GREEN}[OpenClaw]${NC} Abrindo Claude Code interativo em ~/CYPHER-V3..."
+        cd "$PROJECT_DIR" && $CLAUDE_CMD
+        ;;
+
+    gateway)
+        echo -e "${GREEN}[OpenClaw]${NC} Iniciando gateway na porta 18789..."
+        openclaw gateway --port 18789 --verbose
+        ;;
+
+    status)
+        echo -e "${GREEN}[OpenClaw]${NC} Status do gateway..."
+        curl -s "http://127.0.0.1:18789/health" 2>/dev/null \
+            && echo "" \
+            || echo -e "${RED}Gateway offline. Use: ./oc gateway${NC}"
+        ;;
+
+    *)
+        # Texto livre → direto pro Claude Code
+        run_claude "$*" "$*"
+        ;;
+esac

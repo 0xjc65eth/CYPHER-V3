@@ -10,12 +10,20 @@ export default function AdminFeesPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
 
-  const handleAuth = () => {
-    // Verificação simples - em produção usar autenticação real
-    if (password === 'cypher2024') {
-      setIsAuthenticated(true)
-    } else {
-      alert('Senha incorreta')
+  const handleAuth = async () => {
+    try {
+      const res = await fetch('/api/admin/verify/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (res.ok) {
+        setIsAuthenticated(true)
+      } else {
+        alert('Senha incorreta')
+      }
+    } catch {
+      alert('Erro ao verificar autenticação')
     }
   }
 

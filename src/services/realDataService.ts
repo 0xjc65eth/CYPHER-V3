@@ -107,7 +107,6 @@ class RealDataService {
     } catch (error) {
       // Return cached data if available, even if expired
       if (cached) {
-        console.warn(`API call failed for ${key}, returning cached data:`, error);
         return cached.data as T;
       }
       throw error;
@@ -169,7 +168,6 @@ class RealDataService {
         });
         fearGreedIndex = parseInt(fearGreedResponse.data.data[0].value);
       } catch (error) {
-        console.warn('Failed to fetch Fear & Greed Index:', error);
       }
 
       return {
@@ -212,7 +210,6 @@ class RealDataService {
           });
           totalInscriptions = response.data.total || totalInscriptions;
         } catch (error) {
-          console.warn('Failed to fetch Ordinals data:', error);
         }
 
         return {
@@ -391,7 +388,6 @@ class RealDataService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('🧹 Real data service cache cleared');
   }
 
   /**

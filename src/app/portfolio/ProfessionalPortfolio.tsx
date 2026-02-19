@@ -34,63 +34,39 @@ export function ProfessionalPortfolio() {
   const [filterBy, setFilterBy] = useState('all');
   const [showAllAssets, setShowAllAssets] = useState(false);
 
-  // Debug wallet state
-  useEffect(() => {
-    console.log('Portfolio Debug - Wallet State:', {
-      isConnected: wallet.isConnected,
-      address: wallet.address,
-      isConnecting: wallet.isConnecting,
-      error: wallet.error
-    });
-  }, [wallet.isConnected, wallet.address, wallet.isConnecting, wallet.error]);
-
   const fetchPortfolioData = useCallback(async () => {
     if (!wallet.address) {
-      console.log('Portfolio Debug - No wallet address available');
       return;
     }
-    
-    console.log('Portfolio Debug - Fetching data for address:', wallet.address);
+
     setLoading(true);
-    
+
     try {
-      // Fetch portfolio data
       const url = `/api/portfolio/real-pnl?address=${wallet.address}`;
-      console.log('Portfolio Debug - API URL:', url);
-      
       const response = await fetch(url);
-      console.log('Portfolio Debug - Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log('Portfolio Debug - API Response:', data);
-      
+
       if (data.success && data.data) {
-        // Fetch transactions separately
         try {
           const txUrl = `/api/portfolio/transactions?address=${wallet.address}&limit=100`;
-          console.log('Portfolio Debug - Fetching transactions:', txUrl);
-          
           const txResponse = await fetch(txUrl);
           if (txResponse.ok) {
             const txData = await txResponse.json();
-            console.log('Portfolio Debug - Transactions found:', txData.data?.transactions?.length || 0);
-            
             if (txData.success && txData.data) {
               data.data.transactions = txData.data.transactions || [];
             }
           }
         } catch (txErr) {
-          console.warn('Portfolio Debug - Error fetching transactions:', txErr);
         }
-        
+
         setPortfolioData(data.data);
-        console.log('Portfolio Debug - Portfolio data set successfully with transactions');
       } else {
-        console.error('Portfolio Debug - API returned error:', data.error);
+        console.error('Portfolio API error:', data.error);
       }
     } catch (err) {
       console.error('Portfolio Debug - Error fetching portfolio:', err);

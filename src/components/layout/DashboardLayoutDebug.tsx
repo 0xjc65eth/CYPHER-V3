@@ -11,7 +11,6 @@ let DashboardBitcoinWalletComponent: any = null
 try {
   const notifications = require('@/components/notifications')
   NotificationBellComponent = notifications.NotificationBell
-  console.log('✅ NotificationBell imported:', !!NotificationBellComponent)
 } catch (e) {
   console.error('❌ Failed to import NotificationBell:', e)
 }
@@ -19,7 +18,6 @@ try {
 try {
   const auth = require('@/components/auth/UserMenu')
   UserMenuComponent = auth.UserMenu
-  console.log('✅ UserMenu imported:', !!UserMenuComponent)
 } catch (e) {
   console.error('❌ Failed to import UserMenu:', e)
 }
@@ -27,7 +25,6 @@ try {
 try {
   const bitcoin = require('@/components/bitcoin/BitcoinPriceDisplay')
   BitcoinPriceDisplayComponent = bitcoin.default
-  console.log('✅ BitcoinPriceDisplay imported:', !!BitcoinPriceDisplayComponent)
 } catch (e) {
   console.error('❌ Failed to import BitcoinPriceDisplay:', e)
 }
@@ -35,7 +32,6 @@ try {
 try {
   const wallet = require('@/components/wallet/DashboardBitcoinWallet')
   DashboardBitcoinWalletComponent = wallet.DashboardBitcoinWallet
-  console.log('✅ DashboardBitcoinWallet imported:', !!DashboardBitcoinWalletComponent)
 } catch (e) {
   console.error('❌ Failed to import DashboardBitcoinWallet:', e)
 }

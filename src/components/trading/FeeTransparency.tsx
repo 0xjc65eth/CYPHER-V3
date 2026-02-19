@@ -90,7 +90,7 @@ export function FeeTransparency({
 
     setLoading(true);
     try {
-      const response = await fetch('/api/fees/calculate', {
+      const response = await fetch('/api/fees/calculate/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ export function FeeTransparency({
 
   const fetchFeeAddresses = async () => {
     try {
-      const response = await fetch(`/api/fees/addresses?network=${selectedNetwork}`);
+      const response = await fetch(`/api/fees/addresses/?network=${selectedNetwork}`);
       if (response.ok) {
         const data = await response.json();
         setFeeAddresses(data);

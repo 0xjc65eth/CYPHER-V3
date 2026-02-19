@@ -52,10 +52,9 @@ export function usePortfolio(address: string): UsePortfolioResult {
     setError(null)
 
     try {
-      console.log('Fetching real portfolio data for address:', address)
 
       // Fetch real data from our API
-      const response = await fetch(`/api/portfolio/data?address=${address}`)
+      const response = await fetch(`/api/portfolio/data/?address=${address}`)
 
       if (!response.ok) {
         throw new Error(`Failed to fetch portfolio data: ${response.status}`)
@@ -68,7 +67,6 @@ export function usePortfolio(address: string): UsePortfolioResult {
       const enhancedData = await enhanceDataWithNeuralSystem(portfolioData)
 
       setData(enhancedData)
-      console.log('Portfolio data loaded successfully with neural enhancements')
     } catch (err) {
       console.error('Error fetching portfolio data:', err)
       setError(err instanceof Error ? err : new Error('Failed to fetch portfolio data'))
@@ -119,7 +117,7 @@ export function usePortfolio(address: string): UsePortfolioResult {
   // Helper functions for neural enhancements
   const fetchCurrentBtcPrice = async (): Promise<number> => {
     try {
-      const response = await fetch('/api/bitcoin-price')
+      const response = await fetch('/api/bitcoin-price/')
       const data = await response.json()
       return data.btcPrice
     } catch (error) {

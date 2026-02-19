@@ -18,20 +18,32 @@ import {
 // Import QuickTrade component
 import { QuickTradeEnhanced } from '@/components/dashboard/QuickTradeEnhanced';
 
-// Simple chart data
-const generateBitcoinData = () => {
-  const basePrice = 45000;
-  return Array.from({ length: 24 }, (_, i) => basePrice + (Math.random() - 0.5) * 2000);
-};
-
 export function FixedProfessionalDashboard() {
   const [isLoading, setIsLoading] = useState(true);
-  const [bitcoinPrice] = useState(45000 + Math.random() * 5000);
-  const [priceChange] = useState((Math.random() - 0.5) * 10);
+  const [bitcoinPrice, setBitcoinPrice] = useState(0);
+  const [priceChange, setPriceChange] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
+    const fetchPrice = async () => {
+      try {
+        const res = await fetch(
+          '/api/coingecko?endpoint=/simple/price&params=' +
+            encodeURIComponent('ids=bitcoin&vs_currencies=usd&include_24hr_change=true')
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.bitcoin) {
+            setBitcoinPrice(data.bitcoin.usd || 0);
+            setPriceChange(data.bitcoin.usd_24h_change || 0);
+          }
+        }
+      } catch (err) {
+        console.error('FixedProfessionalDashboard price fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPrice();
   }, []);
 
   if (isLoading) {
@@ -268,7 +280,7 @@ export function FixedProfessionalDashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="w-3 h-3 rounded-full bg-green-500"></div>
                     <Badge className="text-xs px-2 py-1 bg-gray-800 text-gray-300">
-                      {85 + Math.floor(Math.random() * 10)}%
+                      Idle
                     </Badge>
                   </div>
                   <h4 className="font-medium text-white text-sm mb-2">
@@ -276,7 +288,7 @@ export function FixedProfessionalDashboard() {
                   </h4>
                   <p className="text-xs text-gray-400 mb-2">Monitoring markets</p>
                   <div className="flex justify-between items-center text-xs text-gray-500">
-                    <span>Updated {Math.floor(Math.random() * 5) + 1}m ago</span>
+                    <span>Standby</span>
                   </div>
                 </Card>
               ))}

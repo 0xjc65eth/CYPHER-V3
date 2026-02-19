@@ -33,7 +33,6 @@ export const UniversalChart: React.FC<UniversalChartProps> = ({
   }, [symbol, interval]);
 
   const handleChartError = () => {
-    console.warn(`Chart error detected for ${symbol}. Retry count: ${retryCount}`);
     chartDebugger.logError('UniversalChart', `Chart error for ${symbol}`, { mode, retryCount });
     
     if (retryCount < 2) {
@@ -42,7 +41,6 @@ export const UniversalChart: React.FC<UniversalChartProps> = ({
       setError(false);
     } else if (autoFallback && mode === 'dynamic') {
       // Fallback to simple chart
-      console.log(`Falling back to SimpleChart for ${symbol}`);
       chartDebugger.logError('UniversalChart', `Fallback to SimpleChart for ${symbol}`);
       setMode('simple');
       setError(false);

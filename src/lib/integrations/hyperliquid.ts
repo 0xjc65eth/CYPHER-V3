@@ -235,7 +235,6 @@ export class HyperliquidIntegration {
   private async collectCypherFee(cypherFee: any, params: HyperliquidTradeParams) {
     try {
       // In production, this would interact with smart contracts or payment systems
-      console.log(`Collecting CYPHER fee: ${cypherFee.amountUSD} USD`)
       
       // Mock fee collection
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -276,7 +275,7 @@ export class HyperliquidIntegration {
     
     // Send referral tracking to analytics
     try {
-      await fetch('/api/analytics/referrals', {
+      await fetch('/api/analytics/referrals/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -329,7 +328,7 @@ export class HyperliquidIntegration {
    */
   private async logFeeCollection(feeData: any) {
     try {
-      await fetch('/api/fees/track-redirect', {
+      await fetch('/api/fees/track-redirect/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

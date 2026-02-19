@@ -174,7 +174,7 @@ export function ProfessionalCypherAI() {
     
     try {
       // Use ElevenLabs API for professional voice
-      const response = await fetch('/api/ai/text-to-speech', {
+      const response = await fetch('/api/ai/text-to-speech/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -298,7 +298,7 @@ export function ProfessionalCypherAI() {
 
   // 🎯 OpenAI Integration
   const callOpenAI = async (query: string): Promise<AIResponse> => {
-    const response = await fetch('/api/ai/openai-analysis', {
+    const response = await fetch('/api/ai/openai-analysis/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -323,7 +323,7 @@ export function ProfessionalCypherAI() {
 
   // 💎 Gemini Integration
   const callGemini = async (query: string): Promise<AIResponse> => {
-    const response = await fetch('/api/ai/gemini-analysis', {
+    const response = await fetch('/api/ai/gemini-analysis/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -349,7 +349,7 @@ export function ProfessionalCypherAI() {
   // 🔧 Custom Analysis
   const callCustomAnalysis = async (query: string): Promise<AIResponse> => {
     // Custom ML model for Bitcoin ecosystem
-    const response = await fetch('/api/ai/custom-analysis', {
+    const response = await fetch('/api/ai/custom-analysis/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 

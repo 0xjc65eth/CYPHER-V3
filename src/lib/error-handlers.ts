@@ -36,7 +36,6 @@ export class SafeDataAccess {
       
       return current as T;
     } catch (error) {
-      console.warn(`Error accessing path ${path}:`, error);
       return defaultValue;
     }
   }
@@ -138,7 +137,6 @@ export class ResilientAPIService {
         
       } catch (error) {
         lastError = error as Error;
-        console.warn(`Attempt ${attempt + 1} failed:`, error);
         
         if (attempt < this.config.maxRetries - 1) {
           await this.delay(
@@ -151,7 +149,6 @@ export class ResilientAPIService {
     // Tentar cache expirado como fallback
     const staleCache = this.cache.get(url);
     if (staleCache) {
-      console.warn('Using stale cache after all retries failed');
       return staleCache.data;
     }
     
@@ -195,7 +192,6 @@ export class DateValidator {
       const date = new Date(value);
       
       if (isNaN(date.getTime())) {
-        console.warn(`Invalid date value: ${value}`);
         return null;
       }
       
@@ -204,7 +200,6 @@ export class DateValidator {
       const maxDate = new Date('2100-01-01');
       
       if (date < minDate || date > maxDate) {
-        console.warn(`Date out of valid range: ${value}`);
         return null;
       }
       

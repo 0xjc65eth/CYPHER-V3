@@ -28,14 +28,6 @@ async function performImport() {
   return createMockModule();
 }
 
-function applyBigIntPatch() {
-  if (typeof BigInt !== 'undefined' && !(BigInt.prototype as any).toJSON) {
-    (BigInt.prototype as any).toJSON = function() {
-      return this.toString();
-    };
-  }
-}
-
 function createMockModule() {
   // Mock seguro e completo
   const MockLaserEyesProvider = ({ children }: { children: React.ReactNode }) => {
@@ -55,11 +47,9 @@ function createMockModule() {
     accounts: [],
     hasProvider: false,
     connect: async () => {
-      console.log('Mock: Connect called');
       return false;
     },
     disconnect: async () => {
-      console.log('Mock: Disconnect called');
     },
   });
 

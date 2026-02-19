@@ -43,7 +43,7 @@ export function RealPortfolioTracker() {
     setError(null);
     
     try {
-      const response = await fetch(`/api/portfolio/real-pnl?address=${wallet.address}`);
+      const response = await fetch(`/api/portfolio/real-pnl/?address=${wallet.address}`);
       const data = await response.json();
       
       if (data.success && data.data) {

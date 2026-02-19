@@ -170,7 +170,7 @@ class ArbitrageAnalyticsService extends EventEmitter {
     }, 60000);
 
     this.emit('trackingStarted');
-    console.log('📊 Arbitrage Analytics tracking started');
+    // Analytics tracking started
   }
 
   /**
@@ -187,7 +187,7 @@ class ArbitrageAnalyticsService extends EventEmitter {
     }
 
     this.emit('trackingStopped');
-    console.log('📊 Arbitrage Analytics tracking stopped');
+    // Analytics tracking stopped
   }
 
   /**
@@ -728,15 +728,21 @@ class ArbitrageAnalyticsService extends EventEmitter {
     };
   }
 
-  private simulateTradesForPeriod(periodData: HistoricalData[], params: any): any[] {
-    // Simplified simulation - in production this would be much more sophisticated
-    return periodData.map((data, index) => ({
-      date: new Date(data.date),
-      symbol: 'BTC',
-      profit: (Math.random() - 0.3) * 100, // Simulate some profits and losses
-      success: Math.random() > 0.2,
-      duration: 30 + Math.random() * 120
-    }));
+  private simulateTradesForPeriod(periodData: HistoricalData[], _params: any): any[] {
+    // DEMO: Simplified deterministic backtest simulation
+    // In production, this would replay real historical orders against real order book snapshots
+    return periodData.map((data, index) => {
+      // Use deterministic values based on data index to avoid Math.random()
+      const profitBias = index % 5 === 0 ? -1 : 1; // 20% loss rate
+      const profitMagnitude = ((index * 7 + 13) % 100); // Deterministic spread
+      return {
+        date: new Date(data.date),
+        symbol: 'BTC',
+        profit: profitBias * profitMagnitude * 0.5,
+        success: profitBias > 0,
+        duration: 30 + ((index * 11) % 120)
+      };
+    });
   }
 
   private calculateBacktestPerformance(trades: any[]): PerformanceMetrics {

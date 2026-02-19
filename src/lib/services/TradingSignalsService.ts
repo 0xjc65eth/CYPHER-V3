@@ -136,7 +136,6 @@ export class TradingSignalsService {
   }
 
   private initializeService(): void {
-    console.log('Trading Signals Service initialized');
     this.loadSignalHistory();
     this.calculatePerformanceMetrics();
   }
@@ -667,7 +666,6 @@ export class TradingSignalsService {
           results.push(result);
         }
       } catch (error) {
-        console.warn('Backtest iteration failed:', error);
       }
     }
 
@@ -774,15 +772,12 @@ export class TradingSignalsService {
         switch (channel) {
           case 'voice':
             // Integration with VoiceCommandService would go here
-            console.log('Voice alert:', message);
             break;
           case 'push':
             // Push notification implementation
-            console.log('Push notification:', message);
             break;
           case 'email':
             // Email implementation
-            console.log('Email alert:', message);
             break;
           case 'webhook':
             if (alertConfig.customWebhook) {

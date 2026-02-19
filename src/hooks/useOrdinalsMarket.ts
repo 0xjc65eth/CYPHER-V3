@@ -49,21 +49,14 @@ export function useOrdinalsMarket() {
         floor: parseFloat(item.floor_price) || 0
       })) || []
       
-      // Generate realistic sales history based on current volume
+      // Sales history: single current data point (no historical API available)
+      const today = new Date().toISOString().split('T')[0]
       const salesHistory = [
-        { date: '2024-04-01', sales: Math.round(volume * 0.8 / 100) },
-        { date: '2024-04-02', sales: Math.round(volume * 0.9 / 100) },
-        { date: '2024-04-03', sales: Math.round(volume * 0.95 / 100) },
-        { date: '2024-04-04', sales: Math.round(volume / 100) },
+        { date: today, sales: topCollections.reduce((sum: number, c: { sales: number }) => sum + c.sales, 0) },
       ]
-      
-      // Generate realistic heatmap based on trading patterns
-      const heatmap = [
-        { hour: '00h', volume: Math.round(volume * 0.15) },
-        { hour: '06h', volume: Math.round(volume * 0.2) },
-        { hour: '12h', volume: Math.round(volume * 0.3) },
-        { hour: '18h', volume: Math.round(volume * 0.35) },
-      ]
+
+      // No real hourly volume breakdown available - return empty
+      const heatmap: { hour: string; volume: number }[] = []
       
       // Generate trade opportunities based on real data
       const tradeOpportunities = []
@@ -92,7 +85,7 @@ export function useOrdinalsMarket() {
         volume,
         marketCap,
         topCollection: topCollections[0]?.name || 'Unknown',
-        topSale: topCollections[0]?.floor * 1.2 || 0,
+        topSale: topCollections[0]?.floor || 0,
         holders,
         liquidity,
         trend: `${priceChange > 0 ? '+' : ''}${priceChange.toFixed(1)}%`,

@@ -84,7 +84,7 @@ export function SmcTradeSetupsCard() {
           trading opportunities based on institutional order flow. Each setup includes 4 take profit levels and a stop loss.
         </Text>
         <Text className="text-xs text-gray-400 mt-1">
-          Analysis date: {formattedDate} • Data sources: CoinMarketCap API (c045d2a9-6f2d-44e9-8297-a88ab83b463b)
+          Analysis date: {formattedDate} • Data sources: CoinMarketCap API
         </Text>
       </div>
 

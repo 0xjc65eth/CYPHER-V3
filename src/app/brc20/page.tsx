@@ -135,8 +135,8 @@ export default function BRC20Page() {
     try {
       setError(null)
       const [tokRes, actRes] = await Promise.allSettled([
-        fetch('/api/brc20/tokens?limit=50'),
-        fetch('/api/brc20/activity?limit=20'),
+        fetch('/api/brc20/tokens/?limit=50'),
+        fetch('/api/brc20/activity/?limit=20'),
       ])
 
       let gotData = false
@@ -161,7 +161,7 @@ export default function BRC20Page() {
   const fetchAnalytics = useCallback(async () => {
     setAnalyticsLoading(true)
     try {
-      const res = await fetch('/api/brc20/analytics')
+      const res = await fetch('/api/brc20/analytics/')
       if (res.ok) {
         const d = await res.json()
         if (d.success) setAnalytics(d.data || d)
@@ -174,7 +174,7 @@ export default function BRC20Page() {
   const fetchMintActivity = useCallback(async () => {
     setMintLoading(true)
     try {
-      const res = await fetch('/api/brc20/activity?limit=30')
+      const res = await fetch('/api/brc20/activity/?limit=30')
       if (res.ok) {
         const d = await res.json()
         if (d.success) {
@@ -190,7 +190,7 @@ export default function BRC20Page() {
   const fetchDexActivity = useCallback(async () => {
     setDexLoading(true)
     try {
-      const res = await fetch('/api/brc20/activity?limit=30')
+      const res = await fetch('/api/brc20/activity/?limit=30')
       if (res.ok) {
         const d = await res.json()
         if (d.success) {
@@ -261,7 +261,6 @@ export default function BRC20Page() {
   }
 
   const handleTokenClick = (token: BRC20Token) => {
-    console.log('Token clicked:', token.ticker)
     setSelectedToken(token)
     // TODO: Navigate to detail page when created
     // router.push(`/brc20/${token.ticker}`)

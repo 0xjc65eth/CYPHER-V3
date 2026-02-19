@@ -55,7 +55,6 @@ export class AIOrchestrator {
   }
 
   private async initializeAPIs(): Promise<void> {
-    console.log('🚀 Inicializando todas as APIs de IA...');
     
     // Initialize OpenAI
     if (this.config.apiKeys?.openai) {
@@ -63,9 +62,7 @@ export class AIOrchestrator {
         this.openai = new OpenAIIntegration(this.config);
         await this.openai.initialize();
         this.apiStatus.openai = true;
-        console.log('✅ OpenAI GPT-4 ativo');
       } catch (error) {
-        console.warn('⚠️ OpenAI falhou:', error);
       }
     }
 
@@ -75,9 +72,7 @@ export class AIOrchestrator {
         this.gemini = new GeminiIntegration(this.config);
         await this.gemini.initialize();
         this.apiStatus.gemini = true;
-        console.log('✅ Google Gemini Pro ativo');
       } catch (error) {
-        console.warn('⚠️ Gemini falhou:', error);
       }
     }
 
@@ -87,9 +82,7 @@ export class AIOrchestrator {
         this.elevenlabs = new ElevenLabsIntegration(this.config);
         await this.elevenlabs.initialize();
         this.apiStatus.elevenlabs = true;
-        console.log('✅ ElevenLabs TTS ativo');
       } catch (error) {
-        console.warn('⚠️ ElevenLabs falhou:', error);
       }
     }
 
@@ -99,9 +92,7 @@ export class AIOrchestrator {
         this.assemblyai = new AssemblyAIIntegration(this.config);
         await this.assemblyai.initialize();
         this.apiStatus.assemblyai = true;
-        console.log('✅ AssemblyAI STT ativo');
       } catch (error) {
-        console.warn('⚠️ AssemblyAI falhou:', error);
       }
     }
 
@@ -114,8 +105,6 @@ export class AIOrchestrator {
       .filter(([_, active]) => active)
       .map(([name, _]) => name.toUpperCase());
     
-    console.log(`🤖 CYPHER AI v2 - APIs ativas: ${activeApis.join(', ')}`);
-    console.log(`📊 Status: ${activeApis.length}/4 APIs funcionando`);
   }
 
   // RESPONSE GENERATION with intelligent fallback
@@ -131,7 +120,6 @@ export class AIOrchestrator {
     // Try OpenAI first (highest quality)
     if (this.apiStatus.openai && this.openai) {
       try {
-        console.log('🧠 Usando OpenAI GPT-4 para resposta...');
         
         const systemPrompt = this.buildSystemPrompt(intent, marketData);
         const response = await this.openai.generateResponse({
@@ -149,7 +137,6 @@ export class AIOrchestrator {
           metadata: response.metadata
         };
       } catch (error) {
-        console.warn('⚠️ OpenAI falhou, tentando Gemini...', error);
         this.apiStatus.openai = false;
       }
     }
@@ -157,7 +144,6 @@ export class AIOrchestrator {
     // Fallback to Gemini
     if (this.apiStatus.gemini && this.gemini?.isReady) {
       try {
-        console.log('🤖 Usando Google Gemini Pro para resposta...');
         
         const response = await this.gemini.generateResponse(
           prompt,
@@ -172,13 +158,11 @@ export class AIOrchestrator {
           metadata: {}
         };
       } catch (error) {
-        console.warn('⚠️ Gemini falhou, usando SmartResponseGenerator...', error);
         this.apiStatus.gemini = false;
       }
     }
 
     // Fallback to Smart Response Generator
-    console.log('💡 Usando SmartResponseGenerator...');
     const smartResponse = this.smartResponse.generateIntelligentResponse(
       prompt,
       intent || this.inferBasicIntent(prompt),
@@ -201,7 +185,6 @@ export class AIOrchestrator {
     // Try ElevenLabs first (highest quality)
     if (this.apiStatus.elevenlabs && this.elevenlabs) {
       try {
-        console.log('🔊 Usando ElevenLabs para síntese de voz...');
         
         const audioBuffer = await this.elevenlabs.synthesize(text, emotion);
         if (audioBuffer) {
@@ -212,7 +195,6 @@ export class AIOrchestrator {
           };
         }
       } catch (error) {
-        console.warn('⚠️ ElevenLabs falhou, usando TTS do navegador...', error);
         this.apiStatus.elevenlabs = false;
       }
     }
@@ -227,7 +209,6 @@ export class AIOrchestrator {
     }
 
     try {
-      console.log('🗣️ Usando TTS do navegador...');
       
       const utterance = new SpeechSynthesisUtterance(text);
       
@@ -284,7 +265,6 @@ export class AIOrchestrator {
     // Try AssemblyAI first (highest accuracy)
     if (this.apiStatus.assemblyai && this.assemblyai) {
       try {
-        console.log('🎤 Usando AssemblyAI para transcrição...');
         
         const transcription = await this.assemblyai.startRealtimeTranscription({
           onPartialTranscript: params.onPartialResult,
@@ -298,7 +278,6 @@ export class AIOrchestrator {
           source: 'assemblyai'
         };
       } catch (error) {
-        console.warn('⚠️ AssemblyAI falhou, usando Speech Recognition do navegador...', error);
         this.apiStatus.assemblyai = false;
       }
     }
@@ -315,7 +294,6 @@ export class AIOrchestrator {
     stop: () => void;
     source: 'browser-speech';
   } {
-    console.log('🎙️ Usando Speech Recognition do navegador...');
     
     const SpeechRecognition = (window as any).SpeechRecognition || 
                              (window as any).webkitSpeechRecognition;
@@ -375,7 +353,6 @@ export class AIOrchestrator {
           confidence: 0.95
         });
       } catch (error) {
-        console.warn('OpenAI analysis failed:', error);
       }
     }
 
@@ -394,7 +371,6 @@ export class AIOrchestrator {
           confidence: 0.9
         });
       } catch (error) {
-        console.warn('Gemini analysis failed:', error);
       }
     }
 

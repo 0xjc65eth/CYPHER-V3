@@ -126,7 +126,6 @@ class RealTimeDataService {
       this.ws = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker');
       
       this.ws.onopen = () => {
-        console.log('WebSocket connected');
         this.emit('connected', true);
       };
       
@@ -145,7 +144,6 @@ class RealTimeDataService {
       };
       
       this.ws.onclose = () => {
-        console.log('WebSocket disconnected');
         setTimeout(() => this.connect(), 5000); // Reconnect after 5s
       };
     } catch (error) {
@@ -179,12 +177,11 @@ class BrazilianVoiceService {
   private voiceId: string = '21m00Tcm4TlvDq8ikWAM'; // Rachel voice for Brazilian Portuguese
   
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '';
+    this.apiKey = ''; // ElevenLabs calls routed through /api/ai/text-to-speech server-side
   }
   
   async synthesizeText(text: string, emotion: string = 'excited'): Promise<string> {
     if (!this.apiKey) {
-      console.warn('ElevenLabs API key not found, using fallback TTS');
       return this.fallbackTTS(text);
     }
     
@@ -241,7 +238,7 @@ class BrazilianGPTService {
   private apiKey: string;
   
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
+    this.apiKey = ''; // OpenAI calls routed through /api/cypher-ai/chat server-side
   }
   
   async processMessage(message: string, context: any): Promise<string> {

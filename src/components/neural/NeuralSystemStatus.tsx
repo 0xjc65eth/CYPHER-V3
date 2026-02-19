@@ -89,7 +89,6 @@ export default function NeuralSystemStatus() {
           }
         }
       } catch (error) {
-        console.warn('Could not get real data from neural learning service:', error)
         // Fall back to mock data if real data is not available
       }
 
@@ -243,7 +242,6 @@ export default function NeuralSystemStatus() {
         if (progress) return progress
       }
     } catch (error) {
-      console.warn('Could not get real learning progress:', error)
     }
 
     // Fall back to mock data

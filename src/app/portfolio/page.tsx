@@ -11,6 +11,9 @@ import { pnlCalculator, PortfolioPnL, CostBasisMethod } from '@/services/pnl-cal
 import { portfolioAnalytics, RiskMetrics, PortfolioHealthScore, StressTestResult } from '@/services/portfolio-analytics';
 import { WalletType } from '@/types/wallet';
 import { usePortfolioWallet } from './usePortfolioWallet';
+import { PortfolioPerformanceChart } from '@/components/portfolio/PortfolioPerformanceChart';
+import { TaxReportGenerator } from '@/components/tax/TaxReportGenerator';
+import { ExportButton } from '@/components/common/ExportButton';
 import { 
   Wallet, 
   TrendingUp, 
@@ -97,13 +100,11 @@ export default function PortfolioPage() {
     
     // Setup wallet event listeners
     const handleWalletUpdate = (wallets: Map<string, WalletInfo>) => {
-      console.log('📊 Portfolio update:', wallets.size, 'wallets connected');
       setConnectedWallets(new Map(wallets));
       updatePortfolioMetrics(wallets);
     };
 
     const handlePriceUpdate = (prices: Map<string, number>) => {
-      console.log('💰 Price update:', prices.size, 'assets updated');
       if (connectedWallets.size > 0) {
         updatePortfolioMetrics(connectedWallets);
       }
@@ -165,12 +166,10 @@ export default function PortfolioPage() {
   const loadAvailableWallets = useCallback(() => {
     const wallets = walletIntegrationService.getAvailableWallets();
     setAvailableWallets(wallets);
-    console.log('💼 Available wallets:', wallets.length);
   }, []);
 
   // Legacy wallet event handler for backward compatibility
   const handleLegacyWalletEvent = useCallback((event: string, data: any) => {
-    console.log('🔄 Legacy wallet event:', event, data);
     if (event === 'connected' || event === 'disconnected') {
       // Trigger refresh of modern wallet connector
       setTimeout(() => {
@@ -205,7 +204,7 @@ export default function PortfolioPage() {
       }
 
       // Fetch portfolio data from API
-      const response = await fetch('/api/portfolio/data');
+      const response = await fetch('/api/portfolio/data/');
       const result = await response.json();
       
       if (result.success) {
@@ -362,8 +361,6 @@ export default function PortfolioPage() {
     
     try {
       setRefreshing(true);
-      console.log('🔄 Refreshing portfolio...');
-      
       // Refresh all connected wallets
       await walletConnector.refreshAllWallets();
       
@@ -394,14 +391,12 @@ export default function PortfolioPage() {
     
     setLoading(true);
     try {
-      console.log(`🔗 Connecting ${walletType} wallet...`);
       addAlert('info', 'Connecting Wallet', `Connecting to ${getWalletName(walletType)}...`);
       
       // Try LaserEyes connection first
       const success = await laserEyesConnect(walletType);
       
       if (success) {
-        console.log('✅ Wallet connected via LaserEyes');
         addAlert('success', 'Wallet Connected', `${getWalletName(walletType)} connected successfully`);
         
         // Update portfolio with the connected wallet
@@ -433,7 +428,6 @@ export default function PortfolioPage() {
           const account = await walletIntegrationService.connectWallet(walletType);
           await walletIntegrationService.createAuthSession(account.address, walletType);
           
-          console.log('✅ Wallet connected via legacy service:', account);
           addAlert('success', 'Wallet Connected', `${getWalletName(walletType)} connected successfully`);
           
           // Wait for the wallet to be processed
@@ -443,7 +437,6 @@ export default function PortfolioPage() {
             updatePortfolioMetrics(wallets);
           }, 2000);
         } catch (legacyError) {
-          console.warn('Legacy wallet service also failed:', legacyError);
           throw laserEyesError || legacyError;
         }
       }
@@ -778,10 +771,23 @@ export default function PortfolioPage() {
                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-xs">
                       {portfolioPnL?.assetPnL.size || 0} POSITIONS
                     </Badge>
-                    <Button size="sm" variant="ghost" className="text-orange-500/60 hover:text-orange-500 text-xs">
-                      <Download className="w-3 h-3 mr-1" />
-                      EXPORT
-                    </Button>
+                    <ExportButton
+                      type="portfolio"
+                      data={portfolioPnL ? Array.from(portfolioPnL.assetPnL.entries()).map(([asset, calc]) => ({
+                        asset: calc.asset,
+                        quantity: calc.totalQuantity,
+                        avgCost: calc.avgCostBasis,
+                        currentPrice: calc.currentPrice,
+                        marketValue: calc.marketValue,
+                        unrealizedPnL: calc.unrealizedPnL,
+                        returnPercent: calc.totalReturnPercent,
+                        holdingPeriod: calc.holdingPeriod,
+                        lots: calc.lots.length
+                      })) : []}
+                      size="sm"
+                      variant="ghost"
+                      className="text-orange-500/60 hover:text-orange-500"
+                    />
                   </div>
                 </div>
                 <div className="overflow-hidden">
@@ -1105,17 +1111,23 @@ export default function PortfolioPage() {
             {/* Performance Tab */}
             <TabsContent value="performance" className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {/* Performance Chart Placeholder */}
+                {/* Portfolio Performance Chart */}
                 <div className="bg-black border border-orange-500/30">
                   <div className="border-b border-orange-500/30 p-3">
                     <h3 className="text-sm font-bold text-orange-500 font-mono">PORTFOLIO PERFORMANCE</h3>
                   </div>
-                  <div className="p-4 h-64 flex items-center justify-center">
-                    <div className="text-orange-500/60 text-sm font-mono">
-                      📈 Performance chart will be implemented here
-                      <br />
-                      <span className="text-xs">Real-time P&L tracking with historical data</span>
-                    </div>
+                  <div className="p-4">
+                    {laserEyesAddress ? (
+                      <PortfolioPerformanceChart address={laserEyesAddress} />
+                    ) : (
+                      <div className="h-64 flex items-center justify-center">
+                        <div className="text-orange-500/60 text-sm font-mono text-center">
+                          📈 Connect a wallet to view performance
+                          <br />
+                          <span className="text-xs">Real-time P&L tracking with historical data</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1304,127 +1316,19 @@ export default function PortfolioPage() {
 
             {/* Tax Report Tab */}
             <TabsContent value="tax" className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                {/* Tax Summary */}
-                <div className="bg-black border border-orange-500/30">
-                  <div className="border-b border-orange-500/30 p-3">
-                    <h3 className="text-sm font-bold text-orange-500 font-mono">TAX SUMMARY 2024</h3>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-orange-500/60">Short-term Gains:</span>
-                      <span className="text-red-400">{formatCurrency(portfolioPnL?.totalShortTermGains || 0)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-orange-500/60">Long-term Gains:</span>
-                      <span className="text-green-400">{formatCurrency(portfolioPnL?.totalLongTermGains || 0)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-mono border-t border-orange-500/30 pt-2">
-                      <span className="text-orange-500">Est. Tax Liability:</span>
-                      <span className="text-yellow-400 font-bold">{formatCurrency(portfolioPnL?.taxLiability || 0)}</span>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="w-full text-orange-500 hover:bg-orange-500/10 font-mono text-xs mt-3"
-                    >
-                      <FileText className="w-3 h-3 mr-1" />
-                      GENERATE REPORT
-                    </Button>
+              {laserEyesAddress ? (
+                <TaxReportGenerator />
+              ) : (
+                <div className="bg-black border border-orange-500/30 rounded p-8">
+                  <div className="text-center">
+                    <FileText className="w-12 h-12 text-orange-500/40 mx-auto mb-4" />
+                    <h3 className="text-lg font-bold text-orange-500 font-mono mb-2">TAX REPORTING</h3>
+                    <p className="text-orange-500/60 text-sm font-mono">
+                      Connect a wallet to generate tax reports
+                    </p>
                   </div>
                 </div>
-
-                {/* Tax Optimization */}
-                <div className="bg-black border border-orange-500/30">
-                  <div className="border-b border-orange-500/30 p-3">
-                    <h3 className="text-sm font-bold text-orange-500 font-mono">OPTIMIZATION</h3>
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <div className="p-2 rounded bg-blue-900/20 border border-blue-500/30">
-                      <div className="text-xs font-bold text-blue-400 mb-1">Tax Loss Harvesting</div>
-                      <div className="text-[10px] text-blue-300">Potential savings: {formatCurrency(Math.random() * 5000)}</div>
-                    </div>
-                    <div className="p-2 rounded bg-green-900/20 border border-green-500/30">
-                      <div className="text-xs font-bold text-green-400 mb-1">Long-term Hold Strategy</div>
-                      <div className="text-[10px] text-green-300">Estimated benefit: {formatPercentage(Math.random() * 15)}</div>
-                    </div>
-                    <div className="p-2 rounded bg-yellow-900/20 border border-yellow-500/30">
-                      <div className="text-xs font-bold text-yellow-400 mb-1">Asset Rebalancing</div>
-                      <div className="text-[10px] text-yellow-300">Consider before year end</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tax Settings */}
-                <div className="bg-black border border-orange-500/30">
-                  <div className="border-b border-orange-500/30 p-3">
-                    <h3 className="text-sm font-bold text-orange-500 font-mono">TAX SETTINGS</h3>
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-orange-500/60 font-mono">Cost Basis Method:</span>
-                      <span className="text-xs text-orange-500 font-mono">{selectedCostBasis}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-orange-500/60 font-mono">Tax Year:</span>
-                      <span className="text-xs text-orange-500 font-mono">2024</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-orange-500/60 font-mono">Jurisdiction:</span>
-                      <span className="text-xs text-orange-500 font-mono">USA</span>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="w-full text-orange-500 hover:bg-orange-500/10 font-mono text-xs"
-                    >
-                      <Settings className="w-3 h-3 mr-1" />
-                      CONFIGURE
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Taxable Events */}
-              <div className="bg-black border border-orange-500/30">
-                <div className="border-b border-orange-500/30 p-3 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-orange-500 font-mono">TAXABLE EVENTS 2024</h3>
-                  <Button size="sm" variant="ghost" className="text-orange-500/60 hover:text-orange-500 text-xs">
-                    <Download className="w-3 h-3 mr-1" />
-                    EXPORT CSV
-                  </Button>
-                </div>
-                <div className="overflow-hidden">
-                  <div className="grid grid-cols-8 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2">
-                    <div>DATE</div>
-                    <div>TYPE</div>
-                    <div>ASSET</div>
-                    <div className="text-right">QUANTITY</div>
-                    <div className="text-right">PROCEEDS</div>
-                    <div className="text-right">COST BASIS</div>
-                    <div className="text-right">GAIN/LOSS</div>
-                    <div className="text-center">TERM</div>
-                  </div>
-                  
-                  {/* Mock taxable events - would be populated from actual transaction data */}
-                  {Array.from({length: 5}, (_, i) => (
-                    <div key={i} className="grid grid-cols-8 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5">
-                      <div className="text-orange-500">{new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toLocaleDateString()}</div>
-                      <div className="text-blue-400">SELL</div>
-                      <div className="text-orange-500">BTC</div>
-                      <div className="text-right text-orange-500">{(Math.random() * 0.1).toFixed(6)}</div>
-                      <div className="text-right text-green-400">{formatCurrency(Math.random() * 10000)}</div>
-                      <div className="text-right text-orange-500">{formatCurrency(Math.random() * 8000)}</div>
-                      <div className={`text-right ${Math.random() > 0.5 ? 'text-green-400' : 'text-red-400'}`}>
-                        {Math.random() > 0.5 ? '+' : ''}{formatCurrency((Math.random() - 0.5) * 3000)}
-                      </div>
-                      <div className="text-center text-orange-500/60">
-                        {Math.random() > 0.5 ? 'LONG' : 'SHORT'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>

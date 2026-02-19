@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useLaserEyes } from '@omnisat/lasereyes-react'
+import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
 import { RiImageLine, RiLoader4Line, RiInformationLine } from 'react-icons/ri'
 import { DashboardCard } from '@/components/dashboard-card'
 
@@ -48,7 +48,6 @@ export function OrdinalsViewer() {
         setError(null)
 
         const userOrdinals = await getOrdinals(address)
-        console.log('User ordinals:', userOrdinals)
 
         // Limitar a 5 ordinals para exibição
         setOrdinals(userOrdinals.slice(0, 5))
@@ -132,7 +131,6 @@ export function OrdinalsViewer() {
           }
         }
 
-        console.log('Premium verification result:', { isPremium, premiumCollectionFound });
         setIsPremiumHolder(isPremium);
         setPremiumCollection(premiumCollectionFound);
 

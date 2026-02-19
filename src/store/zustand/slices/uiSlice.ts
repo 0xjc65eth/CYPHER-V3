@@ -325,7 +325,7 @@ export const createUISlice: StateCreator<
     set((state) => {
       const newNotification: NotificationState = {
         ...notification,
-        id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `notification_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         timestamp: Date.now(),
         read: false,
       }
@@ -378,7 +378,7 @@ export const createUISlice: StateCreator<
     set((state) => {
       const newModal: ModalState = {
         ...modal,
-        id: `modal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `modal_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
       }
       
       state.ui.modals.push(newModal)

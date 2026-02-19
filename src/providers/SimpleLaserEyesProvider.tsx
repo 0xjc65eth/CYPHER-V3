@@ -1,83 +1,82 @@
 'use client'
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { useWallet } from '@/contexts/WalletContext'
+import { walletService } from '@/services/WalletService'
+import type { WalletType } from '@/services/WalletService'
 
-// Simple LaserEyes context that doesn't cause BigInt issues
+// LaserEyes-compatible context interface (proxied to WalletContext)
 interface LaserEyesContextType {
-  connect: (provider: any) => Promise<void>
+  connect: (provider: string) => Promise<void>
   disconnect: () => Promise<void>
   connected: boolean
   connecting: boolean
   address: string | null
   balance: { confirmed: number; unconfirmed: number; total: number } | null
+  provider: string | null
+  signature: string | null
+  verified: boolean
+  getOrdinals: (address: string) => Promise<any[]>
   getInscriptions: () => Promise<any[]>
 }
 
 const LaserEyesContext = createContext<LaserEyesContextType | null>(null)
 
+// Map LaserEyes wallet provider constants to WalletService types
+function mapProviderToWalletType(provider: string): WalletType | null {
+  const normalized = String(provider).toLowerCase()
+  if (normalized === 'unisat') return 'unisat'
+  if (normalized === 'xverse') return 'xverse'
+  // Magic Eden, OYL, Leather, Wizz, Phantom, Orange all use sats-connect (xverse path)
+  if (['magic eden', 'magic-eden', 'oyl', 'leather', 'wizz', 'phantom', 'orange'].includes(normalized)) {
+    return 'xverse'
+  }
+  return null
+}
+
 export function LaserEyesProvider({ children }: { children: ReactNode }) {
-  const [connected, setConnected] = useState(false)
-  const [connecting, setConnecting] = useState(false)
-  const [address, setAddress] = useState<string | null>(null)
-  const [balance, setBalance] = useState<{ confirmed: number; unconfirmed: number; total: number } | null>(null)
+  // Read wallet state from WalletContext (single subscription)
+  const { walletInfo, isConnecting, connect: walletConnect, disconnect: walletDisconnect } = useWallet()
+  const [localConnecting, setLocalConnecting] = useState(false)
 
-  const connect = async (provider: any) => {
-    setConnecting(true)
+  const connect = useCallback(async (provider: string) => {
+    setLocalConnecting(true)
     try {
-      // Simulate connection process
-      console.log('Connecting with simple provider...')
-      
-      // Check if we can access window.XverseProviders
-      if (typeof window !== 'undefined' && (window as any).XverseProviders?.BitcoinProvider) {
-        const xverseProvider = (window as any).XverseProviders.BitcoinProvider
-        
-        // Try to get accounts
-        const response = await xverseProvider.request('getAccounts', {
-          purposes: ['ordinals', 'payment'],
-          message: 'CYPHER ORDi Future V3 would like to connect to your wallet.',
-        })
-        
-        if (response?.result?.addresses && response.result.addresses.length > 0) {
-          const addresses = response.result.addresses
-          const paymentAddr = addresses.find((addr: any) => addr.purpose === 'payment') || addresses[0]
-          
-          setAddress(paymentAddr.address)
-          setConnected(true)
-          setBalance({ confirmed: 0, unconfirmed: 0, total: 0 }) // Placeholder balance
-          
-          console.log('✅ Simple wallet connection successful:', paymentAddr.address)
-        }
-      } else {
-        throw new Error('Xverse wallet not found')
+      const walletType = mapProviderToWalletType(provider)
+      if (!walletType) {
+        throw new Error(`Unsupported wallet provider: ${provider}`)
       }
-    } catch (error) {
-      console.error('Simple provider connection failed:', error)
-      throw error
+      await walletConnect(walletType)
     } finally {
-      setConnecting(false)
+      setLocalConnecting(false)
     }
-  }
+  }, [walletConnect])
 
-  const disconnect = async () => {
-    setConnected(false)
-    setAddress(null)
-    setBalance(null)
-    console.log('Wallet disconnected')
-  }
+  const disconnect = useCallback(async () => {
+    walletDisconnect()
+  }, [walletDisconnect])
 
-  const getInscriptions = async () => {
-    // Return empty array for now
+  const getOrdinals = useCallback(async (_address: string) => {
+    // Ordinals fetching is not part of WalletService — return empty for now
     return []
-  }
+  }, [])
+
+  const getInscriptions = useCallback(async () => {
+    return []
+  }, [])
 
   const value: LaserEyesContextType = {
     connect,
     disconnect,
-    connected,
-    connecting,
-    address,
-    balance,
-    getInscriptions
+    connected: walletInfo.connected,
+    connecting: localConnecting || isConnecting,
+    address: walletInfo.paymentAddress?.address ?? null,
+    balance: walletInfo.balance,
+    provider: walletInfo.walletType,
+    signature: walletInfo.signature,
+    verified: walletInfo.verified,
+    getOrdinals,
+    getInscriptions,
   }
 
   return (
@@ -94,3 +93,13 @@ export function useLaserEyes() {
   }
   return context
 }
+
+// Re-export wallet provider constants so consumers don't need @omnisat/lasereyes-core
+export const UNISAT = 'unisat'
+export const XVERSE = 'xverse'
+export const MAGIC_EDEN = 'magic eden'
+export const OYL = 'oyl'
+export const LEATHER = 'leather'
+export const WIZZ = 'wizz'
+export const PHANTOM = 'phantom'
+export const ORANGE = 'orange'

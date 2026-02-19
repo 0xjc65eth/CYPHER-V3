@@ -25,7 +25,6 @@ export function MarketInsightsCard() {
           if (pricesData['BTC'] && typeof pricesData['BTC'].price === 'number' && !isNaN(pricesData['BTC'].price)) {
             setBtcPrice(pricesData['BTC'].price);
           } else {
-            console.warn('Preço do Bitcoin inválido ou não disponível');
             // Manter o preço anterior se já tivermos um
             if (btcPrice === null) {
               // Se não temos preço anterior, usar um valor padrão
@@ -258,7 +257,7 @@ export function MarketInsightsCard() {
 
       <div className="mt-4 p-3 bg-gray-800/30 border border-gray-700/30 rounded-lg">
         <Text className="text-xs text-gray-400">
-          Data sources: Ordiscan API (e227a764-b31b-43cf-a60c-be5daa50cd2c), CoinMarketCap API (c045d2a9-6f2d-44e9-8297-a88ab83b463b)
+          Data sources: Ordiscan API, CoinMarketCap API
         </Text>
       </div>
     </Card>

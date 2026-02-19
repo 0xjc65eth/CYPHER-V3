@@ -34,7 +34,6 @@ export class WebSocketManager extends EventEmitter {
   private initializeConnections() {
     // Only initialize in browser environment
     if (typeof window === 'undefined') {
-      console.log('WebSocket connections skipped - server environment');
       return;
     }
     
@@ -67,7 +66,6 @@ export class WebSocketManager extends EventEmitter {
         return;
       }
       
-      console.log(`Connected to ${exchange}`)
       this.emit('connected', exchange)
       
       // Resubscribe to previous subscriptions
@@ -83,7 +81,6 @@ export class WebSocketManager extends EventEmitter {
     
     socket.on('disconnect', () => {
       if (!this.isDestroyed) {
-        console.log(`Disconnected from ${exchange}`)
         this.emit('disconnected', exchange)
       }
     })
@@ -281,7 +278,7 @@ export class WebSocketManager extends EventEmitter {
         }
         socket.removeAllListeners();
       } catch (error) {
-        console.warn(`Error disconnecting ${exchange}:`, error);
+        console.error(`Error disconnecting ${exchange}:`, error);
       }
     })
     

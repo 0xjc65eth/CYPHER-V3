@@ -10,7 +10,7 @@ import {
   RiUserAddLine,
   RiPieChartLine,
   RiBarChartLine,
-  RiTrendingUpLine,
+  RiArrowUpLine as RiTrendingUpLine,
   RiSignalWifiLine,
   RiRefreshLine,
   RiTimeLine

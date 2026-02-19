@@ -57,11 +57,6 @@ export function useEthWallet() {
         const newAddress = accounts[0]
         setState(prev => ({ ...prev, address: newAddress }))
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ address: newAddress, chainId: state.chainId }))
-
-        // Dispatch event so PremiumContext picks it up
-        window.dispatchEvent(new CustomEvent('ethWalletConnected', {
-          detail: { address: newAddress }
-        }))
       }
     }
 
@@ -88,11 +83,34 @@ export function useEthWallet() {
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const provider = new BrowserProvider(window.ethereum as any)
-      const accounts = await provider.send('eth_requestAccounts', [])
+      const eth = window.ethereum as any
+
+      // Request accounts directly first to trigger the MetaMask popup
+      let accounts: string[]
+      try {
+        accounts = await eth.request({ method: 'eth_requestAccounts' })
+      } catch (reqErr: any) {
+        // User rejected or MetaMask internal error
+        if (reqErr?.code === 4001) {
+          throw new Error('Connection rejected by user')
+        }
+        throw new Error(reqErr?.message || 'MetaMask failed to connect. Try refreshing the page.')
+      }
+
+      if (!accounts || accounts.length === 0) {
+        throw new Error('No accounts returned from MetaMask')
+      }
+
       const address = accounts[0] as string
-      const network = await provider.getNetwork()
-      const chainId = Number(network.chainId)
+
+      // Get chain ID
+      let chainId = 1
+      try {
+        const chainIdHex = await eth.request({ method: 'eth_chainId' })
+        chainId = parseInt(chainIdHex, 16)
+      } catch {
+        // Default to mainnet if chain query fails
+      }
 
       setState({
         address,
@@ -102,11 +120,6 @@ export function useEthWallet() {
       })
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ address, chainId }))
-
-      // Dispatch event for PremiumContext
-      window.dispatchEvent(new CustomEvent('ethWalletConnected', {
-        detail: { address }
-      }))
 
       return address
     } catch (error) {
@@ -124,10 +137,6 @@ export function useEthWallet() {
     })
 
     localStorage.removeItem(STORAGE_KEY)
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('ethWalletDisconnected'))
-    }
   }, [])
 
   return {

@@ -4,7 +4,7 @@ export function useTopOrdinals() {
   return useQuery({
     queryKey: ['top-ordinals'],
     queryFn: async () => {
-      const res = await fetch('/api/ordinals-top')
+      const res = await fetch('/api/ordinals-top/')
       if (!res.ok) throw new Error('Erro ao buscar Ordinals')
       return res.json()
     },

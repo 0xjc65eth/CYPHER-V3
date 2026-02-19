@@ -126,14 +126,14 @@ export function ProfessionalDashboard() {
     }
   }, []);
 
-  // 🤖 Agent Management
+  // Agent Management - show actual status (no mock randomization)
   const updateAgentStatuses = useCallback(() => {
     const updatedAgents = AGENT_SYSTEM.AGENTS.map(agent => ({
       ...agent,
-      status: Math.random() > 0.1 ? 'active' : (Math.random() > 0.5 ? 'idle' : 'error') as AgentStatus['status'],
+      status: 'idle' as AgentStatus['status'],
       lastUpdate: Date.now(),
-      performance: Math.random() * 100,
-      alerts: Math.floor(Math.random() * 5)
+      performance: 0,
+      alerts: 0
     }));
     setAgentStatuses(updatedAgents);
   }, []);

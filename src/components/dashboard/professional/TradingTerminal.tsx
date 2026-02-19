@@ -117,28 +117,34 @@ export function TradingTerminal() {
                 <span className="text-right">Amount</span>
                 <span className="text-right">Total</span>
               </div>
-              {/* Sells */}
+              {/* Sells (from real order book data) */}
               <div className="space-y-0.5">
-                {[...Array(5)].map((_, i) => (
+                {(marketData.orderBook?.asks || []).slice(0, 5).reverse().map((ask, i) => (
                   <div key={`sell-${i}`} className="grid grid-cols-3 text-xs">
-                    <span className="text-red-500 font-mono">{(currentPrice * (1 + (0.001 * (5-i)))).toFixed(2)}</span>
-                    <span className="text-right text-gray-400">{(Math.random() * 10).toFixed(4)}</span>
-                    <span className="text-right text-gray-400">{(Math.random() * 100000).toFixed(2)}</span>
+                    <span className="text-red-500 font-mono">{ask.price.toFixed(2)}</span>
+                    <span className="text-right text-gray-400">{ask.amount.toFixed(4)}</span>
+                    <span className="text-right text-gray-400">{ask.total.toFixed(2)}</span>
                   </div>
                 ))}
+                {(marketData.orderBook?.asks || []).length === 0 && (
+                  <div className="text-xs text-gray-500 text-center py-2">Loading asks...</div>
+                )}
               </div>
               <div className="py-2 text-center">
                 <span className="text-lg font-bold text-white">${currentPrice.toFixed(2)}</span>
               </div>
-              {/* Buys */}
+              {/* Buys (from real order book data) */}
               <div className="space-y-0.5">
-                {[...Array(5)].map((_, i) => (
+                {(marketData.orderBook?.bids || []).slice(0, 5).map((bid, i) => (
                   <div key={`buy-${i}`} className="grid grid-cols-3 text-xs">
-                    <span className="text-green-500 font-mono">{(currentPrice * (1 - (0.001 * (i+1)))).toFixed(2)}</span>
-                    <span className="text-right text-gray-400">{(Math.random() * 10).toFixed(4)}</span>
-                    <span className="text-right text-gray-400">{(Math.random() * 100000).toFixed(2)}</span>
+                    <span className="text-green-500 font-mono">{bid.price.toFixed(2)}</span>
+                    <span className="text-right text-gray-400">{bid.amount.toFixed(4)}</span>
+                    <span className="text-right text-gray-400">{bid.total.toFixed(2)}</span>
                   </div>
                 ))}
+                {(marketData.orderBook?.bids || []).length === 0 && (
+                  <div className="text-xs text-gray-500 text-center py-2">Loading bids...</div>
+                )}
               </div>
             </div>
           </div>
@@ -153,18 +159,18 @@ export function TradingTerminal() {
                 <span className="text-right">Amount</span>
               </div>
               <div className="space-y-0.5">
-                {[...Array(10)].map((_, i) => {
-                  const isBuy = Math.random() > 0.5;
-                  return (
-                    <div key={`trade-${i}`} className="grid grid-cols-3 text-xs">
-                      <span className="text-gray-500">{isMounted ? new Date().toLocaleTimeString() : '--:--:--'}</span>
-                      <span className={`text-right font-mono ${isBuy ? 'text-green-500' : 'text-red-500'}`}>
-                        {(currentPrice * (1 + (Math.random() - 0.5) * 0.001)).toFixed(2)}
-                      </span>
-                      <span className="text-right text-gray-400">{(Math.random() * 5).toFixed(4)}</span>
-                    </div>
-                  );
-                })}
+                {(marketData.recentTrades || []).slice(0, 10).map((trade, i) => (
+                  <div key={`trade-${i}`} className="grid grid-cols-3 text-xs">
+                    <span className="text-gray-500">{isMounted ? new Date(trade.timestamp).toLocaleTimeString() : '--:--:--'}</span>
+                    <span className={`text-right font-mono ${trade.side === 'buy' ? 'text-green-500' : 'text-red-500'}`}>
+                      {trade.price.toFixed(2)}
+                    </span>
+                    <span className="text-right text-gray-400">{trade.amount.toFixed(4)}</span>
+                  </div>
+                ))}
+                {(marketData.recentTrades || []).length === 0 && (
+                  <div className="text-xs text-gray-500 text-center py-4">Loading trades...</div>
+                )}
               </div>
             </div>
           </div>

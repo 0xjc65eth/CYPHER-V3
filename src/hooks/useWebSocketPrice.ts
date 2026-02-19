@@ -150,7 +150,6 @@ export function useWebSocketPrice({
           try {
             wsManager.unsubscribeFromSymbol(exchange, symbol)
           } catch (error) {
-            console.warn('Error unsubscribing:', error)
           }
         })
       })

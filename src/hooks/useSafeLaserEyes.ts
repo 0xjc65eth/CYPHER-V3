@@ -54,26 +54,21 @@ export function useSafeLaserEyes() {
   }, [])
 
   const connect = async () => {
-    console.log('LaserEyes connect called - fallback mode')
     return { address: null }
   }
 
   const disconnect = async () => {
-    console.log('LaserEyes disconnect called - fallback mode')
   }
 
   const signPsbt = async () => {
-    console.log('LaserEyes signPsbt called - fallback mode')
     return null
   }
 
   const pushPsbt = async () => {
-    console.log('LaserEyes pushPsbt called - fallback mode')
     return null
   }
 
   const signMessage = async () => {
-    console.log('LaserEyes signMessage called - fallback mode')
     return null
   }
 

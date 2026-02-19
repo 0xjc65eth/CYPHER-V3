@@ -45,7 +45,7 @@ export function VoiceCommandInterface() {
 
   const processCommand = async (text: string) => {
     try {
-      const res = await fetch('/api/ai/voice-command', {
+      const res = await fetch('/api/ai/voice-command/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: text })

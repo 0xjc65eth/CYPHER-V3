@@ -67,7 +67,6 @@ export const usePWA = () => {
         updateViaCache: 'none'
       });
 
-      console.log('[PWA] Service Worker registrado:', registration);
 
       // Verificar atualizações imediatamente
       registration.update();
@@ -77,7 +76,6 @@ export const usePWA = () => {
         const newWorker = registration.installing;
         
         if (newWorker) {
-          console.log('[PWA] Nova versão encontrada');
           
           setStatus(prev => ({
             ...prev,
@@ -90,7 +88,6 @@ export const usePWA = () => {
 
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[PWA] Nova versão instalada');
               // Notificar usuário sobre atualização disponível
             }
           });
@@ -141,7 +138,6 @@ export const usePWA = () => {
     if (status.registration) {
       try {
         await status.registration.update();
-        console.log('[PWA] Verificação de atualização concluída');
       } catch (error) {
         console.error('[PWA] Erro ao verificar atualizações:', error);
       }
@@ -166,7 +162,6 @@ export const usePWA = () => {
         );
       }
 
-      console.log('[PWA] Cache limpo com sucesso');
     } catch (error) {
       console.error('[PWA] Erro ao limpar cache:', error);
     }
@@ -199,7 +194,6 @@ export const usePWA = () => {
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      console.log('[PWA] Permissão de notificação concedida');
       
       // Configurar push subscription se necessário
       if (status.registration && 'PushManager' in window) {
@@ -209,7 +203,6 @@ export const usePWA = () => {
             applicationServerKey: null // Configurar com sua chave VAPID
           });
           
-          console.log('[PWA] Push subscription criada:', subscription);
           return subscription;
         } catch (error) {
           console.error('[PWA] Erro ao criar push subscription:', error);
@@ -263,7 +256,6 @@ export const usePWA = () => {
   // Listener para mudanças no estado da rede
   useEffect(() => {
     const handleOnline = () => {
-      console.log('[PWA] Conectado - verificando atualizações');
       checkForUpdates();
     };
 

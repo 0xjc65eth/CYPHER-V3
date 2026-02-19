@@ -37,12 +37,10 @@ export class SafeWebSocket {
   }
 
   private handleOpen(event: Event) {
-    console.log('WebSocket connected:', this.url);
     this.emit('open', event);
   }
 
   private handleClose(event: CloseEvent) {
-    console.log('WebSocket disconnected:', this.url);
     this.emit('close', event);
     
     if (!event.wasClean && this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -62,8 +60,6 @@ export class SafeWebSocket {
   private scheduleReconnect() {
     this.reconnectAttempts++;
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
-    
-    console.log(`Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
     
     setTimeout(() => {
       if (this.socket?.readyState === WebSocket.CLOSED) {
@@ -103,7 +99,7 @@ export class SafeWebSocket {
     if (this.socket && this.socket.readyState === WebSocket.OPEN) {
       this.socket.send(data);
     } else {
-      console.warn('WebSocket is not connected, cannot send data');
+      // WebSocket is not connected, cannot send data
     }
   }
 

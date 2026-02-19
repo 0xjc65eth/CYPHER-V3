@@ -62,7 +62,6 @@ export function MultiWalletManager({
    */
   useEffect(() => {
     if (autoConnect && recommendation && !activeWallet && multiWallet.isInitialized) {
-      console.log(`🎯 Auto-connecting wallet for ${selectedAsset}:`, recommendation);
       // Note: Auto-connect pode ser habilitado aqui se desejado
     }
   }, [autoConnect, recommendation, activeWallet, selectedAsset, multiWallet.isInitialized]);

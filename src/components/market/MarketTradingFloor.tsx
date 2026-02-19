@@ -276,13 +276,35 @@ export function MarketTradingFloor() {
     setAlerts(newAlerts);
   };
 
-  const updateMarketData = () => {
-    setMarketData(prev => prev.map(item => ({
-      ...item,
-      price: item.price * (1 + (Math.random() - 0.5) * 0.002),
-      change24h: item.change24h + (Math.random() - 0.5) * 0.1,
-      lastUpdate: new Date()
-    })));
+  const updateMarketData = async () => {
+    // Fetch real BTC price from CoinGecko proxy
+    try {
+      const res = await fetch(
+        '/api/coingecko?endpoint=/coins/markets&params=' +
+          encodeURIComponent('vs_currency=usd&ids=bitcoin&per_page=1&page=1')
+      );
+      if (!res.ok) return;
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        const btc = data[0];
+        setMarketData(prev => prev.map(item =>
+          item.symbol === 'BTC'
+            ? {
+                ...item,
+                price: btc.current_price || item.price,
+                change24h: btc.price_change_percentage_24h || item.change24h,
+                volume24h: btc.total_volume || item.volume24h,
+                high24h: btc.high_24h || item.high24h,
+                low24h: btc.low_24h || item.low24h,
+                marketCap: btc.market_cap || item.marketCap,
+                lastUpdate: new Date(),
+              }
+            : item
+        ));
+      }
+    } catch (err) {
+      console.error('MarketTradingFloor update error:', err);
+    }
   };
 
   const getSentimentColor = (sentiment: string) => {

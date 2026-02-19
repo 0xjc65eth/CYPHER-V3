@@ -65,7 +65,6 @@ export class PriceAnalysisService {
       if (result.status === 'fulfilled' && result.value) {
         quotes.push(result.value);
       } else {
-        console.warn(`Failed to get quote from ${enabledDEXs[index]}:`, result);
       }
     });
 
@@ -392,7 +391,7 @@ export class PriceAnalysisService {
     amount: string
   ): Promise<any> {
     // Implementation for Jupiter (Solana) quotes
-    const endpoint = 'https://quote-api.jup.ag/v4/quote';
+    const endpoint = 'https://api.jup.ag/v6/quote';
     const params = {
       inputMint: tokenIn.address,
       outputMint: tokenOut.address,

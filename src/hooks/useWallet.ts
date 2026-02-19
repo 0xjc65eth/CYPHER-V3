@@ -12,7 +12,6 @@ function useSafeWalletContext() {
     const { useWalletContext } = require('../contexts/WalletContext');
     return useWalletContext();
   } catch (error) {
-    console.warn('WalletContext not available:', error);
     return null;
   }
 }
@@ -108,13 +107,12 @@ export function useWallet(options: UseWalletOptions = {}) {
     if (options.enablePriceConversion && connectionState.isConnected) {
       const fetchBtcPrice = async () => {
         try {
-          const response = await fetch('/api/bitcoin-price');
+          const response = await fetch('/api/bitcoin-price/');
           if (response.ok) {
             const data = await response.json();
             setBtcPrice(data.price);
           }
         } catch (error) {
-          console.warn('Failed to fetch BTC price:', error);
         }
       };
 
@@ -320,13 +318,12 @@ export function useWalletBalance(options: { enableUsdConversion?: boolean } = {}
     if (options.enableUsdConversion && connectionState?.isConnected) {
       const fetchBtcPrice = async () => {
         try {
-          const response = await fetch('/api/bitcoin-price');
+          const response = await fetch('/api/bitcoin-price/');
           if (response.ok) {
             const data = await response.json();
             setBtcPrice(data.price);
           }
         } catch (error) {
-          console.warn('Failed to fetch BTC price:', error);
         }
       };
 

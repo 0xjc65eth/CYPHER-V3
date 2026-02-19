@@ -102,8 +102,8 @@ export const API_CONFIG = {
 
   // Supabase Configuration
   supabase: {
-    url: 'https://tsmevnomziouyffdvwya.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzbWV2bm9temlvdXlmZmR2d3lhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxNDExNjQsImV4cCI6MjA2MTcxNzE2NH0.sG5y9aDEAYEtVUNXwgY3Psc5z7LcyhjvYMUMbM3GWxc',
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
   },
 
   // Rate limiting configuration

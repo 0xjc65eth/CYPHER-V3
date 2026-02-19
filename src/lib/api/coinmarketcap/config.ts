@@ -1,6 +1,6 @@
 // CoinMarketCap API Configuration
 export const CMC_CONFIG = {
-  API_KEY: 'c045d2a9-6f2d-44e9-8297-a88ab83b463b',
+  API_KEY: process.env.CMC_API_KEY || '',
   BASE_URL: 'https://pro-api.coinmarketcap.com',
   SANDBOX_URL: 'https://sandbox-api.coinmarketcap.com',
   VERSION: 'v1',
@@ -54,7 +54,7 @@ export const CMC_CONFIG = {
     KEY_INFO: '/key/info',
   },
   HEADERS: {
-    'X-CMC_PRO_API_KEY': 'c045d2a9-6f2d-44e9-8297-a88ab83b463b',
+    'X-CMC_PRO_API_KEY': process.env.CMC_API_KEY || '',
     'Accept': 'application/json',
     'Accept-Encoding': 'deflate, gzip',
   },

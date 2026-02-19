@@ -75,7 +75,7 @@ export function PortfolioAssets() {
     
     setLoading(true)
     try {
-      const response = await fetch(`/api/portfolio/transactions?address=${address}`)
+      const response = await fetch(`/api/portfolio/transactions/?address=${address}`)
       const data = await response.json()
       
       if (data.transactions) {

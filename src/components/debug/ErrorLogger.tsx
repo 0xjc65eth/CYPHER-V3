@@ -24,7 +24,6 @@ export function ErrorLogger() {
     // Override console.error to capture React errors
     const originalError = console.error
     console.error = (...args) => {
-      console.log('🔴 CONSOLE ERROR:', ...args)
       originalError.apply(console, args)
     }
   }, [])

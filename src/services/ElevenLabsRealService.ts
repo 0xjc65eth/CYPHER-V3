@@ -8,7 +8,7 @@ export class ElevenLabsRealService {
   private voiceId = 'JBFqnCBsd6RMkjVDRZzb'; // George voice ID
   
   constructor(config: ElevenLabsConfig) {
-    this.apiKey = config.apiKey || 'sk_9c2c1f484f2d3d452cc0a3b2858a82bfa61761766c329415';
+    this.apiKey = config.apiKey || process.env.ELEVENLABS_API_KEY || '';
   }
   
   async synthesize(text: string, emotion?: string): Promise<Blob> {
@@ -49,7 +49,6 @@ export class ElevenLabsRealService {
   async transcribe(audioBlob: Blob): Promise<string> {
     // ElevenLabs não tem API de transcrição, então vamos simular
     // Em produção, você usaria um serviço como Whisper API
-    console.warn('Transcrição simulada - integre com Whisper API em produção');
     return 'Texto transcrito do áudio';
   }
   
@@ -95,5 +94,5 @@ export class ElevenLabsRealService {
 }
 
 export const elevenLabsService = new ElevenLabsRealService({
-  apiKey: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || 'sk_9c2c1f484f2d3d452cc0a3b2858a82bfa61761766c329415'
+  apiKey: process.env.ELEVENLABS_API_KEY || ''
 });

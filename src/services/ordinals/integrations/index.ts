@@ -301,21 +301,41 @@ export class OrdinalsMarketplaceFactory {
   }
 
   static getAllClients(config?: { uniSatApiKey?: string }) {
+    // Lazy initialization to avoid circular dependency issues
+    const clients: Record<string, any> = {};
+
     try {
-      return {
-        [OrdinalsMarketplace.MAGIC_EDEN]: magicEdenAPI,
-        [OrdinalsMarketplace.OKX]: okxOrdinalsAPI,
-        [OrdinalsMarketplace.UNISAT]: new UniSatAPI(config?.uniSatApiKey),
-        [OrdinalsMarketplace.HIRO]: hiroOrdinalsService
-      };
+      // Import magicEdenAPI lazily
+      const { magicEdenAPI } = require('./MagicEdenAPI');
+      clients[OrdinalsMarketplace.MAGIC_EDEN] = magicEdenAPI;
     } catch (error) {
-      console.warn('Error creating marketplace clients:', error);
-      return {
-        [OrdinalsMarketplace.MAGIC_EDEN]: null,
-        [OrdinalsMarketplace.OKX]: null,
-        [OrdinalsMarketplace.UNISAT]: null,
-        [OrdinalsMarketplace.HIRO]: null
-      };
+      clients[OrdinalsMarketplace.MAGIC_EDEN] = null;
     }
+
+    try {
+      // Import okxOrdinalsAPI lazily
+      const { okxOrdinalsAPI } = require('./OKXOrdinalsAPI');
+      clients[OrdinalsMarketplace.OKX] = okxOrdinalsAPI;
+    } catch (error) {
+      clients[OrdinalsMarketplace.OKX] = null;
+    }
+
+    try {
+      // Import UniSatAPI lazily
+      const { UniSatAPI } = require('./UniSatAPI');
+      clients[OrdinalsMarketplace.UNISAT] = new UniSatAPI(config?.uniSatApiKey);
+    } catch (error) {
+      clients[OrdinalsMarketplace.UNISAT] = null;
+    }
+
+    try {
+      // Import hiroOrdinalsService lazily
+      const { hiroOrdinalsService } = require('../../HiroOrdinalsService');
+      clients[OrdinalsMarketplace.HIRO] = hiroOrdinalsService;
+    } catch (error) {
+      clients[OrdinalsMarketplace.HIRO] = null;
+    }
+
+    return clients;
   }
 }

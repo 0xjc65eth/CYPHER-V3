@@ -255,7 +255,7 @@ export class UniSatAPI {
       throw new Error(data.msg || 'Unknown error');
     } catch (error) {
       console.error('UniSat getCollections error:', error);
-      return { list: this.getMockCollections(), total: 1 };
+      return { list: [], total: 0 };
     }
   }
 
@@ -316,7 +316,7 @@ export class UniSatAPI {
       throw new Error(data.msg || 'Unknown error');
     } catch (error) {
       console.error('UniSat getInscriptions error:', error);
-      return { list: this.getMockInscriptions(), total: 1 };
+      return { list: [], total: 0 };
     }
   }
 
@@ -418,7 +418,7 @@ export class UniSatAPI {
       throw new Error(data.msg || 'Unknown error');
     } catch (error) {
       console.error('UniSat getBRC20Tokens error:', error);
-      return { list: this.getMockBRC20Tokens(), total: 1 };
+      return { list: [], total: 0 };
     }
   }
 
@@ -582,7 +582,7 @@ export class UniSatAPI {
       throw new Error(data.msg || 'Unknown error');
     } catch (error) {
       console.error('UniSat getMarketListings error:', error);
-      return { list: this.getMockListings(), total: 1 };
+      return { list: [], total: 0 };
     }
   }
 
@@ -607,139 +607,7 @@ export class UniSatAPI {
     }
   }
 
-  // Mock data methods
-  private getMockCollections(): UniSatCollection[] {
-    return [
-      {
-        collectionId: 'nodemonkeys-unisat',
-        name: 'NodeMonkeys',
-        symbol: 'NODEMONKEYS',
-        description: 'The first 10k PFP collection on Bitcoin',
-        icon: 'https://example.com/nodemonkeys-icon.png',
-        supply: 10000,
-        mintHeight: 800000,
-        holderTotal: 3456,
-        inscriptionNumberStart: 15000000,
-        inscriptionNumberEnd: 15010000,
-        website: 'https://nodemonkeys.io',
-        twitter: 'https://twitter.com/nodemonkeys',
-        discord: 'https://discord.gg/nodemonkeys',
-        floorPrice: 4500000, // in sats
-        totalVolume: 280050000000, // in sats
-        h24Volume: 15670000000, // in sats
-        h24VolumeChange: 12.5,
-        floorPriceChange: 8.3,
-        listed: 892,
-        listedRatio: 8.92,
-        validListedCount: 892,
-        avgPrice24h: 5200000, // in sats
-        saleCount24h: 89,
-        royalty: 2.5,
-        createTime: Date.now() - 86400000 * 30,
-        updateTime: Date.now()
-      }
-    ];
-  }
-
-  private getMockInscriptions(): UniSatInscription[] {
-    return [
-      {
-        inscriptionId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        inscriptionNumber: 15000000,
-        isBRC20: false,
-        moved: 0,
-        offset: 0,
-        address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        output: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0:0',
-        outputValue: 10000,
-        preview: 'https://ordinals.com/preview/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        content: 'https://ordinals.com/content/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        contentLength: 25600,
-        contentType: 'image/png',
-        contentBody: '',
-        timestamp: Date.now() - 86400000,
-        genesisHeight: 820000,
-        genesisTransaction: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-        location: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0:0:0',
-        utxo: {
-          txid: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-          vout: 0,
-          satoshi: 10000,
-          scriptType: 'P2WPKH',
-          scriptPk: '0014a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8',
-          codeType: 0,
-          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-          height: 820000,
-          idx: 0,
-          isOpInRBF: false,
-          inscriptions: [
-            {
-              inscriptionId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-              inscriptionNumber: 15000000,
-              offset: 0,
-              moved: 0
-            }
-          ]
-        },
-        collection: {
-          collectionId: 'nodemonkeys-unisat',
-          name: 'NodeMonkeys',
-          symbol: 'NODEMONKEYS'
-        }
-      }
-    ];
-  }
-
-  private getMockBRC20Tokens(): UniSatBRC20Token[] {
-    return [
-      {
-        tick: 'ORDI',
-        max: '21000000',
-        lim: '1000',
-        dec: 18,
-        inscriptionId: 'b1c2d3e4f5g6h7i8j9k0l1m2n3o4p5q6r7s8t9u0v1w2x3y4z5a6',
-        inscriptionNumber: 348020,
-        self: false,
-        completedMinting: true,
-        remainingSupply: '0',
-        totalMinted: '21000000',
-        mintProgress: 100,
-        holders: 15000,
-        deployer: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        deployHeight: 779832,
-        deployBlocktime: Date.now() - 86400000 * 180,
-        transferableCount: 50000,
-        volume24h: 1500000000, // in sats
-        volumeChange24h: 15.5,
-        floorPrice: 50000000, // in sats
-        floorPriceChange24h: 8.2,
-        marketCap: 1050000000000, // in sats
-        marketCapChange24h: 12.8
-      }
-    ];
-  }
-
-  private getMockListings(): UniSatMarketListing[] {
-    return [
-      {
-        inscriptionId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        inscriptionNumber: 15000000,
-        price: 4500000, // in sats
-        seller: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        listedAt: Date.now() - 3600000,
-        utxo: {
-          txid: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-          vout: 0,
-          satoshi: 10000
-        },
-        collection: {
-          collectionId: 'nodemonkeys-unisat',
-          name: 'NodeMonkeys',
-          symbol: 'NODEMONKEYS'
-        }
-      }
-    ];
-  }
+  // No mock data - API errors return empty results
 }
 
 // Singleton instance

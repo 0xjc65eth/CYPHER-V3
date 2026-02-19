@@ -45,7 +45,7 @@ export default function PortfolioSettings({ address }: PortfolioSettingsProps) {
     setIsSaving(true)
     
     try {
-      const response = await fetch('/api/portfolio/settings', {
+      const response = await fetch('/api/portfolio/settings/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

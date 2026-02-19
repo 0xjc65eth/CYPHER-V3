@@ -8,7 +8,9 @@ import { NavigationIcons } from '@/lib/icons/icon-system'
 import { CypherLogo } from '@/components/ui/CypherLogo'
 import { useEthWallet } from '@/hooks/useEthWallet'
 import { useYHPVerification } from '@/hooks/useYHPVerification'
-import { RiWallet3Line } from 'react-icons/ri'
+import { usePremium } from '@/contexts/PremiumContext'
+import { hasPremiumAccess } from '@/config/vip-wallets'
+import { RiWallet3Line, RiVipCrownLine } from 'react-icons/ri'
 import WalletConnect from '@/components/wallet/WalletConnect'
 
 interface NavItem {
@@ -125,6 +127,36 @@ const navigationItems: NavItem[] = [
     category: 'Tools'
   },
   {
+    id: 'alerts',
+    label: 'Alerts',
+    href: '/alerts',
+    icon: NavigationIcons['/portfolio'].icon,
+    description: 'Price alerts & notifications',
+    badge: 'NEW',
+    badgeType: 'new',
+    category: 'Tools'
+  },
+  {
+    id: 'tools',
+    label: 'Trading Tools',
+    href: '/tools',
+    icon: NavigationIcons['/trading'].icon,
+    description: 'Position sizing & risk management',
+    badge: 'NEW',
+    badgeType: 'new',
+    category: 'Tools'
+  },
+  {
+    id: 'tax',
+    label: 'Tax Reports',
+    href: '/tax',
+    icon: NavigationIcons['/portfolio'].icon,
+    description: 'Generate tax reports',
+    badge: 'NEW',
+    badgeType: 'new',
+    category: 'Tools'
+  },
+  {
     id: 'cypher-ai',
     label: 'CYPHER AI',
     href: '/cypher-ai',
@@ -136,11 +168,11 @@ const navigationItems: NavItem[] = [
     category: 'Tools'
   },
   {
-    id: 'trading-bot',
-    label: 'Trading Bot',
-    href: '/trading-bot',
-    icon: NavigationIcons['/trading'].icon,
-    description: 'Automated Trading Bot',
+    id: 'trading-agent',
+    label: 'Trading Agent',
+    href: '/trading-agent',
+    icon: NavigationIcons['/cypher-ai'].icon,
+    description: 'AI Autonomous Trading Agent',
     badge: 'NEW',
     badgeType: 'new',
     category: 'Tools'
@@ -188,6 +220,16 @@ const navigationItems: NavItem[] = [
     icon: NavigationIcons['/integrations'].icon,
     description: 'Connect exchanges & wallets',
     category: 'Labs'
+  },
+  {
+    id: 'whitepaper',
+    label: 'Whitepaper',
+    href: '/whitepaper',
+    icon: NavigationIcons['/documentation'].icon,
+    description: 'Protocol & Vision',
+    badge: 'NEW',
+    badgeType: 'new',
+    category: 'Labs'
   }
 ]
 
@@ -210,6 +252,23 @@ function BadgeLabel({ badge, badgeType }: { badge: string; badgeType?: string })
     )}>
       {badge}
     </span>
+  )
+}
+
+function PremiumBadge() {
+  const { isPremium, accessTier } = usePremium()
+  if (!isPremium && !hasPremiumAccess(accessTier)) return null
+
+  const tier = accessTier
+  return (
+    <div className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold ${
+      tier === 'super_admin' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+      tier === 'vip' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+      'bg-green-500/20 text-green-400 border border-green-500/30'
+    }`}>
+      <RiVipCrownLine className="w-3 h-3" />
+      <span>{tier === 'super_admin' ? 'ADMIN' : tier === 'vip' ? 'VIP' : 'PREMIUM'}</span>
+    </div>
   )
 }
 
@@ -365,6 +424,9 @@ export function MainNavigation() {
 
           {/* Wallet Buttons */}
           <div className="hidden md:flex items-center gap-2 ml-2">
+            {/* Premium/VIP Badge */}
+            <PremiumBadge />
+
             {/* BTC Wallet */}
             <WalletConnect />
 
@@ -392,8 +454,18 @@ export function MainNavigation() {
             ) : (
               <button
                 onClick={async () => {
-                  try { await connectEth() } catch (err) {
-                    if (err instanceof Error) alert(err.message)
+                  try {
+                    await connectEth()
+                  } catch (err) {
+                    const msg = err instanceof Error ? err.message : 'Failed to connect MetaMask'
+                    console.error('ETH connect error:', msg)
+                    // Show error feedback
+                    const errEl = document.getElementById('eth-connect-error')
+                    if (errEl) {
+                      errEl.textContent = msg
+                      errEl.style.display = 'block'
+                      setTimeout(() => { errEl.style.display = 'none' }, 5000)
+                    }
                   }
                 }}
                 disabled={ethConnecting}
@@ -403,6 +475,7 @@ export function MainNavigation() {
                 <span>{ethConnecting ? 'Connecting...' : 'Connect ETH'}</span>
               </button>
             )}
+            <span id="eth-connect-error" className="absolute top-full right-0 mt-1 text-[10px] text-red-400 bg-black/90 border border-red-500/30 rounded px-2 py-1 whitespace-nowrap z-50" style={{ display: 'none' }} />
             {yhpLoading && (
               <span className="text-[10px] text-orange-400/60 animate-pulse">Verifying...</span>
             )}

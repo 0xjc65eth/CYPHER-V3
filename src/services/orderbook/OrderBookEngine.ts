@@ -5,7 +5,6 @@
 
 import { EventEmitter } from 'events';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
-import { hmacSecurity } from '@/lib/security/HMACSecuritySystem';
 
 // OrderBook Types
 export interface Order {
@@ -784,11 +783,11 @@ export class OrderBookEngine extends EventEmitter {
   }
 
   private generateOrderId(): string {
-    return `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `order_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
   }
 
   private generateTradeId(): string {
-    return `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `trade_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
   }
 }
 

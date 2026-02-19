@@ -10,8 +10,7 @@
  * - useWatchlist: Manage favorites/watchlist with localStorage persistence
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { magicEdenAPI } from '@/services/magicEdenApi';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   ProcessedCollection,
   MarketMetrics,
@@ -20,6 +19,28 @@ import {
   SortField,
   DEFAULT_ORDINALS_CONFIG
 } from '@/types/ordinals';
+
+/**
+ * Target collection symbols to fetch from Magic Eden
+ * (Not used directly - API route has its own list, but kept for reference)
+ */
+const COLLECTION_SYMBOLS = [
+  'bitcoin-punks',
+  'nodemonkes',
+  'bitcoin-puppets',
+  'quantum-cats',
+  'ordinal-maxi-biz',
+  'runestones',
+  'bitmap',
+  'ink',
+  'pizza-ninjas',
+  'taproot-wizards',
+  'bitcoin-frogs',
+  'natcats',
+  'rsic',
+  'degods-btc',
+  'ordinal-punks',
+] as const;
 
 /**
  * Market insights derived from market metrics
@@ -45,25 +66,83 @@ export function useCollections(filters?: Partial<FilterOptions>, watchlist: stri
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Fetch collections from API
+  // Track previous watchlist to avoid unnecessary refetches
+  const watchlistRef = useRef(watchlist);
+  watchlistRef.current = watchlist;
+
+  // Fetch collections from Magic Eden API
   const fetchCollections = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch raw data from Magic Eden
-      const rawData = await magicEdenAPI.fetchCollectionStatistics();
+      // 🔧 FIX: Add trailing slash to avoid 308 redirect
+      const response = await fetch('/api/ordinals/');
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+      const json = await response.json();
 
-      // Process collections
-      const processed = magicEdenAPI.processCollections(rawData);
+      if (!json.success || !json.data?.trending_collections) {
+        throw new Error('Invalid response from ordinals API');
+      }
 
-      // Set favorite status based on watchlist
-      const withFavorites = processed.map(collection => ({
-        ...collection,
-        isFavorite: watchlist.includes(collection.id)
-      }));
+      const processed: ProcessedCollection[] = [];
 
-      setCollections(withFavorites);
+      for (const c of json.data.trending_collections) {
+        const floorPrice = c.floor ?? 0; // already in BTC from API
+        const supply = c.supply ?? 0;
+        const listed = c.listed ?? 0;
+
+        // Sanitize owners: must be a reasonable integer (not satoshi counts or garbage values)
+        const rawOwners = Number(c.owners ?? 0);
+        const owners = (Number.isFinite(rawOwners) && rawOwners > 0 && rawOwners < 1_000_000)
+          ? Math.round(rawOwners)
+          : 0;
+
+        // Volume data from API
+        // volume24h may be 0 if only stat endpoint was used (activities calls cause 429s)
+        // volume (all-time) is available from the stat endpoint
+        const volume24h = c.volume24h ?? 0;
+        const volume7d = c.volume7d ?? 0;
+        const volumeUSD24h = c.volumeUSD24h ?? 0;
+        const totalVolume = c.volume ?? 0; // all-time volume in BTC
+
+        const volumeHistory: number[] = c.volumeHistory || [];
+
+        processed.push({
+          id: c.symbol,
+          name: c.name ?? c.symbol,
+          symbol: c.symbol,
+          floorPrice,
+          floorPriceUSD: c.floorUSD ?? 0,
+          // If volume24h is 0 but totalVolume exists, use totalVolume for display
+          // The UI will label it correctly as "Total Vol" vs "24h Vol"
+          volume24h,
+          volume7d,
+          volumeUSD24h,
+          totalVolume, // all-time volume passthrough
+          marketCap: floorPrice * supply,
+          listed,
+          owners,
+          supply,
+          image: c.imageURI || '',
+          priceChange24h: c.change ?? 0,
+          priceChange7d: c.change7d ?? 0,
+          priceChange30d: c.change30d ?? 0,
+          bestBid: c.bestBid ?? floorPrice,
+          bidAskSpread: c.bidAskSpread ?? 0,
+          vwap24h: c.vwap24h ?? 0,
+          trades24h: c.trades24h ?? 0,
+          volumeHistory,
+          isFavorite: watchlistRef.current.includes(c.symbol),
+        });
+      }
+
+      // Sort by floor price descending by default
+      processed.sort((a, b) => b.floorPrice - a.floorPrice);
+
+      setCollections(processed);
       setLastUpdated(new Date());
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch collections';
@@ -72,18 +151,34 @@ export function useCollections(filters?: Partial<FilterOptions>, watchlist: stri
     } finally {
       setLoading(false);
     }
-  }, [watchlist]);
+  }, []);
 
-  // Auto-refresh every 30 seconds
+  // ✅ FIX: Use ref to stabilize fetchCollections reference and prevent infinite loop
+  const fetchRef = useRef(fetchCollections);
   useEffect(() => {
-    fetchCollections();
+    fetchRef.current = fetchCollections;
+  }, [fetchCollections]);
+
+  // Auto-refresh every 30 seconds - uses stable ref to avoid infinite loop
+  useEffect(() => {
+    fetchRef.current(); // Initial fetch on mount
 
     const interval = setInterval(() => {
-      fetchCollections();
+      fetchRef.current(); // Auto-refresh every 30s
     }, DEFAULT_ORDINALS_CONFIG.DEFAULT_REFRESH_INTERVAL * 1000);
 
     return () => clearInterval(interval);
-  }, [fetchCollections]);
+  }, []); // ✅ Empty deps - executes only once on mount
+
+  // Update favorite status when watchlist changes (without refetching)
+  useEffect(() => {
+    setCollections(prev =>
+      prev.map(collection => ({
+        ...collection,
+        isFavorite: watchlist.includes(collection.id),
+      }))
+    );
+  }, [watchlist]);
 
   // Apply filters and sorting
   const filteredCollections = useMemo(() => {
@@ -342,7 +437,6 @@ export function usePriceAlerts() {
   // Request notification permission
   const requestNotificationPermission = useCallback(async () => {
     if (!('Notification' in window)) {
-      console.warn('Browser does not support notifications');
       return false;
     }
 

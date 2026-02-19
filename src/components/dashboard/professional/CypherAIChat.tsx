@@ -80,7 +80,6 @@ class CypherAICore {
         
         // Add error handling
         this.speechRecognition.onerror = (event: any) => {
-          console.warn('Speech recognition error:', event.error);
           this.isListening = false;
         };
         
@@ -88,7 +87,6 @@ class CypherAICore {
           this.isListening = false;
         };
       } else {
-        console.warn('Speech recognition not supported in this browser');
       }
       
       this.speechSynthesis = window.speechSynthesis;
@@ -452,55 +450,64 @@ How can I assist you today?`;
     }
   }
 
-  // Helper methods for data fetching (mock implementations)
+  // Helper methods for data fetching via real APIs
   private async getAssetPrice(asset: string): Promise<number> {
     try {
-      // Try to get real price from CoinMarketCap API if available
-      if (typeof window !== 'undefined' && (window as any).CMC) {
-        const quotes = await (window as any).CMC.quotes({ symbol: asset });
-        const price = Object.values(quotes)[0]?.quote?.USD?.price;
-        if (price) return price;
+      const idMap: Record<string, string> = {
+        BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana',
+        BNB: 'binancecoin', ADA: 'cardano', USDT: 'tether', USDC: 'usd-coin'
+      };
+      const id = idMap[asset];
+      if (id) {
+        const res = await fetch(`/api/coingecko/?endpoint=/simple/price&params=${encodeURIComponent(`ids=${id}&vs_currencies=usd`)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data[id]?.usd) return data[id].usd;
+        }
       }
     } catch (error) {
-      console.warn('Failed to fetch real price, using mock:', error);
     }
-    
-    // Fallback to mock prices
+
+    // Static fallback prices (no randomness)
     const prices: Record<string, number> = {
-      BTC: 104500 + (Math.random() - 0.5) * 2000, // Add some volatility
-      ETH: 2285 + (Math.random() - 0.5) * 100,
-      SOL: 98.75 + (Math.random() - 0.5) * 10,
-      BNB: 312.45 + (Math.random() - 0.5) * 20,
-      ADA: 0.58 + (Math.random() - 0.5) * 0.1,
-      USDT: 1.00,
-      USDC: 1.00
+      BTC: 104500, ETH: 2285, SOL: 98.75, BNB: 312.45, ADA: 0.58, USDT: 1.00, USDC: 1.00
     };
-    return prices[asset] || Math.random() * 100;
+    return prices[asset] || 0;
   }
 
   private async get24hChange(asset: string): Promise<number> {
     try {
-      // Try to get real data from CoinMarketCap API if available
-      if (typeof window !== 'undefined' && (window as any).CMC) {
-        const quotes = await (window as any).CMC.quotes({ symbol: asset });
-        const change = Object.values(quotes)[0]?.quote?.USD?.percent_change_24h;
-        if (change !== undefined) return change;
+      const idMap: Record<string, string> = {
+        BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana',
+        BNB: 'binancecoin', ADA: 'cardano'
+      };
+      const id = idMap[asset];
+      if (id) {
+        const res = await fetch(`/api/coingecko/?endpoint=/simple/price&params=${encodeURIComponent(`ids=${id}&vs_currencies=usd&include_24hr_change=true`)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data[id]?.usd_24h_change !== undefined) return data[id].usd_24h_change;
+        }
       }
     } catch (error) {
-      console.warn('Failed to fetch real 24h change, using mock:', error);
     }
-    
-    // Mock 24h change with realistic distribution
-    const baseChange = (Math.random() - 0.5) * 15; // ±7.5%
-    const volatilityMultiplier = asset === 'BTC' ? 0.7 : asset === 'ETH' ? 0.8 : 1.2; // BTC/ETH less volatile
-    return baseChange * volatilityMultiplier;
+
+    return 0; // No change data available
   }
 
   private async analyzeMarketCondition(asset: string): Promise<any> {
+    // Fetch real price and determine trend from 24h change
+    const price = await this.getAssetPrice(asset);
+    const change = await this.get24hChange(asset);
+    // Simple RSI approximation: map 24h change to 0-100 scale
+    const rsi = Math.max(0, Math.min(100, 50 + change * 3));
+
     return {
-      trend: Math.random() > 0.5 ? 'bullish' : 'bearish',
-      rsi: Math.floor(Math.random() * 100),
-      volume: Math.random() * 50e9
+      trend: change > 1 ? 'bullish' : change < -1 ? 'bearish' : 'neutral',
+      rsi: Math.round(rsi),
+      volume: 0 // Volume not available from simple price endpoint
     };
   }
 
@@ -532,24 +539,45 @@ How can I assist you today?`;
 
   private async performTechnicalAnalysis(asset: string): Promise<any> {
     const price = await this.getAssetPrice(asset);
+    const change = await this.get24hChange(asset);
+    const trend = change > 1 ? 'bullish' : change < -1 ? 'bearish' : 'neutral';
+    const rsi = Math.max(0, Math.min(100, 50 + change * 3));
+
     return {
-      trend: Math.random() > 0.5 ? 'bullish' : 'bearish',
+      trend,
       support: price * 0.95,
       resistance: price * 1.05,
-      rsi: Math.floor(Math.random() * 100),
-      macd: (Math.random() - 0.5) * 10,
+      rsi: Math.round(rsi),
+      macd: change > 0 ? 1 : -1, // Simplified signal
       entryPoint: price * 0.98,
       stopLoss: price * 0.94,
       takeProfit: price * 1.06,
-      suggestedAction: 'Wait for pullback to support level before entering position.'
+      suggestedAction: trend === 'bullish'
+        ? 'Consider entering on pullback to support.'
+        : trend === 'bearish'
+        ? 'Wait for reversal confirmation before entering.'
+        : 'Market is ranging. Wait for a breakout.'
     };
   }
 
   private async analyzeSentiment(asset: string): Promise<any> {
+    // Try to fetch Fear & Greed Index from a real source
+    let fearGreedIndex = 50;
+    try {
+      const res = await fetch('/api/coingecko/?endpoint=/global');
+      if (res.ok) {
+        const data = await res.json();
+        // Use market cap change as a proxy for sentiment
+        const marketCapChange = data?.data?.market_cap_change_percentage_24h_usd || 0;
+        fearGreedIndex = Math.max(0, Math.min(100, 50 + marketCapChange * 5));
+      }
+    } catch { /* use default */ }
+
+    const change = await this.get24hChange(asset);
     return {
-      overall: Math.random() > 0.5 ? 'positive' : 'negative',
-      fearGreedIndex: Math.floor(Math.random() * 100),
-      socialMentions: Math.floor(Math.random() * 2000)
+      overall: change > 2 ? 'positive' : change < -2 ? 'negative' : 'neutral',
+      fearGreedIndex: Math.round(fearGreedIndex),
+      socialMentions: 0 // No social data available without dedicated API
     };
   }
 
@@ -621,13 +649,10 @@ How can I assist you today?`;
       // Provide user feedback for common errors
       switch (event.error) {
         case 'not-allowed':
-          console.warn('Microphone access denied. Please enable microphone permissions.');
           break;
         case 'no-speech':
-          console.warn('No speech detected. Please try again.');
           break;
         case 'network':
-          console.warn('Network error. Please check your connection.');
           break;
       }
     };

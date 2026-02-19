@@ -1,16 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Card } from '@/components/ui/primitives/Card';
 import { ShoppingCart, TrendingUp, Activity, Clock, Filter, RefreshCw, Image } from 'lucide-react';
+import { useMarketplace } from '@/hooks/ordinals/useMarketplace';
 
 interface MarketActivity {
   kind: string;
   collectionSymbol?: string;
   tokenId?: string;
   listedPrice?: number;
+  price?: number;
   createdAt?: string;
+  timestamp?: string | number;
   collectionImage?: string;
+  seller?: string;
+  buyer?: string;
+  txId?: string;
+  inscriptionNumber?: number;
 }
 
 interface MarketStats {
@@ -29,6 +36,9 @@ interface FilterState {
 }
 
 export default function MarketplaceTab() {
+  // Professional marketplace hook for UniSat + Magic Eden data
+  const marketplace = useMarketplace();
+
   const [activities, setActivities] = useState<MarketActivity[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<MarketActivity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +62,19 @@ export default function MarketplaceTab() {
   });
   const [collections, setCollections] = useState<string[]>([]);
   const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Merge marketplace hook stats with local stats for richer data
+  const enrichedStats = useMemo(() => {
+    if (marketplace.stats) {
+      return {
+        totalListings: marketplace.stats.totalListings || stats.totalListings,
+        totalSales: marketplace.stats.totalSales || stats.totalSales,
+        avgSalePrice: marketplace.stats.avgSalePrice || stats.avgSalePrice,
+        totalVolume24h: marketplace.stats.totalVolume || stats.totalVolume24h,
+      };
+    }
+    return stats;
+  }, [marketplace.stats, stats]);
 
   useEffect(() => {
     fetchMarketActivity();
@@ -106,12 +129,34 @@ export default function MarketplaceTab() {
         setIsRefreshing(true);
       }
 
-      const response = await fetch('/api/ordinals/activity?limit=50');
+      // Also trigger marketplace hook refresh
+      marketplace.refetchAll();
+
+      const response = await fetch('/api/ordinals/activity/?limit=50');
 
       if (!response.ok) throw new Error('Failed to fetch market activity');
 
       const data = await response.json();
-      const activityData = data.activities || [];
+
+      if (!data.success && data.error) {
+        throw new Error(data.error);
+      }
+
+      // Normalize activity data - ensure listedPrice and createdAt fields exist
+      const rawActivities: MarketActivity[] = Array.isArray(data.data) ? data.data : [];
+      const activityData = rawActivities.map((item: MarketActivity) => ({
+        ...item,
+        // Ensure listedPrice is set (API may return as price)
+        listedPrice: item.listedPrice ?? item.price ?? undefined,
+        // Ensure createdAt is a string
+        createdAt: item.createdAt
+          ? String(item.createdAt)
+          : item.timestamp
+            ? (typeof item.timestamp === 'number'
+              ? new Date(item.timestamp < 1e12 ? item.timestamp * 1000 : item.timestamp).toISOString()
+              : String(item.timestamp))
+            : undefined,
+      }));
       setActivities(activityData);
       setLastUpdated(new Date());
 
@@ -140,19 +185,31 @@ export default function MarketplaceTab() {
     const now = Date.now();
     const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
 
+    // Filter to recent activities, but if all are outside 24h, use all data
     const recentActivities = activityData.filter(a => {
-      if (!a.createdAt) return false;
-      return new Date(a.createdAt).getTime() > twentyFourHoursAgo;
+      if (!a.createdAt) return true; // Include items without dates
+      try {
+        return new Date(a.createdAt).getTime() > twentyFourHoursAgo;
+      } catch {
+        return true;
+      }
     });
 
-    const listings = recentActivities.filter(a => a.kind === 'listing');
-    const sales = recentActivities.filter(a => a.kind === 'sale');
+    const dataToUse = recentActivities.length > 0 ? recentActivities : activityData;
+
+    const listings = dataToUse.filter(a =>
+      a.kind === 'listing' || a.kind === 'list' || a.kind === 'inscription'
+    );
+    const sales = dataToUse.filter(a => a.kind === 'sale' || a.kind === 'buying_broadcasted');
 
     const totalVolume = sales.reduce((sum, a) => sum + (a.listedPrice || 0), 0);
     const avgPrice = sales.length > 0 ? totalVolume / sales.length : 0;
 
+    // When all data comes from Hiro fallback (kind=listing from inscriptions), use total count
+    const listingCount = listings.length > 0 ? listings.length : activityData.length;
+
     setStats({
-      totalListings: listings.length,
+      totalListings: listingCount,
       totalSales: sales.length,
       avgSalePrice: avgPrice,
       totalVolume24h: totalVolume
@@ -164,7 +221,13 @@ export default function MarketplaceTab() {
 
     // Activity type filter
     if (filters.activityType !== 'all') {
-      filtered = filtered.filter(a => a.kind === filters.activityType);
+      if (filters.activityType === 'listing') {
+        filtered = filtered.filter(a => a.kind === 'listing' || a.kind === 'list' || a.kind === 'inscription');
+      } else if (filters.activityType === 'sale') {
+        filtered = filtered.filter(a => a.kind === 'sale' || a.kind === 'buying_broadcasted');
+      } else {
+        filtered = filtered.filter(a => a.kind === filters.activityType);
+      }
     }
 
     // Collection filter
@@ -182,7 +245,7 @@ export default function MarketplaceTab() {
       filtered = filtered.filter(a => (a.listedPrice || 0) <= maxPriceSats);
     }
 
-    // Time range filter
+    // Time range filter - include items without dates to avoid empty results
     if (filters.timeRange) {
       const now = Date.now();
       const timeRanges = {
@@ -193,8 +256,12 @@ export default function MarketplaceTab() {
       };
       const cutoff = now - timeRanges[filters.timeRange];
       filtered = filtered.filter(a => {
-        if (!a.createdAt) return false;
-        return new Date(a.createdAt).getTime() > cutoff;
+        if (!a.createdAt) return true; // Include items without dates
+        try {
+          return new Date(a.createdAt).getTime() > cutoff;
+        } catch {
+          return true;
+        }
       });
     }
 
@@ -249,13 +316,19 @@ export default function MarketplaceTab() {
     );
   }
 
-  if (error) {
+  if (error && activities.length === 0) {
     return (
       <Card variant="bordered" padding="lg" className="bg-[#1a1a2e] border-red-500/50">
         <div className="text-center py-12">
           <ShoppingCart className="w-12 h-12 mx-auto mb-4 text-red-500" />
           <h3 className="text-lg font-bold text-white mb-2">Error Loading Market Activity</h3>
-          <p className="text-sm text-gray-400">{error}</p>
+          <p className="text-sm text-gray-400 mb-4">{error}</p>
+          <button
+            onClick={() => { setError(null); fetchMarketActivity(); }}
+            className="px-4 py-2 bg-[#f59e0b] text-black font-semibold rounded hover:bg-[#f59e0b]/90 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </Card>
     );
@@ -312,8 +385,8 @@ export default function MarketplaceTab() {
             <h4 className="text-[10px] font-mono text-[#F7931A] uppercase tracking-wider">Total Listings</h4>
             <ShoppingCart className="w-4 h-4 text-blue-400" />
           </div>
-          <div className="text-2xl font-bold text-[#e4e4e7] font-mono">{stats.totalListings.toLocaleString()}</div>
-          <div className="text-[9px] text-[#e4e4e7]/40 font-mono mt-1">Last 24h</div>
+          <div className="text-2xl font-bold text-[#e4e4e7] font-mono">{enrichedStats.totalListings.toLocaleString()}</div>
+          <div className="text-[9px] text-[#e4e4e7]/40 font-mono mt-1">Last 24h {marketplace.stats ? '(multi-source)' : ''}</div>
         </Card>
 
         <Card variant="bordered" padding="lg" className="bg-[#0d0d1a] border-[#1a1a2e]">
@@ -321,7 +394,7 @@ export default function MarketplaceTab() {
             <h4 className="text-[10px] font-mono text-[#F7931A] uppercase tracking-wider">Total Sales</h4>
             <TrendingUp className="w-4 h-4 text-green-400" />
           </div>
-          <div className="text-2xl font-bold text-[#e4e4e7] font-mono">{stats.totalSales.toLocaleString()}</div>
+          <div className="text-2xl font-bold text-[#e4e4e7] font-mono">{enrichedStats.totalSales.toLocaleString()}</div>
           <div className="text-[9px] text-[#e4e4e7]/40 font-mono mt-1">Last 24h</div>
         </Card>
 
@@ -330,7 +403,7 @@ export default function MarketplaceTab() {
             <h4 className="text-[10px] font-mono text-[#F7931A] uppercase tracking-wider">Avg Sale Price</h4>
             <Activity className="w-4 h-4 text-[#F7931A]" />
           </div>
-          <div className="text-2xl font-bold text-[#e4e4e7] font-mono">{formatPrice(stats.avgSalePrice)}</div>
+          <div className="text-2xl font-bold text-[#e4e4e7] font-mono">{formatPrice(enrichedStats.avgSalePrice)}</div>
           <div className="text-[9px] text-[#e4e4e7]/40 font-mono mt-1">Average</div>
         </Card>
 
@@ -339,7 +412,7 @@ export default function MarketplaceTab() {
             <h4 className="text-[10px] font-mono text-[#F7931A] uppercase tracking-wider">Total Volume 24h</h4>
             <TrendingUp className="w-4 h-4 text-[#00ff88]" />
           </div>
-          <div className="text-2xl font-bold text-[#00ff88] font-mono">{formatPrice(stats.totalVolume24h)}</div>
+          <div className="text-2xl font-bold text-[#00ff88] font-mono">{formatPrice(enrichedStats.totalVolume24h)}</div>
           <div className="text-[9px] text-[#e4e4e7]/40 font-mono mt-1">24h Volume</div>
         </Card>
       </div>
@@ -481,13 +554,13 @@ export default function MarketplaceTab() {
 
                   {/* Icon */}
                   <div className={`p-3 rounded-lg ${
-                    activity.kind === 'listing' ? 'bg-blue-500/10' :
-                    activity.kind === 'sale' ? 'bg-green-500/10' :
+                    (activity.kind === 'listing' || activity.kind === 'list' || activity.kind === 'inscription') ? 'bg-blue-500/10' :
+                    (activity.kind === 'sale' || activity.kind === 'buying_broadcasted') ? 'bg-green-500/10' :
                     'bg-purple-500/10'
                   }`}>
-                    {activity.kind === 'listing' ? (
+                    {(activity.kind === 'listing' || activity.kind === 'list' || activity.kind === 'inscription') ? (
                       <ShoppingCart className="w-5 h-5 text-blue-400" />
-                    ) : activity.kind === 'sale' ? (
+                    ) : (activity.kind === 'sale' || activity.kind === 'buying_broadcasted') ? (
                       <TrendingUp className="w-5 h-5 text-green-400" />
                     ) : (
                       <Activity className="w-5 h-5 text-purple-400" />
@@ -498,19 +571,25 @@ export default function MarketplaceTab() {
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`text-xs font-bold uppercase px-2 py-1 rounded ${
-                        activity.kind === 'listing' ? 'bg-blue-500/20 text-blue-400' :
-                        activity.kind === 'sale' ? 'bg-green-500/20 text-green-400' :
+                        (activity.kind === 'listing' || activity.kind === 'list' || activity.kind === 'inscription') ? 'bg-blue-500/20 text-blue-400' :
+                        (activity.kind === 'sale' || activity.kind === 'buying_broadcasted') ? 'bg-green-500/20 text-green-400' :
                         'bg-purple-500/20 text-purple-400'
                       }`}>
-                        {activity.kind}
+                        {activity.kind === 'inscription' ? 'listing' : activity.kind}
                       </span>
                       {activity.collectionSymbol && (
                         <span className="text-sm font-bold text-white">{activity.collectionSymbol}</span>
                       )}
                     </div>
-                    {activity.tokenId && (
-                      <p className="text-xs text-gray-500 font-mono">Token #{activity.tokenId}</p>
-                    )}
+                    {activity.tokenId ? (
+                      <p className="text-xs text-gray-500 font-mono">
+                        {activity.inscriptionNumber
+                          ? `Inscription #${activity.inscriptionNumber}`
+                          : `Token ${activity.tokenId.slice(0, 12)}...`}
+                      </p>
+                    ) : activity.inscriptionNumber ? (
+                      <p className="text-xs text-gray-500 font-mono">Inscription #{activity.inscriptionNumber}</p>
+                    ) : null}
                   </div>
                 </div>
 

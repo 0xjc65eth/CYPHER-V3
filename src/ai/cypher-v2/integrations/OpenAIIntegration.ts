@@ -32,7 +32,6 @@ export class OpenAIIntegration {
   constructor(config: CypherAIConfig) {
     this.apiKey = config.apiKeys?.openai || '';
     if (!this.apiKey) {
-      console.warn('⚠️ OpenAI API key não fornecida');
     }
   }
 
@@ -46,7 +45,6 @@ export class OpenAIIntegration {
       const response = await this.testConnection();
       if (response) {
         this.isInitialized = true;
-        console.log('✅ OpenAI GPT-4 conectado com sucesso');
       }
     } catch (error) {
       console.error('❌ Erro ao inicializar OpenAI:', error);

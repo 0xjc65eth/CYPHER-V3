@@ -1,77 +1,58 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign,
-  BarChart3,
+import {
+  TrendingUp,
+  TrendingDown,
   Eye,
-  EyeOff
+  EyeOff,
+  Loader2,
+  Wallet
 } from 'lucide-react';
+import { usePortfolioMetrics } from '@/hooks/dashboard/usePortfolioMetrics';
 
-interface Asset {
-  symbol: string;
-  name: string;
-  value: number;
-  percentage: number;
-  change24h: number;
-  color: string;
-}
-
-interface PerformanceData {
-  timestamp: string;
-  value: number;
-  pnl: number;
-}
+const COLORS = ['#f7931a', '#627eea', '#9945ff', '#ff6b35', '#00d4aa', '#6b7280'];
 
 export function PortfolioChart() {
+  const { metrics, loading, error } = usePortfolioMetrics();
   const [showBalance, setShowBalance] = useState(true);
-  const [timeframe, setTimeframe] = useState('24h');
-
-  const assets: Asset[] = [
-    { symbol: 'BTC', name: 'Bitcoin', value: 52250, percentage: 41.8, change24h: 2.34, color: '#f7931a' },
-    { symbol: 'ETH', name: 'Ethereum', value: 22850, percentage: 18.3, change24h: -1.23, color: '#627eea' },
-    { symbol: 'SOL', name: 'Solana', value: 24687.5, percentage: 19.75, change24h: 5.67, color: '#9945ff' },
-    { symbol: 'ORDI', name: 'Ordinals', value: 12500, percentage: 10.0, change24h: 12.45, color: '#ff6b35' },
-    { symbol: 'RUNES', name: 'Runes', value: 8750, percentage: 7.0, change24h: -3.21, color: '#00d4aa' },
-    { symbol: 'Others', name: 'Others', value: 3962.5, percentage: 3.15, change24h: 1.78, color: '#6b7280' }
-  ];
-
-  const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0);
-  const totalPnL = 3500; // Mock P&L
-  const totalPnLPercentage = (totalPnL / totalValue) * 100;
-
-  // Mock performance data
-  const performanceData: PerformanceData[] = Array.from({ length: 24 }, (_, i) => ({
-    timestamp: `${i}:00`,
-    value: totalValue + (Math.random() - 0.5) * 5000,
-    pnl: totalPnL + (Math.random() - 0.5) * 1000
-  }));
 
   const formatValue = (value: number): string => {
     if (!showBalance) return '****';
     return `$${value.toLocaleString()}`;
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-gray-800 p-3 rounded-lg border border-gray-700">
-          <p className="text-gray-400 text-sm">{label}</p>
-          <p className="text-white font-medium">
-            {formatValue(payload[0].value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+        <span className="ml-2 text-sm text-gray-400">Loading portfolio...</span>
+      </div>
+    );
+  }
+
+  if (!metrics || metrics.totalValue === 0) {
+    return (
+      <div className="text-center py-12 text-gray-400">
+        <Wallet className="w-10 h-10 mx-auto mb-3 opacity-50" />
+        <p className="text-sm font-medium">No Portfolio Data</p>
+        <p className="text-xs text-gray-500 mt-1">Connect a wallet to see your portfolio</p>
+      </div>
+    );
+  }
+
+  const pieData = metrics.assets.map((asset, i) => ({
+    name: asset.symbol,
+    value: asset.value,
+    color: COLORS[i % COLORS.length],
+    allocation: asset.allocation,
+    change24h: asset.pnlPercent,
+  }));
 
   return (
     <div className="space-y-4">
@@ -79,7 +60,7 @@ export function PortfolioChart() {
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
           <h3 className="text-2xl font-bold">
-            {formatValue(totalValue)}
+            {formatValue(metrics.totalValue)}
           </h3>
           <Button
             variant="ghost"
@@ -91,82 +72,72 @@ export function PortfolioChart() {
           </Button>
         </div>
         <div className="flex items-center justify-center gap-2">
-          {totalPnL >= 0 ? (
+          {metrics.totalPnL >= 0 ? (
             <TrendingUp className="w-4 h-4 text-green-400" />
           ) : (
             <TrendingDown className="w-4 h-4 text-red-400" />
           )}
-          <span className={`text-sm ${totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-            {totalPnL >= 0 ? '+' : ''}{showBalance ? formatValue(Math.abs(totalPnL)) : '****'} 
-            ({totalPnL >= 0 ? '+' : ''}{totalPnLPercentage.toFixed(2)}%)
+          <span className={`text-sm ${metrics.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+            {metrics.totalPnL >= 0 ? '+' : ''}{showBalance ? formatValue(Math.abs(metrics.totalPnL)) : '****'}
+            ({metrics.totalPnL >= 0 ? '+' : ''}{metrics.totalPnLPercent.toFixed(2)}%)
           </span>
         </div>
         <p className="text-xs text-gray-400 mt-1">24h P&L</p>
       </div>
 
       {/* Pie Chart */}
-      <div className="h-48">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={assets}
-              cx="50%"
-              cy="50%"
-              innerRadius={40}
-              outerRadius={80}
-              paddingAngle={2}
-              dataKey="value"
-            >
-              {assets.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={(value: number) => [formatValue(value), 'Value']}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Performance Chart */}
-      <Card className="p-3 bg-gray-800/30 border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-medium">Performance</h4>
-          <div className="flex gap-1">
-            {['24h', '7d', '30d'].map((tf) => (
-              <Button
-                key={tf}
-                variant={timeframe === tf ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setTimeframe(tf)}
-                className="h-6 px-2 text-xs"
-              >
-                {tf}
-              </Button>
-            ))}
-          </div>
-        </div>
-        <div className="h-24">
+      {pieData.length > 0 && (
+        <div className="h-48">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={performanceData}>
-              <XAxis dataKey="timestamp" hide />
-              <YAxis hide />
-              <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="monotone" 
-                dataKey="value" 
-                stroke="#8b5cf6" 
-                strokeWidth={2} 
-                dot={false}
+            <PieChart>
+              <Pie
+                data={pieData}
+                cx="50%"
+                cy="50%"
+                innerRadius={40}
+                outerRadius={80}
+                paddingAngle={2}
+                dataKey="value"
+              >
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value: number) => [formatValue(value), 'Value']}
               />
-            </LineChart>
+            </PieChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      )}
+
+      {/* Performance */}
+      {(metrics.performance.day !== 0 || metrics.performance.week !== 0) && (
+        <Card className="p-3 bg-gray-800/30 border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium">Performance</h4>
+          </div>
+          <div className="grid grid-cols-4 gap-2 text-xs">
+            {[
+              { label: '24h', value: metrics.performance.day },
+              { label: '7d', value: metrics.performance.week },
+              { label: '30d', value: metrics.performance.month },
+              { label: '1y', value: metrics.performance.year },
+            ].map((p) => (
+              <div key={p.label} className="text-center">
+                <p className="text-gray-400">{p.label}</p>
+                <p className={`font-medium ${p.value >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  {p.value >= 0 ? '+' : ''}{p.value.toFixed(1)}%
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Assets List */}
       <div className="space-y-2">
-        {assets.map((asset, index) => (
+        {metrics.assets.map((asset, index) => (
           <motion.div
             key={asset.symbol}
             initial={{ opacity: 0, x: -20 }}
@@ -175,21 +146,21 @@ export function PortfolioChart() {
             className="flex items-center justify-between p-2 bg-gray-800/30 rounded-lg"
           >
             <div className="flex items-center gap-3">
-              <div 
+              <div
                 className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: asset.color }}
+                style={{ backgroundColor: COLORS[index % COLORS.length] }}
               />
               <div>
                 <p className="text-sm font-medium">{asset.symbol}</p>
-                <p className="text-xs text-gray-400">{asset.percentage.toFixed(1)}%</p>
+                <p className="text-xs text-gray-400">{asset.allocation.toFixed(1)}%</p>
               </div>
             </div>
             <div className="text-right">
               <p className="text-sm font-medium">
                 {formatValue(asset.value)}
               </p>
-              <p className={`text-xs ${asset.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                {asset.change24h >= 0 ? '+' : ''}{asset.change24h.toFixed(2)}%
+              <p className={`text-xs ${asset.pnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {asset.pnlPercent >= 0 ? '+' : ''}{asset.pnlPercent.toFixed(2)}%
               </p>
             </div>
           </motion.div>

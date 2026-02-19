@@ -52,12 +52,7 @@ export function NeuralArbitrageInsights() {
       // Combinar insights de runas com insights gerais
       let combinedInsights = [...runesInsights, ...arbitrageInsights] as ArbitrageInsight[];
 
-      // Se não houver insights suficientes, gerar alguns para demonstração
-      if (combinedInsights.length < 3) {
-        // Gerar insights simulados para demonstração
-        const simulatedInsights = generateSimulatedInsights(3 - combinedInsights.length);
-        combinedInsights = [...combinedInsights, ...simulatedInsights];
-      }
+      // Only show real insights - no simulated fallback
 
       // Ordenar por timestamp (mais recente primeiro)
       combinedInsights.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -68,11 +63,8 @@ export function NeuralArbitrageInsights() {
       setError(null);
     } catch (err) {
       console.error('Erro ao buscar insights neurais:', err);
-      setError('Erro ao buscar insights neurais. Usando dados simulados.');
-
-      // Gerar insights simulados em caso de erro
-      const simulatedInsights = generateSimulatedInsights(3);
-      setInsights(simulatedInsights);
+      setError('Erro ao buscar insights neurais.');
+      setInsights([]);
     } finally {
       setIsLoading(false);
     }

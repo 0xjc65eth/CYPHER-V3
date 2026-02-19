@@ -20,7 +20,6 @@ export class LaserEyesSafeWrapper extends Component<Props, State> {
   static getDerivedStateFromError(error: Error): State {
     // Check if it's a BigInt conversion error
     if (error.message.includes('BigInt') || error.message.includes('Math.pow')) {
-      console.warn('LaserEyes BigInt error caught and handled:', error.message)
       return { hasError: true, error }
     }
     

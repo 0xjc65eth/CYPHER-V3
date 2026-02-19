@@ -8,18 +8,46 @@ export async function GET(request: NextRequest) {
   try {
     const mempoolUrl = `https://mempool.space/api${endpoint}`;
     
+    const controller = new AbortController();
+    const fetchTimeout = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(mempoolUrl, {
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'CYPHER-ORDi-Future/3.0',
       },
+      signal: controller.signal,
       next: {
-        revalidate: 30, // Cache por 30 segundos
+        revalidate: 30, // Cache for 30 seconds
       },
     });
+    clearTimeout(fetchTimeout);
 
     if (!response.ok) {
       throw new Error(`Mempool API error: ${response.status}`);
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      // Some mempool.space endpoints return plain text - wrap it
+      const text = await response.text();
+      const data = text.trim();
+      // Try to parse as JSON first
+      try {
+        const parsed = JSON.parse(data);
+        return NextResponse.json(parsed, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          },
+        });
+      } catch {
+        // Return as wrapped text
+        return NextResponse.json({ value: data }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          },
+        });
+      }
     }
 
     const data = await response.json();
@@ -27,7 +55,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data, {
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
@@ -42,7 +70,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
-        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444',
         'X-Fallback-Data': 'true',
       },
     });
@@ -92,13 +120,13 @@ function getFallbackData(endpoint: string) {
         id: "00000000000000000002c5d7e8e29e8cf12b9c4b0e5a9b8c7d6e5f4a3b2c1d0e9f",
         height: 820000,
         version: 536870912,
-        timestamp: Date.now() - 600000,
+        timestamp: Math.floor((Date.now() - 600000) / 1000),
         tx_count: 3456,
         size: 1234567,
         weight: 3456789,
         merkle_root: "abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567890abcdef123",
         previousblockhash: "00000000000000000001b4c3e7f8d9a2b5c6e9f0a3b4c7d0e3f6a9b2c5d8e1f4a7",
-        mediantime: Date.now() - 3600000,
+        mediantime: Math.floor((Date.now() - 3600000) / 1000),
         nonce: 123456789,
         bits: 386089497,
         difficulty: 68177349387402.49,
@@ -142,6 +170,12 @@ function getFallbackData(endpoint: string) {
       estimatedRetargetDate: Date.now() + (7 * 24 * 60 * 60 * 1000),
       remainingBlocks: 743,
       remainingTime: 7 * 24 * 60 * 60 * 1000
+    },
+    '/v1/mining/hashrate/1w': {
+      currentHashrate: 650000000000000000000,
+      currentDifficulty: 68177349387402.49,
+      hashrates: [],
+      difficulty: []
     }
   };
 

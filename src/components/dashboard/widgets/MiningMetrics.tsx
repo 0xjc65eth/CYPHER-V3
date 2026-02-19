@@ -27,7 +27,7 @@ export function MiningMetrics() {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch('/api/mining-data', { signal: controller.signal });
+        const res = await fetch('/api/mining-data/', { signal: controller.signal });
         clearTimeout(timeout);
 
         if (res.ok) {
@@ -46,7 +46,6 @@ export function MiningMetrics() {
           }
         }
       } catch {
-        console.log('Mining API unavailable, using fallback');
       }
     };
 

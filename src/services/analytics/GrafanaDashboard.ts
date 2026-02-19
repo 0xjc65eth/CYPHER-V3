@@ -1012,7 +1012,7 @@ export class GrafanaDashboard extends EventEmitter {
 // Singleton instance
 export const grafanaDashboard = new GrafanaDashboard({
   url: process.env.GRAFANA_URL || 'http://localhost:3000',
-  apiKey: process.env.GRAFANA_API_KEY || 'default-api-key',
+  apiKey: process.env.GRAFANA_API_KEY || '',
   organizationId: parseInt(process.env.GRAFANA_ORG_ID || '1'),
   datasources: {
     prometheus: process.env.PROMETHEUS_URL || 'http://localhost:9090',
@@ -1022,7 +1022,7 @@ export const grafanaDashboard = new GrafanaDashboard({
   authentication: {
     type: 'api_key',
     credentials: {
-      apiKey: process.env.GRAFANA_API_KEY || 'default-api-key'
+      apiKey: process.env.GRAFANA_API_KEY || ''
     }
   }
 });

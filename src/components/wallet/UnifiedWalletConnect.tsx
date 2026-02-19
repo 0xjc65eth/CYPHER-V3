@@ -60,7 +60,6 @@ export function UnifiedWalletConnect({
     try {
       setConnecting(true);
       const address = await connectEthereum();
-      console.log('EVM wallet connected:', address);
     } catch (error) {
       console.error('Failed to connect EVM wallet:', error);
     } finally {
@@ -72,7 +71,6 @@ export function UnifiedWalletConnect({
     try {
       setConnecting(true);
       const address = await connectSolana();
-      console.log('Solana wallet connected:', address);
     } catch (error) {
       console.error('Failed to connect Solana wallet:', error);
     } finally {

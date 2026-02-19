@@ -1,19 +1,19 @@
+/**
+ * FEE_RECIPIENTS - Re-exported from feeWallets.ts (single source of truth)
+ * All wallet addresses are centralized in feeWallets.ts to avoid duplication.
+ */
+import { CYPHER_FEE_WALLETS, CYPHER_FEE_CONFIG } from './feeWallets';
+
 export const FEE_RECIPIENTS = {
-  // EVM Networks (Ethereum, Arbitrum, Optimism, Polygon, Base, Avalanche, BSC)
-  EVM: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  
-  // Solana Network
-  SOLANA: 'EPbE1ZmLXkEJDitNb9KNu9Hq8mThS3P7LpBxdF3EkUwT',
-  
-  // Bitcoin Network (for future integration)
-  BITCOIN: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+  EVM: CYPHER_FEE_WALLETS.evm,
+  SOLANA: CYPHER_FEE_WALLETS.solana,
+  BITCOIN: CYPHER_FEE_WALLETS.bitcoin,
 };
 
 export const REVENUE_MONITORING = {
   // Admin wallets that can access revenue dashboard
   ADMIN_WALLETS: [
-    '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB', // Primary admin
-    '0x742d35Cc6634C0532925a3b844Bc9e7595f2BD9e', // Secondary admin
+    '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3', // Primary admin
   ],
   
   // Revenue distribution (for future implementation)
@@ -66,30 +66,30 @@ export const FEE_COLLECTION_CONFIG = {
   }
 };
 
-// Additional exports needed by components
-export const FEE_PERCENTAGE = 0.0035; // 0.35%
-export const MAX_FEE_USD = 100; // Maximum fee of $100
+// Re-exported from centralized config to maintain backward compatibility
+export const FEE_PERCENTAGE = CYPHER_FEE_CONFIG.swapFeePercent; // 0.3% (30 bps)
+export const MAX_FEE_USD = CYPHER_FEE_CONFIG.maxFeeUSD; // $500
 
 export const FEE_CONFIG = {
-  percentage: FEE_PERCENTAGE,
-  maxFeeUSD: MAX_FEE_USD,
-  minFeeUSD: 0.01, // Minimum fee of $0.01
+  percentage: CYPHER_FEE_CONFIG.swapFeePercent,
+  maxFeeUSD: CYPHER_FEE_CONFIG.maxFeeUSD,
+  minFeeUSD: CYPHER_FEE_CONFIG.minFeeUSD,
 };
 
-// Wallet addresses for fee collection across different networks
+// Wallet addresses derived from centralized config (single source of truth)
 export const WALLET_ADDRESSES = {
-  ethereum: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  arbitrum: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  optimism: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  polygon: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  base: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  avalanche: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  bsc: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-  solana: 'EPbE1ZmLXkEJDitNb9KNu9Hq8mThS3P7LpBxdF3EkUwT',
-  bitcoin: 'bc1qa5wkgaew2dkv56kfvj49j0av5nml45x9ek9hz6'
+  ethereum: CYPHER_FEE_WALLETS.evm,
+  arbitrum: CYPHER_FEE_WALLETS.evm,
+  optimism: CYPHER_FEE_WALLETS.evm,
+  polygon: CYPHER_FEE_WALLETS.evm,
+  base: CYPHER_FEE_WALLETS.evm,
+  avalanche: CYPHER_FEE_WALLETS.evm,
+  bsc: CYPHER_FEE_WALLETS.evm,
+  solana: CYPHER_FEE_WALLETS.solana,
+  bitcoin: CYPHER_FEE_WALLETS.bitcoin,
 };
 
-// Fee calculation function
+// Fee calculation function (uses centralized config values)
 export function calculateServiceFee(tradeAmount: number, tokenPrice: number = 1): {
   feeAmount: number;
   feeUSD: number;
@@ -97,14 +97,14 @@ export function calculateServiceFee(tradeAmount: number, tokenPrice: number = 1)
   isCapped: boolean;
 } {
   const tradeValueUSD = tradeAmount * tokenPrice;
-  const calculatedFeeUSD = tradeValueUSD * FEE_PERCENTAGE;
-  
-  // Apply minimum and maximum fee caps
-  let finalFeeUSD = Math.max(calculatedFeeUSD, FEE_CONFIG.minFeeUSD);
-  finalFeeUSD = Math.min(finalFeeUSD, FEE_CONFIG.maxFeeUSD);
-  
-  const isCapped = finalFeeUSD === FEE_CONFIG.maxFeeUSD;
-  const feeAmount = finalFeeUSD / tokenPrice;
+  const calculatedFeeUSD = tradeValueUSD * CYPHER_FEE_CONFIG.swapFeePercent;
+
+  // Apply minimum and maximum fee caps from centralized config
+  let finalFeeUSD = Math.max(calculatedFeeUSD, CYPHER_FEE_CONFIG.minFeeUSD);
+  const isCapped = finalFeeUSD > CYPHER_FEE_CONFIG.maxFeeUSD;
+  finalFeeUSD = Math.min(finalFeeUSD, CYPHER_FEE_CONFIG.maxFeeUSD);
+
+  const feeAmount = tokenPrice > 0 ? finalFeeUSD / tokenPrice : 0;
   const actualFeePercentage = tradeValueUSD > 0 ? (finalFeeUSD / tradeValueUSD) * 100 : 0;
 
   return {

@@ -7,21 +7,35 @@ export function useMarketSentiment() {
   });
 
   useEffect(() => {
-    const generateData = () => {
-      const sentiment: any[] = [];
-      for (let i = 30; i >= 0; i--) {
-        const bullish = 30 + Math.random() * 40;
-        const bearish = 20 + Math.random() * 30;
-        sentiment.push({
-          timestamp: Date.now() - i * 86400000,
-          bullish,
-          bearish,
-          neutral: 100 - bullish - bearish
-        });
+    const fetchSentiment = async () => {
+      try {
+        // Use Fear & Greed Index history as sentiment proxy
+        const response = await fetch('https://api.alternative.me/fng/?limit=31');
+        const result = await response.json();
+
+        if (result.data && result.data.length > 0) {
+          const sentiment = result.data.reverse().map((item: any) => {
+            const value = parseInt(item.value);
+            // Map 0-100 Fear/Greed index to bullish/bearish percentages
+            const bullish = value;
+            const bearish = 100 - value;
+            return {
+              timestamp: parseInt(item.timestamp) * 1000,
+              bullish,
+              bearish,
+              neutral: 0
+            };
+          });
+          setData({ data: sentiment, loading: false });
+          return;
+        }
+      } catch {
+        // API failed
       }
-      setData({ data: sentiment, loading: false });
+      // No data available
+      setData({ data: [], loading: false });
     };
-    generateData();
+    fetchSentiment();
   }, []);
 
   return data;

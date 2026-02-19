@@ -117,7 +117,6 @@ const OptimizedSwapInterface: React.FC = () => {
   const initializeSwapService = async () => {
     try {
       await swapService.init();
-      console.log('✅ SwapService inicializado');
     } catch (error) {
       console.error('❌ Erro ao inicializar SwapService:', error);
     }
@@ -168,7 +167,6 @@ const OptimizedSwapInterface: React.FC = () => {
       setCurrentQuote(quote);
       setToAmount(quote.outputAmount);
       
-      console.log('💹 Cotação obtida:', quote);
       
     } catch (error) {
       setQuoteError(error.message);

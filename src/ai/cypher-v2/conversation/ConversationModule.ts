@@ -35,21 +35,11 @@ export class ConversationModule extends EventEmitter {
     
     // Initialize AI Orchestrator with all APIs
     this.aiOrchestrator = new AIOrchestrator(config);
-    console.log('🎭 AI Orchestrator inicializado com todas as APIs disponíveis');
     
     // Initialize Gemini for backward compatibility
-    console.log('🔍 Verificando Gemini API key:', {
-      hasKey: !!(config.apiKeys?.gemini),
-      keyLength: config.apiKeys?.gemini?.length,
-      keyPrefix: config.apiKeys?.gemini?.substring(0, 10)
-    });
-    
     if (config.apiKeys?.gemini) {
       this.gemini = new GeminiIntegration(config);
       this.useGemini = true;
-      console.log('🤖 Gemini Pro habilitado para geração de respostas avançadas');
-    } else {
-      console.log('ℹ️ Gemini API key não encontrada, usando sistema de conversação básico');
     }
   }
 
@@ -62,9 +52,7 @@ export class ConversationModule extends EventEmitter {
       if (this.gemini && this.useGemini) {
         try {
           await this.gemini.initialize();
-          console.log('✅ Gemini Pro integrado ao sistema de conversação');
         } catch (error) {
-          console.warn('⚠️ Falha ao inicializar Gemini, usando sistema básico:', error);
           this.useGemini = false;
         }
       }
@@ -135,7 +123,6 @@ export class ConversationModule extends EventEmitter {
 
     try {
       // Use AI Orchestrator for intelligent fallback across all APIs
-      console.log('🎭 Usando AI Orchestrator para resposta otimizada...');
       
       const orchestratorResponse = await this.aiOrchestrator.generateResponse({
         prompt: text,
@@ -752,7 +739,6 @@ export class ConversationModule extends EventEmitter {
   // New methods for Gemini integration
   async switchToGemini(): Promise<boolean> {
     if (!this.gemini) {
-      console.warn('Gemini não está disponível');
       return false;
     }
     
@@ -761,7 +747,6 @@ export class ConversationModule extends EventEmitter {
         await this.gemini.initialize();
       }
       this.useGemini = true;
-      console.log('✅ Alternado para Gemini Pro');
       return true;
     } catch (error) {
       console.error('❌ Falha ao alternar para Gemini:', error);
@@ -771,7 +756,6 @@ export class ConversationModule extends EventEmitter {
   
   switchToBasic(): void {
     this.useGemini = false;
-    console.log('📝 Alternado para sistema básico');
   }
   
   isUsingGemini(): boolean {
@@ -781,7 +765,6 @@ export class ConversationModule extends EventEmitter {
   async clearGeminiHistory(): Promise<void> {
     if (this.gemini) {
       await this.gemini.clearChatHistory();
-      console.log('🔄 Histórico do Gemini limpo');
     }
   }
 }

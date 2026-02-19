@@ -150,7 +150,7 @@ export default function SmcTradingPanel() {
   useEffect(() => {
     const fetchRealTimeData = async () => {
       try {
-        const response = await fetch('/api/coinmarketcap?symbols=BTC,ETH&timeframe=1h')
+        const response = await fetch('/api/coinmarketcap/?symbols=BTC,ETH&timeframe=1h')
         const data = await response.json()
         
         if (data.success && data.data.current) {

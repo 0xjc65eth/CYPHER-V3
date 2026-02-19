@@ -4,7 +4,7 @@ export function useOrdinalsCollections() {
   return useQuery({
     queryKey: ['ordinals-collections'],
     queryFn: async () => {
-      const res = await fetch('/api/ordinals-collections')
+      const res = await fetch('/api/ordinals-collections/')
       if (!res.ok) throw new Error('Erro ao buscar coleções de Ordinals')
       return res.json()
     },

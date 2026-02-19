@@ -117,12 +117,11 @@ async function fetchInscriptionsByAddress(
         offset: options.offset
       });
     } catch (error) {
-      console.warn('Hiro API failed, using mock data:', error);
     }
 
-    // If Hiro API fails, use mock data
+    // If Hiro API fails, throw error - NO MOCK DATA
     if (!hiroData) {
-      hiroData = generateMockInscriptionsData(address, options);
+      throw new Error('Failed to fetch real inscriptions data from Hiro API');
     }
 
     // Process and enrich the inscription data
@@ -183,42 +182,8 @@ async function fetchInscriptionsByAddress(
   }
 }
 
-function generateMockInscriptionsData(address: string, options: any) {
-  const mockInscriptions = [];
-  const totalInscriptions = 150; // Mock total
-
-  for (let i = 0; i < Math.min(options.limit, totalInscriptions); i++) {
-    const inscriptionNumber = 1000000 + i + options.offset;
-    const contentTypes = ['image/png', 'image/jpeg', 'image/svg+xml', 'text/plain', 'application/json'];
-    const rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
-    
-    mockInscriptions.push({
-      id: `${Math.random().toString(36).substring(7)}i0`,
-      number: inscriptionNumber,
-      address,
-      outputValue: 546, // Standard dust limit
-      preview: `https://ordinals.com/preview/${inscriptionNumber}`,
-      content: `https://ordinals.com/content/${inscriptionNumber}`,
-      contentLength: Math.floor(Math.random() * 100000) + 1000,
-      contentType: contentTypes[Math.floor(Math.random() * contentTypes.length)],
-      timestamp: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000),
-      genesisHeight: 780000 + Math.floor(Math.random() * 50000),
-      genesisBlockHeight: 780000 + Math.floor(Math.random() * 50000),
-      genesisTxId: Math.random().toString(36).substring(7),
-      location: `${Math.random().toString(36).substring(7)}:0:0`,
-      output: `${Math.random().toString(36).substring(7)}:0`,
-      offset: 0,
-      satOrdinal: Math.floor(Math.random() * 2000000000000000),
-      satRarity: rarities[Math.floor(Math.random() * rarities.length)],
-      satCoinbaseHeight: Math.floor(Math.random() * 780000)
-    });
-  }
-
-  return {
-    results: mockInscriptions,
-    total: totalInscriptions
-  };
-}
+// REMOVIDO: generateMockInscriptionsData - Não geramos inscriptions falsas
+// Apenas dados reais da Hiro API ou retorna erro
 
 async function enrichInscriptionData(inscriptions: any[]) {
   return Promise.all(inscriptions.map(async (inscription) => {
@@ -239,9 +204,9 @@ async function enrichInscriptionData(inscriptions: any[]) {
       marketData,
       metadata: {
         isCollection: !!collectionInfo,
-        verified: Math.random() > 0.7, // Mock verification
-        featured: Math.random() > 0.9, // Mock featured status
-        trending: Math.random() > 0.8  // Mock trending status
+        verified: false,
+        featured: false,
+        trending: false
       }
     };
   }));
@@ -274,50 +239,22 @@ function estimateInscriptionValue(inscription: any): number {
     baseValue *= 0.8;
   }
   
-  // Add randomness for market fluctuation
-  baseValue *= (0.8 + Math.random() * 0.4);
-  
   return Math.floor(baseValue);
 }
 
-async function getCollectionInfo(inscription: any) {
-  // Mock collection detection - in production, this would check against known collections
-  if (Math.random() > 0.7) {
-    const collections = [
-      'Bitcoin Punks',
-      'Ordinal Maxi Biz',
-      'Bitcoin Wizards',
-      'Taproot Wizards',
-      'Bitcoin Rocks',
-      'Ordinal Turtles'
-    ];
-    
-    return {
-      name: collections[Math.floor(Math.random() * collections.length)],
-      slug: Math.random().toString(36).substring(7),
-      verified: Math.random() > 0.5,
-      floorPrice: Math.floor(Math.random() * 100000) + 10000,
-      totalSupply: Math.floor(Math.random() * 10000) + 100,
-      website: 'https://example.com',
-      twitter: '@collection'
-    };
-  }
-  
+async function getCollectionInfo(_inscription: any) {
+  // No fake collection data - return null until real collection lookup is implemented
   return null;
 }
 
-async function getInscriptionMarketData(inscriptionId: string) {
+async function getInscriptionMarketData(_inscriptionId: string) {
   return {
-    lastSale: {
-      price: Math.floor(Math.random() * 50000) + 5000,
-      timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-      marketplace: Math.random() > 0.5 ? 'magiceden' : 'unisat'
-    },
-    listings: Math.floor(Math.random() * 5),
-    offers: Math.floor(Math.random() * 3),
-    priceHistory: generatePriceHistory(),
-    volume24h: Math.floor(Math.random() * 100000),
-    volume7d: Math.floor(Math.random() * 500000)
+    lastSale: null,
+    listings: 0,
+    offers: 0,
+    priceHistory: [],
+    volume24h: 0,
+    volume7d: 0
   };
 }
 

@@ -152,13 +152,12 @@ class ErrorMonitor {
   private async sendToMonitoringService(error: ErrorReport) {
     try {
       // Implementar envio para Sentry, LogRocket, etc.
-      await fetch('/api/errors', {
+      await fetch('/api/errors/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(error)
       });
     } catch (e) {
-      console.warn('Failed to send error to monitoring service:', e);
     }
   }
 

@@ -45,7 +45,7 @@ export class SmartRoutingEngine {
   constructor(config: SmartRoutingConfig) {
     this.config = {
       ...config,
-      cypherFeeRate: 0.0034, // Fixed 0.34% fee
+      cypherFeeRate: 0.003, // Fixed 0.3% fee (30 bps)
       maxFeeUSD: 100
     };
   }
@@ -420,58 +420,168 @@ export class SmartRoutingEngine {
   }
 
   // Helper methods
+
+  /** Price cache: symbol -> { price, timestamp } */
+  private tokenPriceCache: Map<string, { price: number; ts: number }> = new Map();
+
   private async getTokenPrice(token: Token): Promise<number> {
-    // Implement price fetching logic
-    // This would integrate with price APIs like CoinGecko, CoinMarketCap, etc.
-    return 2000; // Placeholder
+    const cacheKey = token.symbol?.toLowerCase() || token.address;
+    const cached = this.tokenPriceCache.get(cacheKey);
+
+    // Use cache if less than 30 seconds old
+    if (cached && Date.now() - cached.ts < 30000) {
+      return cached.price;
+    }
+
+    try {
+      // Map common symbols to CoinGecko IDs
+      const symbolToId: Record<string, string> = {
+        btc: 'bitcoin', eth: 'ethereum', sol: 'solana',
+        usdt: 'tether', usdc: 'usd-coin', bnb: 'binancecoin',
+        avax: 'avalanche-2', matic: 'matic-network', arb: 'arbitrum',
+        op: 'optimism', atom: 'cosmos', doge: 'dogecoin', ltc: 'litecoin',
+      };
+
+      const id = symbolToId[cacheKey] || cacheKey;
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const price = data[id]?.usd;
+        if (price) {
+          this.tokenPriceCache.set(cacheKey, { price, ts: Date.now() });
+          return price;
+        }
+      }
+    } catch {
+      // Fall back to cached or default
+    }
+
+    // Fallback prices for common tokens
+    const fallbacks: Record<string, number> = {
+      btc: 97000, eth: 3200, sol: 180, usdt: 1, usdc: 1,
+      bnb: 600, avax: 35, matic: 0.7, doge: 0.32, ltc: 100,
+    };
+    return fallbacks[cacheKey] || 1;
   }
 
-  private getDEXConfig(dex: DEXType): any {
-    // Return DEX configuration
-    return {
-      feeNumerator: 30 // 0.3% in basis points
+  private getDEXConfig(dex: DEXType): { feeNumerator: number; label: string } {
+    // Real DEX fee tiers (in basis points)
+    const configs: Record<string, { feeNumerator: number; label: string }> = {
+      'uniswap_v3': { feeNumerator: 30, label: 'Uniswap V3' },
+      'uniswap_v2': { feeNumerator: 30, label: 'Uniswap V2' },
+      'sushiswap': { feeNumerator: 30, label: 'SushiSwap' },
+      'curve': { feeNumerator: 4, label: 'Curve' },
+      'balancer': { feeNumerator: 10, label: 'Balancer' },
+      'pancakeswap': { feeNumerator: 25, label: 'PancakeSwap' },
+      'jupiter': { feeNumerator: 0, label: 'Jupiter' }, // Jupiter fees are separate
+      'raydium': { feeNumerator: 25, label: 'Raydium' },
+      'orca': { feeNumerator: 30, label: 'Orca' },
+      'thorchain': { feeNumerator: 30, label: 'THORChain' },
     };
+    return configs[dex] || { feeNumerator: 30, label: String(dex) };
   }
 
   private getCypherFeeRecipient(chainId: number): string {
-    // Return appropriate fee recipient address for the chain
-    const recipients: Record<number, string> = {
-      1: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB', // Ethereum
-      42161: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB', // Arbitrum
-      // Add other chains...
-    };
-    return recipients[chainId] || recipients[1];
+    // Solana uses a different address format
+    // chainId 0 = Solana (custom convention)
+    if (chainId === 0) {
+      return '4boXQgNDQ91UNmeVspdd1wZw2KkQKAZ2xdAd6UyJCwRH';
+    }
+    // Bitcoin chainId -1 (custom convention)
+    if (chainId === -1) {
+      return '358ecZEHxZQJGj6fvoy7bdTSvw64WWgGFb';
+    }
+    // All EVM chains use the same address
+    return '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3';
   }
 
   private async estimateGasCosts(route: SmartRoute): Promise<any> {
-    // Implement gas estimation
+    // Estimate gas based on chain and route complexity
+    const chainId = route.tokenIn.chainId;
+
+    // Average gas prices by chain (in gwei)
+    const avgGasPrices: Record<number, { gasPrice: number; gasLimit: number; ethPrice: number }> = {
+      1:     { gasPrice: 25, gasLimit: 180000, ethPrice: 3200 },  // Ethereum
+      42161: { gasPrice: 0.1, gasLimit: 800000, ethPrice: 3200 }, // Arbitrum
+      8453:  { gasPrice: 0.01, gasLimit: 200000, ethPrice: 3200 },// Base
+      10:    { gasPrice: 0.01, gasLimit: 200000, ethPrice: 3200 },// Optimism
+      137:   { gasPrice: 50, gasLimit: 200000, ethPrice: 0.7 },   // Polygon
+      56:    { gasPrice: 3, gasLimit: 200000, ethPrice: 600 },    // BSC
+      43114: { gasPrice: 25, gasLimit: 200000, ethPrice: 35 },    // Avalanche
+      0:     { gasPrice: 0, gasLimit: 200000, ethPrice: 180 },    // Solana (~0.000005 SOL)
+    };
+
+    const chainConfig = avgGasPrices[chainId] || avgGasPrices[1];
+    const stepsMultiplier = Math.max(1, route.steps?.length || 1);
+    const estimatedGas = (chainConfig.gasLimit * stepsMultiplier).toString();
+    const gasPriceWei = (chainConfig.gasPrice * 1e9).toString();
+    const gasCostETH = (chainConfig.gasPrice * chainConfig.gasLimit * stepsMultiplier) / 1e9;
+    const gasCostUSD = gasCostETH * chainConfig.ethPrice;
+
     return {
-      estimatedGas: '150000',
-      gasPrice: '20000000000',
-      gasCostUSD: 15.5
+      estimatedGas,
+      gasPrice: gasPriceWei,
+      gasCostUSD: Math.round(gasCostUSD * 100) / 100,
     };
   }
 
   private async estimateBridgeFees(crossChain: CrossChainRoute): Promise<any> {
-    // Implement bridge fee estimation
+    // Bridge fees vary by provider; estimate based on common ranges
+    const bridgeFeeEstimates: Record<string, number> = {
+      'thorchain': 15,
+      'stargate': 5,
+      'across': 3,
+      'hop': 4,
+      'cbridge': 5,
+    };
+
+    const bridgeProvider = crossChain.bridge || 'thorchain';
+    const estimatedFeeUSD = bridgeFeeEstimates[bridgeProvider] || 10;
+
     return {
-      amount: '0.01',
-      amountUSD: 25,
+      amount: (estimatedFeeUSD / 3200).toFixed(6), // Approximate in ETH
+      amountUSD: estimatedFeeUSD,
       fromChain: crossChain.fromChain,
-      toChain: crossChain.toChain
+      toChain: crossChain.toChain,
+      bridge: bridgeProvider,
     };
   }
 
   private async isDEXHealthy(dex: DEXType, chainId: number): Promise<boolean> {
     const key = `${dex}-${chainId}`;
     const cached = this.dexHealthCache.get(key);
-    
-    if (cached && Date.now() - cached.lastCheck < 60000) { // 1 minute cache
+
+    if (cached && Date.now() - cached.lastCheck < 60000) {
       return cached.isOnline && cached.successRate > 90;
     }
 
-    // Implement health check
-    return true; // Placeholder
+    // Ping DEX endpoints to check health
+    const healthEndpoints: Record<string, string> = {
+      'jupiter': 'https://api.jup.ag/v6/health',
+      'uniswap_v3': 'https://api.uniswap.org/v1/health',
+      'thorchain': 'https://thornode.ninerealms.com/thorchain/ping',
+    };
+
+    const endpoint = healthEndpoints[dex];
+    if (!endpoint) {
+      // No health endpoint known - assume healthy
+      this.dexHealthCache.set(key, { isOnline: true, successRate: 95, lastCheck: Date.now() } as DEXHealth);
+      return true;
+    }
+
+    try {
+      const res = await fetch(endpoint, { signal: AbortSignal.timeout(3000) });
+      const isOnline = res.ok;
+      this.dexHealthCache.set(key, { isOnline, successRate: isOnline ? 95 : 0, lastCheck: Date.now() } as DEXHealth);
+      return isOnline;
+    } catch {
+      this.dexHealthCache.set(key, { isOnline: false, successRate: 0, lastCheck: Date.now() } as DEXHealth);
+      return false;
+    }
   }
 
   private async getDirectRoute(

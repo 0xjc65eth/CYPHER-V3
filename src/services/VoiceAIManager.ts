@@ -27,7 +27,7 @@ export class VoiceAIManager {
     
     // Configurar síntese de voz
     this.synthesis = new ElevenLabsRealService({ 
-      apiKey: config.apiKey || process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || ''
+      apiKey: config.apiKey || ''  // ElevenLabs key used server-side only via /api/ai/text-to-speech
     });
   }
   
@@ -41,7 +41,6 @@ export class VoiceAIManager {
       this.isListening = true;
       
       this.recognition.onstart = () => {
-        console.log('🎤 Ouvindo...');
         resolve();
       };
       

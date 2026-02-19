@@ -238,7 +238,6 @@ class OptimizedAPIClient {
     const ws = new WebSocket(wsURL);
 
     ws.onopen = () => {
-      console.log(`WebSocket connected: ${wsURL}`);
       callbacks.onOpen?.();
     };
 
@@ -252,7 +251,6 @@ class OptimizedAPIClient {
     };
 
     ws.onclose = () => {
-      console.log(`WebSocket closed: ${wsURL}`);
       callbacks.onClose?.();
     };
 
@@ -276,7 +274,6 @@ class OptimizedAPIClient {
   }
 
   async warmCache(endpoints: Array<{ endpoint: string; options?: RequestOptions }>): Promise<void> {
-    console.log(`🔥 Warming API cache with ${endpoints.length} endpoints...`);
     
     await Promise.all(
       endpoints.map(async ({ endpoint, options }) => {
@@ -352,7 +349,6 @@ class OptimizedAPIClient {
         lastError = error as Error;
         
         if (attempt < retries) {
-          console.warn(`Request failed, retrying (${attempt + 1}/${retries}):`, error);
           await this.delay(retryDelay * Math.pow(2, attempt)); // Exponential backoff
         }
       }

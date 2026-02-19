@@ -16,55 +16,13 @@ export async function GET(
     const brc20Response = await hiroAPI.getBRC20ForAddress(address)
     
     if (brc20Response.error) {
-      // Fallback to mock data if HIRO API fails
-      console.warn('HIRO BRC-20 API failed, using fallback data:', brc20Response.error)
-      const mockBRC20 = [
-        {
-          ticker: 'ORDI',
-          balance: '1000000',
-          totalBalance: '1000000',
-          transferrable: '800000',
-          value: 25.50,
-          deployBlock: 837000,
-          totalSupply: '21000000',
-          holders: 15000,
-          transactions: 50000
-        },
-        {
-          ticker: 'SATS',
-          balance: '500000000',
-          totalBalance: '500000000',
-          transferrable: '400000000',
-          value: 15.75,
-          deployBlock: 838000,
-          totalSupply: '2100000000000000',
-          holders: 25000,
-          transactions: 75000
-        },
-        {
-          ticker: 'RATS',
-          balance: '10000000',
-          totalBalance: '10000000',
-          transferrable: '8000000',
-          value: 8.25,
-          deployBlock: 839000,
-          totalSupply: '1000000000000',
-          holders: 8000,
-          transactions: 20000
-        }
-      ]
-
-      const totalValue = mockBRC20.reduce((sum, token) => sum + token.value, 0)
-
+      // Return error - NO MOCK DATA
+      console.error('HIRO BRC-20 API failed:', brc20Response.error)
       return NextResponse.json({
-        address,
-        tokens: mockBRC20,
-        total: mockBRC20.length,
-        totalValue,
-        totalTokensHeld: mockBRC20.reduce((sum, token) => sum + parseInt(token.balance), 0),
-        dataSource: 'fallback',
-        cached: false
-      })
+        success: false,
+        error: 'Failed to fetch real BRC-20 data from Hiro API',
+        message: brc20Response.error
+      }, { status: 503 })
     }
 
     // Process real HIRO data
@@ -98,27 +56,12 @@ export async function GET(
     return NextResponse.json(response)
   } catch (error) {
     console.error('Error fetching BRC-20 balances:', error)
-    
-    // Fallback to mock data on any error
-    const mockBRC20 = [
-      {
-        ticker: 'ORDI',
-        balance: '1000000',
-        totalBalance: '1000000',
-        transferrable: '800000',
-        value: 25.50
-      }
-    ]
 
+    // Return error - NO MOCK DATA
     return NextResponse.json({
-      address,
-      tokens: mockBRC20,
-      total: mockBRC20.length,
-      totalValue: mockBRC20.reduce((sum, token) => sum + token.value, 0),
-      totalTokensHeld: mockBRC20.reduce((sum, token) => sum + parseFloat(token.balance), 0),
-      dataSource: 'fallback',
-      cached: false,
-      error: 'API temporarily unavailable'
-    })
+      success: false,
+      error: 'Failed to fetch BRC-20 balances',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 })
   }
 }

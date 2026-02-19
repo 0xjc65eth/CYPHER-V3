@@ -249,7 +249,7 @@ export function CypherAIInterface() {
 
     try {
       // Simulate API call to Cypher AI
-      const response = await fetch('/api/cypher-ai/chat', {
+      const response = await fetch('/api/cypher-ai/chat/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

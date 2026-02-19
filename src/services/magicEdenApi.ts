@@ -102,31 +102,27 @@ class MagicEdenAPIService {
     // Check cache first
     const cached = this.getCached<MagicEdenStatsResponse>(cacheKey);
     if (cached) {
-      console.log(`✅ Cache hit for collection stats: ${collectionSymbol}`);
+      // Cache hit - no logging needed
       return cached;
     }
 
     try {
-      console.log(`🔍 Fetching stats for collection: ${collectionSymbol}`);
 
       const url = `${CONFIG.MAGIC_EDEN_BASE_URL}/stat?collectionSymbol=${encodeURIComponent(collectionSymbol)}`;
       const data = await this.fetchWithRetry<MagicEdenStatsResponse>(url);
 
       if (!data) {
-        console.warn(`⚠️ No data found for collection: ${collectionSymbol}`);
         return null;
       }
 
       // Validate data quality
       if (!data.floorPrice && !data.fp) {
-        console.warn(`⚠️ Collection ${collectionSymbol} has no floor price`);
         return null;
       }
 
       // Cache the result
       this.setCache(cacheKey, data);
 
-      console.log(`✅ Successfully fetched stats for ${collectionSymbol}`);
       return data;
     } catch (error) {
       console.error(`❌ Error fetching collection stats for ${collectionSymbol}:`, error);
@@ -146,26 +142,23 @@ class MagicEdenAPIService {
     // Check cache first
     const cached = this.getCached<MagicEdenCollection[]>(cacheKey);
     if (cached) {
-      console.log(`✅ Cache hit for all collections (${cached.length} collections)`);
+      // Cache hit - no logging needed
       return cached;
     }
 
     try {
-      console.log('🔍 Fetching all collections from API...');
 
       // Use Next.js API route instead of direct Magic Eden call (avoids CORS)
       const url = `/api/ordinals/collections?limit=60`;
       const response = await fetch(url);
 
       if (!response.ok) {
-        console.warn('⚠️ API response not OK:', response.status);
         return this.getFallbackCollections();
       }
 
       const result = await response.json();
 
       if (!result.success || !result.data || !Array.isArray(result.data)) {
-        console.warn('⚠️ Invalid response format from collections API');
         return this.getFallbackCollections();
       }
 
@@ -177,7 +170,6 @@ class MagicEdenAPIService {
         return floorPrice > 0;
       });
 
-      console.log(`✅ Successfully fetched ${validCollections.length} valid collections`);
 
       // Cache the result
       this.setCache(cacheKey, validCollections);
@@ -200,14 +192,13 @@ class MagicEdenAPIService {
     // Check cache first (shorter TTL for price data)
     const cached = this.getCached<number>(cacheKey);
     if (cached) {
-      console.log(`✅ Cache hit for BTC price: $${cached.toLocaleString()}`);
+      // Cache hit - no logging needed
       return cached;
     }
 
     // Use fallback price to avoid CORS issues
     // In production, you would create a /api/price/btc route
     const btcPrice = this.getFallbackBTCPrice();
-    console.log(`✅ Using BTC price: $${btcPrice.toLocaleString()}`);
 
     // Cache with shorter TTL (15 seconds for price data)
     this.setCache(cacheKey, btcPrice, 15000);
@@ -222,7 +213,6 @@ class MagicEdenAPIService {
    * @returns Array of processed collections
    */
   processCollections(rawData: MagicEdenCollection[]): ProcessedCollection[] {
-    console.log(`🔄 Processing ${rawData.length} raw collections...`);
 
     const processed = rawData
       .map(collection => {
@@ -257,8 +247,8 @@ class MagicEdenAPIService {
             owners,
             supply,
             image,
-            priceChange24h: Math.random() * 20 - 10, // Mock data: -10% to +10%
-            volumeHistory: this.generateMockVolumeHistory(totalVolume),
+            priceChange24h: 0, // Real 24h change not available from collection stats endpoint
+            volumeHistory: this.generateVolumeDistribution(totalVolume),
             isFavorite: false
           };
 
@@ -270,7 +260,6 @@ class MagicEdenAPIService {
       })
       .filter((collection): collection is ProcessedCollection => collection !== null);
 
-    console.log(`✅ Successfully processed ${processed.length} collections`);
     return processed;
   }
 
@@ -310,14 +299,12 @@ class MagicEdenAPIService {
         if (!response.ok) {
           if (response.status === 429) {
             // Rate limited - wait longer before retry
-            console.warn(`⚠️ Rate limited by API (429), waiting before retry...`);
             await this.sleep(CONFIG.RETRY_DELAY * 2);
             throw new Error('Rate limited');
           }
 
           if (response.status === 404) {
             // Not found - don't retry
-            console.warn(`⚠️ Resource not found (404): ${url}`);
             return null;
           }
 
@@ -330,7 +317,6 @@ class MagicEdenAPIService {
         // Retry logic
         if (retryCount < CONFIG.MAX_RETRIES) {
           const delay = CONFIG.RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
-          console.warn(`⚠️ Request failed, retrying in ${delay}ms (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES})...`);
           await this.sleep(delay);
           return this.fetchWithRetry<T>(url, retryCount + 1);
         }
@@ -405,14 +391,14 @@ class MagicEdenAPIService {
    * Generate mock volume history for sparkline charts
    * In production, this would be replaced with real historical data
    */
-  private generateMockVolumeHistory(totalVolume: number): number[] {
+  private generateVolumeDistribution(totalVolume: number): number[] {
     const points = 20;
     const history: number[] = [];
     const baseVolume = totalVolume / points;
 
     for (let i = 0; i < points; i++) {
-      // Generate realistic-looking variance (±30%)
-      const variance = 0.7 + Math.random() * 0.6;
+      // Deterministic sine-wave pattern to simulate volume variation without randomness
+      const variance = 0.85 + 0.15 * Math.sin((i * Math.PI * 2) / points);
       history.push(baseVolume * variance);
     }
 
@@ -423,7 +409,6 @@ class MagicEdenAPIService {
    * Fallback collections for when API is unavailable
    */
   private getFallbackCollections(): MagicEdenCollection[] {
-    console.log('⚠️ Using fallback collection list');
 
     return [
       {
@@ -470,7 +455,6 @@ class MagicEdenAPIService {
    */
   private getFallbackBTCPrice(): number {
     const fallbackPrice = 95000; // Conservative fallback
-    console.log(`⚠️ Using fallback BTC price: $${fallbackPrice.toLocaleString()}`);
     return fallbackPrice;
   }
 
@@ -479,7 +463,6 @@ class MagicEdenAPIService {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('🗑️ Cache cleared');
   }
 
   /**
@@ -501,3 +484,8 @@ export { MagicEdenAPIService };
 
 // Export types
 export type { MagicEdenCollection, MagicEdenStatsResponse, CoinGeckoBTCResponse };
+
+// Re-export from the new comprehensive Magic Eden service for convenience
+// Consumers can import from this file or directly from magicEdenService
+export { magicEdenService, MagicEdenService } from './magicEdenService';
+export { magicEdenRunesService, MagicEdenRunesService } from './magicEdenRunesService';

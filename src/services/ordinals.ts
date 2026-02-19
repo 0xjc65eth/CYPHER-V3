@@ -54,7 +54,6 @@ class OrdinalsService {
             totalInscriptions = inscData.total;
           }
         } catch (e) {
-          console.warn('Failed to parse inscriptions data:', e);
         }
       }
 
@@ -63,7 +62,6 @@ class OrdinalsService {
         try {
           statsData = await results[1].value.json();
         } catch (e) {
-          console.warn('Failed to parse stats data:', e);
         }
       }
 

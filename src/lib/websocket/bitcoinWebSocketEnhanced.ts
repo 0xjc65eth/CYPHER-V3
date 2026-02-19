@@ -99,7 +99,6 @@ export class BitcoinWebSocketService extends EventEmitter {
     
     this.startPing();
     this.emit('connected');
-    console.log('✅ Bitcoin WebSocket connected');
   }
 
   private handleMessage(event: MessageEvent): void {
@@ -160,7 +159,6 @@ export class BitcoinWebSocketService extends EventEmitter {
   private scheduleReconnect(): void {
     const delay = this.fibonacciSequence[Math.min(this.reconnectAttempts, this.fibonacciSequence.length - 1)];
     
-    console.log(`⏳ Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
     
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++;
@@ -188,7 +186,6 @@ export class BitcoinWebSocketService extends EventEmitter {
   // Circuit breaker methods
   private openCircuitBreaker(): void {
     this.circuitState = 'OPEN';
-    console.warn('⚠️ Circuit breaker OPEN - too many failures');
     this.emit('circuitBreakerOpen');
     
     this.circuitBreakerTimer = setTimeout(() => {

@@ -26,7 +26,6 @@ export async function getCryptoPrices(symbols: string[]): Promise<{ [key: string
   const allSymbolsInCache = symbols.every(symbol => symbol in priceCache);
 
   if (cacheIsValid && allSymbolsInCache) {
-    console.log('Usando preços em cache');
     return symbols.reduce((result, symbol) => {
       result[symbol] = priceCache[symbol];
       return result;
@@ -34,7 +33,6 @@ export async function getCryptoPrices(symbols: string[]): Promise<{ [key: string
   }
 
   try {
-    console.log(`Buscando preços para: ${symbols.join(', ')} da API do CoinMarketCap`);
 
     // Faz a chamada à API do CoinMarketCap com retry
     let response;
@@ -72,7 +70,6 @@ export async function getCryptoPrices(symbols: string[]): Promise<{ [key: string
     const result: { [key: string]: CryptoPrice } = {};
 
     if (response && response.data && response.data.data) {
-      console.log('Resposta da API do CoinMarketCap:', JSON.stringify(response.data, null, 2));
 
       for (const symbol of symbols) {
         if (response.data.data[symbol]) {
@@ -84,11 +81,9 @@ export async function getCryptoPrices(symbols: string[]): Promise<{ [key: string
             lastUpdated: cryptoData.quote.USD.last_updated
           };
 
-          console.log(`Preço obtido para ${symbol}:`, priceData);
           result[symbol] = priceData;
           priceCache[symbol] = priceData; // Atualiza o cache
         } else {
-          console.warn(`Símbolo ${symbol} não encontrado na resposta da API`);
         }
       }
 
@@ -103,7 +98,6 @@ export async function getCryptoPrices(symbols: string[]): Promise<{ [key: string
 
     // Em caso de erro, retorna os dados do cache se disponíveis
     if (allSymbolsInCache) {
-      console.log('Usando cache após falha na API');
       return symbols.reduce((result, symbol) => {
         result[symbol] = priceCache[symbol];
         return result;
@@ -111,7 +105,6 @@ export async function getCryptoPrices(symbols: string[]): Promise<{ [key: string
     }
 
     // Se não houver dados em cache, usa preços reais fixos como fallback
-    console.log('Usando preços fixos reais como fallback');
     return getRealisticFallbackPrices(symbols);
   }
 }
@@ -160,14 +153,11 @@ function getRealisticFallbackPrices(symbols: string[]): { [key: string]: CryptoP
  */
 export async function getCryptoPrice(symbol: string): Promise<CryptoPrice | null> {
   try {
-    console.log(`Buscando preço para ${symbol}...`);
     const prices = await getCryptoPrices([symbol]);
 
     if (prices[symbol]) {
-      console.log(`Preço de ${symbol} obtido com sucesso:`, prices[symbol]);
       return prices[symbol];
     } else {
-      console.warn(`Preço para ${symbol} não encontrado`);
       return null;
     }
   } catch (error) {
@@ -175,7 +165,6 @@ export async function getCryptoPrice(symbol: string): Promise<CryptoPrice | null
 
     // Gerar um preço de fallback realista para este símbolo
     const fallbackPrices = getRealisticFallbackPrices([symbol]);
-    console.log(`Usando preço de fallback para ${symbol}:`, fallbackPrices[symbol]);
     return fallbackPrices[symbol] || null;
   }
 }
@@ -188,7 +177,6 @@ export async function getCryptoPrice(symbol: string): Promise<CryptoPrice | null
  */
 export function formatPrice(price: number, decimals: number = 2): string {
   if (typeof price !== 'number' || isNaN(price)) {
-    console.warn('Preço inválido para formatação:', price);
     return '0.00';
   }
 

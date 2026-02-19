@@ -183,7 +183,6 @@ export class WalletDetector {
           }
           return result;
         } catch (error) {
-          console.warn(`Failed to detect ${walletInterface.name}:`, error);
           return null;
         }
       });

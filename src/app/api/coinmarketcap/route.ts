@@ -7,7 +7,6 @@ export const dynamic = 'force-dynamic'; // Essential for Netlify
 const CMC_API_KEY = process.env.CMC_API_KEY;
 const CMC_BASE_URL = 'https://pro-api.coinmarketcap.com/v1';
 
-console.log('🔑 CMC API Key loaded:', CMC_API_KEY ? 'YES' : 'NO');
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -17,7 +16,6 @@ export async function GET(request: NextRequest) {
   try {
     // Check rate limit first - return proper HTTP response instead of throwing
     if (!rateLimiter.canMakeRequest('coinmarketcap')) {
-      console.log('CMC rate limit protection activated');
       // Return fallback data immediately instead of throwing
       const hardcodedData = {
         current: {
@@ -61,7 +59,6 @@ export async function GET(request: NextRequest) {
     if (!quotesResponse.ok) {
       // Handle rate limit specifically - return response instead of throwing
       if (quotesResponse.status === 429) {
-        console.log('CMC Rate limit hit, using fallback');
         const hardcodedData = {
           current: {
             BTC: { price: 105847, change24h: 2.85, marketCap: 2075000000000, volume24h: 34567000000, lastUpdated: new Date().toISOString() },
@@ -156,7 +153,6 @@ export async function GET(request: NextRequest) {
     try {
       // Check CoinGecko rate limit - don't throw, just skip to hardcoded
       if (!rateLimiter.canMakeRequest('coingecko')) {
-        console.log('CoinGecko rate limit protection activated - using hardcoded data');
         // Skip to hardcoded fallback instead of throwing
         throw new Error('SKIP_TO_HARDCODED');
       }

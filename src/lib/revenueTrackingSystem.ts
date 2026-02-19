@@ -65,7 +65,6 @@ class RevenueTrackingSystem {
    * Inicializar sistema de tracking
    */
   private initializeTracking(): void {
-    console.log('💰 Inicializando Revenue Tracking System...');
     
     // Setup de limpeza automática de dados antigos
     setInterval(() => {
@@ -129,7 +128,6 @@ class RevenueTrackingSystem {
     // Atualizar métricas
     this.updateMetrics(feeTransaction);
     
-    console.log(`💰 Fee calculada: $${serviceFee.toFixed(2)} (${FEE_CONFIG.percentage * 100}%) - ID: ${transactionId}`);
     
     return {
       serviceFee,
@@ -150,7 +148,6 @@ class RevenueTrackingSystem {
       transaction.transactionHash = transactionHash;
       this.transactions.set(transactionId, transaction);
       
-      console.log(`✅ Transação ${transactionId} marcada como concluída`);
       
       // Emit event para dashboard
       if (typeof window !== 'undefined') {
@@ -170,7 +167,6 @@ class RevenueTrackingSystem {
       transaction.status = 'failed';
       this.transactions.set(transactionId, transaction);
       
-      console.log(`❌ Transação ${transactionId} falhou: ${error}`);
     }
   }
 
@@ -373,7 +369,6 @@ class RevenueTrackingSystem {
       }
     }
     
-    console.log(`🧹 Limpeza automática: ${cleaned} transações antigas removidas`);
   }
 
   /**
@@ -383,7 +378,6 @@ class RevenueTrackingSystem {
     const metrics = this.getRevenueMetrics();
     
     if (metrics.totalTransactions > 0) {
-      console.log(`📊 Relatório Automático - Revenue: $${metrics.totalRevenue.toFixed(2)} | Transações: ${metrics.totalTransactions} | DEX Principal: ${metrics.topDEX}`);
     }
   }
 

@@ -41,7 +41,6 @@ class NotificationManager {
       this.audio = new Audio('/sounds/notification-sound.mp3');
       this.audio.volume = 0.5;
     } catch (error) {
-      console.warn('Failed to initialize notification audio:', error);
     }
   }
   
@@ -55,7 +54,6 @@ class NotificationManager {
       // Play with user interaction
       await this.audio.play();
     } catch (error) {
-      console.warn('Failed to play notification sound:', error);
       
       // Try to get user permission if needed
       if (error instanceof DOMException && error.name === 'NotAllowedError') {
@@ -157,7 +155,6 @@ class NotificationManager {
   
   async requestPermission(): Promise<boolean> {
     if (!('Notification' in window)) {
-      console.warn('Browser does not support notifications');
       return false;
     }
     

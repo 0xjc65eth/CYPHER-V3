@@ -32,7 +32,6 @@ export const SafeChart: React.FC<SafeChartProps> = ({
   React.useEffect(() => {
     const handleError = (e: ErrorEvent) => {
       if (e.message.includes('chart') || e.message.includes('Chart')) {
-        console.warn('Chart error detected, switching to SimpleChart');
         setUseSimple(true);
       }
     };
@@ -48,7 +47,6 @@ export const SafeChart: React.FC<SafeChartProps> = ({
   return (
     <div 
       onError={() => {
-        console.warn(`SafeChart: Error detected for ${symbol}, switching to SimpleChart`);
         setUseSimple(true);
       }}
     >

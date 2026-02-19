@@ -250,7 +250,6 @@ export class BinanceConnector extends EventEmitter {
 
     this.ws.onopen = () => {
       this.emit('ws:connected');
-      console.log('🔗 Binance WebSocket conectado');
     };
 
     this.ws.onmessage = (event) => {
@@ -265,7 +264,6 @@ export class BinanceConnector extends EventEmitter {
 
     this.ws.onclose = () => {
       this.emit('ws:disconnected');
-      console.log('🔌 WebSocket desconectado');
       
       // Reconectar após 5 segundos
       setTimeout(() => {

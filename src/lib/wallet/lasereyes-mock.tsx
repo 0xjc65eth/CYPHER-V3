@@ -13,11 +13,9 @@ export const useLaserEyes = () => {
     connected: false,
     isInitializing: false,
     connect: async () => { 
-      console.log('Mock LaserEyes: connect called'); 
       return false; 
     },
     disconnect: async () => { 
-      console.log('Mock LaserEyes: disconnect called'); 
     },
     address: '',
     publicKey: '',

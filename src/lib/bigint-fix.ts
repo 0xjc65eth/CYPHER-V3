@@ -36,7 +36,6 @@ if (typeof globalThis !== 'undefined' && !globalThis.__BIGINT_FIXED__) {
         }
         return numberValue;
       } catch (error) {
-        console.warn('BigInt conversion error:', error);
         return 0;
       }
     }
@@ -67,7 +66,6 @@ if (typeof globalThis !== 'undefined' && !globalThis.__BIGINT_FIXED__) {
       const result = originalMathPow(safeBase, safeExponent);
       return isFinite(result) && !isNaN(result) ? result : 0;
     } catch (error) {
-      console.warn('Math.pow error:', error);
       return 0;
     }
   };
@@ -154,7 +152,6 @@ if (typeof globalThis !== 'undefined' && !globalThis.__BIGINT_FIXED__) {
     return originalParseFloat(string);
   };
 
-  console.log('✅ Complete BigInt polyfill applied');
 }
 
 export default {};

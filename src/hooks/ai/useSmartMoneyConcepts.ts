@@ -55,11 +55,10 @@ export function useSmartMoneyConcepts(config: SMCHookConfig): SMCHookReturn {
   // Função para buscar dados de preço REAIS da CoinMarketCap
   const fetchPriceData = useCallback(async (): Promise<PriceData[]> => {
     try {
-      console.log('🔥 SMC: Buscando dados reais CoinMarketCap para', config.symbol);
       
       // Primeira tentativa: CoinMarketCap API
       try {
-        const cmcResponse = await fetch(`/api/coinmarketcap?symbols=${config.symbol}&historical=true&interval=${config.timeframe}&limit=200`, {
+        const cmcResponse = await fetch(`/api/coinmarketcap/?symbols=${config.symbol}&historical=true&interval=${config.timeframe}&limit=200`, {
           headers: {
             'Content-Type': 'application/json',
           }
@@ -67,7 +66,6 @@ export function useSmartMoneyConcepts(config: SMCHookConfig): SMCHookReturn {
         
         if (cmcResponse.ok) {
           const cmcData = await cmcResponse.json();
-          console.log('✅ SMC: Dados CMC recebidos:', cmcData);
           
           if (cmcData.success) {
             if (cmcData.data.historical && cmcData.data.historical.length > 0) {
@@ -78,18 +76,16 @@ export function useSmartMoneyConcepts(config: SMCHookConfig): SMCHookReturn {
                 high: item.high || item.price * 1.02,
                 low: item.low || item.price * 0.98,
                 close: item.close || item.price,
-                volume: item.volume || Math.random() * 1000000000
+                volume: item.volume || 0
               }));
             } else if (cmcData.data.current && cmcData.data.current[config.symbol]) {
               // Usar preço atual + dados simulados realistas
               const currentPrice = cmcData.data.current[config.symbol].price;
-              console.log('📊 SMC: Usando preço atual CMC:', currentPrice);
               return generateRealisticSimulatedData(config.symbol, currentPrice);
             }
           }
         }
       } catch (cmcError) {
-        console.warn('⚠️ SMC: CMC API falhou:', cmcError);
       }
       
       // Tentativas de fallback para outras APIs
@@ -115,13 +111,11 @@ export function useSmartMoneyConcepts(config: SMCHookConfig): SMCHookReturn {
             }
           }
         } catch (sourceError) {
-          console.warn(`❌ SMC: Fallback ${source} falhou:`, sourceError);
           continue;
         }
       }
       
       // Último recurso: dados simulados com preços realistas
-      console.log('🔄 SMC: Usando dados simulados como último recurso');
       return generateSimulatedData(config.symbol);
       
     } catch (error) {
@@ -130,79 +124,85 @@ export function useSmartMoneyConcepts(config: SMCHookConfig): SMCHookReturn {
     }
   }, [config.symbol, config.timeframe]);
   
-  // Função para gerar dados simulados realistas com preço atual
+  // Generate deterministic simulated candle data based on current price
+  // Uses sine waves and index-based variation (no Math.random)
   const generateRealisticSimulatedData = useCallback((symbol: string, currentPrice: number): PriceData[] => {
     const data: PriceData[] = [];
     const numCandles = 200;
     let price = currentPrice;
-    
+
     for (let i = 0; i < numCandles; i++) {
-      const timestamp = new Date(Date.now() - (numCandles - i) * 3600000); // 1h intervals
-      
-      // Movimento de preço mais realista
-      const volatility = (Math.random() - 0.5) * 0.04; // ±2% volatility
-      const trend = Math.sin(i * 0.05) * 0.01; // Trend component
-      const momentum = (Math.random() - 0.5) * 0.02; // Random momentum
-      
+      const timestamp = new Date(Date.now() - (numCandles - i) * 3600000);
+
+      // Deterministic price movement using sine waves
+      const trend = Math.sin(i * 0.05) * 0.01;
+      const cycle = Math.sin(i * 0.13) * 0.005;
+      const microCycle = Math.cos(i * 0.31) * 0.003;
+
       const open = price;
-      const change = volatility + trend + momentum;
+      const change = trend + cycle + microCycle;
       const close = open * (1 + change);
-      
-      // High e Low baseados no movimento
-      const spread = Math.abs(change) + Math.random() * 0.01;
+
+      const spread = Math.abs(change) + 0.002;
       const high = Math.max(open, close) * (1 + spread);
       const low = Math.min(open, close) * (1 - spread);
-      
+
+      // Deterministic volume based on candle index
+      const baseVolume = 750000000;
+      const volumeVariation = Math.abs(Math.sin(i * 0.17)) * 500000000;
+
       data.push({
         timestamp,
         open,
         high,
         low,
         close,
-        volume: Math.random() * 1000000000 + 500000000 // Volume realista
+        volume: baseVolume + volumeVariation
       });
-      
-      price = close; // Next candle starts at current close
+
+      price = close;
     }
-    
+
     return data;
   }, []);
 
-  // Função para gerar dados simulados com preços padrão
+  // Deterministic fallback data with default prices (no Math.random)
   const generateSimulatedData = useCallback((symbol: string): PriceData[] => {
-    const basePrice = symbol.includes('BTC') ? 107000 : 
-                     symbol.includes('ETH') ? 2350 : 
+    const basePrice = symbol.includes('BTC') ? 107000 :
+                     symbol.includes('ETH') ? 2350 :
                      100;
-    
+
     const data: PriceData[] = [];
     let price = basePrice;
     const now = Date.now();
-    
+
     for (let i = 199; i >= 0; i--) {
-      const timestamp = now - (i * 4 * 60 * 1000); // 4 minutos atrás
-      
-      // Simular movimento de preço com alguma volatilidade
-      const volatility = 0.002; // 0.2%
-      const change = (Math.random() - 0.5) * volatility * 2;
+      const timestamp = now - (i * 4 * 60 * 1000);
+
+      // Deterministic price movement using sine/cosine
+      const change = Math.sin(i * 0.07) * 0.001 + Math.cos(i * 0.19) * 0.0005;
       const open = price;
       const close = price * (1 + change);
-      
-      // Calcular high e low baseado em open/close
-      const high = Math.max(open, close) * (1 + Math.random() * 0.001);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.001);
-      
+
+      const spread = Math.abs(change) + 0.0005;
+      const high = Math.max(open, close) * (1 + spread);
+      const low = Math.min(open, close) * (1 - spread);
+
+      // Deterministic volume
+      const vol = 500000 + Math.abs(Math.sin(i * 0.11)) * 500000;
+
       data.push({
         timestamp,
         open,
         high,
         low,
         close,
-        volume: Math.random() * 1000000
+        volume: vol
       });
-      
+
       price = close;
     }
-    
+
     return data;
   }, []);
   

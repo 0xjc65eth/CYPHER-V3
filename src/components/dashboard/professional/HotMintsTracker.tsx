@@ -28,62 +28,9 @@ interface HotMint {
 }
 
 export function HotMintsTracker() {
-  const [hotMints, setHotMints] = useState<HotMint[]>([
-    {
-      id: '1',
-      name: 'Quantum Cats',
-      symbol: 'QCAT',
-      price: 0.085,
-      change1h: 145.2,
-      volume1h: 12.5,
-      mints: 234,
-      rarity: 'rare',
-      lastMint: new Date(Date.now() - 2 * 60 * 1000),
-      trending: true
-    },
-    {
-      id: '2',
-      name: 'Bitcoin Bots',
-      symbol: 'BBOT',
-      price: 0.032,
-      change1h: 67.8,
-      volume1h: 8.9,
-      mints: 156,
-      rarity: 'uncommon',
-      lastMint: new Date(Date.now() - 5 * 60 * 1000),
-      trending: true
-    },
-    {
-      id: '3',
-      name: 'Ordinal Punks',
-      symbol: 'OPNK',
-      price: 0.156,
-      change1h: -23.4,
-      volume1h: 15.2,
-      mints: 89,
-      rarity: 'epic',
-      lastMint: new Date(Date.now() - 8 * 60 * 1000),
-      trending: false
-    }
-  ]);
+  const [hotMints, setHotMints] = useState<HotMint[]>([]);
 
   const [timeframe, setTimeframe] = useState('1h');
-
-  // Simulate real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setHotMints(prev => prev.map(mint => ({
-        ...mint,
-        price: mint.price * (1 + (Math.random() - 0.5) * 0.1),
-        change1h: mint.change1h + (Math.random() - 0.5) * 10,
-        mints: mint.mints + Math.floor(Math.random() * 5),
-        volume1h: mint.volume1h * (1 + (Math.random() - 0.5) * 0.2),
-        lastMint: Math.random() > 0.7 ? new Date() : mint.lastMint
-      })));
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const getRarityColor = (rarity: HotMint['rarity']): string => {
     switch (rarity) {
@@ -137,6 +84,13 @@ export function HotMintsTracker() {
       </div>
 
       {/* Hot Mints List */}
+      {hotMints.length === 0 && (
+        <div className="text-center py-8 text-gray-400">
+          <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No active mints detected</p>
+          <p className="text-xs text-gray-500 mt-1">Hot mints will appear here when available</p>
+        </div>
+      )}
       <div className="space-y-2">
         {hotMints.map((mint, index) => (
           <motion.div
@@ -232,15 +186,15 @@ export function HotMintsTracker() {
             <TrendingUp className="w-3 h-3 text-green-400" />
             <span className="text-gray-400">Active Mints</span>
           </div>
-          <p className="font-medium">127</p>
+          <p className="font-medium">{hotMints.length}</p>
         </div>
-        
+
         <div className="bg-gray-800/30 rounded p-2">
           <div className="flex items-center gap-1 mb-1">
             <Sparkles className="w-3 h-3 text-purple-400" />
-            <span className="text-gray-400">New Today</span>
+            <span className="text-gray-400">Trending</span>
           </div>
-          <p className="font-medium">23</p>
+          <p className="font-medium">{hotMints.filter(m => m.trending).length}</p>
         </div>
       </div>
     </div>

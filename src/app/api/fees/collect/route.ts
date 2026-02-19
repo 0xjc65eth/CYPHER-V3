@@ -134,14 +134,7 @@ export async function POST(request: NextRequest) {
       response.error = collectionResult.error;
     }
 
-    // Log da operação
-    console.log('💰 FEE COLLECTION API:', {
-      transactionId: body.transactionId,
-      network: body.network,
-      success: collectionResult.success,
-      feeAmount: calculatedFee.feeAmountUSD,
-      timestamp: new Date().toISOString()
-    });
+    // Fee collection operation logged via response
 
     return NextResponse.json(response, { 
       status: collectionResult.success ? 200 : 500 

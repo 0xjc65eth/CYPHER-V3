@@ -170,7 +170,6 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
     setSubmitError(null)
 
     try {
-      console.log('Submitting questionnaire answers...')
 
       // Convert answers to the format expected by the API
       const formattedAnswers = Object.entries(answers).map(([questionId, optionId]) => {
@@ -184,7 +183,7 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
       })
 
       // Call API to submit answers
-      const response = await fetch('/api/portfolio/questionnaire', {
+      const response = await fetch('/api/portfolio/questionnaire/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -198,7 +197,6 @@ export default function Questionnaire({ onComplete }: QuestionnaireProps) {
         throw new Error(data.error || 'Failed to submit questionnaire')
       }
 
-      console.log('Questionnaire submitted successfully:', data)
 
       // Show success toast
       toast({

@@ -34,7 +34,7 @@ export default function MinersPage() {
   useEffect(() => {
     async function fetchEconomics() {
       try {
-        const res = await fetch('/api/onchain/mining')
+        const res = await fetch('/api/onchain/mining/')
         if (res.ok) {
           const data = await res.json()
           if (!data.error) setEconomics(data)

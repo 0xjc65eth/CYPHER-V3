@@ -41,7 +41,6 @@ export function WalletConnectDirect() {
         })
         window.dispatchEvent(walletConnectedEvent)
         
-        console.log('Connected to UniSat wallet:', accounts[0])
       }
     } catch (error) {
       console.error('Error connecting to UniSat wallet:', error)
@@ -61,7 +60,6 @@ export function WalletConnectDirect() {
     const walletDisconnectedEvent = new CustomEvent('walletDisconnected')
     window.dispatchEvent(walletDisconnectedEvent)
     
-    console.log('Disconnected from wallet')
   }
 
   // Simular conexão para fins de demonstração
@@ -85,7 +83,6 @@ export function WalletConnectDirect() {
       })
       window.dispatchEvent(walletConnectedEvent)
       
-      console.log('Simulated connection with address:', mockAddress)
     }, 1500)
   }
 

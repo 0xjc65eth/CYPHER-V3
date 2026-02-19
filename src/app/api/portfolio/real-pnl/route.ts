@@ -4,7 +4,6 @@ import { NextRequest, NextResponse } from 'next/server';
 // Real function to get Bitcoin data from Blockstream API
 async function getRealBitcoinData(address: string) {
   try {
-    console.log('🔍 Fetching REAL Bitcoin data for:', address);
     
     // Get real balance from Blockstream API
     const balanceResponse = await fetch(`https://blockstream.info/api/address/${address}`);
@@ -96,7 +95,7 @@ export async function GET(request: NextRequest) {
     // Get Ordinals and Runes data
     let ordinalsData = { inscriptions: [], ordinals: [], runes: [], rareSats: [], totalValue: 0 };
     try {
-      const ordinalsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/portfolio/ordinals-runes?address=${address}`);
+      const ordinalsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/portfolio/ordinals-runes/?address=${address}`);
       if (ordinalsResponse.ok) {
         const ordinalsResult = await ordinalsResponse.json();
         if (ordinalsResult.success) {
@@ -104,7 +103,6 @@ export async function GET(request: NextRequest) {
         }
       }
     } catch (error) {
-      console.warn('⚠️ Could not fetch Ordinals/Runes data:', error);
     }
 
     // Calculate total portfolio value including Ordinals/Runes

@@ -20,14 +20,14 @@ export function FeeExplanationModal({ isOpen, onClose }: FeeExplanationModalProp
   if (!isOpen) return null;
 
   const destinationWallets = {
-    ethereum: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    arbitrum: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    optimism: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    polygon: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    base: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    avalanche: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    bsc: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    solana: 'EPbE1ZmLXkEJDitNb9KNu9Hq8mThS3P7LpBxdF3EkUwT'
+    ethereum: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    arbitrum: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    optimism: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    polygon: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    base: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    avalanche: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    bsc: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    solana: '4boXQgNDQ91UNmeVspdd1wZw2KkQKAZ2xdAd6UyJCwRH'
   };
 
   const copyToClipboard = (text: string) => {

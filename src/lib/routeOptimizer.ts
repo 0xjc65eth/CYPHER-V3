@@ -574,7 +574,6 @@ export class RouteOptimizer {
     
     // Check cache first
     if (this.routeCache.has(cacheKey)) {
-      console.log('🚀 Route found in cache');
       return this.routeCache.get(cacheKey)!;
     }
     
@@ -629,7 +628,6 @@ export class RouteOptimizer {
     
     this.performanceHistory.set(routeKey, history);
     
-    console.log(`📊 Performance updated for route ${routeKey}: ${success ? 'SUCCESS' : 'FAIL'}`);
   }
 
   /**
@@ -654,7 +652,6 @@ export class RouteOptimizer {
     const revenueKey = `${Date.now()}-${userAddress}`;
     this.revenueTracker.set(revenueKey, serviceFee);
     
-    console.log(`💰 Service fee calculated: $${serviceFee.toFixed(2)} (${this.feePercentage * 100}%)`);
     
     return {
       originalOutput,
@@ -705,7 +702,6 @@ export class RouteOptimizer {
     
     // If amount > $100k, consider splitting
     if (amount > 100000) {
-      console.log('💰 Large volume detected, optimizing with splits...');
       
       const splitSizes = this.calculateOptimalSplits(amount);
       const splitRoutes: OptimizedRoute[] = [];
@@ -756,7 +752,6 @@ export class RouteOptimizer {
     toChain: number
   ): Promise<OptimizedRoute[]> {
     // This would integrate with bridge protocols
-    console.log(`🌉 Finding cross-chain routes from chain ${fromChain} to ${toChain}`);
     
     // For now, return empty array - implement bridge integration later
     return [];
@@ -811,7 +806,6 @@ export class RouteOptimizer {
   clearCache(): void {
     this.routeCache.clear();
     this.performanceHistory.clear();
-    console.log('🧹 Route optimizer cache cleared');
   }
 
   /**

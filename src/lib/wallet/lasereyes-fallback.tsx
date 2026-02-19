@@ -51,12 +51,10 @@ export const LaserEyesProvider = ({ children }: { children: React.ReactNode }) =
     accounts: [],
     hasProvider: false,
     connect: async () => {
-      console.log('LaserEyes Mock: Connect called');
       setState(prev => ({ ...prev, connected: true, isConnected: true }));
       return true;
     },
     disconnect: async () => {
-      console.log('LaserEyes Mock: Disconnect called');
       setState(prev => ({ ...prev, connected: false, isConnected: false }));
     },
   });

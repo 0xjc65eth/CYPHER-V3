@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    console.log('Fetching top Ordinals collections from Ordiscan API...')
 
     // Use Ordiscan API to get top Ordinals collections
     const apiKey = process.env.ORDISCAN_API_KEY
+    const headers: Record<string, string> = {}
+    if (apiKey) {
+      headers['x-api-key'] = apiKey
+    }
     const response = await fetch('https://api.ordiscan.com/v1/collections/top', {
-      headers: {
-        'x-api-key': apiKey
-      }
+      headers,
     })
 
     if (!response.ok) {
@@ -18,18 +19,19 @@ export async function GET() {
 
     const data = await response.json()
 
-    // Format the data with more detailed information
+    // Format the data with REAL information (NO MORE Math.random()!)
     const formattedData = data.map((collection: any, idx: number) => {
-      const floorPrice = collection.floor_price || (0.005 + Math.random() * 0.02).toFixed(4);
-      const volume24h = collection.volume_24h || Math.round(Math.random() * 500);
-      const holders = collection.unique_holders || Math.round(1000 + Math.random() * 5000);
-      const supply = collection.supply || Math.round(5000 + Math.random() * 10000);
-      const marketCap = parseFloat(floorPrice) * supply;
-      const liquidity = marketCap * 0.2;
-      const change24h = (Math.random() * 20) - 10; // -10% to +10%
+      // Use REAL data from API response, or fall back to 0 (not random!)
+      const floorPrice = collection.floor_price || 0;
+      const volume24h = collection.volume_24h || 0;
+      const holders = collection.unique_holders || collection.holders || 0;
+      const supply = collection.supply || 0;
+      const marketCap = floorPrice > 0 && supply > 0 ? parseFloat(floorPrice.toString()) * supply : 0;
+      const liquidity = marketCap * 0.2; // Estimated as 20% of market cap
+      const change24h = collection.price_change_24h || collection.change_24h || 0; // REAL price change
 
       const slug = collection.slug || collection.name?.toLowerCase().replace(/\s+/g, '-') || `collection-${idx}`;
-      const inscriptionId = collection.inscription_id || collection.inscription_number || Math.floor(Math.random() * 1000000);
+      const inscriptionId = collection.inscription_id || collection.inscription_number || 0; // Use 0 instead of random
 
       return {
         name: collection.name || 'Unknown Collection',
@@ -44,8 +46,8 @@ export async function GET() {
         supply: supply,
         liquidity: liquidity,
         change_24h: change24h,
-        risk_return: ((volume24h / (parseFloat(floorPrice) || 1)) * Math.random() * 0.01).toFixed(2),
-        arbitrage: Math.random() > 0.8 ? `Sim (+${(Math.random()*5).toFixed(2)}%)` : 'Não',
+        risk_return: floorPrice > 0 ? (volume24h / parseFloat(floorPrice.toString())).toFixed(2) : '0.00', // Volume/Price ratio
+        arbitrage: 'N/A', // Require real arbitrage calculation, not random
         rank: idx + 1,
         collectionLink: `https://ordiscan.com/collections/${slug}`,
         detailsLink: `https://magiceden.io/ordinals/collection/${slug}`,
@@ -84,7 +86,6 @@ export async function GET() {
       };
     })
 
-    console.log('Top Ordinals collections:', formattedData.slice(0, 3))
     return NextResponse.json(formattedData)
   } catch (error) {
     console.error('Error fetching top Ordinals collections:', error)
@@ -133,7 +134,7 @@ export async function GET() {
       }
     ]
 
-    // Format the fallback data with the same structure as the real data
+    // Format the fallback data with the same structure as the real data (NO MORE Math.random()!)
     const fallbackData = collections.map((collection, idx) => {
       const floorPrice = collection.floor_price;
       const volume24h = collection.volume_24h;
@@ -141,10 +142,10 @@ export async function GET() {
       const supply = collection.supply;
       const marketCap = parseFloat(floorPrice) * supply;
       const liquidity = marketCap * 0.2;
-      const change24h = (Math.random() * 20) - 10; // -10% to +10%
+      const change24h = 0; // Use 0 for fallback, not random
 
       const slug = collection.slug;
-      const inscriptionId = Math.floor(Math.random() * 1000000);
+      const inscriptionId = 0; // Use 0 for fallback, not random
 
       return {
         name: collection.name,
@@ -159,8 +160,8 @@ export async function GET() {
         supply: supply,
         liquidity: liquidity,
         change_24h: change24h,
-        risk_return: ((volume24h / (parseFloat(floorPrice) || 1)) * Math.random() * 0.01).toFixed(2),
-        arbitrage: Math.random() > 0.8 ? `Sim (+${(Math.random()*5).toFixed(2)}%)` : 'Não',
+        risk_return: floorPrice > 0 ? (volume24h / parseFloat(floorPrice.toString())).toFixed(2) : '0.00', // Volume/Price ratio
+        arbitrage: 'N/A', // Require real arbitrage calculation, not random
         rank: idx + 1,
         collectionLink: `https://ordiscan.com/collections/${slug}`,
         detailsLink: `https://magiceden.io/ordinals/collection/${slug}`,

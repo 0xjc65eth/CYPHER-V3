@@ -1,110 +1,27 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ProfessionalTerminal } from '@/components/market/advanced';
+import { fmt, fmtCompact, fmtPct, chgColor, heatColor, timeAgo, apiFetch } from '@/components/market/bloomberg-utils';
+import { Skeleton, SectionSkeleton, ErrorState, SectionHeader, MetricCard } from '@/components/market/bloomberg-ui';
 
+const BloombergGrid = lazy(() => import('@/components/market/BloombergGrid'));
 
-// ─── Utility helpers ───────────────────────────────────────────────────────────
-
-function fmt(n: number | null | undefined, decimals = 2): string {
-  if (n == null || isNaN(n)) return '—';
-  return n.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-function fmtCompact(n: number | null | undefined): string {
-  if (n == null || isNaN(n)) return '—';
-  if (n >= 1e12) return `$${(n / 1e12).toFixed(3)}T`;
-  if (n >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  return `$${fmt(n)}`;
-}
-
-function fmtPct(n: number | null | undefined): string {
-  if (n == null || isNaN(n)) return '—';
-  return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
-}
-
-function chgColor(n: number | null | undefined): string {
-  if (n == null || isNaN(n)) return 'text-[#e4e4e7]';
-  return n >= 0 ? 'text-[#00ff88]' : 'text-[#ff3366]';
-}
-
-function timeAgo(ts: number | string | null | undefined): string {
-  if (!ts) return '—';
-  const t = typeof ts === 'string' ? new Date(ts).getTime() : ts;
-  const diff = Math.floor((Date.now() - t) / 1000);
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function heatColor(v: number | null): string {
-  if (v == null) return 'bg-[#1a1a2e]';
-  const abs = Math.min(Math.abs(v), 20);
-  const intensity = Math.floor(40 + (abs / 20) * 180);
-  if (v >= 0) return `bg-[rgb(0,${intensity},0)]`;
-  return `bg-[rgb(${intensity},0,0)]`;
-}
-
-// ─── Skeleton & Error components ───────────────────────────────────────────────
-
-function Skeleton({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse bg-[#2a2a3e] rounded ${className}`} />;
-}
-
-function SectionSkeleton({ rows = 3 }: { rows?: number }) {
+function GridLoading() {
   return (
-    <div className="space-y-3 p-4">
-      <Skeleton className="h-4 w-40" />
-      {Array.from({ length: rows }).map((_, i) => (
-        <Skeleton key={i} className="h-6 w-full" />
-      ))}
+    <div className="flex items-center justify-center h-96">
+      <div className="text-center">
+        <div className="animate-pulse text-[#F7931A] text-sm font-mono mb-2">LOADING GLOBAL MARKETS...</div>
+        <div className="w-48 h-1 bg-[#2a2a3e] rounded mx-auto overflow-hidden">
+          <div className="h-full bg-[#F7931A] rounded animate-pulse" style={{ width: '60%' }} />
+        </div>
+      </div>
     </div>
   );
 }
 
-function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
-  return (
-    <div className="flex items-center gap-3 p-4 text-sm font-mono text-[#ff3366]/80">
-      <span className="text-lg">&#9888;&#65039;</span>
-      <span>{message}</span>
-      {onRetry && (
-        <button onClick={onRetry} className="ml-auto text-xs text-[#00ff88] underline hover:no-underline">
-          Retry
-        </button>
-      )}
-    </div>
-  );
-}
-
-function SectionHeader({ title, updated }: { title: string; updated?: number | null }) {
-  return (
-    <div className="flex items-center justify-between mb-3">
-      <h2 className="text-xs font-bold text-[#e4e4e7]/60 tracking-widest uppercase font-mono">{title}</h2>
-      {updated && (
-        <span className="text-[10px] text-[#e4e4e7]/30 font-mono">Updated {timeAgo(updated)}</span>
-      )}
-    </div>
-  );
-}
-
-// ─── Custom fetch with error handling ──────────────────────────────────────────
-
-async function apiFetch<T>(url: string): Promise<{ data: T | null; error: string | null }> {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      return { data: null, error: body.error || `HTTP ${res.status}` };
-    }
-    const data = await res.json();
-    if (data.error) return { data: null, error: data.error };
-    return { data, error: null };
-  } catch (e) {
-    return { data: null, error: e instanceof Error ? e.message : 'Network error' };
-  }
-}
+// ─── Custom fetch with error handling (re-exported from utils) ────────────────
 
 // ─── Type definitions ──────────────────────────────────────────────────────────
 
@@ -227,26 +144,34 @@ export default function BloombergMarketPage() {
   }, []);
 
   useEffect(() => {
-    // Initial fetch all
-    fetchPrice(); fetchGlobal(); fetchPerf(); fetchExchanges();
-    fetchDerivatives(); fetchSupply(); fetchOrderbook();
-    fetchFearGreed(); fetchWhales(); fetchCorrelations();
+    // Stagger initial fetches to avoid overwhelming CoinGecko rate limiter
+    // Group 1: Critical (immediate)
+    fetchPrice(); fetchExchanges(); fetchOrderbook();
+    // Group 2: After 1s (CoinGecko-dependent)
+    const t1 = setTimeout(() => { fetchGlobal(); fetchSupply(); }, 1000);
+    // Group 3: After 2s
+    const t2 = setTimeout(() => { fetchPerf(); fetchDerivatives(); }, 2000);
+    // Group 4: After 3s (external APIs)
+    const t3 = setTimeout(() => { fetchFearGreed(); fetchWhales(); fetchCorrelations(); }, 3000);
 
-    // Set up intervals per spec - CoinGecko rate limit: all increased to 60s minimum
+    // Set up intervals — staggered to avoid bursts
     const ids = [
       setInterval(fetchPrice, 60000),
       setInterval(fetchOrderbook, 60000),
-      setInterval(fetchExchanges, 60000),
-      setInterval(fetchDerivatives, 60000),
-      setInterval(fetchGlobal, 60000),
-      setInterval(fetchPerf, 60000),
-      setInterval(fetchSupply, 60000),
-      setInterval(fetchWhales, 60000),
+      setInterval(fetchExchanges, 65000),
+      setInterval(fetchDerivatives, 70000),
+      setInterval(fetchGlobal, 75000),
+      setInterval(fetchPerf, 120000),
+      setInterval(fetchSupply, 300000),
+      setInterval(fetchWhales, 120000),
       setInterval(fetchFearGreed, 300000),
       setInterval(fetchCorrelations, 300000),
     ];
     intervalsRef.current = ids;
-    return () => ids.forEach(clearInterval);
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      ids.forEach(clearInterval);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Derived
@@ -279,23 +204,26 @@ export default function BloombergMarketPage() {
       <div className="border-b border-[#1a1a2e] px-4 py-1.5 flex items-center justify-between text-[10px] text-[#e4e4e7]/40">
         <div className="flex items-center gap-4">
           <span className="text-[#00ff88] font-bold">CYPHER MARKET TERMINAL</span>
-          <span>BTC/USD</span>
-          <span>BINANCE SPOT</span>
+          <span>MULTI-ASSET</span>
+          <span>CRYPTO &bull; FOREX &bull; COMMODITIES &bull; INDICES</span>
         </div>
         <div className="flex items-center gap-4">
           <span className={`flex items-center gap-1 ${price.loading ? 'text-yellow-500' : price.error ? 'text-[#ff3366]' : 'text-[#00ff88]'}`}>
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-current" />
             {price.loading ? 'CONNECTING' : price.error ? 'ERROR' : 'LIVE'}
           </span>
-          <span>{new Date().toLocaleTimeString()}</span>
+          <span suppressHydrationWarning>{new Date().toLocaleTimeString()}</span>
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <div className="border-b border-[#1a1a2e] px-4">
+      <Tabs defaultValue="global-markets" className="w-full">
+        <div className="border-b border-[#1a1a2e] px-4 overflow-x-auto">
           <TabsList className="bg-transparent border-0 p-0 h-auto">
+            <TabsTrigger value="global-markets" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+              Global Markets
+            </TabsTrigger>
             <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
-              Overview
+              BTC Focus
             </TabsTrigger>
             <TabsTrigger value="exchanges" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
               Exchanges
@@ -312,10 +240,20 @@ export default function BloombergMarketPage() {
             <TabsTrigger value="whales" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
               Whale Tracker
             </TabsTrigger>
+            <TabsTrigger value="pro-analysis" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+              Pro Analysis
+            </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* ═══ TAB: OVERVIEW ═══ */}
+        {/* ═══ TAB: GLOBAL MARKETS ═══ */}
+        <TabsContent value="global-markets" className="px-0">
+          <Suspense fallback={<GridLoading />}>
+            <BloombergGrid />
+          </Suspense>
+        </TabsContent>
+
+        {/* ═══ TAB: BTC FOCUS (formerly Overview) ═══ */}
         <TabsContent value="overview" className="px-4">
           <div className="space-y-4 max-w-[1800px] mx-auto py-4">
 
@@ -479,7 +417,7 @@ export default function BloombergMarketPage() {
                             </div>
                           )}
                           <div className="text-[10px] text-[#e4e4e7]/40 mb-2">BTC vs TRADITIONAL ASSETS</div>
-                          {Object.entries(c.correlations).map(([key, val]) => (
+                          {c.correlations && Object.entries(c.correlations).map(([key, val]) => (
                             <div key={key} className="flex justify-between items-center text-sm">
                               <span className="text-[#e4e4e7]/60 uppercase">{key}</span>
                               {val.value != null ? (
@@ -491,6 +429,11 @@ export default function BloombergMarketPage() {
                               )}
                             </div>
                           ))}
+                          {!c.correlations && (
+                            <div className="text-center py-4 text-[#e4e4e7]/40 text-sm">
+                              No correlation data available
+                            </div>
+                          )}
                           {c.fearGreed?.history && c.fearGreed.history.length > 0 && (
                             <div className="pt-3 border-t border-[#2a2a3e]">
                               <div className="text-[10px] text-[#e4e4e7]/40 mb-1">30-DAY F&G</div>
@@ -848,31 +791,21 @@ export default function BloombergMarketPage() {
             ) : null}
           </div>
         </TabsContent>
+
+        {/* ═══ TAB: PRO ANALYSIS ═══ */}
+        <TabsContent value="pro-analysis" className="px-0">
+          <div className="max-w-[1920px] mx-auto">
+            <ProfessionalTerminal />
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* Footer */}
       <div className="text-center text-[10px] text-[#e4e4e7]/20 py-4 border-t border-[#1a1a2e] px-4">
-        CYPHER MARKET TERMINAL &mdash; Data from CoinGecko, Binance, Blockchair, Alternative.me &mdash; Not financial advice
+        CYPHER MARKET TERMINAL &mdash; Data from CoinGecko, Twelve Data, FRED, NewsAPI, Binance, Alternative.me &mdash; Not financial advice
       </div>
     </div>
   );
 }
 
-// ─── Reusable metric card ──────────────────────────────────────────────────────
-
-function MetricCard({ label, value, sub, subColor, progress }: {
-  label: string; value: string; sub?: string; subColor?: string; progress?: number;
-}) {
-  return (
-    <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
-      <div className="text-[10px] text-[#e4e4e7]/40 mb-1">{label.toUpperCase()}</div>
-      <div className="text-lg font-bold" style={{ textShadow: '0 0 10px rgba(0,255,136,0.1)' }}>{value}</div>
-      {sub && <div className={`text-[10px] mt-0.5 ${subColor || 'text-[#e4e4e7]/40'}`}>{sub}</div>}
-      {progress != null && (
-        <div className="w-full h-1 bg-[#2a2a3e] rounded mt-2">
-          <div className="h-full bg-[#00ff88]/60 rounded transition-all" style={{ width: `${Math.min(progress * 100, 100)}%` }} />
-        </div>
-      )}
-    </div>
-  );
-}
+// MetricCard imported from '@/components/market/bloomberg-ui'

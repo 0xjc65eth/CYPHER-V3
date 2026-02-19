@@ -37,7 +37,6 @@ export class VoiceService {
       
       this.setupRecognitionHandlers();
     } else {
-      console.warn('Speech Recognition not supported in this browser');
     }
 
     // Check if browser supports Speech Synthesis
@@ -47,11 +46,9 @@ export class VoiceService {
       // Wait for voices to load
       if (this.synthesis.getVoices().length === 0) {
         this.synthesis.addEventListener('voiceschanged', () => {
-          console.log('🔊 Voices loaded:', this.synthesis?.getVoices().length);
         });
       }
     } else {
-      console.warn('Speech Synthesis not supported in this browser');
     }
   }
 
@@ -61,13 +58,11 @@ export class VoiceService {
     this.recognition.onstart = () => {
       this.isListening = true;
       this.callbacks.onStart();
-      console.log('🎤 Voice recognition started');
     };
 
     this.recognition.onend = () => {
       this.isListening = false;
       this.callbacks.onEnd();
-      console.log('🎤 Voice recognition ended');
     };
 
     this.recognition.onresult = (event) => {
@@ -86,7 +81,6 @@ export class VoiceService {
 
       if (finalTranscript) {
         this.callbacks.onResult(finalTranscript.trim(), true);
-        console.log('🎤 Final transcript:', finalTranscript);
       } else if (interimTranscript) {
         this.callbacks.onResult(interimTranscript.trim(), false);
       }
@@ -128,7 +122,6 @@ export class VoiceService {
 
     this.recognition.onnomatch = () => {
       this.callbacks.onError('No speech was recognized');
-      console.warn('🎤 No speech was recognized');
     };
   }
 
@@ -148,7 +141,6 @@ export class VoiceService {
         }
       }
     } catch (error) {
-      console.warn('Could not check microphone permissions:', error);
     }
 
     try {
@@ -185,7 +177,6 @@ export class VoiceService {
     onEnd?: () => void;
   }): void {
     if (!this.synthesis) {
-      console.warn('Speech synthesis not available');
       return;
     }
 
@@ -247,13 +238,10 @@ export class VoiceService {
       
       if (bestVoice) {
         utterance.voice = bestVoice;
-        console.log('🔊 Using voice:', bestVoice.name, bestVoice.lang);
       } else {
-        console.warn('🔊 No Portuguese voice found, using default');
       }
 
       utterance.onstart = () => {
-        console.log(`🔊 Speaking chunk ${currentChunk + 1}/${textChunks.length}`);
       };
 
       utterance.onend = () => {

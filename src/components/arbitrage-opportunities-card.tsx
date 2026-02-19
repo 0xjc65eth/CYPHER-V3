@@ -90,7 +90,7 @@ export function ArbitrageOpportunitiesCard() {
           Buy at the lower price on the source exchange and sell at the higher price on the target exchange to capture the spread.
         </Text>
         <Text className="text-xs text-gray-400 mt-1">
-          Analysis date: {formattedDate} • Data sources: Ordiscan API (e227a764-b31b-43cf-a60c-be5daa50cd2c)
+          Analysis date: {formattedDate} • Data sources: Ordiscan API
         </Text>
       </div>
 

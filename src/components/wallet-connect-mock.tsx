@@ -25,7 +25,6 @@ export function WalletConnectMock() {
       setConnecting(false)
       setShowModal(false)
       
-      console.log(`Connected to ${walletType} wallet with address ${mockAddress}`)
       
       // Emitir evento de conexão
       if (typeof window !== 'undefined') {

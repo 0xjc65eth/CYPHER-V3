@@ -42,7 +42,6 @@ try {
     RUNES
   } = LaserEyesModule);
 } catch (error) {
-  console.warn('LaserEyes not available, using fallback implementations');
   
   // Fallback implementations
   createStores = () => ({
@@ -160,7 +159,6 @@ class WalletConnector {
       // LaserEyes v3 doesn't have initialize method
       // The client is ready after construction
     } catch (error) {
-      console.warn('LaserEyes client initialization failed, using fallback:', error);
       this.client = this.createFallbackClient();
     }
     

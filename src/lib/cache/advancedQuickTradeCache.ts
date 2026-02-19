@@ -88,7 +88,6 @@ class AdvancedQuickTradeCache {
           scaleReads: 'slave'
         });
 
-        console.log('✅ Redis Cluster initialized for QuickTrade caching');
       } else {
         // Single Redis instance
         this.redis = new Redis({
@@ -100,7 +99,6 @@ class AdvancedQuickTradeCache {
           enableOfflineQueue: false
         });
 
-        console.log('✅ Redis single instance initialized for QuickTrade caching');
       }
 
       // Event handlers
@@ -109,11 +107,9 @@ class AdvancedQuickTradeCache {
       });
 
       this.redis.on('connect', () => {
-        console.log('🔗 Redis cache connected');
       });
 
       this.redis.on('ready', () => {
-        console.log('🚀 Redis cache ready');
       });
 
     } catch (error) {
@@ -126,7 +122,6 @@ class AdvancedQuickTradeCache {
   private memoryCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
   private initializeMemoryFallback() {
-    console.log('⚠️ Using memory fallback cache for QuickTrade');
     
     // Clean memory cache periodically
     setInterval(() => {
@@ -356,7 +351,6 @@ class AdvancedQuickTradeCache {
 
   // Cache warming strategies
   async warmCache(tokenPairs: Array<{ tokenIn: string; tokenOut: string; chainId: string | number }>): Promise<void> {
-    console.log('🔥 Warming QuickTrade cache...');
     
     for (const pair of tokenPairs) {
       try {
@@ -368,7 +362,6 @@ class AdvancedQuickTradeCache {
       }
     }
     
-    console.log('✅ Cache warming completed');
   }
 
   private async preloadPrices(tokens: string[]): Promise<void> {
@@ -472,7 +465,6 @@ class AdvancedQuickTradeCache {
         await this.redis.disconnect();
       }
       this.memoryCache.clear();
-      console.log('✅ QuickTrade cache disconnected');
     } catch (error) {
       console.error('❌ Cache disconnect error:', error);
     }

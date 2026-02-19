@@ -39,7 +39,6 @@ export class WorkerPool {
   }
 
   private async initialize() {
-    console.log('Initializing WorkerPool with 200 workers...')
     
     // Create worker script content inline
     const workerScript = `
@@ -216,7 +215,6 @@ export class WorkerPool {
     }
     
     this.isInitialized = true
-    console.log('WorkerPool initialized successfully')
     
     // Start processing queue
     this.processQueue()

@@ -176,7 +176,6 @@ export class ServicesModule extends EventEmitter {
   subscribeToChannel(channel: string, callback: (data: any) => void): void {
     try {
       if (!this.healthStatus.get('websocket')) {
-        console.warn('WebSocket service is unavailable');
         return;
       }
 

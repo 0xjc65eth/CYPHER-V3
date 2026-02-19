@@ -5,7 +5,17 @@
 
 import axios from 'axios';
 import { ethers } from 'ethers';
-import { getDexFeeRate, MAX_FEE_USD } from '@/config/fee-config';
+import {
+  getDexFeeRate,
+  MAX_FEE_USD,
+  ONEINCH_REFERRER_ADDRESS,
+  get1inchFeePercent,
+  PARASWAP_PARTNER,
+  PARASWAP_PARTNER_ADDRESS,
+  getParaswapFeeBps,
+  EVM_FEE_WALLET,
+} from '@/config/fee-config';
+import { recordFee } from '@/lib/feeCollector';
 
 export interface TokenInfo {
   address: string;
@@ -104,7 +114,7 @@ class DEXAggregatorService {
       }
     },
     'jupiter': {
-      url: 'https://quote-api.jup.ag/v6',
+      url: 'https://api.jup.ag/v6',
       headers: {
         'accept': 'application/json'
       }
@@ -116,7 +126,6 @@ class DEXAggregatorService {
    */
   async getBestQuote(request: QuoteRequest): Promise<QuoteResponse> {
     try {
-      console.log('🔄 Getting best quote for:', request);
 
       // Get quotes from multiple DEXs in parallel
       const [oneInchQuote, paraswapQuote, jupiterQuote] = await Promise.allSettled([
@@ -140,8 +149,29 @@ class DEXAggregatorService {
         parseFloat(current!.toAmount) > parseFloat(best!.toAmount) ? current : best
       );
 
-      // Calculate Cypher fee
+      // Calculate Cypher fee (already collected natively by 1inch/Paraswap via referrer params)
       const cypherFee = this.calculateCypherFee(bestQuote!.toAmount, bestQuote!.toToken, request.isPremium);
+
+      // Record fee for audit tracking
+      if (parseFloat(cypherFee.feeUSD) > 0) {
+        await recordFee({
+          id: `evm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`,
+          protocol: 'evm_dex',
+          timestamp: Date.now(),
+          chain: `chain_${request.chainId}`,
+          fromToken: request.fromTokenAddress,
+          toToken: request.toTokenAddress,
+          tradeAmountUSD: parseFloat(bestQuote!.toAmount),
+          feeAmount: parseFloat(cypherFee.fee),
+          feeToken: bestQuote!.toToken?.symbol || 'UNKNOWN',
+          feeUSD: parseFloat(cypherFee.feeUSD),
+          feeBps: 30,
+          feeWallet: EVM_FEE_WALLET,
+          userAddress: request.userAddress || 'unknown',
+          status: 'included',
+          metadata: { dex: bestQuote!.protocols?.[0]?.name || 'unknown', collection: 'native_referrer' },
+        });
+      }
 
       return {
         ...bestQuote!,
@@ -165,14 +195,18 @@ class DEXAggregatorService {
         throw new Error(`Unsupported chain: ${request.chainId}`);
       }
 
-      // Get swap data from 1inch
+      // 1inch referrer fee: natively deducted from swap output and sent to referrerAddress
+      const feePercent = get1inchFeePercent(request.isPremium ?? false);
+
       const swapParams = new URLSearchParams({
         src: request.fromTokenAddress,
         dst: request.toTokenAddress,
         amount: request.amount,
         from: request.userAddress || '0x0000000000000000000000000000000000000000',
         slippage: (request.slippage || 1).toString(),
-        disableEstimate: 'true'
+        disableEstimate: 'true',
+        referrerAddress: ONEINCH_REFERRER_ADDRESS,
+        fee: feePercent.toString(),
       });
 
       const response = await axios.get(`${chainConfig.oneInchApi}/swap?${swapParams}`, {
@@ -204,7 +238,6 @@ class DEXAggregatorService {
       };
 
     } catch (error) {
-      console.warn('⚠️ 1inch quote failed:', error);
       return null;
     }
   }
@@ -214,13 +247,18 @@ class DEXAggregatorService {
    */
   private async getParaswapQuote(request: QuoteRequest): Promise<QuoteResponse | null> {
     try {
-      // Get price from Paraswap
+      // Paraswap partner fee: natively deducted and sent to partnerAddress
+      const partnerFeeBps = getParaswapFeeBps(request.isPremium ?? false);
+
       const priceParams = new URLSearchParams({
         srcToken: request.fromTokenAddress,
         destToken: request.toTokenAddress,
         amount: request.amount,
         network: request.chainId.toString(),
-        side: 'SELL'
+        side: 'SELL',
+        partner: PARASWAP_PARTNER,
+        partnerAddress: PARASWAP_PARTNER_ADDRESS,
+        partnerFeeBps: partnerFeeBps.toString(),
       });
 
       const priceResponse = await axios.get(`${this.DEX_APIS.paraswap.url}/prices?${priceParams}`, {
@@ -268,7 +306,6 @@ class DEXAggregatorService {
       };
 
     } catch (error) {
-      console.warn('⚠️ Paraswap quote failed:', error);
       return null;
     }
   }
@@ -335,7 +372,6 @@ class DEXAggregatorService {
       };
 
     } catch (error) {
-      console.warn('⚠️ Jupiter quote failed:', error);
       return null;
     }
   }

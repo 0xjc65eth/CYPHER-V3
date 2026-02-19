@@ -69,7 +69,6 @@ class HyperliquidRealService {
   constructor() {
     this.apiKey = process.env.HYPERLIQUID_API_KEY || '';
     if (!this.apiKey) {
-      console.warn('Hyperliquid API key not found in environment variables');
     }
   }
 
@@ -175,7 +174,7 @@ class HyperliquidRealService {
       
       Object.entries(hyperliquidPrices).forEach(([asset, price]) => {
         // Simulate price differences between exchanges
-        const binancePrice = price * (1 + (Math.random() - 0.5) * 0.002); // ±0.1% difference
+        const binancePrice = price; // No fake spread - use real cross-exchange data when available
         const spread = Math.abs(price - binancePrice);
         const profitPotential = (spread / price) * 100;
         
@@ -188,7 +187,7 @@ class HyperliquidRealService {
             price2: binancePrice,
             spread,
             profitPotential,
-            volume: Math.random() * 1000000 // Mock volume
+            volume: 0
           });
         }
       });
@@ -226,10 +225,6 @@ class HyperliquidRealService {
       );
 
       // Simulate trade execution
-      console.log(`Executando arbitragem: ${opportunity.asset}`);
-      console.log(`Comprar em ${opportunity.exchange1}: $${opportunity.price1}`);
-      console.log(`Vender em ${opportunity.exchange2}: $${opportunity.price2}`);
-      console.log(`Lucro esperado: ${opportunity.profitPotential.toFixed(3)}%`);
 
       // Here you would implement actual trading logic
       // For now, return success simulation
@@ -271,17 +266,12 @@ class HyperliquidRealService {
       const lowerBound = currentPrice * (1 - gridRange);
       const stepSize = (upperBound - lowerBound) / gridLevels;
 
-      console.log(`Configurando Grid Trading para ${asset}:`);
-      console.log(`Preço atual: $${currentPrice}`);
-      console.log(`Range: $${lowerBound.toFixed(2)} - $${upperBound.toFixed(2)}`);
-      console.log(`Níveis do grid: ${gridLevels}`);
 
       // Simulate grid orders
       for (let i = 0; i < gridLevels; i++) {
         const buyPrice = lowerBound + (stepSize * i);
         const sellPrice = buyPrice + stepSize;
         
-        console.log(`Nível ${i + 1}: Comprar em $${buyPrice.toFixed(2)}, Vender em $${sellPrice.toFixed(2)}`);
       }
 
       return {
@@ -308,10 +298,6 @@ class HyperliquidRealService {
 
       const amountPerInterval = totalAmount / intervals;
       
-      console.log(`Configurando DCA para ${asset}:`);
-      console.log(`Valor total: $${totalAmount}`);
-      console.log(`Intervalos: ${intervals}`);
-      console.log(`Valor por compra: $${amountPerInterval.toFixed(2)}`);
 
       // Simulate DCA execution
       return {

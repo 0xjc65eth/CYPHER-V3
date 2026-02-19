@@ -45,7 +45,7 @@ export class BitcoinWebSocketService extends EventEmitter {
 
     // Only connect in browser environment
     if (typeof window === 'undefined') {
-      console.log('WebSocket connection skipped - server environment');
+      // WebSocket connection skipped - server environment
       return;
     }
 

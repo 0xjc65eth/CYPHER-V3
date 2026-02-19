@@ -1,3 +1,14 @@
+/**
+ * DEMO/MOCK Price Comparison Engine
+ *
+ * WARNING: This module uses SIMULATED data and does NOT connect to real exchanges.
+ * All prices are generated randomly around hardcoded base values.
+ *
+ * For production use, replace with real exchange API integrations using CCXT library.
+ * See: https://github.com/ccxt/ccxt
+ */
+export const PRICE_COMPARISON_IS_DEMO = true;
+
 export interface PriceData {
   exchange: string;
   price: number;
@@ -24,7 +35,6 @@ export class PriceComparisonEngine {
     'Kraken',
     'Bitstamp',
     'Gemini',
-    'FTX'
   ];
 
   static async comparePrice(symbol: string): Promise<PriceComparison> {

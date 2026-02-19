@@ -220,7 +220,7 @@ export class OKXOrdinalsAPI {
       return result;
     } catch (error) {
       console.error('OKX getCollections error:', error);
-      return { collections: this.getMockCollections() };
+      return { collections: [] };
     }
   }
 
@@ -269,7 +269,7 @@ export class OKXOrdinalsAPI {
       return data.data?.collections || [];
     } catch (error) {
       console.error('OKX getTrendingCollections error:', error);
-      return this.getMockTrendingCollections();
+      return [];
     }
   }
 
@@ -329,7 +329,7 @@ export class OKXOrdinalsAPI {
       return result;
     } catch (error) {
       console.error('OKX getInscriptions error:', error);
-      return { inscriptions: this.getMockInscriptions() };
+      return { inscriptions: [] };
     }
   }
 
@@ -389,7 +389,7 @@ export class OKXOrdinalsAPI {
       return result;
     } catch (error) {
       console.error(`OKX getCollectionActivity error for ${collectionId}:`, error);
-      return { activities: this.getMockActivities() };
+      return { activities: [] };
     }
   }
 
@@ -428,7 +428,7 @@ export class OKXOrdinalsAPI {
       return data.data;
     } catch (error) {
       console.error('OKX getMarketStats error:', error);
-      return this.getMockMarketStats();
+      return null;
     }
   }
 
@@ -477,7 +477,7 @@ export class OKXOrdinalsAPI {
       return data.data?.history || [];
     } catch (error) {
       console.error(`OKX getFloorPriceHistory error for ${collectionId}:`, error);
-      return this.getMockFloorHistory();
+      return [];
     }
   }
 
@@ -521,176 +521,7 @@ export class OKXOrdinalsAPI {
     }
   }
 
-  // Mock data methods
-  private getMockCollections(): OKXCollection[] {
-    return [
-      {
-        collectionId: 'nodemonkeys-okx',
-        symbol: 'NODEMONKEYS',
-        name: 'NodeMonkeys',
-        description: 'The first 10k PFP collection on Bitcoin',
-        logoUrl: 'https://example.com/nodemonkeys-logo.png',
-        bannerUrl: 'https://example.com/nodemonkeys-banner.png',
-        websiteUrl: 'https://nodemonkeys.io',
-        twitterUrl: 'https://twitter.com/nodemonkeys',
-        discordUrl: 'https://discord.gg/nodemonkeys',
-        totalSupply: 10000,
-        ownerCount: 3456,
-        floorPrice: '0.045',
-        floorPriceSymbol: 'BTC',
-        royaltyFee: '2.5',
-        listedRate: '8.92',
-        volume24h: '156.7',
-        volume7d: '892.3',
-        volume30d: '3421.5',
-        volumeTotal: '5670.8',
-        change24h: '+12.5',
-        change7d: '+8.3',
-        change30d: '+45.2',
-        salesCount24h: 89,
-        avgPrice24h: '0.052',
-        marketCap: '450.0',
-        isVerified: true,
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: new Date().toISOString()
-      }
-    ];
-  }
-
-  private getMockInscriptions(): OKXInscription[] {
-    return [
-      {
-        inscriptionId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        inscriptionNumber: '15000000',
-        address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        outputValue: '10000',
-        preview: 'https://ordinals.com/preview/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        content: 'https://ordinals.com/content/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        contentLength: '25600',
-        contentType: 'image/png',
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        genesisHeight: '820000',
-        genesisTransaction: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-        location: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0:0:0',
-        offset: '0',
-        satoshi: '2099999997689999',
-        contentBody: '',
-        utxo: {
-          txId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-          index: 0,
-          satoshi: '10000',
-          scriptPk: '0014a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8',
-          addressType: 0,
-          address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-          height: 820000,
-          isOpInRBF: false
-        },
-        collectionInfo: {
-          collectionId: 'nodemonkeys-okx',
-          name: 'NodeMonkeys',
-          logoUrl: 'https://example.com/nodemonkeys-logo.png'
-        },
-        rarityInfo: {
-          rank: 2456,
-          score: 78.5,
-          rarity: 'uncommon',
-          totalSupply: 10000
-        },
-        listingInfo: {
-          price: '0.045',
-          priceSymbol: 'BTC',
-          listedAt: new Date(Date.now() - 3600000).toISOString(),
-          seller: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-          marketplace: 'okx'
-        },
-        traitInfo: [
-          {
-            traitType: 'Background',
-            value: 'Blue',
-            rarity: 0.15,
-            frequency: 1500
-          },
-          {
-            traitType: 'Body',
-            value: 'Monkey',
-            rarity: 1.0,
-            frequency: 10000
-          }
-        ]
-      }
-    ];
-  }
-
-  private getMockActivities(): OKXMarketActivity[] {
-    return [
-      {
-        activityId: 'activity-1',
-        type: 'BUY',
-        inscriptionId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        inscriptionNumber: '15000000',
-        fromAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        toAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
-        price: '0.045',
-        priceSymbol: 'BTC',
-        quantity: '1',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        txHash: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-        blockHeight: '820000',
-        marketplace: 'okx',
-        collectionInfo: {
-          collectionId: 'nodemonkeys-okx',
-          name: 'NodeMonkeys'
-        }
-      }
-    ];
-  }
-
-  private getMockTrendingCollections(): OKXTrendingCollection[] {
-    return [
-      {
-        collectionId: 'nodemonkeys-okx',
-        name: 'NodeMonkeys',
-        logoUrl: 'https://example.com/nodemonkeys-logo.png',
-        floorPrice: '0.045',
-        change24h: '+12.5',
-        volume24h: '156.7',
-        rank: 1,
-        trendingType: 'VOLUME'
-      }
-    ];
-  }
-
-  private getMockMarketStats(): OKXMarketStats {
-    return {
-      totalVolume: '28005.5',
-      totalSales: 156700,
-      totalListings: 8920,
-      avgPrice: '0.048',
-      floorPrice: '0.045',
-      marketCap: '4500.0',
-      ownerCount: 34560,
-      itemCount: 100000,
-      listedCount: 8920,
-      volume24h: '1567.0',
-      volume7d: '8923.0',
-      volume30d: '34215.0',
-      sales24h: 890,
-      sales7d: 5670,
-      sales30d: 21340,
-      change24h: '+12.5',
-      change7d: '+8.3',
-      change30d: '+45.2'
-    };
-  }
-
-  private getMockFloorHistory(): Array<{ timestamp: number; price: string; volume: string }> {
-    const now = Date.now();
-    return Array.from({ length: 24 }, (_, i) => ({
-      timestamp: now - (24 - i) * 60 * 60 * 1000,
-      price: (0.045 + (Math.random() - 0.5) * 0.01).toFixed(6),
-      volume: (Math.random() * 50 + 10).toFixed(2)
-    }));
-  }
+  // No mock data - API errors return empty results
 }
 
 // Singleton instance

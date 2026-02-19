@@ -15,7 +15,7 @@ export function useSimpleBitcoinPrice() {
         
         // Try to fetch from our API first
         try {
-          const response = await fetch('/api/bitcoin-price');
+          const response = await fetch('/api/bitcoin-price/');
           if (response.ok) {
             const result = await response.json();
             if (result.price) {
@@ -25,12 +25,11 @@ export function useSimpleBitcoinPrice() {
             }
           }
         } catch (apiError) {
-          console.log('API failed, trying CoinGecko...');
         }
 
         // Fallback to CoinGecko with rate limiting
         const coinGeckoData = await rateLimitedFetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
+          '/api/coingecko/simple/price?ids=bitcoin&vs_currencies=usd'
         );
         const price = coinGeckoData?.bitcoin?.usd;
         

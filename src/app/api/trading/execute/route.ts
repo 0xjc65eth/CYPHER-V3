@@ -83,16 +83,6 @@ export async function POST(request: NextRequest) {
     result.executionTime = Date.now() - startTime;
     result.serviceFee = serviceFee.toString();
 
-    // Log successful execution
-    console.log(`[Trading API] ${body.action.toUpperCase()} executed successfully:`, {
-      network: body.network,
-      fromToken: body.fromToken,
-      toToken: body.toToken,
-      amount: body.amount,
-      txHash: result.transactionHash,
-      executionTime: result.executionTime
-    });
-
     return NextResponse.json(result);
 
   } catch (error) {
@@ -126,26 +116,8 @@ async function executeBuyOrder(
     // Estimate gas costs
     const gasEstimate = await estimateGasCosts(request);
 
-    // For demo purposes, simulate successful execution
-    // In production, this would interact with actual DEX protocols
-    const mockTxHash = generateMockTransactionHash();
-    
-    return {
-      success: true,
-      transactionHash: mockTxHash,
-      estimatedGas: gasEstimate.toString(),
-      priceImpact: calculatePriceImpact(parseFloat(request.amount), marketPrice),
-      route: {
-        type: 'market_buy',
-        price: adjustedPrice,
-        amount: buyAmount,
-        fees: {
-          serviceFee,
-          networkFee: gasEstimate,
-          total: serviceFee + gasEstimate
-        }
-      }
-    };
+    // Real DEX integration required - mock transactions disabled
+    throw new Error('Trade execution requires real DEX integration. Mock transactions disabled.');
   } catch (error) {
     throw new Error(`Buy order execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -170,26 +142,8 @@ async function executeSellOrder(
     // Estimate gas costs
     const gasEstimate = await estimateGasCosts(request);
 
-    // For demo purposes, simulate successful execution
-    const mockTxHash = generateMockTransactionHash();
-    
-    return {
-      success: true,
-      transactionHash: mockTxHash,
-      estimatedGas: gasEstimate.toString(),
-      priceImpact: calculatePriceImpact(parseFloat(request.amount), marketPrice),
-      route: {
-        type: 'market_sell',
-        price: adjustedPrice,
-        amount: parseFloat(request.amount),
-        value: sellValue,
-        fees: {
-          serviceFee,
-          networkFee: gasEstimate,
-          total: serviceFee + gasEstimate
-        }
-      }
-    };
+    // Real DEX integration required - mock transactions disabled
+    throw new Error('Trade execution requires real DEX integration. Mock transactions disabled.');
   } catch (error) {
     throw new Error(`Sell order execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -221,28 +175,8 @@ async function executeSwapOrder(
     // Estimate gas costs
     const gasEstimate = await estimateGasCosts(request);
 
-    // For demo purposes, simulate successful execution
-    const mockTxHash = generateMockTransactionHash();
-    
-    return {
-      success: true,
-      transactionHash: mockTxHash,
-      estimatedGas: gasEstimate.toString(),
-      priceImpact: calculatePriceImpact(parseFloat(request.amount), fromPrice),
-      route: {
-        type: 'token_swap',
-        fromToken: request.fromToken,
-        toToken: request.toToken,
-        inputAmount: parseFloat(request.amount),
-        outputAmount,
-        swapRatio: adjustedRatio,
-        fees: {
-          serviceFee,
-          networkFee: gasEstimate,
-          total: serviceFee + gasEstimate
-        }
-      }
-    };
+    // Real DEX integration required - mock transactions disabled
+    throw new Error('Trade execution requires real DEX integration. Mock transactions disabled.');
   } catch (error) {
     throw new Error(`Swap order execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
@@ -273,20 +207,29 @@ function getTokenPriceUSD(token: string): number {
   return priceMap[token.toUpperCase()] || 1;
 }
 
-async function getMarketPrice(token: string, network: string): Promise<number | null> {
+async function getMarketPrice(token: string, _network: string): Promise<number | null> {
   try {
-    // In production, integrate with price feeds like CoinGecko, CoinMarketCap, etc.
-    // For demo purposes, return mock prices
-    const prices: { [key: string]: number } = {
-      'ETH': 2500 + (Math.random() - 0.5) * 100,
-      'BTC': 65000 + (Math.random() - 0.5) * 2000,
-      'SOL': 150 + (Math.random() - 0.5) * 10,
-      'MATIC': 0.8 + (Math.random() - 0.5) * 0.1,
-      'AVAX': 35 + (Math.random() - 0.5) * 3,
-      'BNB': 300 + (Math.random() - 0.5) * 20
+    // Fetch real price from CoinGecko API
+    const cgIds: Record<string, string> = {
+      'ETH': 'ethereum',
+      'BTC': 'bitcoin',
+      'SOL': 'solana',
+      'MATIC': 'matic-network',
+      'AVAX': 'avalanche-2',
+      'BNB': 'binancecoin',
     };
-    
-    return prices[token.toUpperCase()] || null;
+
+    const cgId = cgIds[token.toUpperCase()];
+    if (!cgId) return null;
+
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`,
+      { next: { revalidate: 30 } }
+    );
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data?.[cgId]?.usd || null;
   } catch (error) {
     console.error('Error fetching market price:', error);
     return null;
@@ -341,14 +284,8 @@ function isValidAddress(address: string, network: string): boolean {
   return pattern ? pattern.test(address) : false;
 }
 
-function generateMockTransactionHash(): string {
-  const chars = '0123456789abcdef';
-  let result = '0x';
-  for (let i = 0; i < 64; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
+// REMOVIDO: generateMockTransactionHash - retornar apenas hashes reais de transações
+// Todas as execuções de trade devem retornar hash real da blockchain ou erro
 
 // Rate limiting middleware (implement as needed)
 export async function GET() {

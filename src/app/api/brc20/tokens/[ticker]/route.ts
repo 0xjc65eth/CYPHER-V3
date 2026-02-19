@@ -13,7 +13,6 @@ export async function GET(
   }
 
   try {
-    console.log(`📊 Fetching BRC-20 token details for: ${ticker}`)
     
     // Get token details from our service
     const tokenDetails = await brc20Service.getBRC20TokenDetails(ticker)
@@ -34,7 +33,6 @@ export async function GET(
       const response = await hiroAPI.getBRC20TokenDetails(ticker)
       hiroData = response
     } catch (error) {
-      console.warn(`⚠️ Could not fetch Hiro data for ${ticker}:`, error.message)
     }
 
     const response = {
@@ -47,7 +45,6 @@ export async function GET(
       dataSource: 'enhanced'
     }
 
-    console.log(`✅ Successfully fetched data for ${ticker}`)
     return NextResponse.json(response)
   } catch (error) {
     console.error(`❌ Error fetching token details for ${ticker}:`, error)

@@ -11,8 +11,6 @@ export function TestNavigation() {
           href="/cypher-ai" 
           className="bg-blue-500 px-2 py-1 rounded"
           onClick={(e) => {
-            console.log('🧪 TEST LINK CLICKED');
-            console.log('Event:', e);
           }}
         >
           Test AI
@@ -22,8 +20,6 @@ export function TestNavigation() {
           href="/arbitrage" 
           className="bg-green-500 px-2 py-1 rounded"
           onClick={(e) => {
-            console.log('🧪 TEST ARBITRAGE CLICKED');
-            console.log('Event:', e);
           }}
         >
           Test Arbitrage
@@ -33,8 +29,6 @@ export function TestNavigation() {
           href="/market" 
           className="bg-yellow-500 px-2 py-1 rounded text-black"
           onClick={(e) => {
-            console.log('🧪 REGULAR LINK CLICKED');
-            console.log('Event:', e);
           }}
         >
           Regular Link

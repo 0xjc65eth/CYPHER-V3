@@ -241,35 +241,55 @@ export function AnimatedStatsWidget({
 
 export function AnimatedDashboardGrid() {
   const [marketData, setMarketData] = useState({
-    btcPrice: 110250,
-    btcChange: '+2.45',
-    ethPrice: 2850,
-    ethChange: '+1.23',
-    activeAI: 156,
-    aiChange: '+12',
-    volume: 45.8,
-    volumeChange: '+8.9',
+    btcPrice: 0,
+    btcChange: '--',
+    ethPrice: 0,
+    ethChange: '--',
+    activeAI: 0,
+    aiChange: '--',
+    volume: 0,
+    volumeChange: '--',
     security: 99.8,
     securityChange: '+0.1',
-    networkHealth: 94.5,
-    networkChange: '-1.2'
+    networkHealth: 0,
+    networkChange: '--'
   });
 
-  // Simulate real-time data updates
+  // Fetch real market data
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMarketData(prev => ({
-        ...prev,
-        btcPrice: prev.btcPrice + (Math.random() - 0.5) * 100,
-        btcChange: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 5).toFixed(2)}`,
-        ethPrice: prev.ethPrice + (Math.random() - 0.5) * 50,
-        ethChange: `${Math.random() > 0.5 ? '+' : '-'}${(Math.random() * 3).toFixed(2)}`,
-        activeAI: Math.floor(prev.activeAI + (Math.random() - 0.5) * 10),
-        volume: prev.volume + (Math.random() - 0.5) * 5,
-        networkHealth: Math.max(85, Math.min(100, prev.networkHealth + (Math.random() - 0.5) * 2))
-      }));
-    }, 3000);
+    const fetchData = async () => {
+      try {
+        const res = await fetch(
+          '/api/coingecko?endpoint=/coins/markets&params=' +
+            encodeURIComponent('vs_currency=usd&ids=bitcoin,ethereum&per_page=2&page=1')
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!Array.isArray(data) || data.length === 0) return;
 
+        const btc = data.find((c: any) => c.id === 'bitcoin');
+        const eth = data.find((c: any) => c.id === 'ethereum');
+
+        setMarketData(prev => ({
+          ...prev,
+          btcPrice: btc?.current_price || prev.btcPrice,
+          btcChange: btc?.price_change_percentage_24h != null
+            ? `${btc.price_change_percentage_24h >= 0 ? '+' : ''}${btc.price_change_percentage_24h.toFixed(2)}`
+            : prev.btcChange,
+          ethPrice: eth?.current_price || prev.ethPrice,
+          ethChange: eth?.price_change_percentage_24h != null
+            ? `${eth.price_change_percentage_24h >= 0 ? '+' : ''}${eth.price_change_percentage_24h.toFixed(2)}`
+            : prev.ethChange,
+          volume: (btc?.total_volume || 0) / 1e9,
+          volumeChange: '--',
+        }));
+      } catch (err) {
+        console.error('AnimatedDashboardGrid fetch error:', err);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 60000);
     return () => clearInterval(interval);
   }, []);
 

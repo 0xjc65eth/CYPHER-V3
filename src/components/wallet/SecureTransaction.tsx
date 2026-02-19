@@ -44,7 +44,6 @@ export default function SecureTransaction() {
         description: 'Your transaction has been securely authorized',
       })
       // Here you would proceed with the actual transaction
-      console.log('Auth token:', authToken)
     }
   })
 

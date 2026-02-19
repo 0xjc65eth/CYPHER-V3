@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  productionBrowserSourceMaps: false,
   // output: 'export', // Removed - using standard hybrid mode for API routes
   trailingSlash: true,
   images: {
@@ -9,6 +10,11 @@ const nextConfig = {
       { protocol: 'https', hostname: 'magiceden.io' },
       { protocol: 'https', hostname: 'api.coinmarketcap.com' },
       { protocol: 'https', hostname: 'api.ordiscan.com' },
+      { protocol: 'https', hostname: 'img-cdn.magiceden.dev' },
+      { protocol: 'https', hostname: 'creator-hub-prod.s3.us-east-2.amazonaws.com' },
+      { protocol: 'https', hostname: '*.ipfs.nftstorage.link' },
+      { protocol: 'https', hostname: 'api-mainnet.magiceden.dev' },
+      { protocol: 'https', hostname: 'ord.cdn.magiceden.dev' },
     ],
   },
   experimental: {
@@ -26,7 +32,7 @@ const nextConfig = {
     maxInactiveAge: 25 * 1000,
     pagesBufferLength: 4,
   },
-  cacheMaxMemorySize: 0,
+  cacheMaxMemorySize: 50 * 1024 * 1024, // 50 MB fetch cache
   logging: {
     fetches: {
       fullUrl: true,

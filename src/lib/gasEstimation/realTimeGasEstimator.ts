@@ -241,7 +241,6 @@ class RealTimeGasEstimator {
           return await this.fetchFromBlocknativeAPI(source, network);
         }
       } catch (error) {
-        console.warn(`⚠️ Failed to fetch from ${source}:`, error);
         continue;
       }
     }

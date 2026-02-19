@@ -59,7 +59,7 @@ export function AIPortfolioAnalysis({ portfolioData, currentBtcPrice, walletAddr
   const fetchAIAnalysis = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/ai/portfolio-analysis', {
+      const response = await fetch('/api/ai/portfolio-analysis/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

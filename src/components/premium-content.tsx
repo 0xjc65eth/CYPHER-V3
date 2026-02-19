@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { RiLockLine, RiShieldCheckLine } from 'react-icons/ri'
-import { useLaserEyes } from '@omnisat/lasereyes-react'
+import { RiLockLine, RiShieldCheckLine, RiVipCrownLine } from 'react-icons/ri'
+import { usePremium } from '@/contexts/PremiumContext'
+import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
+import { getWalletAccessTier, hasPremiumAccess } from '@/config/vip-wallets'
 
 interface PremiumContentProps {
   children: React.ReactNode
@@ -11,30 +12,12 @@ interface PremiumContentProps {
 
 export function PremiumContent({ children, fallback }: PremiumContentProps) {
   const { connected, address } = useLaserEyes()
-  const [isPremium, setIsPremium] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const { isPremium, isVerifying, accessTier } = usePremium()
 
-  // Simular verificação de premium para demonstração
-  useEffect(() => {
-    if (connected && address) {
-      // Para fins de demonstração, vamos simular que o usuário é premium
-      // Em produção, você deve verificar se o usuário possui NFTs das coleções premium
-      const checkPremiumStatus = () => {
-        console.log('Verificando status premium...');
-        // Simular um atraso na verificação
-        setTimeout(() => {
-          setIsPremium(true);
-          setIsLoading(false);
-          console.log('Status premium verificado: true');
-        }, 1000);
-      };
-
-      checkPremiumStatus();
-    } else {
-      setIsPremium(false);
-      setIsLoading(false);
-    }
-  }, [connected, address]);
+  // Derive effective premium from both context and direct BTC VIP check
+  const btcTier = getWalletAccessTier(connected ? (address ?? null) : null)
+  const effectivePremium = isPremium || hasPremiumAccess(btcTier)
+  const effectiveTier = btcTier !== 'free' ? btcTier : accessTier
 
   // Default fallback content if none provided
   const defaultFallback = (
@@ -51,7 +34,7 @@ export function PremiumContent({ children, fallback }: PremiumContentProps) {
     </div>
   )
 
-  if (isLoading) {
+  if (isVerifying) {
     return (
       <div className="p-6 border border-[#3D3D3D] rounded-lg bg-[#121212] text-center">
         <div className="flex justify-center mb-4">
@@ -59,23 +42,39 @@ export function PremiumContent({ children, fallback }: PremiumContentProps) {
             <RiLockLine className="w-6 h-6 text-[#8B5CF6]" />
           </div>
         </div>
-        <h3 className="text-lg font-medium text-white mb-2">Verificando acesso...</h3>
+        <h3 className="text-lg font-medium text-white mb-2">Verifying access...</h3>
         <p className="text-gray-400 text-sm mb-4">
-          Verificando se você possui coleções premium...
+          Checking wallet for premium access...
         </p>
       </div>
     )
   }
 
-  if (!isPremium) {
+  if (!effectivePremium) {
     return fallback || defaultFallback
   }
 
+  const isVipOrAdmin = effectiveTier === 'vip' || effectiveTier === 'super_admin'
+
   return (
-    <div className="premium-content relative border border-[#8B5CF6]/30 rounded-lg">
-      <div className="premium-badge absolute top-2 right-2 flex items-center px-2 py-1 bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] rounded-md text-xs text-white">
-        <RiShieldCheckLine className="mr-1" />
-        <span>Premium</span>
+    <div className={`premium-content relative border rounded-lg ${
+      isVipOrAdmin ? 'border-orange-500/30' : 'border-[#8B5CF6]/30'
+    }`}>
+      <div className={`premium-badge absolute top-2 right-2 flex items-center px-2 py-1 rounded-md text-xs text-white ${
+        effectiveTier === 'super_admin'
+          ? 'bg-gradient-to-r from-red-500 to-orange-500'
+          : effectiveTier === 'vip'
+            ? 'bg-gradient-to-r from-orange-500 to-yellow-500'
+            : 'bg-gradient-to-r from-[#8B5CF6] to-[#6366F1]'
+      }`}>
+        {isVipOrAdmin ? (
+          <RiVipCrownLine className="mr-1" />
+        ) : (
+          <RiShieldCheckLine className="mr-1" />
+        )}
+        <span>
+          {effectiveTier === 'super_admin' ? 'Admin' : effectiveTier === 'vip' ? 'VIP' : 'Premium'}
+        </span>
       </div>
       {children}
     </div>

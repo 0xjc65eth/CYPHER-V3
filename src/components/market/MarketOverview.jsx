@@ -78,12 +78,8 @@ export const MarketOverview = () => {
       { symbol: 'ICP', name: 'Internet Computer', price: 12.34, percent_change_24h: -2.10, volume_24h: 54321098, market_cap: 5678000000 }
     ];
 
-    // Adicionar variação aleatória aos preços
-    return coins.map(coin => ({
-      ...coin,
-      price: coin.price * (1 + (Math.random() - 0.5) * 0.02),
-      percent_change_24h: coin.percent_change_24h + (Math.random() - 0.5) * 0.5
-    }));
+    // Return static fallback prices (no random jitter)
+    return coins;
   };
 
   const formatNumber = (num) => {

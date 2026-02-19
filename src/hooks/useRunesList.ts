@@ -4,75 +4,43 @@ export function useRunesList() {
   return useQuery({
     queryKey: ['runes-list'],
     queryFn: async () => {
+      // Strategy 1: Try /api/runes/list (Hiro API with holder enrichment)
       try {
-        console.log('Fetching Runes list from API...')
-
-        // Fetch data from API
-        const response = await fetch('/api/runes-list')
-        if (!response.ok) {
-          throw new Error(`Failed to fetch Runes list: ${response.status}`)
-        }
-
-        const data = await response.json()
-        console.log('Runes list data:', data.slice(0, 3))
-
-        return data
-      } catch (error) {
-        console.error('Error fetching Runes list:', error)
-
-        // Return fallback data
-        const fallbackData = [
-          {
-            name: 'ORDI',
-            formatted_name: 'ORDI',
-            volume_24h: 280,
-            market: {
-              price_in_btc: 0.000085
-            },
-            unique_holders: 2800
-          },
-          {
-            name: 'SATS',
-            formatted_name: 'SATS',
-            volume_24h: 210,
-            market: {
-              price_in_btc: 0.000065
-            },
-            unique_holders: 2100
-          },
-          {
-            name: 'PEPE',
-            formatted_name: 'PEPE',
-            volume_24h: 180,
-            market: {
-              price_in_btc: 0.000045
-            },
-            unique_holders: 1800
-          },
-          {
-            name: 'MEME',
-            formatted_name: 'MEME',
-            volume_24h: 150,
-            market: {
-              price_in_btc: 0.000035
-            },
-            unique_holders: 1500
-          },
-          {
-            name: 'DOGE',
-            formatted_name: 'DOGE',
-            volume_24h: 120,
-            market: {
-              price_in_btc: 0.000025
-            },
-            unique_holders: 1200
+        const response = await fetch('/api/runes/list/?limit=30&offset=0')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            return data.data
           }
-        ]
-
-        return fallbackData
+        }
+      } catch (error) {
       }
+
+      // Strategy 2: Try Magic Eden collection stats
+      try {
+        const response = await fetch('/api/magiceden/runes/collection-stats/?limit=30')
+        if (response.ok) {
+          const data = await response.json()
+          const runes = data.runes || (Array.isArray(data) ? data : [])
+          if (runes.length > 0) {
+            return runes.map((r: any) => ({
+              name: r.rune || r.runeName || '',
+              formatted_name: r.spacedRune || r.rune || '',
+              volume_24h: r.volume || 0,
+              market: {
+                price_in_btc: r.floorUnitPrice?.value ? r.floorUnitPrice.value / 1e8 : 0
+              },
+              unique_holders: r.holders || r.ownerCount || 0
+            }))
+          }
+        }
+      } catch (error) {
+      }
+
+      // Strategy 3: Return empty array (no fake data)
+      return []
     },
-    refetchInterval: 60000, // 1 minute
-    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000,
+    staleTime: 30000,
   })
 }

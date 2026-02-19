@@ -29,7 +29,6 @@ export class EnhancedVoiceService {
       
       this.isInitialized = true;
     } catch (error) {
-      console.warn('Voice services not available:', error);
     }
   }
   
@@ -125,15 +124,15 @@ export class EnhancedVoiceCommandProcessor {
   
   private initializeCommands(): void {
     // Comandos de trading
-    this.commands.set('iniciar bot', () => console.log('Iniciando bot...'));
-    this.commands.set('parar bot', () => console.log('Parando bot...'));
-    this.commands.set('comprar bitcoin', () => console.log('Comprando Bitcoin...'));
-    this.commands.set('vender bitcoin', () => console.log('Vendendo Bitcoin...'));
-    
+    this.commands.set('iniciar bot', () => { /* noop - implement bot start */ });
+    this.commands.set('parar bot', () => { /* noop - implement bot stop */ });
+    this.commands.set('comprar bitcoin', () => { /* noop - implement buy */ });
+    this.commands.set('vender bitcoin', () => { /* noop - implement sell */ });
+
     // Comandos de análise
-    this.commands.set('análise de mercado', () => console.log('Analisando mercado...'));
-    this.commands.set('mostrar portfolio', () => console.log('Mostrando portfolio...'));
-    this.commands.set('oportunidades', () => console.log('Buscando oportunidades...'));
+    this.commands.set('análise de mercado', () => { /* noop - implement analysis */ });
+    this.commands.set('mostrar portfolio', () => { /* noop - implement portfolio */ });
+    this.commands.set('oportunidades', () => { /* noop - implement opportunities */ });
   }
   
   processCommand(text: string): { command: string; confidence: number; action?: () => void } {

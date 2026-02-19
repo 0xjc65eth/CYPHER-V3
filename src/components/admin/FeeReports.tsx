@@ -84,7 +84,7 @@ export default function FeeReports() {
       if (selectedPeriod !== 'all') params.set('period', selectedPeriod);
       if (selectedNetwork !== 'all') params.set('network', selectedNetwork);
 
-      const response = await fetch(`/api/fees/stats?${params}`);
+      const response = await fetch(`/api/fees/stats/?${params}`);
       const data = await response.json();
       
       if (data.success) {
@@ -99,7 +99,7 @@ export default function FeeReports() {
 
   const loadDistributionConfig = async () => {
     try {
-      const response = await fetch('/api/fees/distribute');
+      const response = await fetch('/api/fees/distribute/');
       const data = await response.json();
       
       if (data.success) {
@@ -113,7 +113,7 @@ export default function FeeReports() {
   const handleDistributeAll = async () => {
     try {
       setIsDistributing(true);
-      const response = await fetch('/api/fees/distribute', {
+      const response = await fetch('/api/fees/distribute/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'distribute_all' })
@@ -137,7 +137,7 @@ export default function FeeReports() {
 
   const handleDistributeNetwork = async (network: NetworkType) => {
     try {
-      const response = await fetch('/api/fees/distribute', {
+      const response = await fetch('/api/fees/distribute/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -163,7 +163,7 @@ export default function FeeReports() {
 
   const exportData = async (format: 'csv' | 'json' = 'csv') => {
     try {
-      const response = await fetch('/api/fees/stats/export', {
+      const response = await fetch('/api/fees/stats/export/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -183,7 +183,6 @@ export default function FeeReports() {
         window.URL.revokeObjectURL(url);
       } else {
         const data = await response.json();
-        console.log('Exported data:', data);
         alert(`Exported ${data.count} records`);
       }
     } catch (error) {
@@ -571,15 +570,15 @@ export default function FeeReports() {
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="font-medium">Bitcoin:</span>
-                      <span className="ml-2 font-mono text-xs">bc1qu4u339eu6rhz2s2cvlm52037nz8ne5d595lw8a</span>
+                      <span className="ml-2 font-mono text-xs">358ecZEHxZQJGj6fvoy7bdTSvw64WWgGFb</span>
                     </div>
                     <div>
                       <span className="font-medium">EVM Networks:</span>
-                      <span className="ml-2 font-mono text-xs">0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB</span>
+                      <span className="ml-2 font-mono text-xs">0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3</span>
                     </div>
                     <div>
                       <span className="font-medium">Solana:</span>
-                      <span className="ml-2 font-mono text-xs">0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB</span>
+                      <span className="ml-2 font-mono text-xs">4boXQgNDQ91UNmeVspdd1wZw2KkQKAZ2xdAd6UyJCwRH</span>
                     </div>
                   </div>
                 </div>

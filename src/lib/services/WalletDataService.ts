@@ -51,7 +51,6 @@ export class WalletDataService {
    */
   async getRealAssets(): Promise<RealPortfolioData> {
     try {
-      console.log('🔍 Fetching real wallet data for:', this.address);
       
       // Use Promise.all to fetch data concurrently
       const [balanceData, portfolioData, priceData] = await Promise.all([
@@ -78,7 +77,7 @@ export class WalletDataService {
    */
   async getWalletBalance(): Promise<WalletBalance> {
     try {
-      const response = await fetch(`${this.apis.baseUrl}/api/portfolio/balance?address=${this.address}`, {
+      const response = await fetch(`${this.apis.baseUrl}/api/portfolio/balance/?address=${this.address}`, {
         headers: this.apis.headers || {}
       });
       
@@ -110,12 +109,11 @@ export class WalletDataService {
    */
   async getPortfolioAssets(): Promise<any[]> {
     try {
-      const response = await fetch(`${this.apis.baseUrl}/api/portfolio/real-pnl?address=${this.address}`, {
+      const response = await fetch(`${this.apis.baseUrl}/api/portfolio/real-pnl/?address=${this.address}`, {
         headers: this.apis.headers || {}
       });
       
       if (!response.ok) {
-        console.warn(`Portfolio API returned ${response.status}, using fallback data`);
         return this.getFallbackAssets();
       }
       
@@ -137,7 +135,7 @@ export class WalletDataService {
    */
   async getCurrentPrices(): Promise<Record<string, any>> {
     try {
-      const response = await fetch(`${this.apis.baseUrl}/api/bitcoin-price`, {
+      const response = await fetch(`${this.apis.baseUrl}/api/bitcoin-price/`, {
         headers: this.apis.headers || {}
       });
       
@@ -278,7 +276,6 @@ export class WalletDataService {
       }
     }
     
-    console.log('📊 API Availability Check:', { available, unavailable });
     return { available, unavailable };
   }
 

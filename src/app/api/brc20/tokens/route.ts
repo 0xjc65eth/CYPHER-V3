@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const UNISAT_API_KEY = 'a569bf81aa935a4d7519240296e5753e37d138e1d1682a78cd86870ad6df55e9';
+const UNISAT_API_KEY = process.env.UNISAT_API_KEY || '';
 
 export async function GET(request: Request) {
   try {

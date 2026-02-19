@@ -123,7 +123,6 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
         });
         setWalletConnected(true);
         setConnectionStep('connected');
-        console.log(`✅ ${walletInfo.name} wallet connected and verified:`, address);
       } else {
         throw new Error('Failed to get address or signature');
       }
@@ -278,7 +277,6 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
     const loadRealPrices = async () => {
       try {
         setPriceLoading(true);
-        console.log('🔄 Loading real token prices from CMC API...');
         
         const realTokens = await realPriceService.getAllMajorTokens();
         
@@ -300,7 +298,6 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
         if (newFromToken) setFromToken(newFromToken);
         if (newToToken) setToToken(newToToken);
         
-        console.log('✅ Loaded', tokenInfos.length, 'real token prices');
       } catch (error) {
         console.error('❌ Error loading real prices:', error);
         // Fallback tokens if API fails
@@ -343,7 +340,6 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
     setIsLoading(true);
     
     // Show routing information
-    console.log('🔀 Executing swap route:', swapRoutes.join(' → '));
     
     // Simulate swap process with routing
     setTimeout(() => {
@@ -391,7 +387,6 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
       url = 'https://ff.io/';
     }
     
-    console.log('🔗 Redirecting to:', url);
     window.open(url, '_blank');
   };
   
@@ -858,7 +853,6 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
                 setWalletConnected(false);
                 setSelectedWallet(null);
                 setConnectionStep('selecting');
-                console.log('🔌 Wallet disconnected');
               }}
               className="text-red-400 hover:text-red-300 text-[10px] font-mono px-2 py-1 border border-red-400/30 hover:border-red-400"
             >

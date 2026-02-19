@@ -20,8 +20,8 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
-    const kind = searchParams.get('kind') || 'listing';
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
+    const kind = searchParams.get('kind') || '';
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -30,8 +30,10 @@ export async function GET(request: Request) {
     const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
 
     // Try Magic Eden activities endpoint with proper authentication
+    // When no kind is specified, fetch all activity types (listings + sales)
+    const kindParam = kind ? `&kind=${kind}` : '';
     const endpoints = [
-      `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?kind=${kind}&limit=${limit}`,
+      `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?limit=${limit}${kindParam}`,
       `https://api-mainnet.magiceden.dev/v2/ord/btc/activities/trades?limit=${limit}`,
     ];
 
@@ -55,17 +57,14 @@ export async function GET(request: Request) {
           signal: controller.signal,
         });
 
-        console.log(`[Marketplace API] Fetching from ${endpoint.split('?')[0]} - Status: ${res.status}`);
 
         if (res.ok) {
           const json = await res.json();
           data = Array.isArray(json) ? json : json.activities || json.results || json.data || null;
           if (data && data.length > 0) {
-            console.log(`[Marketplace API] Success: ${data.length} activities from Magic Eden`);
             break;
           }
         } else if (res.status === 429) {
-          console.warn('[Marketplace API] Rate limit exceeded on Magic Eden');
         }
       } catch (error) {
         console.error(`[Marketplace API] Error fetching from ${endpoint}:`, error);
@@ -76,8 +75,7 @@ export async function GET(request: Request) {
 
     // Fallback 1: Try Ordiscan API
     if (!data || data.length === 0) {
-      console.log('[Marketplace API] Trying Ordiscan fallback...');
-      const ORDISCAN_API_KEY = process.env.NEXT_PUBLIC_ORDISCAN_API_KEY;
+      const ORDISCAN_API_KEY = process.env.ORDISCAN_API_KEY;
       const controller2 = new AbortController();
       const timeout2 = setTimeout(() => controller2.abort(), 10000);
       try {
@@ -95,12 +93,10 @@ export async function GET(request: Request) {
             signal: controller2.signal,
           }
         );
-        console.log(`[Marketplace API] Ordiscan response status: ${ordiscanRes.status}`);
         if (ordiscanRes.ok) {
           const ordiscanData = await ordiscanRes.json();
           data = ordiscanData.data || ordiscanData.activities || [];
           if (data && data.length > 0) {
-            console.log(`[Marketplace API] Success: ${data.length} activities from Ordiscan`);
             source = 'ordiscan';
           }
         }
@@ -113,30 +109,44 @@ export async function GET(request: Request) {
 
     // Fallback 2: Use Hiro recent inscriptions as activity proxy
     if (!data || data.length === 0) {
-      console.log('[Marketplace API] Trying Hiro fallback...');
       const controller3 = new AbortController();
       const timeout3 = setTimeout(() => controller3.abort(), 10000);
       try {
+        const hiroHeaders: Record<string, string> = {
+          'Accept': 'application/json',
+        };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) {
+          hiroHeaders['x-api-key'] = hiroApiKey;
+        }
+
         const hiroRes = await fetch(
           `https://api.hiro.so/ordinals/v1/inscriptions?limit=${limit}&order=desc&order_by=genesis_block_height`,
           {
-            headers: { 'Accept': 'application/json' },
+            headers: hiroHeaders,
             signal: controller3.signal,
           }
         );
-        console.log(`[Marketplace API] Hiro response status: ${hiroRes.status}`);
         if (hiroRes.ok) {
           const hiroData = await hiroRes.json();
-          data = (hiroData.results || []).map((item: Record<string, unknown>) => ({
-            kind: 'inscription',
+          data = (Array.isArray(hiroData.results) ? hiroData.results : []).map((item: Record<string, unknown>) => ({
+            kind: 'listing',
+            tokenId: item.id,
             inscription_id: item.id,
             number: item.number,
+            inscriptionNumber: item.number,
             content_type: item.content_type,
             genesis_block_height: item.genesis_block_height,
-            genesis_timestamp: item.genesis_timestamp,
+            // Hiro returns genesis_timestamp as UNIX seconds
+            createdAt: typeof item.genesis_timestamp === 'number'
+              ? new Date((item.genesis_timestamp as number) < 1e12 ? (item.genesis_timestamp as number) * 1000 : (item.genesis_timestamp as number)).toISOString()
+              : undefined,
+            timestamp: item.genesis_timestamp,
             tx_id: item.tx_id,
+            listedPrice: typeof item.genesis_fee === 'string' ? parseInt(item.genesis_fee as string) : null,
+            price: typeof item.genesis_fee === 'string' ? parseInt(item.genesis_fee as string) : null,
+            address: item.address || item.genesis_address,
           }));
-          console.log(`[Marketplace API] Success: ${data.length} activities from Hiro (as fallback)`);
           source = 'hiro';
         }
       } catch (error) {
@@ -176,21 +186,43 @@ export async function GET(request: Request) {
         priceValue = Math.round(priceValue * 1e8);
       }
 
-      // Extract timestamp
-      const timestamp = item.createdAt || item.timestamp || item.block_timestamp ||
+      // Extract timestamp - normalize to ISO string for the frontend
+      const rawTimestamp = item.createdAt || item.timestamp || item.block_timestamp ||
                        item.blockTime || item.genesis_timestamp || null;
+      let createdAt: string | null = null;
+      if (rawTimestamp) {
+        if (typeof rawTimestamp === 'string') {
+          createdAt = rawTimestamp;
+        } else if (typeof rawTimestamp === 'number') {
+          // Convert UNIX seconds to ISO string
+          const ms = rawTimestamp < 1e12 ? rawTimestamp * 1000 : rawTimestamp;
+          createdAt = new Date(ms).toISOString();
+        }
+      }
+
+      const collectionSymbol = String(item.collectionSymbol || item.collection_symbol || item.collection || item.collectionName || '');
+
+      // Build collection image URL from Magic Eden if we have a collection symbol
+      let collectionImage: string | null = null;
+      if (collectionSymbol) {
+        collectionImage = `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${collectionSymbol}/image`;
+      }
 
       return {
-        kind: item.kind || item.type || kind,
+        kind: item.kind || item.type || kind || 'listing',
         tokenId: item.tokenId || item.token_id || item.inscription_id || item.inscriptionId || item.id || '',
-        collectionSymbol: item.collectionSymbol || item.collection_symbol || item.collection || item.collectionName || '',
+        collectionSymbol,
         seller: String(seller),
         buyer: String(buyer),
+        // Return both field names for compatibility with the frontend
+        listedPrice: priceValue,
         price: priceValue,
         txId: item.txId || item.tx_id || item.txHash || '',
         blockHeight: item.blockHeight || item.block_height || item.genesis_block_height || null,
-        timestamp,
+        createdAt,
+        timestamp: rawTimestamp,
         inscriptionNumber: item.inscriptionNumber || item.inscription_number || item.number || null,
+        collectionImage,
       };
     });
 

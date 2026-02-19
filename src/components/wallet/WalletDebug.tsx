@@ -15,7 +15,7 @@ export function WalletDebug() {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/test-wallet?address=${wallet.address}`);
+      const response = await fetch(`/api/test-wallet/?address=${wallet.address}`);
       const data = await response.json();
       setTestResult(data);
     } catch (error) {

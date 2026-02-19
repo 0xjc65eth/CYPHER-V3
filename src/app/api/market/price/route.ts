@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { coinGeckoService } from '@/lib/api/coingecko-service';
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms)),
+  ]);
+}
+
 export async function GET() {
   try {
-    const data = await coinGeckoService.getBitcoinPrice();
+    const data = await withTimeout(coinGeckoService.getBitcoinPrice(), 12000);
 
     return NextResponse.json(
       {

@@ -77,7 +77,6 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
       // Event listeners
       recognitionRef.current.onstart = () => {
-        console.log('🎤 Reconhecimento de voz iniciado');
       };
 
       recognitionRef.current.onresult = (event: any) => {
@@ -113,7 +112,6 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
 
       recognitionRef.current.onend = () => {
         setIsListening(false);
-        console.log('🔇 Reconhecimento de voz parado');
       };
 
       // Inicializar Speech Synthesis
@@ -130,7 +128,6 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
   }, []);
 
   const processVoiceCommand = (text: string) => {
-    console.log('🗣️ Processando comando:', text);
 
     // Verificar comandos específicos
     const matchedCommand = commands.find(cmd => 
@@ -268,7 +265,7 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
     
     try {
       // Em produção, usar OpenAI API
-      const response = await fetch('/api/ai/process', {
+      const response = await fetch('/api/ai/process/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -23,7 +23,6 @@ function initializeWalletPolyfill() {
   const createSafeProvider = (name: string) => {
     return new Proxy({}, {
       get(target: any, prop: string | symbol) {
-        console.log(`[Wallet Polyfill] Accessed ${name}.${String(prop)}`)
         if (prop === 'isConnected') return false
         if (prop === 'isInstalled') return false
         if (prop === 'connect') return async () => { throw new Error(`${name} not available`) }
@@ -33,7 +32,6 @@ function initializeWalletPolyfill() {
         return undefined
       },
       set(target: any, prop: string | symbol, value: any) {
-        console.log(`[Wallet Polyfill] Set ${name}.${String(prop)} =`, value)
         target[prop] = value
         return true
       }
@@ -89,24 +87,19 @@ function initializeWalletPolyfill() {
       }
     })
 
-    console.log('[Wallet Polyfill] Initialized successfully')
   } catch (error) {
-    console.warn('[Wallet Polyfill] Initialization error:', error)
+    console.error('[Wallet Polyfill] Initialization error:', error)
   }
 }
 
 // Enhanced error handling for wallet operations
 function handleWalletError(error: any, context: string) {
-  console.warn(`[Wallet Error] ${context}:`, error)
-  
   // Handle specific error types
   if (error?.message?.includes('Cannot set property ethereum')) {
-    console.log('[Wallet Error] MetaMask conflict detected, using polyfill')
     return true // Error handled
   }
-  
+
   if (error?.message?.includes('Cannot convert a BigInt')) {
-    console.log('[Wallet Error] BigInt conversion error, using fallback')
     return true // Error handled
   }
   

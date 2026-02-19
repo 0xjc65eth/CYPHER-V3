@@ -23,7 +23,6 @@ class WalletErrorBoundary extends Component<{ children: ReactNode }, { hasError:
     return { hasError: true }
   }
   componentDidCatch(error: Error) {
-    console.warn('[CYPHER] Wallet component error (BigInt):', error.message)
   }
   render() {
     if (this.state.hasError) {

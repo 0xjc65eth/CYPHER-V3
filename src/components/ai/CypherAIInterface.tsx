@@ -112,7 +112,7 @@ export function CypherAIInterface() {
         body.agentHint = selectedAgent;
       }
 
-      const res = await fetch('/api/cypher-ai/chat', {
+      const res = await fetch('/api/cypher-ai/chat/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

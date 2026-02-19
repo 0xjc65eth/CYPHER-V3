@@ -102,7 +102,6 @@ export const MultiChainProvider: React.FC<MultiChainProviderProps> = ({
   const refreshBalances = async () => {
     try {
       // This will be implemented to fetch from all connected chains
-      console.log('Refreshing all balances...')
       
       // Mock implementation - replace with actual API calls
       const mockEvmChains: ChainData[] = [
@@ -178,7 +177,6 @@ export const MultiChainProvider: React.FC<MultiChainProviderProps> = ({
   const switchNetwork = async (chainId: number) => {
     try {
       // This will use wagmi's switchChain
-      console.log(`Switching to chain ${chainId}`)
       
       // Update current chain
       const chain = evmChains.find(c => c.id === chainId)

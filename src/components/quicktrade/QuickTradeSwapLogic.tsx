@@ -224,14 +224,7 @@ export function QuickTradeSwapLogic({
         userAddress
       );
 
-      // Registrar taxa coletada
-      console.log('💰 Taxa coletada:', {
-        amount: swapResult.serviceFee.amountUSD,
-        percentage: swapResult.serviceFee.percentage,
-        exchange: swapResult.bestQuote.exchange,
-        user: userAddress,
-        timestamp: new Date().toISOString()
-      });
+      // Fee recorded via swap result
 
       setCurrentStep('Redirecionando para exchange...');
       

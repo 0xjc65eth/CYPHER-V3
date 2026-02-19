@@ -12,7 +12,6 @@ export async function POST(request: NextRequest) {
 
     // Discord bot implementation would go here
     // For now, we'll simulate a successful Discord message
-    console.log('Discord message sent:', { serverId, channelId, message });
 
     // In a real implementation, you would:
     // 1. Use Discord.js or Discord API

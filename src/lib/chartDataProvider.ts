@@ -330,7 +330,6 @@ export class ChartDataProvider {
     source: 'binance' | 'coinbase' = 'binance'
   ): () => void {
     if (!this.config.enableRealTime) {
-      console.warn('Real-time updates are disabled');
       return () => {};
     }
 
@@ -388,7 +387,6 @@ export class ChartDataProvider {
     const ws = new WebSocket(wsUrl);
     
     ws.onopen = () => {
-      console.log(`Binance WebSocket connected for ${symbol}`);
       this.retryCount.delete(subscriptionKey);
     };
     
@@ -419,7 +417,6 @@ export class ChartDataProvider {
     };
     
     ws.onclose = () => {
-      console.log(`Binance WebSocket closed for ${symbol}`);
       this.handleWebSocketReconnect(symbol, subscriptionKey, source);
     };
   }
@@ -432,7 +429,6 @@ export class ChartDataProvider {
     
     if (currentRetries < this.maxRetries) {
       this.retryCount.set(subscriptionKey, currentRetries + 1);
-      console.log(`Retrying WebSocket connection (${currentRetries + 1}/${this.maxRetries})`);
       
       setTimeout(() => {
         const [symbol, source] = subscriptionKey.split('_');

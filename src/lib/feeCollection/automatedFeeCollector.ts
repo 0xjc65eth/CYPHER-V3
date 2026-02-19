@@ -60,14 +60,14 @@ class AutomatedFeeCollector {
 
   // Revenue wallet addresses
   private revenueWallets = {
-    ethereum: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    arbitrum: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    optimism: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    polygon: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    base: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    avalanche: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    bsc: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
-    solana: 'EPbE1ZmLXkEJDitNb9KNu9Hq8mThS3P7LpBxdF3EkUwT'
+    ethereum: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    arbitrum: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    optimism: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    polygon: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    base: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    avalanche: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    bsc: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+    solana: '4boXQgNDQ91UNmeVspdd1wZw2KkQKAZ2xdAd6UyJCwRH'
   };
 
   constructor(config: Partial<CollectionConfig> = {}) {
@@ -139,13 +139,6 @@ class AutomatedFeeCollector {
     // Cache the record
     await this.cacheRecord(record);
 
-    // Log the fee record
-    console.log(`💰 Fee recorded: ${feeAmountUSD.toFixed(4)} USD on ${network} from ${dex}`, {
-      recordId: record.id,
-      transactionHash,
-      userAddress
-    });
-
     // Trigger immediate processing if batch is ready
     await this.checkBatchReadiness(network);
 
@@ -185,8 +178,6 @@ class AutomatedFeeCollector {
 
     // Check profitability threshold
     if (profitability < this.config.profitabilityThreshold) {
-      console.warn(`⚠️ Batch profitability too low: ${profitability.toFixed(2)}% on ${network}`);
-      
       // Return records to pending if not profitable
       this.pendingRecords.set(network, [...batchRecords, ...records]);
       return null;
@@ -212,13 +203,6 @@ class AutomatedFeeCollector {
 
     this.activeBatches.set(batch.id, batch);
 
-    console.log(`📦 Settlement batch created: ${batch.id} on ${network}`, {
-      records: batchRecords.length,
-      totalValue: totalFeesUSD.toFixed(2),
-      profitability: profitability.toFixed(2),
-      trigger
-    });
-
     // Process the batch immediately if conditions are favorable
     if (profitability > 20 || totalFeesUSD > this.config.minBatchValue * 5) {
       await this.processBatch(batch.id);
@@ -237,12 +221,6 @@ class AutomatedFeeCollector {
     batch.processedAt = Date.now();
 
     try {
-      console.log(`🔄 Processing settlement batch: ${batchId}`, {
-        network: batch.network,
-        records: batch.records.length,
-        totalValue: batch.totalFeesUSD.toFixed(2)
-      });
-
       // Execute the settlement transaction
       const transactionResult = await this.executeSettlement(batch);
       
@@ -260,11 +238,6 @@ class AutomatedFeeCollector {
 
         // Update statistics
         this.updateCollectionStats(batch.network, batch);
-
-        console.log(`✅ Settlement batch completed: ${batchId}`, {
-          transactionHash: transactionResult.transactionHash,
-          gasUsed: transactionResult.gasUsed
-        });
 
         return true;
       } else {
@@ -526,7 +499,6 @@ class AutomatedFeeCollector {
       );
 
     for (const batch of oldBatches) {
-      console.log(`⏰ Force processing old batch: ${batch.id}`);
       await this.processBatch(batch.id);
     }
   }
@@ -560,11 +532,6 @@ class AutomatedFeeCollector {
     // Cache statistics for dashboard
     await quickTradeCache.cacheAnalytics('fee_collection_stats', stats);
     
-    console.log('📊 Fee collection statistics updated', {
-      totalNetworks: Object.keys(stats.byNetwork).length,
-      totalFeesCollected: stats.overall.totalFeesUSD.toFixed(2),
-      averageSuccessRate: stats.overall.averageSuccessRate.toFixed(1)
-    });
   }
 
   // Helper methods

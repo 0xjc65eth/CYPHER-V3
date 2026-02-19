@@ -246,7 +246,6 @@ export function CypherTrade() {
       
       // Check if wallet is actually installed
       if (!walletProvider) {
-        console.log(`⚠️ ${walletId} not detected, using demo mode`);
         
         // Generate realistic demo addresses for each network
         const demoAddresses = {
@@ -262,7 +261,6 @@ export function CypherTrade() {
         alert(`🔗 Demo mode: Connected to ${walletId}\n📍 Network: ${selectedNetwork}\n💡 Install ${walletId} extension for real connection`);
       } else {
         // Try real wallet connection
-        console.log(`✅ ${walletId} detected, attempting connection...`);
         
         let accounts = [];
         
@@ -286,12 +284,10 @@ export function CypherTrade() {
           
           if (accounts && accounts.length > 0) {
             address = accounts[0];
-            console.log(`✅ Real wallet connected: ${address}`);
           } else {
             throw new Error('No accounts returned');
           }
         } catch (providerError) {
-          console.log(`⚠️ Wallet connection failed, using demo: ${providerError}`);
           // Fallback to demo addresses
           const demoAddresses = {
             Bitcoin: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
@@ -313,8 +309,6 @@ export function CypherTrade() {
       });
       
       setShowWalletOptions(false);
-      console.log(`🚀 CYPHER TRADE: ${walletId} connected on ${selectedNetwork}`);
-      console.log(`💰 Balance: ${balance} ${selectedNetwork === 'Bitcoin' ? 'BTC' : selectedNetwork === 'Ethereum' ? 'ETH' : 'SOL'}`);
       
     } catch (error) {
       console.error(`❌ Failed to connect ${walletId}:`, error);
@@ -334,7 +328,6 @@ export function CypherTrade() {
           if (btcResponse.ok) {
             const btcData = await btcResponse.json();
             const balance = btcData.chain_stats.funded_txo_sum / 100000000; // Convert satoshis to BTC
-            console.log(`✅ Real Bitcoin balance for ${address}: ${balance} BTC`);
             return balance;
           }
           break;
@@ -351,11 +344,9 @@ export function CypherTrade() {
                 params: [address, 'latest']
               });
               const ethBalance = parseInt(balance, 16) / 1e18; // Convert wei to ETH
-              console.log(`✅ Real ${network} balance for ${address}: ${ethBalance} ETH`);
               return ethBalance;
             } catch (ethError) {
-              console.log(`⚠️ Fallback to demo balance for ${network}`);
-              return Math.random() * 5 + 0.1; // Demo balance between 0.1-5.1 ETH
+              return 0;
             }
           }
           break;
@@ -376,12 +367,10 @@ export function CypherTrade() {
             if (solResponse.ok) {
               const solData = await solResponse.json();
               const solBalance = solData.result.value / 1e9; // Convert lamports to SOL
-              console.log(`✅ Real Solana balance for ${address}: ${solBalance} SOL`);
               return solBalance;
             }
           } catch (solError) {
-            console.log('⚠️ Fallback to demo balance for Solana');
-            return Math.random() * 100 + 10; // Demo balance between 10-110 SOL
+            return 0;
           }
           break;
       }
@@ -389,14 +378,13 @@ export function CypherTrade() {
       console.error('❌ Error fetching balance:', error);
     }
     
-    console.log('⚠️ Using demo balance as fallback');
-    return Math.random() * 2 + 0.5; // Demo balance between 0.5-2.5
+    return 0;
   };
 
   // Get real token prices from CoinMarketCap
   const getTokenPrice = async (symbol: string): Promise<number> => {
     try {
-      const response = await fetch(`/api/coinmarketcap?symbols=${symbol}`);
+      const response = await fetch(`/api/coinmarketcap/?symbols=${symbol}`);
       const data = await response.json();
       
       if (data.success && data.data.current[symbol]) {
@@ -448,7 +436,6 @@ export function CypherTrade() {
     // Convert back to output token amount
     const outputAmount = outputValueUSD / tokenOutPrice;
     
-    console.log(`💱 Conversion: ${inputAmount} @ $${tokenInPrice} = $${inputValueUSD} → $${outputValueUSD} = ${outputAmount} @ $${tokenOutPrice}`);
     
     return outputAmount;
   };
@@ -463,14 +450,11 @@ export function CypherTrade() {
     setIsSearchingRoutes(true);
     
     try {
-      console.log('🔍 CYPHER TRADE: Searching best routes...');
-      console.log(`📊 Converting ${amount} ${tokenIn.symbol} → ${tokenOut.symbol}`);
       
       // Get real prices for both tokens
       const tokenInPrice = await getTokenPrice(tokenIn.symbol);
       const tokenOutPrice = await getTokenPrice(tokenOut.symbol);
       
-      console.log(`💰 Token Prices: ${tokenIn.symbol} = $${tokenInPrice}, ${tokenOut.symbol} = $${tokenOutPrice}`);
       
       // Get available DEXs for the network
       const availableDEXs = SUPPORTED_DEXS.filter(dex => 
@@ -481,10 +465,11 @@ export function CypherTrade() {
       const inputAmount = parseFloat(amount);
       
       for (const dex of availableDEXs) {
-        // Realistic slippage based on liquidity
+        // Estimated slippage based on liquidity
         const baseSlippage = 0.001; // 0.1% base slippage
         const liquidityImpact = inputAmount > 100 ? 0.005 : 0.001; // Higher slippage for large trades
-        const slippage = baseSlippage + liquidityImpact + (Math.random() * 0.003); // ±0.3% random variation
+        const dexLiquidityFactor = dex.liquidity > 2 ? 0.001 : dex.liquidity > 1 ? 0.002 : 0.003;
+        const slippage = baseSlippage + liquidityImpact + dexLiquidityFactor;
         
         // Calculate correct conversion
         const outputAmount = calculateCorrectConversion(
@@ -533,9 +518,7 @@ export function CypherTrade() {
       setAllRoutes(routes);
       setBestRoute(routes[0]);
       
-      console.log('✅ CYPHER TRADE: Routes calculated with correct pricing:');
       routes.forEach((route, i) => {
-        console.log(`${i + 1}. ${route.dex}: ${route.inputAmount} ${tokenIn.symbol} → ${route.outputAmount.toFixed(8)} ${tokenOut.symbol} (${route.priceImpact.toFixed(3)}% impact)`);
       });
       
     } catch (error) {
@@ -574,7 +557,7 @@ export function CypherTrade() {
       };
 
       // Track the redirect
-      const trackResponse = await fetch('/api/fees/track-redirect', {
+      const trackResponse = await fetch('/api/fees/track-redirect/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(feeData)
@@ -614,8 +597,6 @@ export function CypherTrade() {
       const separator = redirectUrl.includes('?') ? '&' : '?';
       redirectUrl += `${separator}ref=cypher&fee=0.35&wallet=${encodeURIComponent(walletInfo.address)}`;
       
-      console.log('🚀 CYPHER TRADE Executing Route:', route);
-      console.log('🔗 Redirecting to:', redirectUrl);
       
       // Show route summary before redirect
       const routeSummary = `

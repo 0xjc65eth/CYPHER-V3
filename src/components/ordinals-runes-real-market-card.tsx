@@ -4,12 +4,9 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRealOrdinalsData, useRealRunesData } from '@/hooks/useRealAnalyticsData'
 import { DashboardCard } from '@/components/dashboard-card'
-import { 
-  RiImageLine, 
-  RiCoinLine, 
-  RiTrendingUpLine, 
-  RiTrendingDownLine,
-  RiUser3Line,
+import {
+  RiImageLine,
+  RiCoinLine,
   RiBarChartBoxLine,
   RiRefreshLine,
   RiSignalWifiLine,
@@ -167,8 +164,7 @@ export function OrdinalsRunesRealMarketCard() {
                   {mounted ? formatCurrency(ordinalsMetrics.volume24h) : '$---'}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                  <span className="text-xs text-green-400">+12.5%</span>
+                  <span className="text-xs text-gray-400">24h</span>
                 </div>
               </div>
 
@@ -181,8 +177,7 @@ export function OrdinalsRunesRealMarketCard() {
                   {mounted ? formatCurrency(ordinalsMetrics.marketCap) : '$---'}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                  <span className="text-xs text-green-400">+8.2%</span>
+                  <span className="text-xs text-gray-400">Total</span>
                 </div>
               </div>
 
@@ -195,8 +190,7 @@ export function OrdinalsRunesRealMarketCard() {
                   {mounted ? formatCurrency(ordinalsMetrics.averagePrice) : '$---'}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingDown className="w-3 h-3 text-red-400" />
-                  <span className="text-xs text-red-400">-2.1%</span>
+                  <span className="text-xs text-gray-400">Average</span>
                 </div>
               </div>
             </div>
@@ -264,8 +258,7 @@ export function OrdinalsRunesRealMarketCard() {
                   {mounted ? formatCurrency(runesMetrics.volume24h) : '$---'}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                  <span className="text-xs text-green-400">+15.7%</span>
+                  <span className="text-xs text-gray-400">24h</span>
                 </div>
               </div>
 
@@ -278,8 +271,7 @@ export function OrdinalsRunesRealMarketCard() {
                   {mounted ? formatCurrency(runesMetrics.marketCap) : '$---'}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                  <span className="text-xs text-green-400">+22.1%</span>
+                  <span className="text-xs text-gray-400">Total</span>
                 </div>
               </div>
 
@@ -292,8 +284,7 @@ export function OrdinalsRunesRealMarketCard() {
                   {mounted ? formatNumber(runesMetrics.holders) : '---'}
                 </p>
                 <div className="flex items-center gap-1 mt-1">
-                  <TrendingUp className="w-3 h-3 text-green-400" />
-                  <span className="text-xs text-green-400">+5.3%</span>
+                  <span className="text-xs text-gray-400">Total</span>
                 </div>
               </div>
             </div>

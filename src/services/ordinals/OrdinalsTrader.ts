@@ -143,7 +143,7 @@ export class OrdinalsTrader {
       throw new Error('Trading session already active');
     }
 
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const sessionId = `session_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
 
     this.session = {
       id: sessionId,
@@ -162,7 +162,6 @@ export class OrdinalsTrader {
     // Start monitoring intervals
     this.startMonitoring();
 
-    console.log(`Trading session ${sessionId} started with ${strategies.length} strategies`);
     return sessionId;
   }
 
@@ -186,7 +185,6 @@ export class OrdinalsTrader {
     // Optionally close all positions (depending on strategy)
     // await this.closeAllPositions();
 
-    console.log(`Trading session ${this.session.id} stopped`);
   }
 
   /**
@@ -200,11 +198,9 @@ export class OrdinalsTrader {
     if (this.session.status === 'active') {
       this.session.status = 'paused';
       this.stopMonitoring();
-      console.log('Trading session paused');
     } else if (this.session.status === 'paused') {
       this.session.status = 'active';
       this.startMonitoring();
-      console.log('Trading session resumed');
     }
   }
 
@@ -236,7 +232,7 @@ export class OrdinalsTrader {
     }
 
     const order: TradingOrder = {
-      id: `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `order_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
       inscriptionId,
       type,
       orderType: 'market',
@@ -283,7 +279,7 @@ export class OrdinalsTrader {
     // Create stop loss order if specified
     if (stopLoss && position.type === 'long') {
       const stopOrder: TradingOrder = {
-        id: `stop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `stop_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         inscriptionId: position.inscriptionId,
         type: 'sell',
         orderType: 'stop_loss',
@@ -301,7 +297,7 @@ export class OrdinalsTrader {
     // Create take profit order if specified
     if (takeProfit && position.type === 'long') {
       const profitOrder: TradingOrder = {
-        id: `profit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `profit_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         inscriptionId: position.inscriptionId,
         type: 'sell',
         orderType: 'take_profit',
@@ -331,7 +327,7 @@ export class OrdinalsTrader {
     }
 
     const sellOrder: TradingOrder = {
-      id: `close_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `close_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
       inscriptionId: position.inscriptionId,
       type: 'sell',
       orderType: 'market',
@@ -430,13 +426,11 @@ export class OrdinalsTrader {
 
       // Check if we exceed risk limits
       if (riskMetrics.currentDrawdown > this.session.riskParameters.maxDrawdown) {
-        console.warn('Maximum drawdown exceeded, pausing trading');
         await this.pauseTradingSession();
         return;
       }
 
       if (riskMetrics.dailyLoss > this.session.riskParameters.maxDailyLoss) {
-        console.warn('Daily loss limit exceeded, pausing trading');
         await this.pauseTradingSession();
         return;
       }
@@ -444,7 +438,6 @@ export class OrdinalsTrader {
       // Check concentration risk
       const concentrationRisk = this.calculateConcentrationRisk();
       if (concentrationRisk > this.session.riskParameters.maxConcentration) {
-        console.warn('Concentration risk too high, reducing exposure');
         await this.reduceConcentration();
       }
 
@@ -481,14 +474,12 @@ export class OrdinalsTrader {
 
     // Check stop loss
     if (position.stopLoss && position.currentPrice <= position.stopLoss) {
-      console.log(`Stop loss triggered for position ${position.id}`);
       await this.closePosition(position.id);
       return;
     }
 
     // Check take profit
     if (position.takeProfit && position.currentPrice >= position.takeProfit) {
-      console.log(`Take profit triggered for position ${position.id}`);
       await this.closePosition(position.id);
       return;
     }
@@ -517,13 +508,12 @@ export class OrdinalsTrader {
       );
 
       if (!riskCheck.approved) {
-        console.log(`Opportunity rejected: ${riskCheck.reason}`);
         return;
       }
 
       // Create and execute buy order
       const order: TradingOrder = {
-        id: `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `auto_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         inscriptionId: opportunity.inscriptionId,
         type: 'buy',
         orderType: 'limit',
@@ -538,7 +528,6 @@ export class OrdinalsTrader {
       this.session!.pendingOrders.push(order);
       await this.processOrder(order);
 
-      console.log(`Executed opportunity: ${opportunity.type} for ${opportunity.inscriptionId}`);
 
     } catch (error) {
       this.logError(`Error executing opportunity ${opportunity.inscriptionId}`, error);
@@ -568,7 +557,6 @@ export class OrdinalsTrader {
         // Update session balances
         this.updateSessionBalances(order);
 
-        console.log(`Order ${order.id} filled at ${order.filledPrice}`);
       } else {
         order.status = 'rejected';
         order.error = 'Order rejected by marketplace';
@@ -591,8 +579,8 @@ export class OrdinalsTrader {
     // 3. Handle marketplace-specific requirements
     // 4. Return success/failure status
 
-    // For now, simulate a 90% success rate
-    return Math.random() > 0.1;
+    // Marketplace integration not yet implemented - always return false to prevent fake trades
+    return false;
   }
 
   /**
@@ -602,7 +590,7 @@ export class OrdinalsTrader {
     if (!this.session) return;
 
     const position: TradingPosition = {
-      id: `pos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `pos_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
       inscriptionId: order.inscriptionId,
       inscriptionNumber: 0, // Would get from inscription data
       collectionId: '', // Would get from inscription data

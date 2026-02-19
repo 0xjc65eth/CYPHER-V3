@@ -108,14 +108,6 @@ export function PerformanceMonitor() {
         isOptimized: true
       },
       {
-        name: 'BloombergCypherTrade',
-        renderCount: 23,
-        averageRenderTime: 67.8,
-        lastRenderTime: 71.2,
-        memoryImpact: 3.1,
-        isOptimized: false
-      },
-      {
         name: 'BloombergProfessionalChart',
         renderCount: 8,
         averageRenderTime: 125.4,

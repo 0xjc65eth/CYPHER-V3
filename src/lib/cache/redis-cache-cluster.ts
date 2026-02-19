@@ -283,7 +283,6 @@ export class RedisCacheCluster extends EventEmitter {
   }
   
   private async preloadCriticalData() {
-    console.log('Preloading critical data into cache...')
     
     // Preload trading pairs
     const tradingPairs = ['BTCUSDT', 'ETHUSDT', 'ORDIUSDT', 'SATSUSDT', 'RUNEUSDT']
@@ -291,7 +290,6 @@ export class RedisCacheCluster extends EventEmitter {
       await this.set(`price:${pair}`, { price: 0, volume: 0 }, 3600000) // 1 hour
     }
     
-    console.log('Critical data preloaded')
   }
   
   getCacheStats() {

@@ -9,7 +9,6 @@ export function initializeWalletProviderPatches() {
     const checkAndPatch = () => {
       const xverseProvider = (window as any).XverseProviders?.BitcoinProvider;
       if (xverseProvider && !xverseProvider.getAddresses) {
-        console.log('Patching Xverse provider...');
         
         // Add the missing getAddresses method
         xverseProvider.getAddresses = async function() {
@@ -49,7 +48,6 @@ export function initializeWalletProviderPatches() {
           };
         }
 
-        console.log('Xverse provider patched successfully');
       }
     };
 

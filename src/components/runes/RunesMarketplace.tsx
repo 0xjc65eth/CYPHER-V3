@@ -1,544 +1,436 @@
-'use client'
+'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
-} from '@/components/ui/table'
-import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from '@/components/ui/select'
+import React, { useState, useEffect, useMemo } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   ShoppingCart, TrendingUp, DollarSign, Activity, Search,
-  ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Layers,
-} from 'lucide-react'
+  RefreshCw, ExternalLink, AlertTriangle, Copy,
+} from 'lucide-react';
+import {
+  ProfessionalTable,
+  TableColumn,
+  MetricsCard,
+  MetricsGrid,
+} from '@/components/ui/professional';
+import { ExportButton } from '@/components/common/ExportButton';
 
-// ---------------------------------------------------------------------------
+import { magicEdenRunesService } from '@/services/magicEdenRunesService';
+
 // Types
-// ---------------------------------------------------------------------------
-
-interface RuneEntry {
-  id: string
-  name: string
-  spaced_name: string
-  number: number
-  symbol: string
-  supply: string
-  holders: number
+interface RuneListing {
+  id: string;
+  rune: string;
+  runeName: string;
+  amount: number;
+  unitPrice: number; // sats per rune
+  totalPrice: number; // total sats
+  seller: string;
+  source: 'UniSat' | 'Magic Eden';
+  listedAt: string;
+  txid?: string;
 }
 
-interface Listing {
-  id: string
-  rune: string
-  amount: number
-  priceSats: number
-  priceUsd: number
-  totalBtc: number
-  totalUsd: number
-  seller: string
-  source: string
-  listedAgo: string
+interface MarketplaceStats {
+  totalListings: number;
+  totalVolume24h: number;
+  uniqueSellers: number;
+  avgPrice: number;
 }
-
-interface OrderLevel {
-  price: number
-  amount: number
-  cumulative: number
-}
-
-interface Trade {
-  id: string
-  rune: string
-  side: 'BUY' | 'SELL'
-  amount: number
-  priceSats: number
-  usdValue: number
-  timeAgo: string
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const SATS_TO_USD = 0.00000625
-
-const SOURCES = ['Magic Eden', 'OKX', 'UniSat']
-
-function rand(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
-function randFloat(min: number, max: number, dec = 2) {
-  return parseFloat((Math.random() * (max - min) + min).toFixed(dec))
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]
-}
-
-function truncAddr(): string {
-  const hex = '0123456789abcdef'
-  let tail = ''
-  for (let i = 0; i < 6; i++) tail += hex[rand(0, 15)]
-  return `bc1q...${tail}`
-}
-
-function timeAgo(): string {
-  const units = ['s', 'm', 'h']
-  const u = pick(units)
-  const v = u === 's' ? rand(5, 59) : u === 'm' ? rand(1, 59) : rand(1, 23)
-  return `${v}${u} ago`
-}
-
-function fmtNum(n: number): string {
-  return n.toLocaleString('en-US')
-}
-
-function fmtBtc(n: number): string {
-  return n.toFixed(8)
-}
-
-function fmtUsd(n: number): string {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(2)}K`
-  return `$${n.toFixed(2)}`
-}
-
-// ---------------------------------------------------------------------------
-// Data generators
-// ---------------------------------------------------------------------------
-
-function generateListings(runeNames: string[]): Listing[] {
-  const count = rand(15, 25)
-  return Array.from({ length: count }, (_, i) => {
-    const rune = pick(runeNames)
-    const amount = rand(100, 500000)
-    const priceSats = rand(50, 25000)
-    const priceUsd = priceSats * SATS_TO_USD
-    const totalSats = amount * priceSats
-    const totalBtc = totalSats / 1e8
-    const totalUsd = totalSats * SATS_TO_USD
-    return {
-      id: `listing-${i}-${Date.now()}`,
-      rune,
-      amount,
-      priceSats,
-      priceUsd,
-      totalBtc,
-      totalUsd,
-      seller: truncAddr(),
-      source: pick(SOURCES),
-      listedAgo: timeAgo(),
-    }
-  })
-}
-
-function generateOrderBook(basePrice: number): { bids: OrderLevel[]; asks: OrderLevel[] } {
-  const levels = rand(8, 10)
-  let bidCum = 0
-  let askCum = 0
-  const bids: OrderLevel[] = []
-  const asks: OrderLevel[] = []
-
-  for (let i = 0; i < levels; i++) {
-    const bAmt = rand(500, 80000)
-    bidCum += bAmt
-    bids.push({ price: basePrice - (i + 1) * rand(10, 200), amount: bAmt, cumulative: bidCum })
-
-    const aAmt = rand(500, 80000)
-    askCum += aAmt
-    asks.push({ price: basePrice + (i + 1) * rand(10, 200), amount: aAmt, cumulative: askCum })
-  }
-  return { bids, asks }
-}
-
-function generateTrade(runeNames: string[], idx: number): Trade {
-  const rune = pick(runeNames)
-  const side: 'BUY' | 'SELL' = Math.random() > 0.5 ? 'BUY' : 'SELL'
-  const amount = rand(50, 200000)
-  const priceSats = rand(50, 25000)
-  return {
-    id: `trade-${idx}-${Date.now()}-${Math.random()}`,
-    rune,
-    side,
-    amount,
-    priceSats,
-    usdValue: amount * priceSats * SATS_TO_USD,
-    timeAgo: `${rand(1, 59)}s ago`,
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
 
 export default function RunesMarketplace() {
-  // Rune names from API
-  const [runeNames, setRuneNames] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [listings, setListings] = useState<RuneListing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRune, setSelectedRune] = useState<string>('all');
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
-  // Marketplace state
-  const [listings, setListings] = useState<Listing[]>([])
-  const [trades, setTrades] = useState<Trade[]>([])
-  const [selectedRune, setSelectedRune] = useState<string>('')
-  const [orderBook, setOrderBook] = useState<{ bids: OrderLevel[]; asks: OrderLevel[] }>({ bids: [], asks: [] })
+  // Fetch marketplace listings from UniSat + Magic Eden
+  const fetchListings = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('')
-  const [sortKey, setSortKey] = useState<'priceSats' | 'amount' | 'listedAgo'>('priceSats')
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+      // Fetch from both marketplaces via server proxy (avoids CORS)
+      const [auctionsRes, runesRes] = await Promise.all([
+        fetch('/api/unisat/runes/auctions/?limit=100'),
+        fetch('/api/unisat/runes/list/?limit=50')
+      ]);
+      const unisatAuctions = auctionsRes.ok ? await auctionsRes.json() : { list: [] };
+      const topRunes = runesRes.ok ? await runesRes.json() : { list: [] };
 
-  const tradeIdx = useRef(20)
+      // Convert UniSat auctions to listings
+      const unisatListings: RuneListing[] = unisatAuctions.list.map((auction: any) => {
+        const unitPrice = parseFloat(auction.unitPrice || '0');
+        const amount = parseFloat(auction.amount || '0');
 
-  // Fetch rune names
-  useEffect(() => {
-    let cancelled = false
-    async function fetchRunes() {
-      try {
-        const res = await fetch('/api/runes/popular?limit=60&offset=0')
-        if (!res.ok) throw new Error(`API error ${res.status}`)
-        const data = await res.json()
-        const runes: RuneEntry[] = data.data ?? data.results ?? data.runes ?? []
-        if (!Array.isArray(runes)) throw new Error('Invalid data format')
-        const names = runes.map((r: RuneEntry) => r.spaced_name || r.name).filter(Boolean)
-        if (!cancelled && names.length > 0) {
-          setRuneNames(names)
-          setSelectedRune(names[0])
-        } else if (!cancelled) {
-          throw new Error('No rune data returned')
+        return {
+          id: auction.orderId || `${auction.txid}-${Date.now()}`,
+          rune: auction.rune || auction.runeName || 'UNKNOWN',
+          runeName: auction.spacedRune || auction.rune || 'UNKNOWN',
+          amount: amount,
+          unitPrice: unitPrice,
+          totalPrice: unitPrice * amount,
+          seller: auction.seller || auction.address || 'Unknown',
+          source: 'UniSat' as const,
+          listedAt: auction.timestamp || new Date().toISOString(),
+          txid: auction.txid
+        };
+      });
+
+      // Fetch Magic Eden orders for popular runes
+      const magicEdenListings: RuneListing[] = [];
+
+      for (const rune of topRunes.list.slice(0, 20)) {
+        try {
+          const orders = await magicEdenRunesService.getRuneOrders({
+            rune: rune.spacedRune,
+            sort: 'unitPriceAsc',
+            limit: 20
+          });
+
+          const meListings = orders.orders.map((order: any, orderIdx: number) => ({
+            id: order.id || `me-${Date.now()}-${orderIdx}`,
+            rune: rune.rune,
+            runeName: rune.spacedRune,
+            amount: parseFloat(order.amount?.formatted || '0'),
+            unitPrice: parseFloat(order.unitPrice?.formatted || '0'),
+            totalPrice: parseFloat(order.total?.formatted || '0'),
+            seller: order.maker || 'Unknown',
+            source: 'Magic Eden' as const,
+            listedAt: order.createdAt || new Date().toISOString(),
+          }));
+
+          magicEdenListings.push(...meListings);
+        } catch (err) {
+          // Magic Eden order fetch failed for this rune - continue
         }
-      } catch (err: unknown) {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to fetch runes')
-      } finally {
-        if (!cancelled) setLoading(false)
       }
+
+      // Combine and sort by price
+      const allListings = [...unisatListings, ...magicEdenListings]
+        .filter(l => l.unitPrice > 0)
+        .sort((a, b) => a.unitPrice - b.unitPrice);
+
+      setListings(allListings);
+      setLastUpdate(new Date());
+    } catch (err) {
+      console.error('[Marketplace] Fetch error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch marketplace data');
+    } finally {
+      setLoading(false);
     }
-    fetchRunes()
-    return () => { cancelled = true }
-  }, [])
+  };
 
-  // Generate marketplace data once rune names load
   useEffect(() => {
-    if (runeNames.length === 0) return
-    setListings(generateListings(runeNames))
-    setTrades(Array.from({ length: 20 }, (_, i) => generateTrade(runeNames, i)))
-  }, [runeNames])
+    fetchListings();
+    const interval = setInterval(fetchListings, 60000); // Refresh every 60s
+    return () => clearInterval(interval);
+  }, []);
 
-  // Regenerate order book when selected rune changes
-  useEffect(() => {
-    if (!selectedRune) return
-    const basePrice = rand(500, 15000)
-    setOrderBook(generateOrderBook(basePrice))
-  }, [selectedRune])
-
-  // Auto-generate new trades every 5 seconds
-  useEffect(() => {
-    if (runeNames.length === 0) return
-    const iv = setInterval(() => {
-      const newTrade = generateTrade(runeNames, tradeIdx.current++)
-      setTrades(prev => [newTrade, ...prev.slice(0, 19)])
-    }, 5000)
-    return () => clearInterval(iv)
-  }, [runeNames])
-
-  // Sorting
-  const handleSort = useCallback((key: 'priceSats' | 'amount' | 'listedAgo') => {
-    if (sortKey === key) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortKey(key)
-      setSortDir('asc')
-    }
-  }, [sortKey])
-
+  // Filter listings
   const filteredListings = useMemo(() => {
-    let arr = [...listings]
-    if (searchQuery) {
-      const q = searchQuery.toUpperCase()
-      arr = arr.filter(l => l.rune.toUpperCase().includes(q))
-    }
-    arr.sort((a, b) => {
-      const mul = sortDir === 'asc' ? 1 : -1
-      if (sortKey === 'priceSats') return (a.priceSats - b.priceSats) * mul
-      if (sortKey === 'amount') return (a.amount - b.amount) * mul
-      return 0
-    })
-    return arr
-  }, [listings, searchQuery, sortKey, sortDir])
+    return listings.filter(listing => {
+      const matchesSearch = searchTerm === '' ||
+        listing.runeName.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRune = selectedRune === 'all' || listing.runeName === selectedRune;
+      return matchesSearch && matchesRune;
+    });
+  }, [listings, searchTerm, selectedRune]);
 
-  // Stats
-  const stats = useMemo(() => {
-    if (listings.length === 0) return { totalListings: 0, volume24h: 0, floorPrice: 0, bestOffer: 0 }
-    const prices = listings.map(l => l.priceSats)
+  // Calculate stats
+  const stats: MarketplaceStats = useMemo(() => {
+    const totalListings = filteredListings.length;
+    const totalVolume24h = filteredListings.reduce((sum, l) => sum + l.totalPrice, 0);
+    const uniqueSellers = new Set(filteredListings.map(l => l.seller)).size;
+    const avgPrice = totalListings > 0 ? totalVolume24h / totalListings : 0;
+
     return {
-      totalListings: listings.length,
-      volume24h: randFloat(0.5, 12.0, 4),
-      floorPrice: Math.min(...prices),
-      bestOffer: Math.max(...orderBook.bids.map(b => b.price).concat([0])),
-    }
-  }, [listings, orderBook])
+      totalListings,
+      totalVolume24h,
+      uniqueSellers,
+      avgPrice
+    };
+  }, [filteredListings]);
 
-  const SortIcon = ({ col }: { col: string }) => {
-    if (sortKey !== col) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-40" />
-    return sortDir === 'asc'
-      ? <ArrowUp className="w-3 h-3 ml-1 text-orange-400" />
-      : <ArrowDown className="w-3 h-3 ml-1 text-orange-400" />
-  }
+  // Get unique runes for filter
+  const uniqueRunes = useMemo(() => {
+    return Array.from(new Set(listings.map(l => l.runeName))).sort();
+  }, [listings]);
 
-  // ---- Loading / Error states ----
-  if (loading) {
+  // Table columns
+  // FIX: format signature is (cellValue, row, index) not (row)!
+  const columns: TableColumn<RuneListing>[] = [
+    {
+      key: 'runeName',
+      label: 'Rune',
+      sortable: true,
+      filterable: true,
+      format: (_value, listing) => (
+        <div className="flex items-center gap-2">
+          <span className="text-white text-sm font-semibold">
+            {listing.runeName}
+          </span>
+          <Badge variant="outline" className="text-xs">
+            {listing.source}
+          </Badge>
+        </div>
+      ),
+    },
+    {
+      key: 'amount',
+      label: 'Amount',
+      sortable: true,
+      format: (_value, listing) => (
+        <span className="text-gray-300 text-sm font-mono">
+          {listing.amount.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: 'unitPrice',
+      label: 'Unit Price',
+      sortable: true,
+      format: (_value, listing) => (
+        <div className="flex flex-col">
+          <span className="text-white text-sm font-mono">
+            {listing.unitPrice.toLocaleString()} sats
+          </span>
+          <span className="text-xs text-gray-500">
+            ${(listing.unitPrice * 0.00000065).toFixed(6)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'totalPrice',
+      label: 'Total Price',
+      sortable: true,
+      format: (_value, listing) => (
+        <div className="flex flex-col">
+          <span className="text-white text-sm font-mono">
+            {(listing.totalPrice / 100_000_000).toFixed(8)} BTC
+          </span>
+          <span className="text-xs text-gray-500">
+            ${((listing.totalPrice / 100_000_000) * 65000).toFixed(2)}
+          </span>
+        </div>
+      ),
+    },
+    {
+      key: 'seller',
+      label: 'Seller',
+      format: (_value, listing) => (
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400 text-xs font-mono">
+            {listing.seller.slice(0, 8)}...{listing.seller.slice(-6)}
+          </span>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(listing.seller);
+            }}
+            className="hover:text-orange-400 text-gray-600"
+          >
+            <Copy className="h-3 w-3" />
+          </button>
+        </div>
+      ),
+    },
+    {
+      key: 'listedAt',
+      label: 'Listed',
+      sortable: true,
+      format: (_value, listing) => {
+        const diff = Date.now() - new Date(listing.listedAt).getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const days = Math.floor(hours / 24);
+
+        return (
+          <span className="text-gray-400 text-xs">
+            {days > 0 ? `${days}d ago` : hours > 0 ? `${hours}h ago` : '<1h ago'}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'txid',
+      label: 'Actions',
+      format: (_value, listing) => (
+        <div className="flex gap-1">
+          {listing.txid && (
+            <a
+              href={`https://mempool.space/tx/${listing.txid}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-orange-400 hover:text-orange-300"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  if (loading && listings.length === 0) {
     return (
-      <div className="flex items-center justify-center h-96 bg-black rounded-lg border border-gray-800">
-        <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="w-8 h-8 text-orange-500 animate-spin" />
-          <span className="text-gray-400 text-sm">Loading marketplace data...</span>
+      <div className="space-y-4 bg-black p-4">
+        <MetricsGrid columns={4}>
+          <MetricsCard title="Total Listings" value="..." icon={ShoppingCart} loading />
+          <MetricsCard title="24h Volume" value="..." icon={DollarSign} loading />
+          <MetricsCard title="Sellers" value="..." icon={Activity} loading />
+          <MetricsCard title="Avg Price" value="..." icon={TrendingUp} loading />
+        </MetricsGrid>
+        <div className="flex items-center justify-center h-96 bg-gray-900/40 border border-gray-800 rounded">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 text-orange-400 animate-spin mx-auto mb-2" />
+            <p className="text-gray-400">Loading marketplace from UniSat + Magic Eden...</p>
+          </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-96 bg-black rounded-lg border border-red-900">
-        <div className="flex flex-col items-center gap-3">
-          <Activity className="w-8 h-8 text-red-500" />
+      <div className="flex items-center justify-center h-96 bg-black p-4">
+        <div className="flex flex-col items-center gap-3 p-6 bg-gray-900 border border-red-500/50 rounded-lg">
+          <AlertTriangle className="h-8 w-8 text-red-500" />
           <span className="text-red-400 text-sm">{error}</span>
-          <Button size="sm" variant="outline" className="border-gray-700 text-gray-300" onClick={() => window.location.reload()}>
-            Retry
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchListings}
+            className="border-gray-700 text-gray-300 hover:bg-gray-800"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" /> Retry
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
-  // Max cumulative values for depth bars
-  const maxBidCum = Math.max(...orderBook.bids.map(b => b.cumulative), 1)
-  const maxAskCum = Math.max(...orderBook.asks.map(a => a.cumulative), 1)
-
   return (
-    <div className="space-y-4">
-      {/* ---- STATS CARDS ---- */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4 flex items-center gap-3">
-            <ShoppingCart className="w-5 h-5 text-orange-500" />
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Active Listings</p>
-              <p className="text-lg font-bold text-white">{stats.totalListings}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4 flex items-center gap-3">
-            <TrendingUp className="w-5 h-5 text-green-500" />
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">24h Volume</p>
-              <p className="text-lg font-bold text-white">{stats.volume24h} BTC</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4 flex items-center gap-3">
-            <DollarSign className="w-5 h-5 text-yellow-500" />
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Floor Price</p>
-              <p className="text-lg font-bold text-white">{fmtNum(stats.floorPrice)} sats</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gray-900 border-gray-700">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Layers className="w-5 h-5 text-blue-500" />
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider">Best Offer</p>
-              <p className="text-lg font-bold text-white">{fmtNum(stats.bestOffer)} sats</p>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="space-y-4 bg-black p-4">
+      {/* Professional Metrics */}
+      <MetricsGrid columns={4}>
+        <MetricsCard
+          title="Total Listings"
+          value={stats.totalListings.toLocaleString()}
+          subtitle="Active orders"
+          icon={ShoppingCart}
+          iconColor="text-orange-500"
+        />
+        <MetricsCard
+          title="24h Volume"
+          value={`${(stats.totalVolume24h / 100_000_000).toFixed(2)} BTC`}
+          subtitle={`$${((stats.totalVolume24h / 100_000_000) * 65000).toLocaleString()}`}
+          icon={DollarSign}
+          iconColor="text-green-500"
+        />
+        <MetricsCard
+          title="Unique Sellers"
+          value={stats.uniqueSellers.toLocaleString()}
+          subtitle="Active sellers"
+          icon={Activity}
+          iconColor="text-blue-500"
+        />
+        <MetricsCard
+          title="Avg Price"
+          value={`${(stats.avgPrice / 100_000_000).toFixed(8)} BTC`}
+          subtitle="Per listing"
+          icon={TrendingUp}
+          iconColor="text-purple-500"
+        />
+      </MetricsGrid>
+
+      {/* Filters */}
+      <div className="flex gap-4 items-center bg-gray-900/40 border border-gray-800 rounded p-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search runes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-gray-800 border-gray-700 text-white"
+            />
+          </div>
+        </div>
+        <select
+          value={selectedRune}
+          onChange={(e) => setSelectedRune(e.target.value)}
+          className="bg-gray-800 border border-gray-700 text-white rounded px-3 py-2 text-sm"
+        >
+          <option value="all">All Runes</option>
+          {uniqueRunes.map(rune => (
+            <option key={rune} value={rune}>{rune}</option>
+          ))}
+        </select>
       </div>
 
-      {/* ---- ACTIVE LISTINGS ---- */}
-      <Card className="bg-gray-900 border-gray-700">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-white text-base flex items-center gap-2">
-              <ShoppingCart className="w-4 h-4 text-orange-500" />
-              Active Listings
-            </CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-gray-500" />
-              <Input
-                placeholder="Search rune..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="pl-9 bg-black border-gray-700 text-gray-200 h-9 text-sm"
-              />
-            </div>
+      {/* Listings Table */}
+      <div className="bg-gray-900/40 border border-gray-800 rounded-terminal overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-gray-800">
+          <div>
+            <h3 className="text-sm font-bold text-orange-400 uppercase tracking-wider">
+              Active Marketplace Listings
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Real-time orders from UniSat + Magic Eden • Last update: {lastUpdate.toLocaleTimeString()}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-800 hover:bg-transparent">
-                  <TableHead className="text-gray-500 text-xs">Rune</TableHead>
-                  <TableHead className="text-gray-500 text-xs cursor-pointer select-none" onClick={() => handleSort('amount')}>
-                    <span className="flex items-center">Amount <SortIcon col="amount" /></span>
-                  </TableHead>
-                  <TableHead className="text-gray-500 text-xs cursor-pointer select-none" onClick={() => handleSort('priceSats')}>
-                    <span className="flex items-center">Price/Unit (sats) <SortIcon col="priceSats" /></span>
-                  </TableHead>
-                  <TableHead className="text-gray-500 text-xs">Price USD</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Total BTC</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Total USD</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Seller</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Source</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Listed</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredListings.length === 0 ? (
-                  <TableRow className="border-gray-800">
-                    <TableCell colSpan={9} className="text-center text-gray-600 py-8">No listings found</TableCell>
-                  </TableRow>
-                ) : (
-                  filteredListings.map(l => (
-                    <TableRow key={l.id} className="border-gray-800 hover:bg-gray-800/50">
-                      <TableCell className="text-orange-400 font-mono text-xs font-semibold">{l.rune}</TableCell>
-                      <TableCell className="text-gray-300 text-xs font-mono">{fmtNum(l.amount)}</TableCell>
-                      <TableCell className="text-white text-xs font-mono">{fmtNum(l.priceSats)}</TableCell>
-                      <TableCell className="text-gray-400 text-xs font-mono">${l.priceUsd.toFixed(4)}</TableCell>
-                      <TableCell className="text-gray-300 text-xs font-mono">{fmtBtc(l.totalBtc)}</TableCell>
-                      <TableCell className="text-green-400 text-xs font-mono">{fmtUsd(l.totalUsd)}</TableCell>
-                      <TableCell className="text-gray-500 text-xs font-mono">{l.seller}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-[10px] border-gray-600 text-gray-400">{l.source}</Badge>
-                      </TableCell>
-                      <TableCell className="text-gray-500 text-xs">{l.listedAgo}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+          <div className="flex gap-2">
+            <ExportButton
+              type="custom"
+              data={filteredListings}
+              columns={[
+                { key: 'runeName', label: 'Rune' },
+                { key: 'amount', label: 'Amount' },
+                { key: 'unitPrice', label: 'Unit Price (sats)' },
+                { key: 'totalPrice', label: 'Total Price (sats)' },
+                { key: 'seller', label: 'Seller' },
+                { key: 'source', label: 'Source' },
+              ]}
+              title="Runes Marketplace Listings"
+              filename="runes-marketplace"
+              size="sm"
+              variant="outline"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchListings}
+              disabled={loading}
+              className="border-gray-700 text-gray-400 hover:bg-gray-800 h-8 gap-1"
+            >
+              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <ProfessionalTable
+          data={filteredListings}
+          columns={columns}
+          keyField="id"
+          searchable
+          exportable
+          pagination={{
+            enabled: true,
+            pageSize: 20,
+            showPageSizeSelector: true
+          }}
+          dense
+          emptyMessage="No listings found"
+        />
+      </div>
 
-      {/* ---- ORDER BOOK ---- */}
-      <Card className="bg-gray-900 border-gray-700">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-white text-base flex items-center gap-2">
-              <Layers className="w-4 h-4 text-blue-500" />
-              Order Book
-            </CardTitle>
-            <Select value={selectedRune} onValueChange={setSelectedRune}>
-              <SelectTrigger className="w-48 bg-black border-gray-700 text-gray-200 h-8 text-xs">
-                <SelectValue placeholder="Select rune" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-700">
-                {runeNames.map(r => (
-                  <SelectItem key={r} value={r} className="text-gray-200 text-xs focus:bg-gray-800 focus:text-white">
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <p className="text-xs text-gray-500 mt-1">Showing depth for {selectedRune}</p>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Bids */}
-            <div>
-              <div className="grid grid-cols-3 text-[10px] text-gray-500 uppercase tracking-wider mb-2 px-1">
-                <span>Price (sats)</span>
-                <span className="text-right">Amount</span>
-                <span className="text-right">Cumulative</span>
-              </div>
-              {orderBook.bids.map((b, i) => (
-                <div key={i} className="relative grid grid-cols-3 text-xs font-mono py-1 px-1 rounded">
-                  <div
-                    className="absolute inset-0 bg-green-900/20 rounded"
-                    style={{ width: `${(b.cumulative / maxBidCum) * 100}%` }}
-                  />
-                  <span className="relative text-green-400">{fmtNum(b.price)}</span>
-                  <span className="relative text-gray-300 text-right">{fmtNum(b.amount)}</span>
-                  <span className="relative text-gray-500 text-right">{fmtNum(b.cumulative)}</span>
-                </div>
-              ))}
-            </div>
-            {/* Asks */}
-            <div>
-              <div className="grid grid-cols-3 text-[10px] text-gray-500 uppercase tracking-wider mb-2 px-1">
-                <span>Price (sats)</span>
-                <span className="text-right">Amount</span>
-                <span className="text-right">Cumulative</span>
-              </div>
-              {orderBook.asks.map((a, i) => (
-                <div key={i} className="relative grid grid-cols-3 text-xs font-mono py-1 px-1 rounded">
-                  <div
-                    className="absolute inset-0 bg-red-900/20 rounded right-0 left-auto"
-                    style={{ width: `${(a.cumulative / maxAskCum) * 100}%`, marginLeft: 'auto' }}
-                  />
-                  <span className="relative text-red-400">{fmtNum(a.price)}</span>
-                  <span className="relative text-gray-300 text-right">{fmtNum(a.amount)}</span>
-                  <span className="relative text-gray-500 text-right">{fmtNum(a.cumulative)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ---- RECENT TRADES ---- */}
-      <Card className="bg-gray-900 border-gray-700">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-white text-base flex items-center gap-2">
-            <Activity className="w-4 h-4 text-green-500" />
-            Recent Trades
-            <span className="ml-auto">
-              <Badge variant="outline" className="text-[10px] border-green-800 text-green-500 animate-pulse">LIVE</Badge>
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-800 hover:bg-transparent">
-                  <TableHead className="text-gray-500 text-xs">Rune</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Side</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Amount</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Price (sats)</TableHead>
-                  <TableHead className="text-gray-500 text-xs">USD Value</TableHead>
-                  <TableHead className="text-gray-500 text-xs">Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {trades.map(t => (
-                  <TableRow key={t.id} className="border-gray-800 hover:bg-gray-800/50">
-                    <TableCell className="text-orange-400 font-mono text-xs font-semibold">{t.rune}</TableCell>
-                    <TableCell>
-                      <Badge className={`text-[10px] ${t.side === 'BUY' ? 'bg-green-900/60 text-green-400 border-green-700' : 'bg-red-900/60 text-red-400 border-red-700'}`}>
-                        {t.side}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-gray-300 text-xs font-mono">{fmtNum(t.amount)}</TableCell>
-                    <TableCell className="text-white text-xs font-mono">{fmtNum(t.priceSats)}</TableCell>
-                    <TableCell className="text-green-400 text-xs font-mono">{fmtUsd(t.usdValue)}</TableCell>
-                    <TableCell className="text-gray-500 text-xs">{t.timeAgo}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Data Source Attribution */}
+      <div className="text-xs text-gray-600 text-center">
+        Marketplace data from UniSat Auctions API + Magic Eden Orders API • Updated every 60 seconds
+      </div>
     </div>
-  )
+  );
 }

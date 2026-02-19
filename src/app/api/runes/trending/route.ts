@@ -26,9 +26,31 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json();
+    const runes = data.results || [];
+
+    // Fetch Magic Eden collection stats once (batch) for price enrichment
+    let meStatsMap = new Map<string, any>();
+    try {
+      const meController = new AbortController();
+      const meTimeout = setTimeout(() => meController.abort(), 8000);
+      const meRes = await fetch(
+        `https://api-mainnet.magiceden.dev/v2/ord/btc/runes/collection_stats/search?limit=100&sort=volume&window=1d`,
+        { headers: { 'Accept': 'application/json' }, signal: meController.signal }
+      );
+      clearTimeout(meTimeout);
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        const stats = Array.isArray(meData) ? meData : [];
+        for (const stat of stats) {
+          if (stat.rune) meStatsMap.set(stat.rune, stat);
+          if (stat.spacedRune) meStatsMap.set(stat.spacedRune, stat);
+        }
+      }
+    } catch {
+      // Non-critical - Magic Eden price data unavailable
+    }
 
     // Enrich with holder counts in parallel (best effort)
-    const runes = data.results || [];
     const enrichedRunes = await Promise.all(
       runes.slice(0, limit).map(async (rune: Record<string, unknown>) => {
         let holders = null;
@@ -54,10 +76,17 @@ export async function GET(request: Request) {
         const supplyValue = supply?.current || supply?.total || supply || '0';
         const supplyNum = parseFloat(supplyValue) || 0;
 
-        // Estimate market metrics for trending runes
-        const estimatedPriceBTC = supplyNum > 0 ? (0.1 + Math.random() * 0.5) / supplyNum : 0;
-        const marketCap = estimatedPriceBTC * supplyNum;
-        const volume24h = marketCap * (0.05 + Math.random() * 0.15); // 5-20% of market cap
+        // Look up real price from Magic Eden batch data
+        let floorPriceBtc = 0;
+        let volume24h = 0;
+        const meMatch = meStatsMap.get(rune.name as string) ||
+                        meStatsMap.get(rune.spaced_name as string);
+        if (meMatch) {
+          floorPriceBtc = (meMatch.floorUnitPrice || 0) / 100_000_000;
+          volume24h = (meMatch.volume24h || meMatch.volume || 0) / 100_000_000;
+        }
+
+        const marketCap = floorPriceBtc * supplyNum;
 
         return {
           id: rune.id,
@@ -75,7 +104,7 @@ export async function GET(request: Request) {
           holders,
           volume_24h: volume24h,
           market_cap: marketCap,
-          price_change_24h: (Math.random() - 0.5) * 20, // -10% to +10%
+          price_change_24h: meMatch?.priceChange24h || 0,
         };
       })
     );
@@ -86,7 +115,7 @@ export async function GET(request: Request) {
         data: enrichedRunes,
         total: data.total || 0,
         timestamp: Date.now(),
-        source: 'hiro',
+        source: 'hiro+magiceden',
       },
       {
         headers: {

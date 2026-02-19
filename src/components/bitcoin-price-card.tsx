@@ -46,14 +46,12 @@ export function BitcoinPriceCard() {
   // Update last updated time
   useEffect(() => {
     if (currentData?.lastUpdated) {
-      console.log('Last updated time:', currentData.lastUpdated)
       setLastUpdated(new Date(currentData.lastUpdated))
     }
   }, [currentData?.lastUpdated])
 
   // Log market data for debugging
   useEffect(() => {
-    console.log('Current data in component:', currentData)
   }, [currentData])
 
   // Update time ago string

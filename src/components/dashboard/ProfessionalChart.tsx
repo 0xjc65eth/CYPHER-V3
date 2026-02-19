@@ -6,32 +6,8 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useBitcoinPrice } from '@/hooks/cache';
 import { TrendingUp, TrendingDown, BarChart3, Activity } from 'lucide-react';
 
-// Mock data for demonstration
-const generateMockData = (hours: number = 24) => {
-  const data = [];
-  const now = Date.now();
-  const basePrice = 58000;
-  
-  for (let i = hours; i >= 0; i--) {
-    const time = now - (i * 60 * 60 * 1000);
-    const volatility = Math.random() * 0.05 - 0.025; // ±2.5% volatility
-    const price = basePrice * (1 + volatility + Math.sin(i / 5) * 0.02);
-    const volume = Math.random() * 1000 + 500;
-    
-    data.push({
-      time: new Date(time).toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false
-      }),
-      price: Math.round(price),
-      volume: Math.round(volume),
-      change: volatility * 100
-    });
-  }
-  
-  return data;
-};
+// Empty initial data - will be populated by API fetch
+const generateEmptyData = () => [] as any[];
 
 const TIMEFRAMES = [
   { label: '1H', value: '1h', hours: 1 },
@@ -42,7 +18,7 @@ const TIMEFRAMES = [
 
 export function ProfessionalChart() {
   const [selectedTimeframe, setSelectedTimeframe] = useState('1d');
-  const [chartData, setChartData] = useState(generateMockData(24));
+  const [chartData, setChartData] = useState(generateEmptyData());
   const [chartType, setChartType] = useState<'line' | 'area'>('area');
   const [isMounted, setIsMounted] = useState(false);
   const { data: btcPriceData } = useBitcoinPrice();
@@ -58,54 +34,50 @@ export function ProfessionalChart() {
   const fetchBitcoinData = async (hours: number) => {
     try {
       // Use CoinMarketCap API endpoint
-      const response = await fetch(`/api/coinmarketcap?symbols=BTC&timeframe=${selectedTimeframe}`);
+      const response = await fetch(`/api/coinmarketcap/?symbols=BTC&timeframe=${selectedTimeframe}`);
       const data = await response.json();
       
       if (data.success && data.data.historical && data.data.historical.length > 0) {
         // Use real CoinMarketCap historical data
-        console.log('✅ Using real CoinMarketCap data for charts');
         return data.data.historical;
       } else if (data.success && data.data.current.BTC) {
         // Fallback: Use current price to generate realistic historical data
         const currentPrice = data.data.current.BTC.price;
         const currentChange = data.data.current.BTC.change24h;
         
-        console.log('⚠️ Using current CMC price with generated historical data');
-        
+
         const historicalData = [];
         const now = Date.now();
-        
+
         for (let i = hours; i >= 0; i--) {
           const time = now - (i * 60 * 60 * 1000);
-          // Create realistic price movement based on current change
-          const hourlyChange = (currentChange / 24) * (1 - i / hours);
-          const volatility = (Math.random() - 0.5) * 0.5; // ±0.25% volatility
-          const price = currentPrice * (1 + (hourlyChange + volatility) / 100);
-          const volume = Math.round(Math.random() * 500 + 250);
-          
+          // Linearly interpolate from previous price to current price
+          const progress = 1 - (i / hours);
+          const hourlyChange = (currentChange / 100) * progress;
+          const price = currentPrice * (1 - (currentChange / 100) + hourlyChange);
+
           historicalData.push({
-            time: new Date(time).toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
+            time: new Date(time).toLocaleTimeString('en-US', {
+              hour: '2-digit',
               minute: '2-digit',
               hour12: false
             }),
             price: Math.round(price),
-            volume: volume,
-            change: hourlyChange + volatility
+            volume: 0,
+            change: (currentChange / hours) * (hours - i)
           });
         }
-        
+
         return historicalData;
       }
     } catch (error) {
       console.error('❌ Error fetching CoinMarketCap data:', error);
     }
     
-    console.log('⚠️ Fallback to Bitcoin price API');
     
     // Final fallback to bitcoin-price API
     try {
-      const priceResponse = await fetch('/api/bitcoin-price');
+      const priceResponse = await fetch('/api/bitcoin-price/');
       const priceData = await priceResponse.json();
       
       if (priceData.success) {
@@ -114,35 +86,33 @@ export function ProfessionalChart() {
         
         const data = [];
         const now = Date.now();
-        
+
         for (let i = hours; i >= 0; i--) {
           const time = now - (i * 60 * 60 * 1000);
-          const volatility = (Math.random() - 0.5) * 0.02;
-          const trendFactor = (currentChange / 100) * (1 - i / hours);
-          const price = currentPrice * (1 + volatility + trendFactor);
-          const volume = Math.round(Math.random() * 1000 + 500);
-          
+          const progress = 1 - (i / hours);
+          const trendFactor = (currentChange / 100) * progress;
+          const price = currentPrice * (1 - (currentChange / 100) + trendFactor);
+
           data.push({
-            time: new Date(time).toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
+            time: new Date(time).toLocaleTimeString('en-US', {
+              hour: '2-digit',
               minute: '2-digit',
               hour12: false
             }),
             price: Math.round(price),
-            volume: volume,
-            change: (volatility + trendFactor) * 100
+            volume: 0,
+            change: trendFactor * 100
           });
         }
-        
+
         return data;
       }
     } catch (fallbackError) {
       console.error('❌ Fallback API also failed:', fallbackError);
     }
     
-    // Last resort: mock data
-    console.log('⚠️ Using mock data as last resort');
-    return generateMockData(hours);
+    // Last resort: return empty data
+    return [];
   };
 
   useEffect(() => {

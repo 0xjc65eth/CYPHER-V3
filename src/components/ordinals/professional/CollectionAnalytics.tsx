@@ -50,7 +50,7 @@ export default function CollectionAnalytics() {
   const floorPriceData = marketData?.floor_price_history?.map(item => ({
     date: new Date(item.timestamp).toISOString().split('T')[0],
     price: item.price,
-    volume: Math.floor(Math.random() * 200) + 50, // Mock volume for now
+    volume: 0, // Volume is tracked separately via volume_history
     support: item.price * 0.95,
     resistance: item.price * 1.05
   })) || []
@@ -154,8 +154,20 @@ export default function CollectionAnalytics() {
               <>
                 <p className="text-2xl font-bold">{currentCollection?.floor_price?.toFixed(4) || '0.0000'} BTC</p>
                 <div className="flex items-center gap-1 text-sm">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500">+{Math.random() > 0.5 ? '+' : ''}{(Math.random() * 20 - 10).toFixed(1)}%</span>
+                  {currentCollection?.floor_price_change_24h !== undefined && currentCollection.floor_price_change_24h !== 0 ? (
+                    <>
+                      {currentCollection.floor_price_change_24h >= 0 ? (
+                        <TrendingUp className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={currentCollection.floor_price_change_24h >= 0 ? 'text-green-500' : 'text-red-500'}>
+                        {currentCollection.floor_price_change_24h >= 0 ? '+' : ''}{currentCollection.floor_price_change_24h.toFixed(1)}%
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">--</span>
+                  )}
                   <span className="text-muted-foreground">24h</span>
                 </div>
               </>
@@ -180,8 +192,20 @@ export default function CollectionAnalytics() {
               <>
                 <p className="text-2xl font-bold">{currentCollection?.volume_24h?.toFixed(1) || '0.0'} BTC</p>
                 <div className="flex items-center gap-1 text-sm">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500">+{(Math.random() * 50).toFixed(1)}%</span>
+                  {currentCollection?.volume_change_24h !== undefined && currentCollection.volume_change_24h !== 0 ? (
+                    <>
+                      {currentCollection.volume_change_24h >= 0 ? (
+                        <TrendingUp className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3 text-red-500" />
+                      )}
+                      <span className={currentCollection.volume_change_24h >= 0 ? 'text-green-500' : 'text-red-500'}>
+                        {currentCollection.volume_change_24h >= 0 ? '+' : ''}{currentCollection.volume_change_24h.toFixed(1)}%
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-muted-foreground">--</span>
+                  )}
                   <span className="text-muted-foreground">vs yesterday</span>
                 </div>
               </>
@@ -204,11 +228,9 @@ export default function CollectionAnalytics() {
               </div>
             ) : (
               <>
-                <p className="text-2xl font-bold">{currentCollection?.holders_count.toLocaleString() || '0'}</p>
+                <p className="text-2xl font-bold">{currentCollection?.holders_count?.toLocaleString() || '0'}</p>
                 <div className="flex items-center gap-1 text-sm">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  <span className="text-green-500">+{Math.floor(Math.random() * 50)}</span>
-                  <span className="text-muted-foreground">new today</span>
+                  <span className="text-muted-foreground">Total unique holders</span>
                 </div>
               </>
             )}
@@ -232,9 +254,9 @@ export default function CollectionAnalytics() {
               <>
                 <p className="text-2xl font-bold">{currentCollection?.listed_percentage?.toFixed(1) || '0.0'}%</p>
                 <div className="flex items-center gap-1 text-sm">
-                  <TrendingDown className="h-3 w-3 text-red-500" />
-                  <span className="text-red-500">{(Math.random() * 2 - 1).toFixed(1)}%</span>
-                  <span className="text-muted-foreground">vs avg</span>
+                  <span className="text-muted-foreground">
+                    {currentCollection?.listed_count?.toLocaleString() || '0'} of {currentCollection?.total_supply?.toLocaleString() || '0'} items
+                  </span>
                 </div>
               </>
             )}

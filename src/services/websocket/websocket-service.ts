@@ -384,7 +384,6 @@ export class WebSocketService {
    */
   private log(...args: any[]): void {
     if (this.config.enableLogging) {
-      console.log('[WebSocketService]', ...args);
     }
   }
 }

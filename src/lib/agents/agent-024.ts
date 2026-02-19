@@ -54,7 +54,6 @@ export class Agent024_TradingIntelligence extends EventEmitter {
 
   constructor() {
     super();
-    console.log('🤖 AGENT_024 initialized - Trading Intelligence');
   }
 
   start() {
@@ -62,7 +61,6 @@ export class Agent024_TradingIntelligence extends EventEmitter {
     
     this.isActive = true;
     this.emit('agent:started');
-    console.log('✅ AGENT_024 activated');
     
     // Start continuous market analysis
     this.analysisInterval = setInterval(() => {
@@ -81,7 +79,6 @@ export class Agent024_TradingIntelligence extends EventEmitter {
     }
     
     this.emit('agent:stopped');
-    console.log('🛑 AGENT_024 deactivated');
   }
 
   private async analyzeMarket() {
@@ -95,7 +92,6 @@ export class Agent024_TradingIntelligence extends EventEmitter {
       if (signal && signal.confidence >= this.config.confidenceThreshold) {
         this.signalHistory.push(signal);
         this.emit('signal:generated', signal);
-        console.log(`📊 New signal: ${signal.action} ${signal.symbol} (${(signal.confidence * 100).toFixed(1)}% confidence)`);
       }
     } catch (error) {
       console.error('Error in market analysis:', error);

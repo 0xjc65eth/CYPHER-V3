@@ -101,7 +101,6 @@ export class KnowledgeModule extends EventEmitter {
       
       // If we don't have any cached data, provide enhanced fallback
       if (!this.marketDataCache) {
-        console.warn('📊 Usando dados de fallback para mercado');
         this.marketDataCache = this.getEnhancedFallbackMarketData();
       }
     }
@@ -131,7 +130,6 @@ export class KnowledgeModule extends EventEmitter {
       }
 
       // All sources failed, use simulated data
-      console.warn('📊 Todas as fontes de dados falharam, usando dados simulados');
       return this.getSimulatedBitcoinData();
     } catch (error) {
       console.error('Erro crítico ao buscar dados do Bitcoin:', error);
@@ -222,7 +220,6 @@ export class KnowledgeModule extends EventEmitter {
       
       if (!response.ok) {
         if (response.status === 401) {
-          console.warn('CoinGecko: API key unauthorized');
           throw new Error('CoinGecko API unauthorized');
         }
         throw new Error(`CoinGecko API error: ${response.status}`);

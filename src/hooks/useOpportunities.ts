@@ -60,7 +60,6 @@ export function useOpportunities(address: string): UseOpportunitiesResult {
       await new Promise(resolve => setTimeout(resolve, 1800))
 
       // Process data through neural system for enhanced insights
-      console.log('Applying neural analysis to opportunity data...')
 
       // Real opportunities data with neural system enhancements
       const mockData: OpportunitiesData = {

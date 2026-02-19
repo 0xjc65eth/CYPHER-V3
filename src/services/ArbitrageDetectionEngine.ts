@@ -4,6 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
+import crypto from 'crypto';
 import { exchangeService, ArbitrageOpportunity, ExchangePrice } from './exchanges';
 
 export interface ArbitrageConfig {
@@ -130,7 +131,7 @@ class ArbitrageDetectionEngine extends EventEmitter {
     // Start advanced detection algorithms
     this.startAdvancedDetection();
 
-    console.log('🚀 Arbitrage Detection Engine started');
+    // Engine started
   }
 
   /**
@@ -148,7 +149,7 @@ class ArbitrageDetectionEngine extends EventEmitter {
     }
 
     this.emit('engineStopped');
-    console.log('⏹️ Arbitrage Detection Engine stopped');
+    // Engine stopped
   }
 
   /**
@@ -256,7 +257,7 @@ class ArbitrageDetectionEngine extends EventEmitter {
           if (profit > bestProfit) {
             bestProfit = profit;
             bestOpportunity = {
-              id: `tri_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+              id: `tri_${Date.now()}_${crypto.randomBytes(5).toString('hex')}`,
               path: [base, quote, settlement],
               exchanges: [basePrice.source, quotePrice.source, settlementPrice.source],
               prices: [basePrice.price, quotePrice.price, settlementPrice.price],
@@ -361,16 +362,9 @@ class ArbitrageDetectionEngine extends EventEmitter {
    * Analyze market momentum for better timing
    */
   private async analyzeMarketMomentum(): Promise<void> {
-    // This would implement technical analysis for optimal entry/exit timing
-    // For now, we'll emit a simple momentum signal
-    this.emit('momentumAnalysis', {
-      timestamp: Date.now(),
-      signals: {
-        BTC: 'bullish',
-        ETH: 'neutral',
-        SOL: 'bearish'
-      }
-    });
+    // TODO: Implement real technical analysis for optimal entry/exit timing
+    // Requires real price history data from exchanges to compute momentum indicators
+    // For now, skip emitting momentum signals until real TA is implemented
   }
 
   /**
@@ -413,7 +407,7 @@ class ArbitrageDetectionEngine extends EventEmitter {
       // High profit alert
       if (opportunity.netProfitPercent >= this.config.notificationThresholds.highProfit) {
         alerts.push({
-          id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `alert_${Date.now()}_${crypto.randomBytes(5).toString('hex')}`,
           type: 'high_profit',
           opportunity,
           message: `High profit opportunity: ${opportunity.netProfitPercent.toFixed(2)}% profit on ${opportunity.symbol}`,
@@ -426,7 +420,7 @@ class ArbitrageDetectionEngine extends EventEmitter {
       if (opportunity.confidence >= this.config.notificationThresholds.lowRisk && 
           opportunity.riskLevel === 'low') {
         alerts.push({
-          id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: `alert_${Date.now()}_${crypto.randomBytes(5).toString('hex')}`,
           type: 'low_risk',
           opportunity,
           message: `Low risk opportunity: ${opportunity.confidence}% confidence on ${opportunity.symbol}`,

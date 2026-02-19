@@ -280,7 +280,6 @@ export class AdvancedPriceAggregator {
 
       // Validate price data
       if (!this.validatePriceData(priceData)) {
-        console.warn(`⚠️ Invalid price data from ${source.name}`)
         return null
       }
 
@@ -332,7 +331,6 @@ export class AdvancedPriceAggregator {
       clearTimeout(timeoutId)
       
       if (attempt < this.config.retryAttempts) {
-        console.log(`🔄 Retrying ${source.name} (attempt ${attempt + 1})`)
         await this.delay(1000 * attempt) // Exponential backoff
         return this.makeApiRequest(source, tokenIn, tokenOut, amountIn, attempt + 1)
       }
@@ -591,7 +589,7 @@ export class AdvancedPriceAggregator {
       {
         dex: DEXType.JUPITER,
         name: 'Jupiter',
-        apiEndpoint: 'https://quote-api.jup.ag/v6',
+        apiEndpoint: 'https://api.jup.ag/v6',
         rateLimit: 10,
         reliability: 92,
         isActive: true,
@@ -639,7 +637,6 @@ export class AdvancedPriceAggregator {
       this.priceSources.set(source.dex, source)
     })
 
-    console.log(`📊 Initialized ${sources.length} price sources`)
   }
 
   /**
@@ -686,7 +683,6 @@ export class AdvancedPriceAggregator {
       connection.connection = new WebSocket(connection.url)
       
       connection.connection.onopen = () => {
-        console.log(`🔗 WebSocket connected to ${connection.dex}`)
         connection.isConnected = true
         connection.reconnectAttempts = 0
         connection.lastPing = Date.now()
@@ -703,7 +699,6 @@ export class AdvancedPriceAggregator {
       }
 
       connection.connection.onclose = () => {
-        console.log(`🔌 WebSocket disconnected from ${connection.dex}`)
         connection.isConnected = false
         this.scheduleReconnect(connection)
       }
@@ -771,7 +766,6 @@ export class AdvancedPriceAggregator {
     connection.reconnectAttempts++
 
     setTimeout(() => {
-      console.log(`🔄 Reconnecting WebSocket for ${connection.dex} (attempt ${connection.reconnectAttempts})`)
       this.connectWebSocket(connection)
     }, delay)
   }
@@ -849,7 +843,6 @@ export class AdvancedPriceAggregator {
           connection.connection.send(JSON.stringify({ type: 'ping' }))
           connection.lastPing = Date.now()
         } catch (error) {
-          console.warn(`⚠️ Failed to ping ${connection.dex}:`, error)
         }
       }
     }
@@ -940,7 +933,6 @@ export class AdvancedPriceAggregator {
    */
   updateConfig(newConfig: Partial<PriceAggregatorConfig>): void {
     this.config = { ...this.config, ...newConfig }
-    console.log('⚙️ Price aggregator configuration updated')
   }
 
   /**
@@ -968,7 +960,6 @@ export class AdvancedPriceAggregator {
   clearCache(): void {
     this.priceCache.clear()
     this.lastUpdateTimes.clear()
-    console.log('🧹 Price aggregator cache cleared')
   }
 
   /**
@@ -981,7 +972,6 @@ export class AdvancedPriceAggregator {
         connection.isConnected = false
       }
     }
-    console.log('🔌 All WebSocket connections closed')
   }
 }
 

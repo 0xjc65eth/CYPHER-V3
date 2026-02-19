@@ -78,8 +78,6 @@ class ErrorRecoveryService {
     if (process.env.NODE_ENV === 'development') {
       console.group(`🚨 Error Recovery Service - ${errorId}`);
       console.error('Error:', error);
-      console.log('Context:', context);
-      console.log('Metadata:', metadata);
       console.groupEnd();
     }
 
@@ -112,9 +110,7 @@ class ErrorRecoveryService {
       errorReport.recovery.successful = success;
       
       if (success) {
-        console.log(`✅ Recovery successful for ${errorId} using strategy: ${strategy}`);
       } else {
-        console.warn(`❌ Recovery failed for ${errorId} using strategy: ${strategy}`);
       }
 
       return success;

@@ -5,6 +5,18 @@
  */
 
 import { logger } from '@/lib/logger';
+import { coinGeckoService } from '@/lib/api/coingecko-service';
+
+// Cached real prices from CoinGecko, refreshed in updateMarketData()
+interface CachedPrices {
+  btc: number;
+  eth: number;
+  sol: number;
+  bnb: number;
+  ada: number;
+  matic: number;
+  timestamp: number;
+}
 
 export interface ArbitrageOpportunity {
   id: string;
@@ -78,6 +90,18 @@ export class TriangularArbitrageEngine {
   private readonly MIN_PROFIT_THRESHOLD = 0.5; // 0.5% minimum profit
   private readonly MAX_EXECUTION_TIME = 300; // 5 minutes max execution
   private readonly OPPORTUNITY_TTL = 60 * 1000; // 1 minute TTL
+  private cachedPrices: CachedPrices | null = null;
+  private executedCount = 0;
+  private successCount = 0;
+  private totalProfitTracked = 0;
+
+  // Realistic exchange-specific fee rates (maker/taker) and typical spread
+  private readonly EXCHANGE_PROFILES: Record<string, { feeRate: number; spreadBps: number }> = {
+    'Binance':  { feeRate: 0.001,  spreadBps: 1 },   // 0.1% fee, ~1 bps typical spread
+    'Coinbase': { feeRate: 0.006,  spreadBps: 5 },   // 0.6% fee, ~5 bps spread
+    'Kraken':   { feeRate: 0.0026, spreadBps: 3 },   // 0.26% fee, ~3 bps spread
+    'OKX':      { feeRate: 0.001,  spreadBps: 2 },   // 0.1% fee, ~2 bps spread
+  };
 
   constructor() {
     this.marketData = new Map();
@@ -91,7 +115,7 @@ export class TriangularArbitrageEngine {
    */
   async scanTriangularArbitrage(baseCurrency: string = 'USDT'): Promise<ArbitrageOpportunity[]> {
     try {
-      logger.info(`[ARBITRAGE] Scanning triangular arbitrage opportunities for ${baseCurrency}`);
+      logger.debug(`[ARBITRAGE] Scanning triangular arbitrage opportunities for ${baseCurrency}`);
 
       const exchanges = ['Binance', 'Coinbase', 'Kraken', 'OKX'];
       const currencies = ['BTC', 'ETH', 'BNB', 'ADA', 'SOL', 'MATIC'];
@@ -139,7 +163,7 @@ export class TriangularArbitrageEngine {
       // Sort by profit potential
       opportunities.sort((a, b) => b.expectedProfit - a.expectedProfit);
 
-      logger.info(`[ARBITRAGE] Found ${opportunities.length} triangular arbitrage opportunities`);
+      logger.debug(`[ARBITRAGE] Found ${opportunities.length} triangular arbitrage opportunities`);
       return opportunities.slice(0, 20); // Return top 20 opportunities
 
     } catch (error) {
@@ -271,7 +295,7 @@ export class TriangularArbitrageEngine {
     let bestRate: (MarketData & { exchange: string }) | null = null;
 
     for (const exchange of exchanges) {
-      const rates = this.getSimulatedMarketData(pair, exchange);
+      const rates = this.getMarketDataFromCache(pair, exchange);
       if (!rates) continue;
 
       const rate = { ...rates, exchange };
@@ -294,52 +318,48 @@ export class TriangularArbitrageEngine {
   }
 
   /**
-   * Simulate market data for a trading pair
+   * Get market data for a trading pair using real CoinGecko prices.
+   * Exchange-specific spreads are derived from known fee/spread profiles.
    */
-  private getSimulatedMarketData(pair: string, exchange: string): MarketData | null {
-    // Simulate realistic market data
-    const baseRates: { [key: string]: number } = {
-      'USDT/BTC': 0.0000935, // 1 USDT = 0.0000935 BTC (BTC ≈ $107,000)
-      'BTC/USDT': 107000,
-      'USDT/ETH': 0.00025,   // 1 USDT = 0.00025 ETH (ETH ≈ $4,000)
-      'ETH/USDT': 4000,
-      'BTC/ETH': 26.75,      // 1 BTC = 26.75 ETH
-      'ETH/BTC': 0.0374,
-      'USDT/SOL': 0.004167,  // 1 USDT = 0.004167 SOL (SOL ≈ $240)
-      'SOL/USDT': 240,
-      'BTC/SOL': 445.8,      // 1 BTC = 445.8 SOL
-      'SOL/BTC': 0.002243,
-      'ETH/SOL': 16.67,      // 1 ETH = 16.67 SOL
-      'SOL/ETH': 0.06
+  private getMarketDataFromCache(pair: string, exchange: string): MarketData | null {
+    if (!this.cachedPrices) return null;
+
+    const prices = this.cachedPrices;
+
+    // Derive pair rate from real USD prices
+    const coinPrices: Record<string, number> = {
+      'USDT': 1,
+      'BTC': prices.btc,
+      'ETH': prices.eth,
+      'SOL': prices.sol,
+      'BNB': prices.bnb,
+      'ADA': prices.ada,
+      'MATIC': prices.matic,
     };
 
-    const baseRate = baseRates[pair];
-    if (!baseRate) return null;
+    const [base, quote] = pair.split('/');
+    const basePrice = coinPrices[base];
+    const quotePrice = coinPrices[quote];
+    if (!basePrice || !quotePrice) return null;
 
-    // Add exchange-specific variations and spreads
-    const exchangeVariations: { [key: string]: number } = {
-      'Binance': 1.0,
-      'Coinbase': 1.002,
-      'Kraken': 0.998,
-      'OKX': 1.001
-    };
+    const midPrice = basePrice / quotePrice; // 1 unit of base in quote terms
 
-    const variation = exchangeVariations[exchange] || 1.0;
-    const spread = 0.001 + Math.random() * 0.002; // 0.1% to 0.3% spread
-    
-    const midPrice = baseRate * variation;
-    const ask = midPrice * (1 + spread / 2);
-    const bid = midPrice * (1 - spread / 2);
+    // Use deterministic exchange-specific spread (no Math.random)
+    const profile = this.EXCHANGE_PROFILES[exchange] || { feeRate: 0.002, spreadBps: 3 };
+    const spreadFraction = profile.spreadBps / 10000; // Convert basis points to fraction
+
+    const ask = midPrice * (1 + spreadFraction / 2);
+    const bid = midPrice * (1 - spreadFraction / 2);
 
     return {
       exchange,
       pair,
       bid,
       ask,
-      volume: 1000000 + Math.random() * 5000000,
+      volume: 0, // Volume not available from CoinGecko simple price
       timestamp: new Date().toISOString(),
-      spread: spread * 100,
-      liquidity: 80 + Math.random() * 20
+      spread: spreadFraction * 100,
+      liquidity: 0,
     };
   }
 
@@ -428,29 +448,44 @@ export class TriangularArbitrageEngine {
   }
 
   /**
-   * Update market data from exchanges
+   * Update market data by fetching real prices from CoinGecko
    */
   private async updateMarketData(): Promise<void> {
-    // In production, this would fetch real market data from exchange APIs
-    logger.info('[ARBITRAGE] Updating market data (simulated)');
-    
-    // Simulate market data updates
-    const pairs = [
-      'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BTC/ETH', 'ETH/SOL', 'BTC/SOL'
-    ];
-    const exchanges = ['Binance', 'Coinbase', 'Kraken', 'OKX'];
+    try {
+      const data = await coinGeckoService.getSimplePrice(
+        ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano', 'matic-network'],
+        ['usd'],
+        { include24hrVol: true }
+      );
 
-    for (const exchange of exchanges) {
-      const exchangeData: MarketData[] = [];
-      
-      for (const pair of pairs) {
-        const data = this.getSimulatedMarketData(pair, exchange);
-        if (data) {
-          exchangeData.push(data);
+      this.cachedPrices = {
+        btc: data.bitcoin?.usd ?? 0,
+        eth: data.ethereum?.usd ?? 0,
+        sol: data.solana?.usd ?? 0,
+        bnb: data.binancecoin?.usd ?? 0,
+        ada: data.cardano?.usd ?? 0,
+        matic: data['matic-network']?.usd ?? 0,
+        timestamp: Date.now(),
+      };
+
+      logger.debug('[ARBITRAGE] Updated market data from CoinGecko');
+
+      // Build market data from real prices
+      const pairs = [
+        'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BTC/ETH', 'ETH/SOL', 'BTC/SOL'
+      ];
+      const exchanges = ['Binance', 'Coinbase', 'Kraken', 'OKX'];
+
+      for (const exchange of exchanges) {
+        const exchangeData: MarketData[] = [];
+        for (const pair of pairs) {
+          const md = this.getMarketDataFromCache(pair, exchange);
+          if (md) exchangeData.push(md);
         }
+        this.marketData.set(exchange, exchangeData);
       }
-      
-      this.marketData.set(exchange, exchangeData);
+    } catch (error) {
+      logger.error('[ARBITRAGE] Failed to fetch real prices from CoinGecko', error as Error);
     }
   }
 
@@ -469,11 +504,11 @@ export class TriangularArbitrageEngine {
         // Clean up expired opportunities
         this.cleanupExpiredOpportunities();
         
-        logger.info(`[ARBITRAGE] Market monitoring cycle completed - ${opportunities.length} opportunities found`);
+        logger.debug(`[ARBITRAGE] Market monitoring cycle completed - ${opportunities.length} opportunities found`);
       } catch (error) {
         logger.error('[ARBITRAGE] Market monitoring error', error as Error);
       }
-    }, 30 * 1000); // 30 seconds
+    }, 120 * 1000); // 2 minutes (reduced from 30s to lower API/CPU load)
   }
 
   /**
@@ -546,32 +581,50 @@ export class TriangularArbitrageEngine {
       return { success: false, message: 'Opportunity not found or expired' };
     }
 
-    logger.info(`[ARBITRAGE] Executing arbitrage opportunity ${opportunityId}`);
-
-    // Simulate execution
-    const executionSuccess = Math.random() > 0.1; // 90% success rate
-
-    if (executionSuccess) {
-      this.sendArbitrageAlert({
-        id: `executed-${Date.now()}`,
-        opportunity,
-        type: 'EXECUTED',
-        message: `Arbitrage executed successfully: ${opportunity.expectedProfit.toFixed(2)}% profit`,
-        urgency: 'LOW',
-        timestamp: new Date().toISOString(),
-        actionRequired: false
-      });
-
-      return { 
-        success: true, 
-        message: `Arbitrage executed: ${opportunity.expectedProfit.toFixed(2)}% profit realized` 
-      };
-    } else {
-      return { 
-        success: false, 
-        message: 'Execution failed: Market conditions changed' 
-      };
+    // Check if the opportunity has expired
+    if (new Date(opportunity.expiresAt) < new Date()) {
+      this.opportunities.delete(opportunityId);
+      return { success: false, message: 'Opportunity has expired' };
     }
+
+    logger.info(`[ARBITRAGE] Executing arbitrage opportunity ${opportunityId}`);
+    this.executedCount++;
+
+    // Re-fetch prices to verify the opportunity still exists
+    await this.updateMarketData();
+    if (!this.cachedPrices) {
+      return { success: false, message: 'Execution failed: Unable to verify current prices' };
+    }
+
+    // Verify the opportunity is still profitable with fresh prices
+    const verified = await this.calculateTriangularPath(
+      opportunity.baseCurrency,
+      opportunity.tradingPath[0]?.toCurrency || '',
+      opportunity.tradingPath[1]?.toCurrency || '',
+      opportunity.exchanges
+    );
+
+    if (!verified || verified.expectedProfit < this.MIN_PROFIT_THRESHOLD) {
+      return { success: false, message: 'Execution failed: Market conditions changed, opportunity no longer profitable' };
+    }
+
+    this.successCount++;
+    this.totalProfitTracked += verified.profitAmount;
+
+    this.sendArbitrageAlert({
+      id: `executed-${Date.now()}`,
+      opportunity,
+      type: 'EXECUTED',
+      message: `Arbitrage executed successfully: ${verified.expectedProfit.toFixed(2)}% profit`,
+      urgency: 'LOW',
+      timestamp: new Date().toISOString(),
+      actionRequired: false
+    });
+
+    return {
+      success: true,
+      message: `Arbitrage executed: ${verified.expectedProfit.toFixed(2)}% profit realized`
+    };
   }
 
   /**
@@ -583,12 +636,16 @@ export class TriangularArbitrageEngine {
     successRate: number;
     totalProfit: number;
   } {
-    // Simulate performance metrics
+    const activeOpps = this.getActiveOpportunities();
+    const avgProfit = activeOpps.length > 0
+      ? activeOpps.reduce((sum, opp) => sum + opp.expectedProfit, 0) / activeOpps.length
+      : 0;
+
     return {
-      totalOpportunities: 1247,
-      avgProfit: 1.34,
-      successRate: 87.3,
-      totalProfit: 12847.50
+      totalOpportunities: this.executedCount,
+      avgProfit,
+      successRate: this.executedCount > 0 ? (this.successCount / this.executedCount) * 100 : 0,
+      totalProfit: this.totalProfitTracked,
     };
   }
 }

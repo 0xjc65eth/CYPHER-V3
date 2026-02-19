@@ -165,7 +165,7 @@ export class MagicEdenAPI {
       return data.collections || [];
     } catch (error) {
       console.error('Magic Eden getCollections error:', error);
-      return this.getMockCollections();
+      return [];
     }
   }
 
@@ -199,7 +199,7 @@ export class MagicEdenAPI {
       return data;
     } catch (error) {
       console.error(`Magic Eden getCollectionStats error for ${symbol}:`, error);
-      return this.getMockStats();
+      return null;
     }
   }
 
@@ -238,7 +238,7 @@ export class MagicEdenAPI {
       return data.tokens || [];
     } catch (error) {
       console.error('Magic Eden getInscriptions error:', error);
-      return this.getMockInscriptions();
+      return [];
     }
   }
 
@@ -289,7 +289,7 @@ export class MagicEdenAPI {
       return data.activities || [];
     } catch (error) {
       console.error(`Magic Eden getCollectionActivity error for ${collection}:`, error);
-      return this.getMockActivity();
+      return [];
     }
   }
 
@@ -359,115 +359,7 @@ export class MagicEdenAPI {
     }
   }
 
-  // Mock data for fallback
-  private getMockCollections(): MagicEdenCollection[] {
-    return [
-      {
-        symbol: 'nodemonkeys',
-        name: 'NodeMonkeys',
-        description: 'The first 10k PFP collection on Bitcoin',
-        image: 'https://example.com/nodemonkeys.png',
-        twitter: 'https://twitter.com/nodemonkeys',
-        discord: 'https://discord.gg/nodemonkeys',
-        website: 'https://nodemonkeys.io',
-        totalItems: 10000,
-        floorPrice: 0.045,
-        totalVolume: 2800.5,
-        listedCount: 892,
-        owners: 3456,
-        volume24h: 156.7,
-        volume7d: 892.3,
-        volume30d: 3421.5,
-        floorChange24h: 12.5,
-        averagePrice24h: 0.052,
-        supply: 10000,
-        verified: true,
-        featured: true
-      }
-    ];
-  }
-
-  private getMockInscriptions(): MagicEdenInscription[] {
-    return [
-      {
-        id: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        num: 15000000,
-        address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        output: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0:0',
-        location: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0:0:0',
-        content: 'https://ordinals.com/content/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        contentType: 'image/png',
-        contentBody: '',
-        contentPreviewURL: 'https://ordinals.com/preview/a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        genesisTransaction: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-        genesisTransactionBlockTime: Date.now() - 86400000,
-        genesisTransactionBlockHeight: 820000,
-        genesisTransactionBlockHash: '00000000000000000001234567890abcdef',
-        sat: 2099999997689999,
-        satOffset: 0,
-        owner: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        listed: true,
-        listedAt: Date.now() - 3600000,
-        listedPrice: 0.045,
-        listedMakerFeeBp: 250,
-        collection: {
-          symbol: 'nodemonkeys',
-          name: 'NodeMonkeys',
-          imageURI: 'https://example.com/nodemonkeys.png'
-        },
-        satAttributes: {
-          rarity: 'common',
-          year: '2024',
-          epoch: '4',
-          period: '1'
-        }
-      }
-    ];
-  }
-
-  private getMockStats(): MagicEdenStats {
-    return {
-      totalVolume: 2800.5,
-      totalSales: 15670,
-      totalListings: 892,
-      avgSalePrice: 0.048,
-      marketCap: 450.0,
-      numOwners: 3456,
-      numItems: 10000,
-      volume24h: 156.7,
-      volume7d: 892.3,
-      volume30d: 3421.5,
-      sales24h: 89,
-      sales7d: 567,
-      sales30d: 2134,
-      floorPrice: 0.045,
-      listedCount: 892
-    };
-  }
-
-  private getMockActivity(): MagicEdenActivity[] {
-    return [
-      {
-        txid: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0',
-        blockHeight: 820000,
-        blockTime: Date.now() - 3600000,
-        type: 'sale',
-        inscriptionId: 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6',
-        inscriptionNumber: 15000000,
-        fromAddress: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        toAddress: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
-        oldOwner: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        newOwner: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
-        price: 0.045,
-        priceUnit: 'BTC',
-        marketplace: 'magiceden',
-        collection: {
-          symbol: 'nodemonkeys',
-          name: 'NodeMonkeys'
-        }
-      }
-    ];
-  }
+  // No mock data - API errors return empty results
 }
 
 // Singleton instance

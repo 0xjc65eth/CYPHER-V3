@@ -221,7 +221,7 @@ export function CypherAISystem() {
       };
 
       // Call AI API
-      const response = await fetch('/api/ai/openai-analysis', {
+      const response = await fetch('/api/ai/openai-analysis/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -280,7 +280,7 @@ export function CypherAISystem() {
   // Generate voice
   const generateVoice = async (text: string) => {
     try {
-      const response = await fetch('/api/ai/text-to-speech', {
+      const response = await fetch('/api/ai/text-to-speech/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

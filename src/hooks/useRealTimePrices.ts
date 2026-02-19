@@ -44,7 +44,6 @@ export function useRealTimePrices(options: UseRealTimePricesOptions): UseRealTim
           realTimePriceService.setUpdateFrequency(updateFrequency);
         }
       } catch (error) {
-        console.warn('Failed to set update frequency:', error);
       }
     }
   }, [updateFrequency]);
@@ -100,7 +99,6 @@ export function useRealTimePrices(options: UseRealTimePricesOptions): UseRealTim
         setIsLoading(false);
       }
     } catch (error) {
-      console.warn('Failed to get cached prices:', error);
     }
 
     // Cleanup function
@@ -131,7 +129,6 @@ export function useRealTimePrices(options: UseRealTimePricesOptions): UseRealTim
   try {
     stats = realTimePriceService.getStats();
   } catch (error) {
-    console.warn('Failed to get service stats:', error);
     stats = {
       activeSubscriptions: 0,
       uniqueSymbols: 0,

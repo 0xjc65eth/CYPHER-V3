@@ -3,7 +3,6 @@ import { apiService } from '@/lib/api-service'
 
 export async function GET() {
   try {
-    console.log('Fetching Ordinals stats from enhanced API service...')
 
     // Use the unified API service to get collections and general stats
     const [collectionsResponse, inscriptionsResponse] = await Promise.allSettled([
@@ -18,20 +17,17 @@ export async function GET() {
     // Process collections data
     if (collectionsResponse.status === 'fulfilled' && collectionsResponse.value.success) {
       collectionsData = collectionsResponse.value.data
-      console.log(`Fetched ${collectionsData.length} collections from ${collectionsResponse.value.source}`)
     } else {
-      console.warn('Collections API failed, using fallback data')
       collectionsData = collectionsResponse.status === 'fulfilled' ? 
         collectionsResponse.value.data || [] : []
     }
 
     // Process inscriptions data for general stats
     if (inscriptionsResponse.status === 'fulfilled' && inscriptionsResponse.value.success) {
-      const inscriptionsData = inscriptionsResponse.value.data
-      if (inscriptionsData.total) {
+      const inscriptionsData = inscriptionsResponse.value.data as unknown as { total?: number; results?: unknown[] }
+      if (inscriptionsData && typeof inscriptionsData === 'object' && 'total' in inscriptionsData && inscriptionsData.total) {
         totalInscriptions = inscriptionsData.total
       }
-      console.log(`General stats from ${inscriptionsResponse.value.source}`)
     }
 
     // Calculate total volume from top 20 collections
@@ -68,11 +64,29 @@ export async function GET() {
       'MULTIVERSO PASS': ['magiceden.io', 'ordswap.io']
     };
 
-    // Format the response data
+    // Calculate real volume and price changes (NO MORE Math.random()!)
+    let totalVolumeChange = 0;
+    let totalPriceChange = 0;
+    let collectionsWithData = 0;
+
+    collectionsData.forEach((collection: any) => {
+      if (collection.volume_change_24h !== undefined) {
+        totalVolumeChange += collection.volume_change_24h;
+        collectionsWithData++;
+      }
+      if (collection.price_change_24h !== undefined) {
+        totalPriceChange += collection.price_change_24h;
+      }
+    });
+
+    const avgVolumeChange = collectionsWithData > 0 ? totalVolumeChange / collectionsWithData : 0;
+    const avgPriceChange = collectionsWithData > 0 ? totalPriceChange / collectionsWithData : 0;
+
+    // Format the response data with REAL metrics
     const formattedData = {
       volume_24h: volume24h || 200000,
-      volume_change_24h: Math.random() * 10 - 5, // Random change between -5% and +5%
-      price_change_24h: Math.random() * 8 - 4, // Random change between -4% and +4%
+      volume_change_24h: avgVolumeChange, // REAL average change from collections
+      price_change_24h: avgPriceChange,   // REAL average price change
       market_cap: marketCap || 2000000000,
       unique_holders: Math.min(uniqueHolders, totalHolders),
       available_supply: totalInscriptions,
@@ -110,7 +124,6 @@ export async function GET() {
       last_updated: new Date().toISOString()
     }
 
-    console.log('Ordinals stats:', formattedData)
     return NextResponse.json(formattedData)
   } catch (error) {
     console.error('Error fetching Ordinals stats:', error)

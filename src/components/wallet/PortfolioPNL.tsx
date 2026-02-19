@@ -43,15 +43,12 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
     setError(null);
 
     try {
-      console.log('Fetching portfolio data for address:', wallet.address);
-      const response = await fetch(`/api/portfolio/real-pnl?address=${wallet.address}`);
+      const response = await fetch(`/api/portfolio/real-pnl/?address=${wallet.address}`);
       const data = await response.json();
       
-      console.log('Portfolio API response:', data);
 
       if (data.success && data.data) {
         setPortfolioData(data.data.portfolio);
-        console.log('Portfolio data set:', data.data.portfolio);
       } else {
         setError(data.error || 'Failed to fetch portfolio data');
         console.error('Portfolio error:', data.error);

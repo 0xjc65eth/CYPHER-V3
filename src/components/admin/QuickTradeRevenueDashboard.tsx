@@ -43,7 +43,7 @@ export function QuickTradeRevenueDashboard() {
   const fetchRevenueData = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/quicktrade/revenue?wallet=0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB');
+      const response = await fetch('/api/quicktrade/revenue/?wallet=0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3');
       if (response.ok) {
         const data = await response.json();
         setRevenueData(data.data.revenue);
@@ -58,11 +58,11 @@ export function QuickTradeRevenueDashboard() {
   const exportData = async (format: 'csv' | 'json') => {
     setIsExporting(true);
     try {
-      const response = await fetch('/api/quicktrade/revenue', {
+      const response = await fetch('/api/quicktrade/revenue/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          wallet: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB',
+          wallet: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
           action: 'export',
           params: { format, dateRange: selectedTimeframe }
         })
@@ -71,7 +71,6 @@ export function QuickTradeRevenueDashboard() {
       if (response.ok) {
         const data = await response.json();
         // In production, trigger download
-        console.log('Export data:', data);
         alert('Export completed successfully!');
       }
     } catch (error) {

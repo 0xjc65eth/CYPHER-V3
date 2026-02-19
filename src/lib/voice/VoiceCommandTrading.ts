@@ -62,7 +62,6 @@ export class VoiceCommandTrading {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (!SpeechRecognition) {
-      console.warn('Speech recognition not supported');
       return;
     }
 
@@ -98,7 +97,6 @@ export class VoiceCommandTrading {
     try {
       this.isListening = true;
       this.recognition.start();
-      console.log('🎤 Voice recognition started');
       return true;
     } catch (error) {
       console.error('Error starting recognition:', error);
@@ -111,7 +109,6 @@ export class VoiceCommandTrading {
     
     this.isListening = false;
     this.recognition.stop();
-    console.log('🔇 Voice recognition stopped');
   }
 
   private processVoiceCommand(transcript: string): VoiceCommand | null {
@@ -128,13 +125,11 @@ export class VoiceCommandTrading {
           confidence: 0.9
         };
         
-        console.log('🎯 Voice command detected:', voiceCommand);
         this.executeCommand(voiceCommand);
         return voiceCommand;
       }
     }
 
-    console.log('❓ Command not recognized:', cleanTranscript);
     return null;
   }
 

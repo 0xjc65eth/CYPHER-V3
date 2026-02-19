@@ -99,7 +99,6 @@ export class WalletManager {
     // Aguarda carregamento das extensões
     setTimeout(() => {
       this.providers = detectProviders();
-      console.log('Detected wallet providers:', this.providers.map(p => p.name));
     }, 1000);
   }
 

@@ -122,22 +122,20 @@ export function useArbitrageScanner() {
     setScanProgress(0);
 
     try {
-      // Simulate scanning progress
-      const sources = ['Magic Eden', 'UniSat', 'OKX', 'Ordiscan', 'CoinMarketCap'];
-      
-      for (let i = 0; i < sources.length; i++) {
-        setScanProgress((i + 1) / sources.length * 100);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API calls
+      // Fetch real scan results from the arbitrage API
+      setScanProgress(25);
+      const response = await fetch('/api/arbitrage/opportunities/?type=all&minSpread=1');
+      setScanProgress(75);
+
+      if (!response.ok) {
+        throw new Error(`Scan failed: ${response.status}`);
       }
 
-      // Fetch final results
-      const response = await fetch('/api/arbitrage/scan');
       const results = await response.json();
-      
       setLastScanResults(results);
       setScanProgress(100);
-    } catch (error) {
-      console.error('Scan failed:', error);
+    } catch {
+      // Scan failed - results remain null
     } finally {
       setIsScanning(false);
     }

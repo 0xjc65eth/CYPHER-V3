@@ -41,7 +41,7 @@ function AnalysisTab() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch('/api/cypher-ai/market-context');
+        const res = await fetch('/api/cypher-ai/market-context/');
         if (!res.ok) throw new Error('Failed to fetch');
         const json = await res.json();
         setData(json);
@@ -173,7 +173,7 @@ function NeuralLearningTab() {
   useEffect(() => {
     async function fetchMetrics() {
       try {
-        const res = await fetch('/api/neural-metrics');
+        const res = await fetch('/api/neural-metrics/');
         if (!res.ok) throw new Error('Failed to fetch');
         const json = await res.json();
         setMetrics(json);

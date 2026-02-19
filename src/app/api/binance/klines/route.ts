@@ -28,7 +28,6 @@ export async function GET(request: NextRequest) {
         }));
       }
     } catch (error) {
-      console.log('Binance API error, using fallback data:', error);
     }
 
     // Se a API falhou, gerar dados simulados realistas

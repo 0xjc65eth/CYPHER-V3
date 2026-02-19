@@ -60,7 +60,6 @@ export class BinaryWebSocketManager extends EventEmitter {
         ws.binaryType = 'arraybuffer'
         
         ws.on('open', () => {
-          console.log(`Connected to ${name} pool ${i}`)
           this.subscribeToStreams(ws, name)
         })
         
@@ -148,8 +147,6 @@ export class BinaryWebSocketManager extends EventEmitter {
   
   private reconnect(ws: WebSocket, exchange: string, url: string, poolIndex: number) {
     setTimeout(() => {
-      console.log(`Reconnecting ${exchange} pool ${poolIndex}...`)
-      
       const newWs = new WebSocket(url, {
         perMessageDeflate: true,
         maxPayload: 10 * 1024 * 1024

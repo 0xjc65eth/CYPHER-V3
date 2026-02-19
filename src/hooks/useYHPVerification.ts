@@ -39,8 +39,8 @@ export function useYHPVerification(address: string | null) {
       }
 
       return balNum > 0
-    } catch (error) {
-      console.error('YHP verification failed:', error)
+    } catch {
+      // Silent fail — contract call may revert if address has no NFT or RPC is unavailable
       setIsHolder(false)
       setBalance(0)
       return false

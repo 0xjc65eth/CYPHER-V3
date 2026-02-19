@@ -28,7 +28,6 @@ export async function POST(request: NextRequest) {
     
     if (matchedAction) {
       // Simular execução do comando
-      console.log(`[Voice Command] Executando: ${matchedAction.action}`);
       
       return NextResponse.json({
         success: true,

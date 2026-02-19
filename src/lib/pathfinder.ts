@@ -982,7 +982,6 @@ export class AdvancedPathfinder {
       this.addEdge(edge2)
     }
 
-    console.log(`📊 Graph updated with ${pools.length} pools`)
   }
 
   private estimateGasForDEX(dex: DEXType): number {
@@ -1027,7 +1026,6 @@ export class AdvancedPathfinder {
   clearCache(): void {
     this.pathCache.clear()
     this.performanceMetrics.cacheHits = 0
-    console.log('🧹 Pathfinder cache cleared')
   }
 
   /**

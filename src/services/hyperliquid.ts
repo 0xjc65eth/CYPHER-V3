@@ -162,10 +162,8 @@ class HyperliquidService {
     this.isTestnet = process.env.HYPERLIQUID_TESTNET === 'true';
     
     if (!this.apiKey) {
-      console.warn('⚠️ Hyperliquid API key not found in environment variables');
     }
     
-    console.log(`🔗 Hyperliquid Service initialized - ${this.isTestnet ? 'TESTNET' : 'MAINNET'} mode`);
   }
 
   private async makeRequest(endpoint: string, method: 'GET' | 'POST' = 'POST', data?: any, requiresAuth = false) {
@@ -314,8 +312,7 @@ class HyperliquidService {
 
       // Simulate order placement in demo mode
       if (!this.apiKey || this.isTestnet) {
-        const orderId = `demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        console.log(`📝 Demo order placed: ${side.toUpperCase()} ${size} ${asset} at ${price || 'market'}`);
+        const orderId = `demo_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
         
         return {
           success: true,
@@ -359,7 +356,6 @@ class HyperliquidService {
   async cancelOrder(orderId: string): Promise<{ success: boolean; message: string }> {
     try {
       if (!this.apiKey || this.isTestnet) {
-        console.log(`🗑️ Demo order cancelled: ${orderId}`);
         return {
           success: true,
           message: `Demo order ${orderId} cancelled successfully`
@@ -460,11 +456,6 @@ class HyperliquidService {
       );
 
       // Execute trades (simulated)
-      console.log(`⚡ Executing arbitrage for ${opportunity.asset}:`);
-      console.log(`   Buy on ${opportunity.exchange1}: $${opportunity.price1.toFixed(2)}`);
-      console.log(`   Sell on ${opportunity.exchange2}: $${opportunity.price2.toFixed(2)}`);
-      console.log(`   Expected profit: ${opportunity.profitPotential.toFixed(3)}%`);
-      console.log(`   Position size: $${positionSize.toFixed(2)}`);
 
       // Place orders (in demo mode, just log)
       const buyResult = await this.placeOrder(
@@ -520,11 +511,6 @@ class HyperliquidService {
       const stepSize = (upperBound - lowerBound) / gridLevels;
       const orderSize = strategy.maxPositionSize / (gridLevels * currentPrice);
 
-      console.log(`📊 Setting up Grid Trading for ${asset}:`);
-      console.log(`   Current price: $${currentPrice.toFixed(2)}`);
-      console.log(`   Grid range: $${lowerBound.toFixed(2)} - $${upperBound.toFixed(2)}`);
-      console.log(`   Grid levels: ${gridLevels}`);
-      console.log(`   Order size: ${orderSize.toFixed(6)} ${asset}`);
 
       // Place grid orders (simulated)
       const orders = [];
@@ -551,7 +537,6 @@ class HyperliquidService {
         }
       }
 
-      console.log(`   Placing ${orders.length} grid orders`);
 
       return {
         success: true,
@@ -582,11 +567,6 @@ class HyperliquidService {
       const amountPerInterval = totalAmount / intervals;
       const intervalMs = strategy.parameters.buyInterval;
       
-      console.log(`💰 Setting up DCA for ${asset}:`);
-      console.log(`   Total amount: $${totalAmount.toFixed(2)}`);
-      console.log(`   Intervals: ${intervals}`);
-      console.log(`   Amount per buy: $${amountPerInterval.toFixed(2)}`);
-      console.log(`   Interval: ${intervalMs / 3600000} hours`);
 
       // Schedule DCA purchases (would need a proper scheduler in production)
       return {
@@ -609,7 +589,6 @@ class HyperliquidService {
     endDate: Date
   ): Promise<BacktestResult> {
     try {
-      console.log(`📈 Backtesting ${strategyName} for ${asset}...`);
       
       // Simulate backtesting (would need historical data in production)
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -743,7 +722,6 @@ class HyperliquidService {
     const strategy = this.strategies.find(s => s.name === strategyName);
     if (strategy) {
       strategy.enabled = true;
-      console.log(`✅ Strategy enabled: ${strategyName}`);
       return true;
     }
     return false;
@@ -753,7 +731,6 @@ class HyperliquidService {
     const strategy = this.strategies.find(s => s.name === strategyName);
     if (strategy) {
       strategy.enabled = false;
-      console.log(`❌ Strategy disabled: ${strategyName}`);
       return true;
     }
     return false;
@@ -763,7 +740,6 @@ class HyperliquidService {
     const strategy = this.strategies.find(s => s.name === strategyName);
     if (strategy) {
       strategy.parameters = { ...strategy.parameters, ...parameters };
-      console.log(`🔧 Strategy parameters updated: ${strategyName}`, parameters);
       return true;
     }
     return false;

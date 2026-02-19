@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Check cache first
     const cacheKey = `market-data:${category}:${limit}:${sortBy}:${timeframe}`;
-    let marketData = await cacheInstances.market.get(cacheKey);
+    let marketData = await cacheInstances.get(cacheKey);
 
     if (!marketData) {
       marketData = await fetchMarketData({
@@ -30,12 +30,9 @@ export async function GET(request: NextRequest) {
         sortBy,
         timeframe
       });
-      
+
       // Cache for 30 seconds
-      await cacheInstances.market.set(cacheKey, marketData, {
-        ttl: 30,
-        tags: ['market', 'data', category]
-      });
+      await cacheInstances.set(cacheKey, marketData, 30);
     }
 
     // Validate data structure
@@ -212,76 +209,61 @@ async function fetchCryptoMarketData(options: any) {
 }
 
 async function fetchBitcoinEcosystemData(options: any) {
-  // Mock Bitcoin ecosystem data (Ordinals, Runes, BRC-20)
-  const ecosystemAssets = [
-    {
-      symbol: 'ORDI',
-      name: 'Ordinals',
-      category: 'brc20',
-      price: 25 + (Math.random() - 0.5) * 5,
-      change24h: (Math.random() - 0.5) * 15,
-      change24hPercent: (Math.random() - 0.5) * 10,
-      volume24h: 5000000 + Math.random() * 2000000,
-      marketCap: 500000000 + Math.random() * 100000000,
-      high24h: 27,
-      low24h: 23,
-      timestamp: new Date()
-    },
-    {
-      symbol: 'SATS',
-      name: 'Satoshis',
-      category: 'brc20',
-      price: 0.0008 + (Math.random() - 0.5) * 0.0002,
-      change24h: (Math.random() - 0.5) * 20,
-      change24hPercent: (Math.random() - 0.5) * 15,
-      volume24h: 2000000 + Math.random() * 1000000,
-      marketCap: 168000000 + Math.random() * 20000000,
-      high24h: 0.0009,
-      low24h: 0.0007,
-      timestamp: new Date()
-    },
-    {
-      symbol: 'SATOSHI•NAKAMOTO',
-      name: 'Satoshi Nakamoto Rune',
-      category: 'runes',
-      price: 0.0085 + (Math.random() - 0.5) * 0.002,
-      change24h: (Math.random() - 0.5) * 25,
-      change24hPercent: (Math.random() - 0.5) * 20,
-      volume24h: 1500000 + Math.random() * 500000,
-      marketCap: 85000000 + Math.random() * 10000000,
-      high24h: 0.0095,
-      low24h: 0.0075,
-      timestamp: new Date()
-    },
-    {
-      symbol: 'DOG•GO•TO•THE•MOON',
-      name: 'Dog Go To The Moon',
-      category: 'runes',
-      price: 0.012 + (Math.random() - 0.5) * 0.003,
-      change24h: (Math.random() - 0.5) * 30,
-      change24hPercent: (Math.random() - 0.5) * 25,
-      volume24h: 800000 + Math.random() * 400000,
-      marketCap: 24000000 + Math.random() * 5000000,
-      high24h: 0.014,
-      low24h: 0.010,
-      timestamp: new Date()
-    },
-    {
-      symbol: 'BITCOIN-PUNKS',
-      name: 'Bitcoin Punks Collection',
-      category: 'ordinals',
-      price: 15000 + (Math.random() - 0.5) * 3000,
-      change24h: (Math.random() - 0.5) * 12,
-      change24hPercent: (Math.random() - 0.5) * 8,
-      volume24h: 3000000 + Math.random() * 1000000,
-      marketCap: 150000000 + Math.random() * 30000000,
-      high24h: 16000,
-      low24h: 14000,
-      timestamp: new Date()
-    }
-  ];
+  try {
+    // Fetch BRC-20 tokens (ORDI, SATS) from CoinGecko
+    const brc20Response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=ordi,1000sats-ordinals&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true',
+      { next: { revalidate: 60 } }
+    );
 
-  return ecosystemAssets;
+    const ecosystemAssets: any[] = [];
+
+    if (brc20Response.ok) {
+      const brc20Data = await brc20Response.json();
+
+      if (brc20Data.ordi) {
+        ecosystemAssets.push({
+          symbol: 'ORDI',
+          name: 'Ordinals',
+          category: 'brc20',
+          price: brc20Data.ordi.usd || 0,
+          change24h: brc20Data.ordi.usd_24h_change || 0,
+          change24hPercent: brc20Data.ordi.usd_24h_change || 0,
+          volume24h: brc20Data.ordi.usd_24h_vol || 0,
+          marketCap: brc20Data.ordi.usd_market_cap || 0,
+          high24h: 0,
+          low24h: 0,
+          timestamp: new Date()
+        });
+      }
+
+      if (brc20Data['1000sats-ordinals']) {
+        const satsData = brc20Data['1000sats-ordinals'];
+        ecosystemAssets.push({
+          symbol: 'SATS',
+          name: '1000SATS',
+          category: 'brc20',
+          price: satsData.usd || 0,
+          change24h: satsData.usd_24h_change || 0,
+          change24hPercent: satsData.usd_24h_change || 0,
+          volume24h: satsData.usd_24h_vol || 0,
+          marketCap: satsData.usd_market_cap || 0,
+          high24h: 0,
+          low24h: 0,
+          timestamp: new Date()
+        });
+      }
+    }
+
+    // Note: Runes (SATOSHI•NAKAMOTO, DOG•GO•TO•THE•MOON) and Ordinals collections
+    // are not available on CoinGecko. These would need Magic Eden API integration.
+    // Rather than returning fake data, we skip them.
+
+    return ecosystemAssets;
+  } catch (error) {
+    console.error('Error fetching Bitcoin ecosystem data:', error);
+    return []; // Return empty array instead of fake data
+  }
 }
 
 async function fetchGlobalMarketMetrics() {

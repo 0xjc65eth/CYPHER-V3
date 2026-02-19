@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 
-async function fetchWithTimeout(url: string, timeoutMs = 10000): Promise<Response> {
+async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: controller.signal });
-    return res;
+    return await fetch(url, { signal: controller.signal });
   } finally {
     clearTimeout(timeout);
   }
@@ -13,62 +12,50 @@ async function fetchWithTimeout(url: string, timeoutMs = 10000): Promise<Respons
 
 export async function GET() {
   try {
-    const [fundingRes, oiRes, lsRes, topTraderRes] = await Promise.allSettled([
+    const [fundingRes, oiRes, lsRes] = await Promise.allSettled([
       fetchWithTimeout('https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1'),
       fetchWithTimeout('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT'),
       fetchWithTimeout('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1'),
-      fetchWithTimeout('https://fapi.binance.com/futures/data/topLongShortPositionRatio?symbol=BTCUSDT&period=1h&limit=1'),
     ]);
 
     let fundingRate: number | null = null;
-    let predictedFunding: number | null = null;
-    if (fundingRes.status === 'fulfilled') {
+    if (fundingRes.status === 'fulfilled' && fundingRes.value.ok) {
       const data = await fundingRes.value.json();
-      if (Array.isArray(data) && data.length > 0) {
-        fundingRate = parseFloat(data[0].fundingRate);
-        predictedFunding = fundingRate;
-      }
+      fundingRate = data[0] ? parseFloat(data[0].fundingRate) : null;
     }
 
     let openInterest: number | null = null;
-    if (oiRes.status === 'fulfilled') {
+    if (oiRes.status === 'fulfilled' && oiRes.value.ok) {
       const data = await oiRes.value.json();
-      openInterest = parseFloat(data.openInterest);
+      openInterest = data.openInterest ? parseFloat(data.openInterest) : null;
     }
 
     let longShortRatio: number | null = null;
-    if (lsRes.status === 'fulfilled') {
+    if (lsRes.status === 'fulfilled' && lsRes.value.ok) {
       const data = await lsRes.value.json();
-      if (Array.isArray(data) && data.length > 0) {
-        longShortRatio = parseFloat(data[0].longShortRatio);
-      }
-    }
-
-    let topTraderRatio: number | null = null;
-    if (topTraderRes.status === 'fulfilled') {
-      const data = await topTraderRes.value.json();
-      if (Array.isArray(data) && data.length > 0) {
-        topTraderRatio = parseFloat(data[0].longShortRatio);
-      }
+      longShortRatio = data[0] ? parseFloat(data[0].longShortRatio) : null;
     }
 
     return NextResponse.json(
       {
         fundingRate,
-        predictedFunding,
+        predictedFunding: null,
         openInterest,
         oiChange24h: null,
         longShortRatio,
-        topTraderRatio,
+        topTraderRatio: null,
         liquidations24h: null,
         timestamp: Date.now(),
       },
       {
-        headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' },
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
       }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    console.error('Error fetching derivatives metrics:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch derivatives metrics' },
+      { status: 500 }
+    );
   }
 }

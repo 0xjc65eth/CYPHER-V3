@@ -19,7 +19,6 @@ export const DiscordIntegration: React.FC<{ className?: string }> = ({ className
       if (serverId && channelId) {
         setIsConnected(true);
         // Here would be actual Discord API integration
-        console.log('Discord connected:', { serverId, channelId });
       }
     } catch (error) {
       console.error('Discord connection failed:', error);

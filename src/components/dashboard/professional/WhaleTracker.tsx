@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Users,
   TrendingUp,
   TrendingDown,
@@ -12,7 +12,9 @@ import {
   ArrowDownLeft,
   Clock,
   ExternalLink,
-  Eye
+  Eye,
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 
 interface WhaleTransaction {
@@ -28,95 +30,76 @@ interface WhaleTransaction {
 }
 
 export function WhaleTracker() {
-  const [transactions, setTransactions] = useState<WhaleTransaction[]>([
-    {
-      id: '1',
-      address: '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa',
-      type: 'buy',
-      amount: 150.5,
-      asset: 'BTC',
-      valueUSD: 15725250,
-      timestamp: new Date(Date.now() - 3 * 60 * 1000),
-      exchange: 'Binance'
-    },
-    {
-      id: '2',
-      address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-      type: 'sell',
-      amount: 2500,
-      asset: 'ETH',
-      valueUSD: 5712500,
-      timestamp: new Date(Date.now() - 8 * 60 * 1000),
-      exchange: 'Coinbase'
-    },
-    {
-      id: '3',
-      address: '3FupnQyuTkiKnyeGzbDh8df8DpZTd9xunq',
-      type: 'transfer',
-      amount: 89.3,
-      asset: 'BTC',
-      valueUSD: 9332350,
-      timestamp: new Date(Date.now() - 15 * 60 * 1000),
-      toAddress: 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
-    }
-  ]);
-
+  const [transactions, setTransactions] = useState<WhaleTransaction[]>([]);
   const [filter, setFilter] = useState<'all' | 'buy' | 'sell' | 'transfer'>('all');
-  const [timeframe, setTimeframe] = useState('1h');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
 
-  // Simulate real-time whale transactions
-  useEffect(() => {
-    const addRandomTransaction = () => {
-      const types: WhaleTransaction['type'][] = ['buy', 'sell', 'transfer'];
-      const assets = ['BTC', 'ETH', 'SOL'];
-      const exchanges = ['Binance', 'Coinbase', 'OKX', 'Kraken'];
-      
-      const randomType = types[Math.floor(Math.random() * types.length)];
-      const randomAsset = assets[Math.floor(Math.random() * assets.length)];
-      const randomExchange = randomType !== 'transfer' ? 
-        exchanges[Math.floor(Math.random() * exchanges.length)] : undefined;
+  const fetchWhaleData = useCallback(async () => {
+    try {
+      // Fetch recent large transactions from mempool.space
+      const res = await fetch('/api/mempool/?endpoint=/mempool/recent');
+      if (!mountedRef.current) return;
 
-      const basePrice = randomAsset === 'BTC' ? 104500 : 
-                       randomAsset === 'ETH' ? 2285 : 98.75;
-      const amount = Math.random() * 100 + 10;
-      const valueUSD = amount * basePrice;
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
 
-      const newTransaction: WhaleTransaction = {
-        id: Date.now().toString(),
-        address: generateRandomAddress(),
-        type: randomType,
-        amount: amount,
-        asset: randomAsset,
-        valueUSD: valueUSD,
-        timestamp: new Date(),
-        exchange: randomExchange,
-        toAddress: randomType === 'transfer' ? generateRandomAddress() : undefined
-      };
+      const data = await res.json();
 
-      if (valueUSD > 1000000) { // Only show transactions > $1M
-        setTransactions(prev => [newTransaction, ...prev.slice(0, 9)]);
+      if (Array.isArray(data) && data.length > 0) {
+        // Filter for large transactions (whale-sized)
+        const whaleThreshold = 1_000_000; // 1M sats = 0.01 BTC
+
+        const whaleTxs: WhaleTransaction[] = data
+          .filter((tx: any) => {
+            const totalOut = (tx.vout || []).reduce((sum: number, out: any) => sum + (out.value || 0), 0);
+            return totalOut >= whaleThreshold;
+          })
+          .slice(0, 10)
+          .map((tx: any, i: number) => {
+            const totalOut = (tx.vout || []).reduce((sum: number, out: any) => sum + (out.value || 0), 0);
+            const btcAmount = totalOut / 100_000_000;
+            // Estimate USD value (approximate - would need real BTC price)
+            const estimatedBtcPrice = 100000; // Will be imprecise but honest
+            const valueUSD = btcAmount * estimatedBtcPrice;
+
+            return {
+              id: tx.txid || String(i),
+              address: tx.vin?.[0]?.prevout?.scriptpubkey_address || 'Unknown',
+              type: 'transfer' as const,
+              amount: btcAmount,
+              asset: 'BTC',
+              valueUSD,
+              timestamp: new Date(tx.firstSeen ? tx.firstSeen * 1000 : Date.now()),
+              toAddress: tx.vout?.[0]?.scriptpubkey_address || undefined,
+            };
+          });
+
+        setTransactions(whaleTxs);
+        setError(null);
+      } else {
+        setTransactions([]);
       }
-    };
-
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) { // 30% chance every interval
-        addRandomTransaction();
-      }
-    }, 10000);
-
-    return () => clearInterval(interval);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      console.error('WhaleTracker fetch error:', err);
+      setError('Failed to fetch whale data');
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
   }, []);
 
-  const generateRandomAddress = (): string => {
-    const chars = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-    let result = Math.random() > 0.5 ? '1' : 'bc1q';
-    const length = result.startsWith('bc1q') ? 35 : 25;
-    
-    for (let i = result.length; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  };
+  useEffect(() => {
+    mountedRef.current = true;
+    fetchWhaleData();
+
+    const interval = setInterval(fetchWhaleData, 30000);
+
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+    };
+  }, [fetchWhaleData]);
 
   const getTransactionIcon = (type: WhaleTransaction['type']) => {
     switch (type) {
@@ -141,6 +124,7 @@ export function WhaleTracker() {
   };
 
   const formatAddress = (address: string): string => {
+    if (address.length < 12) return address;
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -154,14 +138,14 @@ export function WhaleTracker() {
     const now = new Date();
     const diff = now.getTime() - timestamp.getTime();
     const minutes = Math.floor(diff / (1000 * 60));
-    
+
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ago`;
   };
 
-  const filteredTransactions = filter === 'all' ? 
+  const filteredTransactions = filter === 'all' ?
     transactions : transactions.filter(tx => tx.type === filter);
 
   return (
@@ -173,13 +157,13 @@ export function WhaleTracker() {
           <h4 className="text-sm font-medium">Whale Activity</h4>
         </div>
         <Badge className="bg-blue-500/20 text-blue-400 text-xs">
-          Live
+          {loading ? 'Loading' : 'Live'}
         </Badge>
       </div>
 
       {/* Filters */}
       <div className="flex gap-1">
-        {['all', 'buy', 'sell', 'transfer'].map((filterType) => (
+        {['all', 'transfer'].map((filterType) => (
           <Button
             key={filterType}
             variant={filter === filterType ? 'default' : 'ghost'}
@@ -192,101 +176,110 @@ export function WhaleTracker() {
         ))}
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+          <span className="ml-2 text-sm text-gray-400">Scanning mempool...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && !loading && (
+        <div className="flex items-center gap-2 p-3 bg-red-500/10 rounded border border-red-500/20">
+          <AlertCircle className="w-4 h-4 text-red-400" />
+          <span className="text-xs text-red-300">{error}</span>
+        </div>
+      )}
+
+      {/* No Data */}
+      {!loading && !error && filteredTransactions.length === 0 && (
+        <div className="text-center py-8 text-gray-400">
+          <Users className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No whale transactions detected</p>
+          <p className="text-xs text-gray-500 mt-1">Monitoring mempool for large transfers</p>
+        </div>
+      )}
+
       {/* Transactions List */}
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {filteredTransactions.map((tx, index) => (
-          <motion.div
-            key={tx.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
-            className={`p-3 rounded-lg border-l-4 ${getTransactionColor(tx.type)}`}
-          >
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {getTransactionIcon(tx.type)}
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-gray-700/50 text-gray-300 text-xs">
-                      {tx.type.toUpperCase()}
-                    </Badge>
-                    <span className="text-xs text-gray-400">
-                      {formatAddress(tx.address)}
-                    </span>
+      {!loading && filteredTransactions.length > 0 && (
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {filteredTransactions.map((tx, index) => (
+            <motion.div
+              key={tx.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className={`p-3 rounded-lg border-l-4 ${getTransactionColor(tx.type)}`}
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {getTransactionIcon(tx.type)}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-gray-700/50 text-gray-300 text-xs">
+                        {tx.type.toUpperCase()}
+                      </Badge>
+                      <span className="text-xs text-gray-400">
+                        {formatAddress(tx.address)}
+                      </span>
+                    </div>
                   </div>
-                  {tx.exchange && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      via {tx.exchange}
-                    </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="font-medium text-sm">
+                    {tx.amount.toFixed(4)} {tx.asset}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    ~{formatValue(tx.valueUSD)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-3 h-3 text-gray-400" />
+                  <span className="text-gray-400">
+                    {formatTimeAgo(tx.timestamp)}
+                  </span>
+                  {tx.toAddress && (
+                    <>
+                      <span className="text-gray-500">-&gt;</span>
+                      <span className="text-gray-400">
+                        {formatAddress(tx.toAddress)}
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
-              
-              <div className="text-right">
-                <p className="font-medium text-sm">
-                  {tx.amount.toFixed(2)} {tx.asset}
-                </p>
-                <p className="text-xs text-gray-400">
-                  {formatValue(tx.valueUSD)}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <Clock className="w-3 h-3 text-gray-400" />
-                <span className="text-gray-400">
-                  {formatTimeAgo(tx.timestamp)}
-                </span>
-                {tx.toAddress && (
-                  <>
-                    <span className="text-gray-500">→</span>
-                    <span className="text-gray-400">
-                      {formatAddress(tx.toAddress)}
-                    </span>
-                  </>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5"
-                >
-                  <Eye className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-5 w-5"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="bg-gray-800/30 rounded p-2">
-          <div className="flex items-center gap-1 mb-1">
-            <TrendingUp className="w-3 h-3 text-green-400" />
-            <span className="text-gray-400">Total Inflow</span>
+      {!loading && transactions.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="bg-gray-800/30 rounded p-2">
+            <div className="flex items-center gap-1 mb-1">
+              <TrendingUp className="w-3 h-3 text-green-400" />
+              <span className="text-gray-400">Total Volume</span>
+            </div>
+            <p className="font-medium">
+              {transactions.reduce((sum, tx) => sum + tx.amount, 0).toFixed(2)} BTC
+            </p>
           </div>
-          <p className="font-medium">$127.5M</p>
-        </div>
-        
-        <div className="bg-gray-800/30 rounded p-2">
-          <div className="flex items-center gap-1 mb-1">
-            <TrendingDown className="w-3 h-3 text-red-400" />
-            <span className="text-gray-400">Total Outflow</span>
+
+          <div className="bg-gray-800/30 rounded p-2">
+            <div className="flex items-center gap-1 mb-1">
+              <TrendingDown className="w-3 h-3 text-blue-400" />
+              <span className="text-gray-400">Transactions</span>
+            </div>
+            <p className="font-medium">{transactions.length}</p>
           </div>
-          <p className="font-medium">$89.2M</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -11,7 +11,7 @@ export function useCryptoNews(refreshInterval: number = 300000) { // Default ref
     const fetchNews = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/crypto-news');
+        const response = await fetch('/api/crypto-news/');
         
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
@@ -47,7 +47,7 @@ export function useCryptoNews(refreshInterval: number = 300000) { // Default ref
   const refresh = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/crypto-news');
+      const response = await fetch('/api/crypto-news/');
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);

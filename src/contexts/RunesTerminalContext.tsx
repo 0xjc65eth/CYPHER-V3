@@ -210,7 +210,6 @@ export function RunesTerminalProvider({ children }: { children: React.ReactNode 
           dispatch({ type: 'SET_SETTINGS', payload: settings });
         }
       } catch (error) {
-        console.warn('Failed to load saved terminal state:', error);
       }
     }
   }, []);
@@ -222,7 +221,6 @@ export function RunesTerminalProvider({ children }: { children: React.ReactNode 
         localStorage.setItem('runes-terminal-filters', JSON.stringify(state.filters));
         localStorage.setItem('runes-terminal-settings', JSON.stringify(state.settings));
       } catch (error) {
-        console.warn('Failed to save terminal state:', error);
       }
     }
   }, [state.filters, state.settings]);

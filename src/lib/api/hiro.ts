@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const HIRO_API_BASE = process.env.NEXT_PUBLIC_HIRO_ENDPOINT || 'https://api.hiro.so'
-const HIRO_API_KEY = process.env.NEXT_PUBLIC_HIRO_API_KEY
+const HIRO_API_KEY = process.env.HIRO_API_KEY
 
 // Hiro API Types
 export interface HiroInscription {

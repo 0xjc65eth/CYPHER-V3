@@ -8,7 +8,7 @@ export class HiroClient {
   private baseURL: string;
 
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_HIRO_API_KEY || '3100ea7623797d267da3bd6dc94f47f9';
+    this.apiKey = process.env.HIRO_API_KEY || '';
     this.baseURL = process.env.NEXT_PUBLIC_HIRO_API_URL || 'https://api.hiro.so/ordinals/v1';
   }
 

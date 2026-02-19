@@ -44,7 +44,6 @@ export class ExtensionConflictGuard {
         this.originalConsoleError.apply(console, args);
       } else {
         // Log extension conflicts separately for debugging
-        console.warn('🔒 Extension conflict filtered:', message.substring(0, 100) + '...');
       }
     };
   }
@@ -71,8 +70,6 @@ export class ExtensionConflictGuard {
     });
 
     if (this.conflictingExtensions.size > 0) {
-      console.warn('🔒 Extensões detectadas:', Array.from(this.conflictingExtensions).join(', '));
-      console.warn('💡 Se houver problemas, considere desabilitar temporariamente essas extensões');
     }
   }
 
@@ -103,7 +100,6 @@ export class ExtensionConflictGuard {
         try {
           return obj[prop as keyof T];
         } catch (error) {
-          console.warn(`🔒 Safe proxy intercepted error accessing ${name}.${String(prop)}`);
           return undefined;
         }
       },
@@ -113,7 +109,6 @@ export class ExtensionConflictGuard {
           (obj as any)[prop] = value;
           return true;
         } catch (error) {
-          console.warn(`🔒 Safe proxy intercepted error setting ${name}.${String(prop)}`);
           return false;
         }
       },
@@ -123,7 +118,6 @@ export class ExtensionConflictGuard {
           Object.defineProperty(obj, prop, descriptor);
           return true;
         } catch (error) {
-          console.warn(`🔒 Safe proxy intercepted defineProperty error on ${name}.${String(prop)}`);
           return false; // Return false instead of throwing
         }
       }

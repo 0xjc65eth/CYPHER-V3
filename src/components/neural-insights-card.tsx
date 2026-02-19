@@ -15,7 +15,7 @@ export function NeuralInsightsCard() {
   const fetchNeuralData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/neural-metrics')
+      const response = await fetch('/api/neural-metrics/')
 
       if (response.ok) {
         const data = await response.json()

@@ -18,7 +18,6 @@ export function useSafeLocalStorage<T>(
         }
       }
     } catch (error) {
-      console.warn(`Error reading localStorage key "${key}":`, error)
     } finally {
       setIsLoaded(true)
     }
@@ -38,7 +37,6 @@ export function useSafeLocalStorage<T>(
         window.localStorage.setItem(key, JSON.stringify(valueToStore))
       }
     } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error)
     }
   }
 
@@ -62,7 +60,6 @@ export function useSafeSessionStorage<T>(
         }
       }
     } catch (error) {
-      console.warn(`Error reading sessionStorage key "${key}":`, error)
     } finally {
       setIsLoaded(true)
     }
@@ -77,7 +74,6 @@ export function useSafeSessionStorage<T>(
         window.sessionStorage.setItem(key, JSON.stringify(valueToStore))
       }
     } catch (error) {
-      console.warn(`Error setting sessionStorage key "${key}":`, error)
     }
   }
 

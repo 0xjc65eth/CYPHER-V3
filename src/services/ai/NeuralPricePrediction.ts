@@ -68,7 +68,7 @@ export class NeuralPricePrediction {
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor() {
-    this.apiKey = process.env.NEURAL_API_KEY || 'dev-key';
+    this.apiKey = process.env.NEURAL_API_KEY || '';
     this.baseUrl = 'https://api.cypher-neural.io/v1';
     this.cache = new Map();
   }

@@ -30,7 +30,6 @@ class FeeCollectionService {
     userWalletAddress: string
   ): Promise<FeeCollectionResult> {
     try {
-      console.log(`Starting fee collection for transaction ${transaction.id}`);
       
       // Validate transaction
       if (transaction.status !== TransactionStatus.COMPLETED) {
@@ -84,7 +83,6 @@ class FeeCollectionService {
   ): Promise<FeeCollectionResult> {
     try {
       // Mock EVM transaction - in production, use Web3/ethers.js
-      console.log(`Collecting EVM fee for chain ${transaction.chainId}`);
       
       // Simulate gas estimation
       const gasEstimate = await this.estimateEVMGas(transaction);
@@ -135,7 +133,6 @@ class FeeCollectionService {
     userWalletAddress: string
   ): Promise<FeeCollectionResult> {
     try {
-      console.log('Collecting Solana fee');
       
       // Simulate Solana transaction
       const gasEstimate = { gasUsed: 5000, gasCostUSD: 0.01 };
@@ -183,7 +180,6 @@ class FeeCollectionService {
     userWalletAddress: string
   ): Promise<FeeCollectionResult> {
     try {
-      console.log('Using smart contract fee collection');
       
       const contractAddress = FEE_COLLECTION_CONFIG.CONTRACTS[
         this.getChainKey(transaction.chainId)
@@ -217,7 +213,6 @@ class FeeCollectionService {
     userWalletAddress: string
   ): Promise<FeeCollectionResult> {
     try {
-      console.log('Using relayer for gasless fee collection');
       
       // Mock relayer service
       await this.sleep(4000);
@@ -248,12 +243,10 @@ class FeeCollectionService {
 
     for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
       try {
-        console.log(`Fee collection attempt ${attempt}/${this.MAX_RETRIES} for transaction ${transaction.id}`);
         
         const result = await this.collectFee(transaction, userWalletAddress);
         
         if (result.success) {
-          console.log(`Fee collection successful on attempt ${attempt}`);
           return result;
         }
         
@@ -374,7 +367,6 @@ class FeeCollectionService {
     }>
   ): Promise<void> {
     // Mock database update - in production, update database
-    console.log(`Updating transaction ${transactionId}:`, updates);
     await this.sleep(100);
   }
 

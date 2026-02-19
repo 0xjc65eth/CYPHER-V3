@@ -22,21 +22,16 @@ const LaserEyesContext = createContext<LaserEyesContextType>({
   network: 'mainnet',
   balance: 0,
   connect: async () => {
-    console.warn('LaserEyes: connect not implemented');
   },
   disconnect: () => {
-    console.warn('LaserEyes: disconnect not implemented');
   },
   sendBitcoin: async () => {
-    console.warn('LaserEyes: sendBitcoin not implemented');
     return '';
   },
   signMessage: async () => {
-    console.warn('LaserEyes: signMessage not implemented');
     return '';
   },
   payInvoice: async () => {
-    console.warn('LaserEyes: payInvoice not implemented');
     return '';
   },
 });
@@ -161,7 +156,6 @@ export const LaserEyesProvider: React.FC<LaserEyesProviderProps> = ({ children }
       }
       
       // Mock implementation
-      console.log(`Sending ${amount} BTC to ${to}`);
       return 'mock_transaction_id';
     } catch (error) {
       console.error('LaserEyes sendBitcoin error:', error);
@@ -176,7 +170,6 @@ export const LaserEyesProvider: React.FC<LaserEyesProviderProps> = ({ children }
       }
       
       // Mock implementation
-      console.log(`Signing message: ${message}`);
       return 'mock_signature';
     } catch (error) {
       console.error('LaserEyes signMessage error:', error);
@@ -191,7 +184,6 @@ export const LaserEyesProvider: React.FC<LaserEyesProviderProps> = ({ children }
       }
       
       // Mock implementation
-      console.log(`Paying invoice: ${invoice}`);
       return 'mock_payment_id';
     } catch (error) {
       console.error('LaserEyes payInvoice error:', error);
@@ -239,7 +231,6 @@ export const useLaserEyes = (): LaserEyesContextType => {
   const context = useContext(LaserEyesContext);
   
   if (!context) {
-    console.warn('useLaserEyes must be used within a LaserEyesProvider');
     return {
       address: null,
       connected: false,

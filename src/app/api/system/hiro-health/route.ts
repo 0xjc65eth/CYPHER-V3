@@ -9,7 +9,6 @@ import { apiService } from '@/lib/api-service'
 
 export async function GET() {
   try {
-    console.log('Running comprehensive API health check...')
     
     const startTime = Date.now()
     
@@ -164,7 +163,6 @@ export async function GET() {
       }
     }
     
-    console.log(`Health check completed in ${totalResponseTime}ms - Status: ${overallStatus} (${healthScore}%)`)
     
     // Return appropriate HTTP status based on health
     const httpStatus = overallStatus === 'critical' ? 503 : 

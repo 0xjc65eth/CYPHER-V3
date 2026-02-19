@@ -107,7 +107,7 @@ async function fetchArbitrageOpportunities(): Promise<ArbitrageOpportunity[]> {
     // Obter dados de runas verificadas para arbitragem
     try {
       // Tentar obter dados reais da API
-      const runesResponse = await fetch('/api/runes-stats');
+      const runesResponse = await fetch('/api/runes-stats/');
       let runesData;
 
       if (runesResponse.ok) {
@@ -555,14 +555,14 @@ async function fetchNeuralMetrics(): Promise<NeuralMetric[]> {
     // Obter dados reais de APIs
     const btcPriceData = await fetch('https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?symbol=BTC', {
       headers: {
-        'X-CMC_PRO_API_KEY': process.env.NEXT_PUBLIC_COINMARKETCAP_API_KEY || ''
+        'X-CMC_PRO_API_KEY': process.env.CMC_API_KEY || ''
       }
     }).then(res => res.json()).catch((error) => {
       console.error('Error fetching BTC price data:', error);
       return null;
     });
 
-    const ordinalsData = await fetch('https://api.ordiscan.com/v1/stats?key=' + process.env.NEXT_PUBLIC_ORDISCAN_API_KEY)
+    const ordinalsData = await fetch('https://api.ordiscan.com/v1/stats?key=' + process.env.ORDISCAN_API_KEY)
       .then(res => res.json())
       .catch((error) => {
         console.error('Error fetching Ordinals data:', error);

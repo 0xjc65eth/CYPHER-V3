@@ -36,7 +36,7 @@ export function TopMovers() {
     const fetchTopMovers = async () => {
       try {
         const coins: any[] = await rateLimitedFetch(
-          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h',
+          '/api/coingecko/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&sparkline=false&price_change_percentage=24h',
           { cacheTTL: 120000 } // 2 minutes cache
         );
 
@@ -65,7 +65,6 @@ export function TopMovers() {
           if (losers.length > 0) setTopLosers(losers);
         }
       } catch {
-        console.log('CoinGecko top movers unavailable, using fallback');
       }
     };
 

@@ -8,7 +8,6 @@ export function patchLaserEyesForXverse() {
   const originalXverseProvider = (window as any).XverseProviders?.BitcoinProvider;
   
   if (!originalXverseProvider) {
-    console.log('Xverse provider not found, skipping patch');
     return;
   }
 
@@ -51,5 +50,4 @@ export function patchLaserEyesForXverse() {
     (window as any).BitcoinProvider = patchedProvider;
   }
 
-  console.log('LaserEyes Xverse patch applied successfully');
 }

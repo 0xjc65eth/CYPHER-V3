@@ -100,7 +100,6 @@ export class CrossChainService {
           routes.push(route);
         }
       } catch (error) {
-        console.warn(`Failed to build route via ${bridge}:`, error);
       }
     }
 
@@ -651,7 +650,7 @@ export class CrossChainService {
         amount: (parseFloat(amount) * SMART_ROUTING_CONSTANTS.CYPHER_FEE_RATE).toString(),
         amountUSD: parseFloat(amount) * SMART_ROUTING_CONSTANTS.CYPHER_FEE_RATE * 2000,
         percentage: SMART_ROUTING_CONSTANTS.CYPHER_FEE_RATE,
-        recipient: '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB'
+        recipient: '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3'
       },
       dexFees: [],
       gasFees: {

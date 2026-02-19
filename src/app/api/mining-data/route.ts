@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
   try {
     // Check rate limit
     if (!rateLimiter.canMakeRequest('blockchain-info')) {
-      console.log('Mining API rate limit protection activated');
       return NextResponse.json({
         success: true,
         data: getFallbackMiningData(),

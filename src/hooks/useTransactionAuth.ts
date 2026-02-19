@@ -45,7 +45,7 @@ export function useTransactionAuth(options?: UseTransactionAuthOptions) {
     setState(prev => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      const response = await fetch('/api/auth/validate-transaction', {
+      const response = await fetch('/api/auth/validate-transaction/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,7 +100,7 @@ export function useTransactionAuth(options?: UseTransactionAuthOptions) {
     setState(prev => ({ ...prev, isLoading: true, error: null }))
 
     try {
-      const response = await fetch('/api/auth/validate-transaction', {
+      const response = await fetch('/api/auth/validate-transaction/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -151,7 +151,7 @@ export function useTransactionAuth(options?: UseTransactionAuthOptions) {
     transactionId: string
   ): Promise<any | null> => {
     try {
-      const response = await fetch('/api/auth/validate-transaction', {
+      const response = await fetch('/api/auth/validate-transaction/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

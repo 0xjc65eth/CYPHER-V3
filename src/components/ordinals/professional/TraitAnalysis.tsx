@@ -13,99 +13,14 @@ export default function TraitAnalysis() {
   const [selectedCollection, setSelectedCollection] = useState('nodemonkes')
   const [selectedTimeframe, setSelectedTimeframe] = useState('30d')
 
-  // Mock trait correlation matrix data
-  const correlationMatrix = [
-    { trait1: 'Background', trait2: 'Background', correlation: 1.0 },
-    { trait1: 'Background', trait2: 'Body', correlation: 0.12 },
-    { trait1: 'Background', trait2: 'Eyes', correlation: -0.23 },
-    { trait1: 'Background', trait2: 'Mouth', correlation: 0.45 },
-    { trait1: 'Body', trait2: 'Body', correlation: 1.0 },
-    { trait1: 'Body', trait2: 'Eyes', correlation: 0.67 },
-    { trait1: 'Body', trait2: 'Mouth', correlation: -0.34 },
-    { trait1: 'Eyes', trait2: 'Eyes', correlation: 1.0 },
-    { trait1: 'Eyes', trait2: 'Mouth', correlation: 0.21 },
-    { trait1: 'Mouth', trait2: 'Mouth', correlation: 1.0 },
-  ]
-
-  // Mock price impact by trait
-  const priceImpactData = [
-    { trait: 'Laser Eyes', avgPrice: 0.123, floorDiff: '+172%', volume: 234 },
-    { trait: 'Gold Background', avgPrice: 0.089, floorDiff: '+97%', volume: 189 },
-    { trait: 'Robot Body', avgPrice: 0.078, floorDiff: '+73%', volume: 156 },
-    { trait: 'Crown Hat', avgPrice: 0.067, floorDiff: '+48%', volume: 123 },
-    { trait: 'Diamond Hands', avgPrice: 0.062, floorDiff: '+38%', volume: 98 },
-    { trait: 'Smile Mouth', avgPrice: 0.045, floorDiff: '0%', volume: 456 },
-    { trait: 'Blue Background', avgPrice: 0.042, floorDiff: '-7%', volume: 678 },
-    { trait: 'Normal Eyes', avgPrice: 0.038, floorDiff: '-16%', volume: 892 },
-  ]
-
-  // Mock trait popularity over time
-  const popularityTrends = [
-    { date: '2024-01-01', laserEyes: 23, goldBg: 34, robotBody: 12, crown: 8 },
-    { date: '2024-01-08', laserEyes: 28, goldBg: 32, robotBody: 15, crown: 12 },
-    { date: '2024-01-15', laserEyes: 35, goldBg: 30, robotBody: 18, crown: 15 },
-    { date: '2024-01-22', laserEyes: 42, goldBg: 28, robotBody: 22, crown: 18 },
-    { date: '2024-01-29', laserEyes: 48, goldBg: 25, robotBody: 25, crown: 22 },
-  ]
-
-  // Mock meta-trait combinations
-  const metaTraitCombos = [
-    { 
-      combination: 'Laser Eyes + Gold Background',
-      count: 23,
-      avgPrice: 0.234,
-      priceMultiplier: 5.2,
-      popularity: 92
-    },
-    { 
-      combination: 'Robot Body + Crown',
-      count: 45,
-      avgPrice: 0.156,
-      priceMultiplier: 3.5,
-      popularity: 78
-    },
-    { 
-      combination: 'Diamond Hands + Smile',
-      count: 67,
-      avgPrice: 0.123,
-      priceMultiplier: 2.7,
-      popularity: 65
-    },
-    { 
-      combination: 'Gold Background + Crown',
-      count: 34,
-      avgPrice: 0.145,
-      priceMultiplier: 3.2,
-      popularity: 71
-    },
-    { 
-      combination: 'Laser Eyes + Robot Body',
-      count: 12,
-      avgPrice: 0.289,
-      priceMultiplier: 6.4,
-      popularity: 95
-    },
-  ]
-
-  // Mock trait distribution
-  const traitDistribution = [
-    { category: 'Background', traits: 12, mostCommon: 'Blue (32%)', rarest: 'Gold (1.2%)' },
-    { category: 'Body', traits: 8, mostCommon: 'Normal (45%)', rarest: 'Robot (1.8%)' },
-    { category: 'Eyes', traits: 15, mostCommon: 'Normal (38%)', rarest: 'Laser (0.9%)' },
-    { category: 'Mouth', traits: 10, mostCommon: 'Smile (42%)', rarest: 'Gold Grill (2.1%)' },
-    { category: 'Hat', traits: 20, mostCommon: 'None (35%)', rarest: 'Crown (2.1%)' },
-    { category: 'Accessory', traits: 18, mostCommon: 'None (40%)', rarest: 'Diamond Hands (1.5%)' },
-  ]
-
-  // Mock trait synergy radar
-  const traitSynergy = [
-    { trait: 'Background', impact: 65, rarity: 45, demand: 78 },
-    { trait: 'Body', impact: 78, rarity: 62, demand: 85 },
-    { trait: 'Eyes', impact: 92, rarity: 88, demand: 95 },
-    { trait: 'Mouth', impact: 45, rarity: 35, demand: 52 },
-    { trait: 'Hat', impact: 72, rarity: 68, demand: 75 },
-    { trait: 'Accessory', impact: 58, rarity: 52, demand: 62 },
-  ]
+  // Real trait analysis requires on-chain indexer data - no mock data
+  // These will be populated when trait analysis API is implemented
+  const correlationMatrix: { trait1: string; trait2: string; correlation: number }[] = []
+  const priceImpactData: { trait: string; avgPrice: number; floorDiff: string; volume: number }[] = []
+  const popularityTrends: { date: string; laserEyes: number; goldBg: number; robotBody: number; crown: number }[] = []
+  const metaTraitCombos: { combination: string; count: number; avgPrice: number; priceMultiplier: number; popularity: number }[] = []
+  const traitDistribution: { category: string; traits: number; mostCommon: string; rarest: string }[] = []
+  const traitSynergy: { trait: string; impact: number; rarity: number; demand: number }[] = []
 
   return (
     <div className="space-y-6">

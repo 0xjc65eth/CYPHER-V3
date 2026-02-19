@@ -900,23 +900,52 @@ export class WalletSecurityManager {
   }
 
   /**
+   * Persist data to Supabase database
+   */
+  private async persistToDatabase(table: string, data: Record<string, any>): Promise<void> {
+    try {
+      const { dbService } = await import('@/lib/database/db-service');
+      const columns = Object.keys(data);
+      const values = Object.values(data);
+      const placeholders = columns.map((_, i) => `$${i + 1}`);
+
+      await dbService.query(
+        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`,
+        values
+      );
+    } catch (error) {
+      // Don't crash on DB failure - in-memory still works as fallback
+    }
+  }
+
+  /**
    * Record transaction in history
    */
   recordTransaction(address: string, transaction: any): void {
     if (!this.transactionHistory.has(address)) {
       this.transactionHistory.set(address, []);
     }
-    
+
     const history = this.transactionHistory.get(address)!;
     history.push({
       ...transaction,
       timestamp: Date.now()
     });
-    
+
     // Keep only last 100 transactions per address
     if (history.length > 100) {
       history.splice(0, history.length - 100);
     }
+
+    // Persist to database
+    this.persistToDatabase('transaction_history', {
+      id: `tx_${Date.now()}`,
+      address: address,
+      type: transaction.type || 'transaction',
+      amount: transaction.amount || 0,
+      recipient: transaction.recipientAddress || '',
+      created_at: new Date().toISOString()
+    }).catch(() => {}); // Fire and forget
   }
 
   /**
@@ -925,13 +954,23 @@ export class WalletSecurityManager {
   markSuspiciousActivity(address: string, reason: string): void {
     const currentCount = this.suspiciousActivities.get(address) || 0;
     this.suspiciousActivities.set(address, currentCount + 1);
-    
+
     this.logger.logSecurityEvent('SUSPICIOUS_ACTIVITY_MARKED', {
       address,
       reason,
       count: currentCount + 1,
       timestamp: new Date().toISOString()
     });
+
+    // Persist to database
+    this.persistToDatabase('transaction_history', {
+      id: `suspicious_${Date.now()}`,
+      address: address,
+      type: 'suspicious_activity',
+      reason: reason,
+      count: currentCount + 1,
+      created_at: new Date().toISOString()
+    }).catch(() => {}); // Fire and forget
   }
 
   /**
@@ -1240,7 +1279,17 @@ export class WalletSecurityManager {
 
   // Private helper methods
   private generateSecureSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const array = new Uint8Array(16);
+    if (typeof window !== 'undefined' && window.crypto) {
+      window.crypto.getRandomValues(array);
+    } else {
+      // Server-side fallback
+      const { randomBytes } = require('crypto');
+      const bytes = randomBytes(16);
+      bytes.copy(Buffer.from(array.buffer));
+    }
+    const hex = Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `session_${Date.now()}_${hex}`;
   }
 
   private selectWalletProvider(

@@ -3,10 +3,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePremium } from '@/contexts/PremiumContext';
+import { useEthWallet } from '@/hooks/useEthWallet';
+import { CYPHER_FEE_CONFIG } from '@/config/feeWallets';
 import {
   ArrowRightLeft,
   ArrowLeft,
-  Home,
   RefreshCw,
   ChevronDown,
   AlertTriangle,
@@ -21,21 +22,132 @@ import {
   History,
   Percent,
   Droplets,
+  Wallet,
+  Globe,
+  Settings,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Supported assets with metadata
-const SUPPORTED_ASSETS = [
-  { symbol: 'BTC', name: 'Bitcoin', icon: '\u20bf', color: '#F7931A', chain: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum', icon: '\u039e', color: '#627EEA', chain: 'Ethereum' },
-  { symbol: 'USDT', name: 'Tether', icon: '\u20ae', color: '#26A17B', chain: 'Ethereum' },
-  { symbol: 'USDC', name: 'USD Coin', icon: '$', color: '#2775CA', chain: 'Ethereum' },
-  { symbol: 'AVAX', name: 'Avalanche', icon: 'A', color: '#E84142', chain: 'Avalanche' },
-  { symbol: 'BNB', name: 'BNB', icon: 'B', color: '#F3BA2F', chain: 'BSC' },
-  { symbol: 'ATOM', name: 'Cosmos', icon: '\u269b', color: '#2E3148', chain: 'Cosmos' },
-  { symbol: 'DOGE', name: 'Dogecoin', icon: '\u00d0', color: '#C2A633', chain: 'Dogecoin' },
-  { symbol: 'LTC', name: 'Litecoin', icon: '\u0141', color: '#BFBBBB', chain: 'Litecoin' },
+// ============================================================================
+// Network / Chain Configuration
+// ============================================================================
+
+type SwapNetwork = 'thorchain' | 'solana' | 'evm';
+
+interface NetworkConfig {
+  id: SwapNetwork;
+  name: string;
+  label: string;
+  color: string;
+  icon: string;
+  description: string;
+  feeBps: number;
+  feeLabel: string;
+  walletLabel: string;
+}
+
+const NETWORKS: NetworkConfig[] = [
+  {
+    id: 'thorchain',
+    name: 'THORChain',
+    label: 'Cross-Chain',
+    color: '#33FF99',
+    icon: '\u26a1',
+    description: 'Native cross-chain swaps. No bridges, no wrapped tokens.',
+    feeBps: CYPHER_FEE_CONFIG.thorchainAffiliateBps,
+    feeLabel: '0.5% affiliate',
+    walletLabel: 'Any wallet',
+  },
+  {
+    id: 'solana',
+    name: 'Solana',
+    label: 'Solana',
+    color: '#9945FF',
+    icon: '\u25ce',
+    description: 'Jupiter aggregator. 1000+ tokens, fastest execution.',
+    feeBps: CYPHER_FEE_CONFIG.jupiterPlatformBps,
+    feeLabel: '0.35% platform fee',
+    walletLabel: 'Phantom / Solflare',
+  },
+  {
+    id: 'evm',
+    name: 'EVM',
+    label: 'Ethereum / L2',
+    color: '#627EEA',
+    icon: '\u039e',
+    description: 'Best rate across 1inch & Paraswap. ETH, ARB, BASE, OP, MATIC.',
+    feeBps: CYPHER_FEE_CONFIG.swapFeeBps,
+    feeLabel: '0.3% referrer fee',
+    walletLabel: 'MetaMask / WalletConnect',
+  },
 ];
+
+// ============================================================================
+// Token Lists per Network
+// ============================================================================
+
+interface TokenInfo {
+  symbol: string;
+  name: string;
+  icon: string;
+  color: string;
+  chain: string;
+  mint?: string; // Solana mint address
+  address?: string; // EVM contract address
+  decimals?: number;
+  coingeckoId?: string;
+}
+
+const THORCHAIN_TOKENS: TokenInfo[] = [
+  { symbol: 'BTC', name: 'Bitcoin', icon: '\u20bf', color: '#F7931A', chain: 'Bitcoin', coingeckoId: 'bitcoin' },
+  { symbol: 'ETH', name: 'Ethereum', icon: '\u039e', color: '#627EEA', chain: 'Ethereum', coingeckoId: 'ethereum' },
+  { symbol: 'USDT', name: 'Tether', icon: '\u20ae', color: '#26A17B', chain: 'Ethereum', coingeckoId: 'tether' },
+  { symbol: 'USDC', name: 'USD Coin', icon: '$', color: '#2775CA', chain: 'Ethereum', coingeckoId: 'usd-coin' },
+  { symbol: 'AVAX', name: 'Avalanche', icon: 'A', color: '#E84142', chain: 'Avalanche', coingeckoId: 'avalanche-2' },
+  { symbol: 'BNB', name: 'BNB', icon: 'B', color: '#F3BA2F', chain: 'BSC', coingeckoId: 'binancecoin' },
+  { symbol: 'ATOM', name: 'Cosmos', icon: '\u269b', color: '#2E3148', chain: 'Cosmos', coingeckoId: 'cosmos' },
+  { symbol: 'DOGE', name: 'Dogecoin', icon: '\u00d0', color: '#C2A633', chain: 'Dogecoin', coingeckoId: 'dogecoin' },
+  { symbol: 'LTC', name: 'Litecoin', icon: '\u0141', color: '#BFBBBB', chain: 'Litecoin', coingeckoId: 'litecoin' },
+];
+
+const SOLANA_TOKENS: TokenInfo[] = [
+  { symbol: 'SOL', name: 'Solana', icon: '\u25ce', color: '#9945FF', chain: 'Solana', mint: 'So11111111111111111111111111111111111111112', decimals: 9, coingeckoId: 'solana' },
+  { symbol: 'USDC', name: 'USD Coin', icon: '$', color: '#2775CA', chain: 'Solana', mint: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', decimals: 6, coingeckoId: 'usd-coin' },
+  { symbol: 'USDT', name: 'Tether', icon: '\u20ae', color: '#26A17B', chain: 'Solana', mint: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', decimals: 6, coingeckoId: 'tether' },
+  { symbol: 'BONK', name: 'Bonk', icon: '\ud83d\udc36', color: '#F2A900', chain: 'Solana', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263', decimals: 5, coingeckoId: 'bonk' },
+  { symbol: 'JUP', name: 'Jupiter', icon: 'J', color: '#6EE7B7', chain: 'Solana', mint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN', decimals: 6, coingeckoId: 'jupiter-exchange-solana' },
+  { symbol: 'mSOL', name: 'Marinade SOL', icon: 'M', color: '#8B5CF6', chain: 'Solana', mint: 'mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So', decimals: 9, coingeckoId: 'msol' },
+];
+
+const EVM_TOKENS: TokenInfo[] = [
+  { symbol: 'ETH', name: 'Ethereum', icon: '\u039e', color: '#627EEA', chain: 'Ethereum', address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE', decimals: 18, coingeckoId: 'ethereum' },
+  { symbol: 'USDC', name: 'USD Coin', icon: '$', color: '#2775CA', chain: 'Ethereum', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', decimals: 6, coingeckoId: 'usd-coin' },
+  { symbol: 'USDT', name: 'Tether', icon: '\u20ae', color: '#26A17B', chain: 'Ethereum', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', decimals: 6, coingeckoId: 'tether' },
+  { symbol: 'WBTC', name: 'Wrapped BTC', icon: '\u20bf', color: '#F7931A', chain: 'Ethereum', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', decimals: 8, coingeckoId: 'wrapped-bitcoin' },
+  { symbol: 'DAI', name: 'Dai', icon: 'D', color: '#F5AC37', chain: 'Ethereum', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', decimals: 18, coingeckoId: 'dai' },
+  { symbol: 'ARB', name: 'Arbitrum', icon: 'A', color: '#28A0F0', chain: 'Arbitrum', address: '0x912CE59144191C1204E64559FE8253a0e49E6548', decimals: 18, coingeckoId: 'arbitrum' },
+];
+
+const EVM_CHAINS: { id: number; name: string; color: string }[] = [
+  { id: 1, name: 'Ethereum', color: '#627EEA' },
+  { id: 42161, name: 'Arbitrum', color: '#28A0F0' },
+  { id: 8453, name: 'Base', color: '#0052FF' },
+  { id: 10, name: 'Optimism', color: '#FF0420' },
+  { id: 137, name: 'Polygon', color: '#8247E5' },
+  { id: 56, name: 'BSC', color: '#F3BA2F' },
+];
+
+function getTokensForNetwork(network: SwapNetwork): TokenInfo[] {
+  switch (network) {
+    case 'solana': return SOLANA_TOKENS;
+    case 'evm': return EVM_TOKENS;
+    default: return THORCHAIN_TOKENS;
+  }
+}
+
+// ============================================================================
+// Types
+// ============================================================================
 
 interface SwapQuote {
   expectedOutput: string;
@@ -60,94 +172,240 @@ interface SwapQuote {
 interface QuoteResponse {
   success: boolean;
   error?: string;
-  input?: {
-    asset: string;
-    amount: string;
-    amountUsd: number;
-    chain: string;
-  };
-  output?: {
-    asset: string;
-    chain: string;
-  };
+  input?: { asset: string; amount: string; amountUsd: number; chain: string };
+  output?: { asset: string; chain: string };
   quote?: SwapQuote;
-  affiliate?: {
-    code: string;
-    feeBps: number;
-    feePercent: string;
-    isPremium?: boolean;
-  };
+  affiliate?: { code: string; feeBps: number; feePercent: string; isPremium?: boolean };
+  // For Solana/EVM routes
+  chain?: string;
+  provider?: string;
+  bestProvider?: string;
+  fee?: { feeBps: number; feeWallet: string; isPremium: boolean; collection: string; description: string };
 }
 
 type SwapStatus = 'idle' | 'quoting' | 'quoted' | 'confirming' | 'broadcasting' | 'pending' | 'success' | 'error';
 
-// Mock history data
-const MOCK_HISTORY = [
-  { id: 1, date: '2026-02-10 14:32', fromAsset: 'BTC', toAsset: 'ETH', fromAmount: '0.5', toAmount: '8.124', status: 'completed', txHash: '0xabc...def1' },
-  { id: 2, date: '2026-02-09 09:15', fromAsset: 'ETH', toAsset: 'USDC', fromAmount: '2.0', toAmount: '6,412.50', status: 'completed', txHash: '0xabc...def2' },
-  { id: 3, date: '2026-02-08 22:48', fromAsset: 'BTC', toAsset: 'AVAX', fromAmount: '0.1', toAmount: '277.14', status: 'completed', txHash: '0xabc...def3' },
-  { id: 4, date: '2026-02-07 16:03', fromAsset: 'DOGE', toAsset: 'BTC', fromAmount: '10000', toAmount: '0.033', status: 'completed', txHash: '0xabc...def4' },
-  { id: 5, date: '2026-02-06 11:20', fromAsset: 'BNB', toAsset: 'ETH', fromAmount: '5.0', toAmount: '0.937', status: 'pending', txHash: '0xabc...def5' },
+interface SwapHistoryItem {
+  id: number;
+  date: string;
+  fromAsset: string;
+  toAsset: string;
+  fromAmount: string;
+  toAmount: string;
+  status: string;
+  txHash: string;
+}
+
+// THORChain Savers Vault pools
+const EARN_POOLS = [
+  { asset: 'BTC', name: 'BTC Savers Vault', apy: 'Variable', tvl: 'Live', minDeposit: '0.001 BTC', icon: '\u20bf', color: '#F7931A' },
+  { asset: 'ETH', name: 'ETH Savers Vault', apy: 'Variable', tvl: 'Live', minDeposit: '0.01 ETH', icon: '\u039e', color: '#627EEA' },
+  { asset: 'USDC', name: 'USDC Savers Vault', apy: 'Variable', tvl: 'Live', minDeposit: '10 USDC', icon: '$', color: '#2775CA' },
+  { asset: 'AVAX', name: 'AVAX Savers Vault', apy: 'Variable', tvl: 'Live', minDeposit: '0.5 AVAX', icon: 'A', color: '#E84142' },
+  { asset: 'RUNE', name: 'RUNE LP Pool', apy: 'Variable', tvl: 'Live', minDeposit: '10 RUNE', icon: '\u26a1', color: '#33FF99' },
 ];
 
-// Earn pools mock data
-const EARN_POOLS = [
-  { asset: 'BTC', name: 'Bitcoin Staking', apy: '4.2%', tvl: '$1.2B', minDeposit: '0.001 BTC', icon: '\u20bf', color: '#F7931A' },
-  { asset: 'ETH', name: 'Ethereum Staking', apy: '3.8%', tvl: '$890M', minDeposit: '0.01 ETH', icon: '\u039e', color: '#627EEA' },
-  { asset: 'USDC', name: 'USDC Lending', apy: '8.5%', tvl: '$450M', minDeposit: '10 USDC', icon: '$', color: '#2775CA' },
-  { asset: 'BTC/ETH', name: 'BTC/ETH Liquidity', apy: '12.3%', tvl: '$320M', minDeposit: '0.001 BTC', icon: '\u20bf', color: '#F7931A' },
-  { asset: 'RUNE', name: 'THORChain LP', apy: '15.7%', tvl: '$210M', minDeposit: '10 RUNE', icon: '\u26a1', color: '#33FF99' },
-];
+// ============================================================================
+// Wallet Helpers
+// ============================================================================
+
+function useSolanaWallet() {
+  const [address, setAddress] = useState<string | null>(null);
+  const [connecting, setConnecting] = useState(false);
+
+  useEffect(() => {
+    // Check if already connected
+    const phantom = (window as any)?.solana;
+    if (phantom?.isPhantom && phantom.isConnected && phantom.publicKey) {
+      setAddress(phantom.publicKey.toString());
+    }
+  }, []);
+
+  const connect = useCallback(async () => {
+    const phantom = (window as any)?.solana;
+    if (!phantom?.isPhantom) {
+      throw new Error('Phantom wallet not found. Please install Phantom.');
+    }
+    setConnecting(true);
+    try {
+      const resp = await phantom.connect();
+      const addr = resp.publicKey.toString();
+      setAddress(addr);
+      return addr;
+    } finally {
+      setConnecting(false);
+    }
+  }, []);
+
+  const disconnect = useCallback(async () => {
+    const phantom = (window as any)?.solana;
+    if (phantom) await phantom.disconnect();
+    setAddress(null);
+  }, []);
+
+  return { address, isConnected: !!address, connecting, connect, disconnect };
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export default function SwapPage() {
   const { isPremium } = usePremium();
-  const [fromAsset, setFromAsset] = useState(SUPPORTED_ASSETS[0]); // BTC
-  const [toAsset, setToAsset] = useState(SUPPORTED_ASSETS[1]); // ETH
+  const ethWallet = useEthWallet();
+  const solWallet = useSolanaWallet();
+
+  // Network state
+  const [activeNetwork, setActiveNetwork] = useState<SwapNetwork>('thorchain');
+  const [evmChainId, setEvmChainId] = useState(1);
+  const [showEvmChainDropdown, setShowEvmChainDropdown] = useState(false);
+
+  // Token state
+  const tokens = getTokensForNetwork(activeNetwork);
+  const [fromAsset, setFromAsset] = useState<TokenInfo>(tokens[0]);
+  const [toAsset, setToAsset] = useState<TokenInfo>(tokens[1]);
   const [amount, setAmount] = useState('');
   const [destinationAddress, setDestinationAddress] = useState('');
+  const [slippage, setSlippage] = useState(0.5);
+  const [showSlippage, setShowSlippage] = useState(false);
+
+  // Quote state
   const [quote, setQuote] = useState<QuoteResponse | null>(null);
   const [status, setStatus] = useState<SwapStatus>('idle');
   const [error, setError] = useState<string | null>(null);
+
+  // UI state
   const [showFromDropdown, setShowFromDropdown] = useState(false);
   const [showToDropdown, setShowToDropdown] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState(false);
   const [usdPrices, setUsdPrices] = useState<Record<string, number>>({});
+  const [swapHistory, setSwapHistory] = useState<SwapHistoryItem[]>([]);
 
-  // Fetch USD prices on load
+  // Reset tokens when network changes
   useEffect(() => {
-    async function fetchPrices() {
+    const newTokens = getTokensForNetwork(activeNetwork);
+    setFromAsset(newTokens[0]);
+    setToAsset(newTokens[1] || newTokens[0]);
+    setQuote(null);
+    setError(null);
+    setStatus('idle');
+    setAmount('');
+  }, [activeNetwork]);
+
+  // Fetch swap history with AbortController to prevent race conditions
+  useEffect(() => {
+    const controller = new AbortController();
+    async function fetchHistory() {
       try {
-        const ids = 'bitcoin,ethereum,tether,usd-coin,avalanche-2,binancecoin,cosmos,dogecoin,litecoin';
-        const res = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`
-        );
+        const res = await fetch('/api/fees/history/?limit=20', { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
-          setUsdPrices({
-            'BTC': data.bitcoin?.usd || 97000,
-            'ETH': data.ethereum?.usd || 3200,
-            'USDT': data.tether?.usd || 1,
-            'USDC': data['usd-coin']?.usd || 1,
-            'AVAX': data['avalanche-2']?.usd || 35,
-            'BNB': data.binancecoin?.usd || 600,
-            'ATOM': data.cosmos?.usd || 9,
-            'DOGE': data.dogecoin?.usd || 0.32,
-            'LTC': data.litecoin?.usd || 100,
-          });
+          if (data.records && Array.isArray(data.records)) {
+            setSwapHistory(data.records.map((r: any, i: number) => ({
+              id: i + 1,
+              date: new Date(r.timestamp || r.created_at).toLocaleString(),
+              fromAsset: r.from_token || r.fromToken || '?',
+              toAsset: r.to_token || r.toToken || '?',
+              fromAmount: r.trade_amount_usd?.toFixed(2) || '0',
+              toAmount: r.fee_amount?.toFixed(6) || '0',
+              status: r.status || 'pending',
+              txHash: r.tx_hash || r.txHash || '-',
+            })));
+          }
         }
-      } catch {
-        // Use fallbacks
-        setUsdPrices({
-          'BTC': 97000, 'ETH': 3200, 'USDT': 1, 'USDC': 1,
-          'AVAX': 35, 'BNB': 600, 'ATOM': 9, 'DOGE': 0.32, 'LTC': 100,
-        });
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return; // Expected on cleanup
       }
     }
-    fetchPrices();
+    fetchHistory();
+    return () => controller.abort(); // Cleanup: cancel pending request on unmount
   }, []);
 
+  // Fetch USD prices with AbortController, caching, and auto-refresh (60s)
+  useEffect(() => {
+    const controller = new AbortController();
+    let isMounted = true;
+
+    const FALLBACK_PRICES: Record<string, number> = {
+      'BTC': 97000, 'ETH': 3200, 'USDT': 1, 'USDC': 1, 'AVAX': 35,
+      'BNB': 600, 'ATOM': 9, 'DOGE': 0.32, 'LTC': 100, 'SOL': 180,
+      'BONK': 0.000025, 'JUP': 0.8, 'mSOL': 200, 'WBTC': 97000, 'DAI': 1, 'ARB': 0.8,
+    };
+
+    async function fetchPrices() {
+      try {
+        const ids = 'bitcoin,ethereum,tether,usd-coin,avalanche-2,binancecoin,cosmos,dogecoin,litecoin,solana,bonk,jupiter-exchange-solana,msol,wrapped-bitcoin,dai,arbitrum';
+        const res = await fetch(
+          `/api/coingecko/simple/price?ids=${ids}&vs_currencies=usd`,
+          { signal: controller.signal }
+        );
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setUsdPrices({
+            'BTC': data.bitcoin?.usd || FALLBACK_PRICES.BTC,
+            'ETH': data.ethereum?.usd || FALLBACK_PRICES.ETH,
+            'USDT': data.tether?.usd || FALLBACK_PRICES.USDT,
+            'USDC': data['usd-coin']?.usd || FALLBACK_PRICES.USDC,
+            'AVAX': data['avalanche-2']?.usd || FALLBACK_PRICES.AVAX,
+            'BNB': data.binancecoin?.usd || FALLBACK_PRICES.BNB,
+            'ATOM': data.cosmos?.usd || FALLBACK_PRICES.ATOM,
+            'DOGE': data.dogecoin?.usd || FALLBACK_PRICES.DOGE,
+            'LTC': data.litecoin?.usd || FALLBACK_PRICES.LTC,
+            'SOL': data.solana?.usd || FALLBACK_PRICES.SOL,
+            'BONK': data.bonk?.usd || FALLBACK_PRICES.BONK,
+            'JUP': data['jupiter-exchange-solana']?.usd || FALLBACK_PRICES.JUP,
+            'mSOL': data.msol?.usd || FALLBACK_PRICES.mSOL,
+            'WBTC': data['wrapped-bitcoin']?.usd || FALLBACK_PRICES.WBTC,
+            'DAI': data.dai?.usd || FALLBACK_PRICES.DAI,
+            'ARB': data.arbitrum?.usd || FALLBACK_PRICES.ARB,
+          });
+        } else if (res.status === 429 && isMounted) {
+          // Rate limited by CoinGecko - use fallback
+          setUsdPrices(FALLBACK_PRICES);
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        if (isMounted) {
+          setUsdPrices(FALLBACK_PRICES);
+        }
+      }
+    }
+
+    fetchPrices();
+    // Auto-refresh prices every 60 seconds (respects CoinGecko rate limit)
+    const interval = setInterval(fetchPrices, 60000);
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+      clearInterval(interval);
+    };
+  }, []);
+
+  const networkConfig = NETWORKS.find(n => n.id === activeNetwork)!;
   const inputUsd = amount ? parseFloat(amount) * (usdPrices[fromAsset.symbol] || 0) : 0;
+
+  // Check wallet connection status for active network
+  const isWalletConnected = activeNetwork === 'evm' ? ethWallet.isConnected
+    : activeNetwork === 'solana' ? solWallet.isConnected
+    : true; // THORChain doesn't need pre-connection
+
+  const walletAddress = activeNetwork === 'evm' ? ethWallet.address
+    : activeNetwork === 'solana' ? solWallet.address
+    : null;
+
+  const handleConnectWallet = useCallback(async () => {
+    try {
+      if (activeNetwork === 'evm') {
+        await ethWallet.connectEth();
+      } else if (activeNetwork === 'solana') {
+        await solWallet.connect();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect wallet');
+    }
+  }, [activeNetwork, ethWallet, solWallet]);
 
   const handleSwapAssets = useCallback(() => {
     const temp = fromAsset;
@@ -158,6 +416,7 @@ export default function SwapPage() {
     setStatus('idle');
   }, [fromAsset, toAsset]);
 
+  // Get Quote based on active network
   const handleGetQuote = useCallback(async () => {
     if (!amount || parseFloat(amount) <= 0) {
       setError('Please enter a valid amount');
@@ -169,22 +428,59 @@ export default function SwapPage() {
     setQuote(null);
 
     try {
-      const params = new URLSearchParams({
-        from_asset: fromAsset.symbol,
-        to_asset: toAsset.symbol,
-        amount: amount,
-      });
+      let res: Response;
 
-      if (destinationAddress) {
-        params.set('destination', destinationAddress);
+      if (activeNetwork === 'thorchain') {
+        // THORChain cross-chain swap
+        const params = new URLSearchParams({
+          from_asset: fromAsset.symbol,
+          to_asset: toAsset.symbol,
+          amount: amount,
+        });
+        if (destinationAddress) params.set('destination', destinationAddress);
+        if (isPremium) params.set('premium', 'true');
+
+        res = await fetch(`/api/swap/?${params.toString()}`);
+
+      } else if (activeNetwork === 'solana') {
+        // Jupiter swap on Solana
+        if (!fromAsset.mint || !toAsset.mint) {
+          setError('Token mint addresses not configured');
+          setStatus('error');
+          return;
+        }
+        const amountInSmallest = Math.floor(parseFloat(amount) * Math.pow(10, fromAsset.decimals || 9));
+        const params = new URLSearchParams({
+          inputMint: fromAsset.mint,
+          outputMint: toAsset.mint,
+          amount: amountInSmallest.toString(),
+          slippageBps: Math.floor(slippage * 100).toString(),
+        });
+        if (isPremium) params.set('premium', 'true');
+
+        res = await fetch(`/api/swap/solana/?${params.toString()}`);
+
+      } else {
+        // EVM swap via 1inch/Paraswap
+        const nativeToken = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+        const fromAddr = fromAsset.address || nativeToken;
+        const toAddr = toAsset.address || nativeToken;
+        const amountInWei = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, fromAsset.decimals || 18)));
+
+        const params = new URLSearchParams({
+          chainId: evmChainId.toString(),
+          fromToken: fromAddr,
+          toToken: toAddr,
+          amount: amountInWei.toString(),
+          slippage: slippage.toString(),
+        });
+        if (walletAddress) params.set('fromAddress', walletAddress);
+        if (isPremium) params.set('premium', 'true');
+
+        res = await fetch(`/api/swap/evm/?${params.toString()}`);
       }
 
-      if (isPremium) {
-        params.set('premium', 'true');
-      }
-
-      const res = await fetch(`/api/swap?${params.toString()}`);
-      const data: QuoteResponse = await res.json();
+      const data = await res.json();
 
       if (!data.success) {
         setError(data.error || 'Failed to get quote');
@@ -192,21 +488,110 @@ export default function SwapPage() {
         return;
       }
 
-      setQuote(data);
+      // Normalize the response for display
+      if (activeNetwork === 'solana' && data.quote) {
+        // Convert Jupiter quote to display format
+        const outAmount = parseInt(data.quote.outAmount || '0');
+        const outDecimals = toAsset.decimals || 9;
+        const outputHuman = outAmount / Math.pow(10, outDecimals);
+        const outputUsd = outputHuman * (usdPrices[toAsset.symbol] || 0);
+        const feeAmount = data.fee?.feeAmount ? parseInt(data.fee.feeAmount) / Math.pow(10, outDecimals) : 0;
+        const priceImpact = parseFloat(data.quote.priceImpactPct || '0');
+
+        const normalizedQuote: QuoteResponse = {
+          success: true,
+          provider: 'Jupiter',
+          chain: 'Solana',
+          quote: {
+            expectedOutput: outputHuman.toFixed(outDecimals > 6 ? 6 : outDecimals),
+            expectedOutputUsd: outputUsd,
+            fees: {
+              network: '~0.000005 SOL',
+              networkUsd: 0.001,
+              affiliate: feeAmount.toFixed(6),
+              affiliateUsd: feeAmount * (usdPrices[toAsset.symbol] || 0),
+              total: feeAmount.toFixed(6),
+              totalUsd: feeAmount * (usdPrices[toAsset.symbol] || 0) + 0.001,
+            },
+            slippageBps: Math.floor(priceImpact * 100),
+            estimatedTime: 5,
+            route: data.quote.routePlan?.map((r: any) => r.swapInfo?.label).filter(Boolean).join(' -> ') || 'Jupiter',
+            inboundAddress: '',
+            memo: '',
+            expiry: Math.floor(Date.now() / 1000) + 60,
+          },
+          fee: data.fee,
+        };
+        setQuote(normalizedQuote);
+      } else if (activeNetwork === 'evm' && data.quote) {
+        // Convert EVM quote to display format
+        const outAmount = BigInt(data.quote.outputAmount || '0');
+        const outDecimals = toAsset.decimals || 18;
+        const outputHuman = Number(outAmount) / Math.pow(10, outDecimals);
+        const outputUsd = outputHuman * (usdPrices[toAsset.symbol] || 0);
+        const feeBps = data.fee?.feeBps || 0;
+        const feeUsd = outputUsd * feeBps / 10000;
+
+        const normalizedQuote: QuoteResponse = {
+          success: true,
+          bestProvider: data.bestProvider,
+          chain: data.chain,
+          quote: {
+            expectedOutput: outputHuman.toFixed(Math.min(outDecimals, 8)),
+            expectedOutputUsd: outputUsd,
+            fees: {
+              network: '~gas',
+              networkUsd: 2,
+              affiliate: `${(feeBps / 100).toFixed(1)}%`,
+              affiliateUsd: feeUsd,
+              total: `${(feeBps / 100).toFixed(1)}%`,
+              totalUsd: feeUsd + 2,
+            },
+            slippageBps: Math.floor(slippage * 100),
+            estimatedTime: evmChainId === 1 ? 180 : 15,
+            route: `${fromAsset.symbol} -> ${data.bestProvider || '1inch'} -> ${toAsset.symbol}`,
+            inboundAddress: '',
+            memo: '',
+            expiry: Math.floor(Date.now() / 1000) + 120,
+          },
+          fee: data.fee,
+        };
+        setQuote(normalizedQuote);
+      } else {
+        // THORChain quote is already in correct format
+        setQuote(data);
+      }
+
       setStatus('quoted');
     } catch (err) {
       setError('Network error. Please try again.');
       setStatus('error');
     }
-  }, [amount, fromAsset, toAsset, destinationAddress, isPremium]);
+  }, [amount, fromAsset, toAsset, destinationAddress, isPremium, activeNetwork, evmChainId, slippage, walletAddress, usdPrices]);
 
-  const handleExecuteSwap = useCallback(() => {
-    if (!quote?.quote?.inboundAddress) {
-      setError('No valid quote to execute');
-      return;
+  const handleExecuteSwap = useCallback(async () => {
+    if (activeNetwork === 'thorchain') {
+      if (!quote?.quote?.inboundAddress) {
+        setError('No valid quote to execute');
+        return;
+      }
+      setStatus('confirming');
+    } else if (activeNetwork === 'solana') {
+      if (!solWallet.isConnected) {
+        setError('Please connect your Phantom wallet first');
+        return;
+      }
+      // For Solana, the user needs to sign the transaction via Phantom
+      setStatus('confirming');
+    } else if (activeNetwork === 'evm') {
+      if (!ethWallet.isConnected) {
+        setError('Please connect MetaMask first');
+        return;
+      }
+      // For EVM, the user needs to sign via MetaMask
+      setStatus('confirming');
     }
-    setStatus('confirming');
-  }, [quote]);
+  }, [quote, activeNetwork, solWallet.isConnected, ethWallet.isConnected]);
 
   const copyToClipboard = useCallback(async (text: string, type: 'memo' | 'address') => {
     try {
@@ -234,20 +619,16 @@ export default function SwapPage() {
     return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const selectFromAsset = (asset: typeof SUPPORTED_ASSETS[0]) => {
-    if (asset.symbol === toAsset.symbol) {
-      setToAsset(fromAsset);
-    }
+  const selectFromAsset = (asset: TokenInfo) => {
+    if (asset.symbol === toAsset.symbol) setToAsset(fromAsset);
     setFromAsset(asset);
     setShowFromDropdown(false);
     setQuote(null);
     setStatus('idle');
   };
 
-  const selectToAsset = (asset: typeof SUPPORTED_ASSETS[0]) => {
-    if (asset.symbol === fromAsset.symbol) {
-      setFromAsset(toAsset);
-    }
+  const selectToAsset = (asset: TokenInfo) => {
+    if (asset.symbol === fromAsset.symbol) setFromAsset(toAsset);
     setToAsset(asset);
     setShowToDropdown(false);
     setQuote(null);
@@ -267,18 +648,37 @@ export default function SwapPage() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                   <ArrowRightLeft className="w-6 h-6 text-[#F7931A]" />
-                  <span className="text-white">CROSS-CHAIN</span>
+                  <span className="text-white">CYPHER</span>
                   <span className="text-[#F7931A]">SWAP</span>
                 </h1>
                 <p className="text-xs text-white/50 mt-1">
-                  Powered by THORChain | Cross-chain swaps with no wrapped tokens
+                  Multi-chain DEX aggregator | THORChain + Jupiter + 1inch
                 </p>
               </div>
             </div>
+            {/* Wallet Status */}
             <div className="flex items-center gap-2">
+              {activeNetwork !== 'thorchain' && (
+                isWalletConnected ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    <span className="text-xs text-green-400 font-mono">
+                      {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleConnectWallet}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-[#F7931A]/50 rounded-lg text-[#F7931A] text-xs font-medium hover:bg-[#F7931A]/10 transition-colors"
+                  >
+                    <Wallet className="w-3.5 h-3.5" />
+                    Connect {networkConfig.walletLabel.split(' / ')[0]}
+                  </button>
+                )
+              )}
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-lg">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs text-green-400 font-medium">THORChain Live</span>
+                <span className="text-xs text-green-400 font-medium">{networkConfig.name} Live</span>
               </div>
             </div>
           </div>
@@ -307,16 +707,98 @@ export default function SwapPage() {
           {/* === SWAP TAB === */}
           <TabsContent value="swap">
             <div className="max-w-2xl mx-auto">
+
+              {/* Network Selector */}
+              <div className="flex items-center gap-2 mb-6">
+                {NETWORKS.map((net) => (
+                  <button
+                    key={net.id}
+                    onClick={() => setActiveNetwork(net.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${
+                      activeNetwork === net.id
+                        ? 'bg-white/10 border-[#F7931A]/50 text-white'
+                        : 'bg-white/[0.02] border-white/10 text-white/50 hover:bg-white/5 hover:text-white/70'
+                    }`}
+                  >
+                    <span style={{ color: net.color }}>{net.icon}</span>
+                    <span>{net.label}</span>
+                    {activeNetwork === net.id && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#F7931A]/20 text-[#F7931A] font-bold">
+                        {net.feeLabel}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* EVM Chain Selector (only for EVM network) */}
+              {activeNetwork === 'evm' && (
+                <div className="mb-4 relative">
+                  <button
+                    onClick={() => setShowEvmChainDropdown(!showEvmChainDropdown)}
+                    className="flex items-center gap-2 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white/70 hover:bg-white/10 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    <span>Network: {EVM_CHAINS.find(c => c.id === evmChainId)?.name || 'Ethereum'}</span>
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                  {showEvmChainDropdown && (
+                    <div className="absolute top-full left-0 mt-1 w-56 bg-[#111] border border-white/10 rounded-lg shadow-2xl z-50">
+                      {EVM_CHAINS.map((chain) => (
+                        <button
+                          key={chain.id}
+                          onClick={() => { setEvmChainId(chain.id); setShowEvmChainDropdown(false); setQuote(null); setStatus('idle'); }}
+                          className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left ${
+                            chain.id === evmChainId ? 'bg-white/5' : ''
+                          }`}
+                        >
+                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: chain.color }} />
+                          <span className="text-sm text-white">{chain.name}</span>
+                          {chain.id === evmChainId && <Check className="w-4 h-4 text-[#F7931A] ml-auto" />}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Swap Card */}
               <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
                 {/* From Section */}
                 <div className="p-6 border-b border-white/5">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs text-white/40 uppercase tracking-wider font-medium">You Send</span>
-                    {inputUsd > 0 && (
-                      <span className="text-xs text-white/40">{formatUsd(inputUsd)}</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {inputUsd > 0 && <span className="text-xs text-white/40">{formatUsd(inputUsd)}</span>}
+                      {/* Slippage Settings */}
+                      <button
+                        onClick={() => setShowSlippage(!showSlippage)}
+                        className="p-1 rounded hover:bg-white/10 transition-colors"
+                        title="Slippage settings"
+                      >
+                        <Settings className="w-3.5 h-3.5 text-white/40" />
+                      </button>
+                    </div>
                   </div>
+                  {/* Slippage Dropdown */}
+                  {showSlippage && (
+                    <div className="mb-3 p-3 bg-white/[0.03] border border-white/10 rounded-lg">
+                      <div className="text-xs text-white/50 mb-2">Slippage Tolerance</div>
+                      <div className="flex items-center gap-2">
+                        {[0.1, 0.5, 1.0, 3.0].map((val) => (
+                          <button
+                            key={val}
+                            onClick={() => { setSlippage(val); setShowSlippage(false); }}
+                            className={`px-3 py-1.5 rounded text-xs font-mono transition-colors ${
+                              slippage === val ? 'bg-[#F7931A]/20 text-[#F7931A] border border-[#F7931A]/30' : 'bg-white/5 text-white/50 border border-white/10 hover:bg-white/10'
+                            }`}
+                          >
+                            {val}%
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <button
@@ -329,7 +811,7 @@ export default function SwapPage() {
                       </button>
                       {showFromDropdown && (
                         <div className="absolute top-full left-0 mt-2 w-56 bg-[#111] border border-white/10 rounded-lg shadow-2xl z-50 max-h-64 overflow-y-auto">
-                          {SUPPORTED_ASSETS.map((asset) => (
+                          {tokens.map((asset) => (
                             <button
                               key={asset.symbol}
                               onClick={() => selectFromAsset(asset)}
@@ -351,11 +833,7 @@ export default function SwapPage() {
                     <input
                       type="number"
                       value={amount}
-                      onChange={(e) => {
-                        setAmount(e.target.value);
-                        setQuote(null);
-                        setStatus('idle');
-                      }}
+                      onChange={(e) => { setAmount(e.target.value); setQuote(null); setStatus('idle'); }}
                       placeholder="0.00"
                       className="flex-1 bg-transparent text-right text-2xl font-mono text-white placeholder-white/20 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
@@ -393,7 +871,7 @@ export default function SwapPage() {
                       </button>
                       {showToDropdown && (
                         <div className="absolute top-full left-0 mt-2 w-56 bg-[#111] border border-white/10 rounded-lg shadow-2xl z-50 max-h-64 overflow-y-auto">
-                          {SUPPORTED_ASSETS.map((asset) => (
+                          {tokens.map((asset) => (
                             <button
                               key={asset.symbol}
                               onClick={() => selectToAsset(asset)}
@@ -427,19 +905,21 @@ export default function SwapPage() {
                   </div>
                 </div>
 
-                {/* Destination Address */}
-                <div className="px-6 py-4 border-b border-white/5">
-                  <label className="text-xs text-white/40 uppercase tracking-wider font-medium mb-2 block">
-                    Destination Address ({toAsset.name})
-                  </label>
-                  <input
-                    type="text"
-                    value={destinationAddress}
-                    onChange={(e) => setDestinationAddress(e.target.value)}
-                    placeholder={`Enter your ${toAsset.symbol} address`}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm font-mono text-white placeholder-white/20 outline-none focus:border-[#F7931A]/50 transition-colors"
-                  />
-                </div>
+                {/* Destination Address (THORChain only) */}
+                {activeNetwork === 'thorchain' && (
+                  <div className="px-6 py-4 border-b border-white/5">
+                    <label className="text-xs text-white/40 uppercase tracking-wider font-medium mb-2 block">
+                      Destination Address ({toAsset.name})
+                    </label>
+                    <input
+                      type="text"
+                      value={destinationAddress}
+                      onChange={(e) => setDestinationAddress(e.target.value)}
+                      placeholder={`Enter your ${toAsset.symbol} address`}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm font-mono text-white placeholder-white/20 outline-none focus:border-[#F7931A]/50 transition-colors"
+                    />
+                  </div>
+                )}
 
                 {/* Error Message */}
                 {error && (
@@ -476,6 +956,12 @@ export default function SwapPage() {
                         <Zap className="w-3.5 h-3.5 text-[#F7931A]" /> {quote.quote.route}
                       </span>
                     </div>
+                    {quote.bestProvider && (
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/50">Provider</span>
+                        <span className="text-white/70 font-mono">{quote.bestProvider}</span>
+                      </div>
+                    )}
 
                     {/* Fee Breakdown */}
                     <div className="pt-3 border-t border-white/5 space-y-2">
@@ -483,16 +969,18 @@ export default function SwapPage() {
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-white/50">Network Fee</span>
                         <span className="text-white font-mono">
-                          {quote.quote.fees.network} {toAsset.symbol}
-                          <span className="text-white/30 ml-1">({formatUsd(quote.quote.fees.networkUsd)})</span>
+                          {quote.quote.fees.network}
+                          {quote.quote.fees.networkUsd > 0 && (
+                            <span className="text-white/30 ml-1">({formatUsd(quote.quote.fees.networkUsd)})</span>
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-white/50 flex items-center gap-1.5">
-                          Affiliate Fee ({quote.affiliate?.feePercent || '0.5%'})
+                          CYPHER Fee ({networkConfig.feeLabel})
                           {isPremium && (
                             <span className="px-1.5 py-0.5 bg-green-500/10 border border-green-500/30 rounded text-[10px] text-green-400 font-medium">
-                              YHP Member
+                              YHP
                             </span>
                           )}
                         </span>
@@ -501,8 +989,10 @@ export default function SwapPage() {
                             <span className="text-green-400">0% fees</span>
                           ) : (
                             <>
-                              {quote.quote.fees.affiliate} {toAsset.symbol}
-                              <span className="text-white/30 ml-1">({formatUsd(quote.quote.fees.affiliateUsd)})</span>
+                              {quote.quote.fees.affiliate}
+                              {quote.quote.fees.affiliateUsd > 0 && (
+                                <span className="text-white/30 ml-1">({formatUsd(quote.quote.fees.affiliateUsd)})</span>
+                              )}
                             </>
                           )}
                         </span>
@@ -510,14 +1000,16 @@ export default function SwapPage() {
                       {!isPremium && (
                         <div className="flex items-center gap-1.5 text-[11px] text-[#F7931A]/70">
                           <Zap className="w-3 h-3" />
-                          <span>Get YHP for 0% affiliate fees</span>
+                          <span>Hold YHP for 0% platform fees</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between text-sm font-medium pt-1 border-t border-white/5">
                         <span className="text-white/70">Total Fees</span>
                         <span className="text-[#F7931A] font-mono">
-                          {quote.quote.fees.total} {toAsset.symbol}
-                          <span className="text-white/30 ml-1">({formatUsd(quote.quote.fees.totalUsd)})</span>
+                          {quote.quote.fees.total}
+                          {quote.quote.fees.totalUsd > 0 && (
+                            <span className="text-white/30 ml-1">({formatUsd(quote.quote.fees.totalUsd)})</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -532,55 +1024,64 @@ export default function SwapPage() {
                   </div>
                 )}
 
-                {/* Execution Details (after confirming) */}
-                {status === 'confirming' && quote?.quote && (
+                {/* THORChain Execution Details */}
+                {status === 'confirming' && activeNetwork === 'thorchain' && quote?.quote && (
                   <div className="mx-6 mt-4 p-4 bg-[#F7931A]/5 border border-[#F7931A]/20 rounded-lg space-y-4">
                     <div className="text-sm font-medium text-[#F7931A] flex items-center gap-2">
                       <Shield className="w-4 h-4" />
                       Send Transaction Details
                     </div>
                     <p className="text-xs text-white/50">
-                      Send exactly <span className="text-white font-mono">{amount} {fromAsset.symbol}</span> to the address below with the memo to execute the swap.
+                      Send exactly <span className="text-white font-mono">{amount} {fromAsset.symbol}</span> to the address below with the memo.
                     </p>
-
-                    {/* Inbound Address */}
                     <div>
-                      <label className="text-xs text-white/40 mb-1 block">Inbound Address (Send {fromAsset.symbol} here)</label>
+                      <label className="text-xs text-white/40 mb-1 block">Inbound Address</label>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 bg-black/50 px-3 py-2 rounded text-xs font-mono text-white/80 break-all border border-white/5">
                           {quote.quote.inboundAddress}
                         </code>
-                        <button
-                          onClick={() => copyToClipboard(quote.quote.inboundAddress, 'address')}
-                          className="p-2 bg-white/5 hover:bg-white/10 rounded transition-colors"
-                          title="Copy address"
-                        >
+                        <button onClick={() => copyToClipboard(quote.quote!.inboundAddress, 'address')} className="p-2 bg-white/5 hover:bg-white/10 rounded transition-colors">
                           {copiedAddress ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/50" />}
                         </button>
                       </div>
                     </div>
-
-                    {/* Memo */}
                     <div>
-                      <label className="text-xs text-white/40 mb-1 block">Transaction Memo (Required)</label>
+                      <label className="text-xs text-white/40 mb-1 block">Memo (Required)</label>
                       <div className="flex items-center gap-2">
                         <code className="flex-1 bg-black/50 px-3 py-2 rounded text-xs font-mono text-white/80 break-all border border-white/5">
                           {quote.quote.memo}
                         </code>
-                        <button
-                          onClick={() => copyToClipboard(quote.quote.memo, 'memo')}
-                          className="p-2 bg-white/5 hover:bg-white/10 rounded transition-colors"
-                          title="Copy memo"
-                        >
+                        <button onClick={() => copyToClipboard(quote.quote!.memo, 'memo')} className="p-2 bg-white/5 hover:bg-white/10 rounded transition-colors">
                           {copiedMemo ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4 text-white/50" />}
                         </button>
                       </div>
                     </div>
-
                     <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg">
                       <p className="text-xs text-red-400 flex items-start gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                        Always verify the inbound address on THORChain explorer before sending. Never send funds without the correct memo.
+                        Verify the inbound address on THORChain explorer before sending.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Solana/EVM Execution Details */}
+                {status === 'confirming' && activeNetwork !== 'thorchain' && quote?.quote && (
+                  <div className="mx-6 mt-4 p-4 bg-[#F7931A]/5 border border-[#F7931A]/20 rounded-lg space-y-4">
+                    <div className="text-sm font-medium text-[#F7931A] flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      Confirm in {activeNetwork === 'solana' ? 'Phantom' : 'MetaMask'}
+                    </div>
+                    <div className="space-y-2 text-xs text-white/60">
+                      <p>Swap <span className="text-white font-mono">{amount} {fromAsset.symbol}</span> for <span className="text-white font-mono">~{quote.quote.expectedOutput} {toAsset.symbol}</span></p>
+                      <p>Fee: {isPremium ? '0% (YHP Premium)' : networkConfig.feeLabel}</p>
+                      <p>Fee collection: Native (deducted by {activeNetwork === 'solana' ? 'Jupiter' : quote.bestProvider || '1inch'})</p>
+                      <p>Fee wallet: {activeNetwork === 'solana' ? '4boX...CwRH' : '0xAE36...ddd3'}</p>
+                    </div>
+                    <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                      <p className="text-xs text-blue-400 flex items-start gap-1.5">
+                        <Shield className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                        Your wallet will prompt you to sign the transaction. Review the details carefully.
                       </p>
                     </div>
                   </div>
@@ -589,13 +1090,23 @@ export default function SwapPage() {
                 {/* Action Buttons */}
                 <div className="p-6">
                   {status === 'idle' || status === 'error' ? (
-                    <button
-                      onClick={handleGetQuote}
-                      disabled={!amount || parseFloat(amount) <= 0}
-                      className="w-full py-4 bg-[#F7931A] hover:bg-[#F7931A]/90 disabled:bg-white/5 disabled:text-white/20 text-black font-bold rounded-lg transition-all text-lg disabled:cursor-not-allowed"
-                    >
-                      Get Quote
-                    </button>
+                    activeNetwork !== 'thorchain' && !isWalletConnected ? (
+                      <button
+                        onClick={handleConnectWallet}
+                        className="w-full py-4 bg-[#F7931A] hover:bg-[#F7931A]/90 text-black font-bold rounded-lg transition-all text-lg flex items-center justify-center gap-2"
+                      >
+                        <Wallet className="w-5 h-5" />
+                        Connect {networkConfig.walletLabel.split(' / ')[0]}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleGetQuote}
+                        disabled={!amount || parseFloat(amount) <= 0}
+                        className="w-full py-4 bg-[#F7931A] hover:bg-[#F7931A]/90 disabled:bg-white/5 disabled:text-white/20 text-black font-bold rounded-lg transition-all text-lg disabled:cursor-not-allowed"
+                      >
+                        Get Quote
+                      </button>
+                    )
                   ) : status === 'quoting' ? (
                     <button disabled className="w-full py-4 bg-white/5 text-white/50 font-bold rounded-lg flex items-center justify-center gap-2">
                       <RefreshCw className="w-5 h-5 animate-spin" />
@@ -605,10 +1116,12 @@ export default function SwapPage() {
                     <div className="space-y-3">
                       <button
                         onClick={handleExecuteSwap}
-                        disabled={!destinationAddress}
+                        disabled={activeNetwork === 'thorchain' && !destinationAddress}
                         className="w-full py-4 bg-[#F7931A] hover:bg-[#F7931A]/90 disabled:bg-white/5 disabled:text-white/20 text-black font-bold rounded-lg transition-all text-lg disabled:cursor-not-allowed"
                       >
-                        {destinationAddress ? 'Execute Swap' : 'Enter Destination Address'}
+                        {activeNetwork === 'thorchain' && !destinationAddress
+                          ? 'Enter Destination Address'
+                          : 'Execute Swap'}
                       </button>
                       <button
                         onClick={handleGetQuote}
@@ -620,17 +1133,19 @@ export default function SwapPage() {
                     </div>
                   ) : status === 'confirming' ? (
                     <div className="space-y-3">
-                      <a
-                        href="https://thorchain.net"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/70 font-medium rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        Verify on THORChain Explorer
-                      </a>
+                      {activeNetwork === 'thorchain' && (
+                        <a
+                          href="https://thorchain.net"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/70 font-medium rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          Verify on THORChain Explorer
+                        </a>
+                      )}
                       <button
-                        onClick={() => { setStatus('quoted'); }}
+                        onClick={() => setStatus('quoted')}
                         className="w-full py-3 bg-white/5 hover:bg-white/10 text-white/50 font-medium rounded-lg transition-colors text-sm"
                       >
                         Back to Quote
@@ -640,52 +1155,55 @@ export default function SwapPage() {
                 </div>
               </div>
 
-              {/* Info Cards */}
+              {/* Fee Collection Info Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-                <div className="bg-[#0a0a0a] border border-white/10 rounded-lg p-4">
+                <div className={`bg-[#0a0a0a] border rounded-lg p-4 ${activeNetwork === 'thorchain' ? 'border-[#33FF99]/30' : 'border-white/10'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-4 h-4 text-[#F7931A]" />
-                    <span className="text-sm font-medium text-white">Native Assets</span>
+                    <Shield className="w-4 h-4 text-[#33FF99]" />
+                    <span className="text-sm font-medium text-white">THORChain</span>
                   </div>
                   <p className="text-xs text-white/40">
-                    THORChain swaps use native assets only. No wrapped tokens, no bridges, no custodial risk.
+                    Cross-chain swaps. No wrapped tokens. 0.5% affiliate fee.
                   </p>
                 </div>
-                <div className="bg-[#0a0a0a] border border-white/10 rounded-lg p-4">
+                <div className={`bg-[#0a0a0a] border rounded-lg p-4 ${activeNetwork === 'evm' ? 'border-[#627EEA]/30' : 'border-white/10'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-[#F7931A]" />
-                    <span className="text-sm font-medium text-white">Affiliate Revenue</span>
+                    <Zap className="w-4 h-4 text-[#627EEA]" />
+                    <span className="text-sm font-medium text-white">EVM Multi-DEX</span>
                   </div>
                   <p className="text-xs text-white/40">
-                    A 0.5% affiliate fee supports CYPHER development. This is transparent and built into the quote.
+                    1inch + Paraswap. ETH, ARB, BASE, OP, MATIC, BSC.
                   </p>
                 </div>
-                <div className="bg-[#0a0a0a] border border-white/10 rounded-lg p-4">
+                <div className={`bg-[#0a0a0a] border rounded-lg p-4 ${activeNetwork === 'solana' ? 'border-[#9945FF]/30' : 'border-white/10'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <ArrowRightLeft className="w-4 h-4 text-[#F7931A]" />
-                    <span className="text-sm font-medium text-white">Cross-Chain</span>
+                    <Coins className="w-4 h-4 text-[#9945FF]" />
+                    <span className="text-sm font-medium text-white">Solana Jupiter</span>
                   </div>
                   <p className="text-xs text-white/40">
-                    Swap between 9 supported chains: BTC, ETH, AVAX, BNB, ATOM, DOGE, LTC, and stablecoins.
+                    Jupiter aggregator. SOL, USDC, BONK, JUP, 1000+ tokens.
                   </p>
                 </div>
               </div>
 
               {/* Supported Assets Grid */}
               <div className="mt-8 bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
-                <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider mb-4">Supported Assets</h3>
+                <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider mb-4">
+                  {networkConfig.name} Tokens
+                </h3>
                 <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                  {SUPPORTED_ASSETS.map((asset) => (
+                  {tokens.map((asset) => (
                     <div
                       key={asset.symbol}
-                      className="flex flex-col items-center gap-1.5 p-3 bg-white/[0.02] border border-white/5 rounded-lg hover:border-white/10 transition-colors"
+                      className="flex flex-col items-center gap-1.5 p-3 bg-white/[0.02] border border-white/5 rounded-lg hover:border-white/10 transition-colors cursor-pointer"
+                      onClick={() => selectFromAsset(asset)}
                     >
                       <span className="text-xl" style={{ color: asset.color }}>{asset.icon}</span>
                       <span className="text-xs font-bold text-white">{asset.symbol}</span>
                       <span className="text-[10px] text-white/30">{asset.chain}</span>
-                      {usdPrices[asset.symbol] && (
+                      {usdPrices[asset.symbol] !== undefined && (
                         <span className="text-[10px] text-white/40 font-mono">
-                          {formatUsd(usdPrices[asset.symbol])}
+                          {usdPrices[asset.symbol] < 0.01 ? `$${usdPrices[asset.symbol].toFixed(6)}` : formatUsd(usdPrices[asset.symbol])}
                         </span>
                       )}
                     </div>
@@ -698,7 +1216,6 @@ export default function SwapPage() {
           {/* === EARN TAB === */}
           <TabsContent value="earn">
             <div className="space-y-6">
-              {/* Earn Summary */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-[#0a0a0a] border border-white/10 rounded-xl p-6">
                   <div className="flex items-center gap-2 mb-2">
@@ -726,7 +1243,6 @@ export default function SwapPage() {
                 </div>
               </div>
 
-              {/* Earn Pools */}
               <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/5">
                   <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono">Available Yield Opportunities</h3>
@@ -757,15 +1273,14 @@ export default function SwapPage() {
                 </div>
               </div>
 
-              {/* Info */}
               <div className="bg-[#0a0a0a] border border-[#F7931A]/20 rounded-xl p-6">
                 <div className="flex items-start gap-3">
                   <Shield className="w-5 h-5 text-[#F7931A] mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-white mb-1">THORChain Savers Vaults</p>
                     <p className="text-xs text-white/50">
-                      Earn yield on native assets through THORChain Savers Vaults. Single-sided deposits with no impermanent loss.
-                      Yields are generated from swap fees and block rewards. APY rates are variable and depend on pool utilization.
+                      Earn yield on native assets. Single-sided deposits with no impermanent loss.
+                      Yields from swap fees and block rewards. APY is variable.
                     </p>
                   </div>
                 </div>
@@ -776,21 +1291,9 @@ export default function SwapPage() {
           {/* === HISTORY TAB === */}
           <TabsContent value="history">
             <div className="space-y-6">
-              {/* History Table */}
               <div className="bg-[#0a0a0a] border border-white/10 rounded-xl overflow-hidden">
                 <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
                   <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono">Transaction History</h3>
-                  <div className="flex items-center gap-2">
-                    <button className="px-3 py-1.5 bg-white/5 border border-white/10 text-xs text-white/50 font-mono rounded-lg hover:bg-white/10 transition-colors">
-                      All
-                    </button>
-                    <button className="px-3 py-1.5 bg-white/5 border border-white/10 text-xs text-white/50 font-mono rounded-lg hover:bg-white/10 transition-colors">
-                      Completed
-                    </button>
-                    <button className="px-3 py-1.5 bg-white/5 border border-white/10 text-xs text-white/50 font-mono rounded-lg hover:bg-white/10 transition-colors">
-                      Pending
-                    </button>
-                  </div>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -805,7 +1308,7 @@ export default function SwapPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {MOCK_HISTORY.map((tx) => (
+                      {swapHistory.map((tx) => (
                         <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors">
                           <td className="px-6 py-4 text-xs text-white/50 font-mono">{tx.date}</td>
                           <td className="px-6 py-4">
@@ -813,8 +1316,8 @@ export default function SwapPage() {
                             <span className="text-xs text-white/30 mx-1">&rarr;</span>
                             <span className="text-xs font-mono font-medium text-white">{tx.toAsset}</span>
                           </td>
-                          <td className="px-6 py-4 text-right text-xs font-mono text-white/70">{tx.fromAmount} {tx.fromAsset}</td>
-                          <td className="px-6 py-4 text-right text-xs font-mono text-white/70">{tx.toAmount} {tx.toAsset}</td>
+                          <td className="px-6 py-4 text-right text-xs font-mono text-white/70">{tx.fromAmount}</td>
+                          <td className="px-6 py-4 text-right text-xs font-mono text-white/70">{tx.toAmount}</td>
                           <td className="px-6 py-4 text-center">
                             <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono font-medium ${
                               tx.status === 'completed'
@@ -826,17 +1329,17 @@ export default function SwapPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <button className="text-xs text-[#F7931A] hover:text-[#F7931A]/70 font-mono transition-colors flex items-center gap-1 ml-auto">
-                              {tx.txHash}
-                              <ExternalLink className="w-3 h-3" />
-                            </button>
+                            <span className="text-xs text-[#F7931A] font-mono flex items-center gap-1 justify-end">
+                              {tx.txHash !== '-' ? `${tx.txHash.slice(0, 8)}...` : '-'}
+                              {tx.txHash !== '-' && <ExternalLink className="w-3 h-3" />}
+                            </span>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                {MOCK_HISTORY.length === 0 && (
+                {swapHistory.length === 0 && (
                   <div className="px-6 py-16 text-center">
                     <History className="w-8 h-8 text-white/20 mx-auto mb-3" />
                     <p className="text-sm text-white/40 font-mono">No transactions yet</p>

@@ -101,21 +101,31 @@ export interface OrdinalStats {
 
 /**
  * Processed collection with enhanced market data and charting information
+ * ALL DATA IS REAL - NO MORE Math.random() OR ESTIMATES!
  */
 export interface ProcessedCollection {
   id: string;
   name: string;
   symbol: string;
-  floorPrice: number;              // Floor price in BTC
-  volume24h: number;               // 24h trading volume in BTC
-  volume7d: number;                // 7d trading volume in BTC
+  floorPrice: number;              // Floor price in BTC (REAL)
+  floorPriceUSD?: number;          // Floor price in USD (REAL, converted from live BTC/USD rate)
+  volume24h: number;               // 24h trading volume in BTC (0 if only stat endpoint used)
+  volume7d: number;                // 7d trading volume in BTC (0 if only stat endpoint used)
+  volumeUSD24h?: number;           // 24h volume in USD
+  totalVolume?: number;            // All-time total volume in BTC (from stat endpoint)
   marketCap: number;               // Market capitalization in BTC
   listed: number;                  // Number of items listed
   owners: number;                  // Number of unique owners
   supply: number;                  // Total supply
   image: string;                   // Collection image URL
-  priceChange24h: number;          // 24h price change percentage
-  volumeHistory: number[];         // Historical volume data for sparkline charts
+  priceChange24h: number;          // REAL 24h price change % (from historical data)
+  priceChange7d?: number;          // REAL 7d price change %
+  priceChange30d?: number;         // REAL 30d price change %
+  bestBid?: number;                // Lowest listing price (REAL from listings API)
+  bidAskSpread?: number;           // Bid-ask spread percentage (REAL)
+  vwap24h?: number;                // 24h VWAP (REAL calculated from activities)
+  trades24h?: number;              // Number of trades in 24h (REAL count)
+  volumeHistory: number[];         // REAL historical volume data (from activities API, NOT Math.random())
   isFavorite: boolean;             // User favorite status
 }
 

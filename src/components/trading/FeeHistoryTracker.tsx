@@ -161,7 +161,7 @@ export const FeeHistoryTracker: React.FC<FeeHistoryTrackerProps> = ({
     
     try {
       // In production, this would fetch from API
-      // const response = await fetch(`/api/fees/history?address=${userAddress}&timeframe=${selectedTimeframe}`)
+      // const response = await fetch(`/api/fees/history/?address=${userAddress}&timeframe=${selectedTimeframe}`)
       
       // Mock data simulation
       await new Promise(resolve => setTimeout(resolve, 1000))

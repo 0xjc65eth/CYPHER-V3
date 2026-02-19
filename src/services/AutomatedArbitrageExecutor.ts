@@ -4,6 +4,7 @@
  */
 
 import { EventEmitter } from 'events';
+import crypto from 'crypto';
 import { exchangeService, ArbitrageOpportunity, ExecutionResult } from './exchanges';
 import { arbitrageDetectionEngine, OpportunityAlert } from './ArbitrageDetectionEngine';
 
@@ -164,7 +165,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
     });
 
     this.emit('executorStarted');
-    console.log('🤖 Automated Arbitrage Executor started');
+    // Executor started
   }
 
   /**
@@ -197,7 +198,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
     });
 
     this.emit('executorStopped');
-    console.log('⏹️ Automated Arbitrage Executor stopped');
+    // Executor stopped
   }
 
   /**
@@ -529,7 +530,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
   private sendNotification(notification: Omit<NotificationMessage, 'id' | 'timestamp'>): void {
     const fullNotification: NotificationMessage = {
       ...notification,
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `notif_${Date.now()}_${crypto.randomBytes(5).toString('hex')}`,
       timestamp: Date.now()
     };
 
@@ -588,7 +589,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
    */
   private async sendEmailNotification(notification: NotificationMessage): Promise<void> {
     // In production, integrate with email service (SendGrid, SES, etc.)
-    console.log('📧 Email notification:', notification.title);
+    // TODO: In production, integrate with email service (SendGrid, SES, etc.)
   }
 
   /**
@@ -596,7 +597,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
    */
   private async sendSMSNotification(notification: NotificationMessage): Promise<void> {
     // In production, integrate with SMS service (Twilio, etc.)
-    console.log('📱 SMS notification:', notification.title);
+    // TODO: In production, integrate with SMS service (Twilio, etc.)
   }
 
   /**
@@ -604,7 +605,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
    */
   private async sendWebhookNotification(notification: NotificationMessage): Promise<void> {
     // In production, send to configured webhook URLs
-    console.log('🔗 Webhook notification:', notification.title);
+    // TODO: In production, send to configured webhook URLs
   }
 
   /**
@@ -612,7 +613,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
    */
   private async sendPushNotification(notification: NotificationMessage): Promise<void> {
     // In production, integrate with push notification service
-    console.log('🔔 Push notification:', notification.title);
+    // TODO: In production, integrate with push notification service
   }
 
   /**

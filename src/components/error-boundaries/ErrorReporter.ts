@@ -233,7 +233,6 @@ class ErrorReporterService {
       }
     } catch (error) {
       // Don't log fetch errors to avoid infinite loops
-      console.warn('Failed to send error report:', error)
       throw error
     }
   }

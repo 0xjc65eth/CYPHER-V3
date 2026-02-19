@@ -161,7 +161,6 @@ export function useWebSocketSafe(options: UseWebSocketSafeOptions = {}): WebSock
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(data);
     } else {
-      console.warn('WebSocket is not connected');
     }
   }, []);
 

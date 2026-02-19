@@ -60,7 +60,6 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
 
     // Listener para quando o app é instalado
     const handleAppInstalled = () => {
-      console.log('PWA foi instalado!');
       setShowPrompt(false);
       setDeferredPrompt(null);
       localStorage.setItem('pwa-installed', 'true');
@@ -86,9 +85,7 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
       const { outcome } = await deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        console.log('Usuário aceitou a instalação');
       } else {
-        console.log('Usuário recusou a instalação');
       }
       
       setDeferredPrompt(null);

@@ -47,7 +47,6 @@ function calculateTxValue(tx: any, address: string): { amount: number; type: str
 
 async function getTransactions(address: string): Promise<Transaction[]> {
   try {
-    console.log('📊 Fetching REAL transactions for:', address);
     
     const transactions: Transaction[] = [];
     
@@ -60,7 +59,6 @@ async function getTransactions(address: string): Promise<Transaction[]> {
       
       if (blockstreamResponse.ok) {
         const blockstreamTxs = await blockstreamResponse.json();
-        console.log('💸 Blockstream transactions found:', blockstreamTxs.length);
         
         // Buscar preço atual do Bitcoin
         const priceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
@@ -93,7 +91,6 @@ async function getTransactions(address: string): Promise<Transaction[]> {
         }
       }
     } catch (err) {
-      console.warn('Blockstream API error:', err);
     }
     
     // 2. Buscar transações do Mempool.space (fallback)
@@ -106,7 +103,6 @@ async function getTransactions(address: string): Promise<Transaction[]> {
         
         if (mempoolResponse.ok) {
           const mempoolTxs = await mempoolResponse.json();
-          console.log('💸 Mempool.space transactions found:', mempoolTxs.length);
           
           // Processar de forma similar ao Blockstream
           for (const tx of mempoolTxs.slice(0, 50)) {
@@ -131,7 +127,6 @@ async function getTransactions(address: string): Promise<Transaction[]> {
           }
         }
       } catch (err) {
-        console.warn('Mempool.space API error:', err);
       }
     }
     
@@ -144,7 +139,6 @@ async function getTransactions(address: string): Promise<Transaction[]> {
       
       if (hiroResponse.ok) {
         const hiroData = await hiroResponse.json();
-        console.log('🎨 Ordinals transactions found:', hiroData.results?.length || 0);
         
         // Adicionar transações de inscrições
         (hiroData.results || []).forEach((inscription: any) => {
@@ -166,13 +160,11 @@ async function getTransactions(address: string): Promise<Transaction[]> {
         });
       }
     } catch (err) {
-      console.warn('Hiro Ordinals API error:', err);
     }
     
     // Ordenar transações por data (mais recentes primeiro)
     transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    console.log('📊 Total transactions processed:', transactions.length);
     
     return transactions;
     

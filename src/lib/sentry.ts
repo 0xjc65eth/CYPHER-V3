@@ -11,5 +11,4 @@ export function initSentry() {
   //     environment: process.env.NODE_ENV,
   //   });
   // }
-  console.log('Sentry desabilitado temporariamente');
 } 

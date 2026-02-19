@@ -53,7 +53,6 @@ export class RealPriceService {
     const cacheKey = symbols.sort().join(',');
     const cached = this.getFromCache(cacheKey);
     if (cached) {
-      console.log('📊 Using cached real prices for:', symbols.join(','));
       return cached;
     }
 
@@ -61,9 +60,8 @@ export class RealPriceService {
     
     return requestDeduplicator.dedupe(requestKey, async () => {
       try {
-        console.log('🔄 Fetching REAL prices from CMC for:', symbols.join(','));
         
-        const response = await fetch(`/api/coinmarketcap?symbols=${symbols.join(',')}`);
+        const response = await fetch(`/api/coinmarketcap/?symbols=${symbols.join(',')}`);
         const data = await response.json();
 
         if (data.success && data.data?.current) {
@@ -85,11 +83,9 @@ export class RealPriceService {
             }
           });
 
-          console.log('✅ Got REAL prices for', realPrices.length, 'tokens');
           this.setCache(cacheKey, realPrices);
           return realPrices;
         } else {
-          console.log('⚠️ CMC API returned no data, using fallback');
           throw new Error('No real data available');
         }
       } catch (error) {
@@ -154,7 +150,6 @@ export class RealPriceService {
   }
 
   private getFallbackPrices(symbols: string[]): RealTokenPrice[] {
-    console.log('🔄 Using fallback prices for:', symbols.join(','));
     
     // Updated fallback prices (January 2025)
     const fallbackData: { [key: string]: Omit<RealTokenPrice, 'symbol'> } = {

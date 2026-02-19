@@ -1,0 +1,277 @@
+# CYPHER V3 - Autonomous Audit Workflow
+# Run: node scripts/capture-console-logs.mjs > /tmp/cypher-audit/logs-{timestamp}.json 2>/tmp/cypher-audit/summary.txt
+# Or:  node scripts/api-audit.mjs for API-only audit (faster, no browser needed)
+
+name: cypher-v3-console-audit
+description: Autonomous browser console + API audit - captures and fixes all errors
+
+config:
+  base_url: http://localhost:4444
+  page_timeout: 30000        # 30s for domcontentloaded (dev mode is slow)
+  wait_after_load: 5000      # 5s for React hydration
+  output_dir: /tmp/cypher-audit
+  max_cycles: unlimited
+  cycle_interval: 300        # seconds between audit cycles
+
+# ============================================================================
+# Pages to audit (browser-based via Puppeteer)
+# NOTE: Dev mode SSR is slow (60s+ per page). Use production build for full audit.
+#       Build: npm run build && npx next start -p 4445
+# ============================================================================
+pages_to_audit:
+  - name: Home / Dashboard
+    path: /
+    priority: critical
+  - name: Market
+    path: /market
+    priority: critical
+  - name: Portfolio
+    path: /portfolio
+    priority: critical
+  - name: Ordinals
+    path: /ordinals
+    priority: high
+  - name: Runes
+    path: /runes
+    priority: high
+  - name: BRC-20
+    path: /brc20
+    priority: high
+  - name: Arbitrage
+    path: /arbitrage
+    priority: medium
+  - name: Swap
+    path: /swap
+    priority: medium
+  - name: Simple
+    path: /simple
+    priority: low
+  - name: Rare Sats
+    path: /rare-sats
+    priority: medium
+  - name: Trading Agent
+    path: /trading-agent
+    priority: high
+  - name: Tax
+    path: /tax
+    priority: low
+  - name: Alerts
+    path: /alerts
+    priority: medium
+  - name: Admin Fees
+    path: /admin/fees
+    priority: medium
+
+# ============================================================================
+# API Endpoints to audit (curl-based, fast, no browser needed)
+# All endpoints require trailing slash due to Next.js middleware redirect (308)
+# ============================================================================
+api_endpoints:
+  critical:
+    - path: /api/health/
+      expected: status in (healthy, warning)
+    - path: /api/agent/
+      expected: success=true
+    - path: /api/market/data/
+      expected: success=true, size > 1000
+    - path: /api/market/price/
+      expected: success=true
+
+  high:
+    - path: /api/runes/
+      expected: success=true
+    - path: /api/ordinals/
+      expected: success=true
+    - path: /api/brc20/tokens/
+      expected: success=true
+    - path: /api/mempool/
+      expected: success=true
+    - path: /api/arbitrage/opportunities/
+      expected: success=true
+    - path: /api/runes-stats/
+      expected: success=true
+    - path: /api/ordinals-stats/
+      expected: success=true
+
+  medium:
+    - path: /api/fees/report/
+      expected: success=true
+    - path: /api/fees/calculate/
+      expected: success=true
+    - path: /api/neural-metrics/
+      expected: success=true
+    - path: /api/market/global/
+      expected: success=true
+    - path: /api/hashrate-data/
+      expected: success=true
+    - path: /api/mining-data/
+      expected: success=true
+    - path: /api/realtime-prices/
+      expected: success=true
+    - path: /api/trading/status/
+      expected: success=true
+
+  low:
+    - path: /api/coingecko/
+      expected: valid JSON (slow - 20s+ due to rate limits)
+      timeout: 30
+
+# ============================================================================
+# Error categories
+# ============================================================================
+error_categories:
+  critical:
+    - pageerror           # Uncaught exceptions
+    - navigation_error    # Page failed to load
+    - network_error       # Failed network requests
+  high:
+    - type: http_error
+      status: "5xx"       # Server errors
+    - type: error         # console.error
+  medium:
+    - type: http_error
+      status: "4xx"       # Client errors (404, 403, etc.)
+    - type: warning       # console.warn
+  low:
+    - type: info          # console.info / console.log noise
+
+# ============================================================================
+# Team roles for autonomous fix workflow
+# ============================================================================
+team_roles:
+  scanner:
+    description: Runs Puppeteer capture + API curl audit, categorizes errors
+    tools: [bash, read, write]
+
+  analyzer:
+    description: Groups errors by root cause, identifies patterns, prioritizes fixes
+    tools: [read, grep, glob]
+
+  fixer:
+    description: Implements fixes for identified errors in source code
+    tools: [read, edit, write, bash, grep, glob]
+
+  verifier:
+    description: Re-runs capture after fixes to verify resolution
+    tools: [bash, read]
+
+# ============================================================================
+# Workflow steps
+# ============================================================================
+workflow_steps:
+  1_api_audit:
+    agent: scanner
+    command: node scripts/api-audit.mjs
+    output: /tmp/cypher-audit/api-audit-{timestamp}.json
+    description: Fast API-only audit (no browser, 2-3 minutes)
+
+  2_browser_capture:
+    agent: scanner
+    command: node scripts/capture-console-logs.mjs
+    output: /tmp/cypher-audit/logs-{timestamp}.json
+    description: Full browser audit with Puppeteer (requires production build)
+    prerequisite: npm run build && npx next start -p 4445
+
+  3_analyze:
+    agent: analyzer
+    input: /tmp/cypher-audit/api-audit-{timestamp}.json + /tmp/cypher-audit/logs-{timestamp}.json
+    output: /tmp/cypher-audit/analysis-{timestamp}.md
+    actions:
+      - categorize errors by severity
+      - group by root cause
+      - identify affected files
+      - prioritize fix order
+
+  4_fix:
+    agent: fixer
+    input: /tmp/cypher-audit/analysis-{timestamp}.md
+    actions:
+      - fix critical errors first
+      - fix high severity next
+      - skip low/info unless requested
+      - never break existing functionality
+      - run npm run build to verify fixes compile
+
+  5_verify:
+    agent: verifier
+    command: node scripts/api-audit.mjs
+    actions:
+      - compare before/after error counts
+      - confirm fixes resolved issues
+      - report remaining issues
+
+  6_loop:
+    condition: errors_remaining > 0
+    goto: 3_analyze
+
+# ============================================================================
+# Audit History
+# ============================================================================
+audit_history:
+  - date: 2026-02-18
+    round: initial
+    total_messages: 277
+    errors: 186
+    pages_with_errors: [Market, Ordinals, Runes, BRC-20, Arbitrage, Swap, Simple]
+    root_causes:
+      - react-icons chunk missing (vendor-chunks/react-icons.js)
+      - SSR 500 errors on multiple pages
+    status: fixed
+
+  - date: 2026-02-18
+    round: round2
+    total_messages: 43
+    errors: 28
+    pages_with_errors: []
+    root_causes:
+      - navigation timeouts (networkidle2 too strict for WebSocket pages)
+    status: fixed (changed to domcontentloaded)
+
+  - date: 2026-02-19
+    round: round3
+    api_audit:
+      total: 20
+      ok: 19
+      fail: 1
+      failures:
+        - /api/coingecko/ (timeout - external rate limit, non-critical)
+    build_fixes:
+      - magicEdenService.ts: 2x missing console.log()
+      - okxWeb3Service.ts: 2x missing console.log()
+      - unisatRunesService.ts: 1x missing console.log()
+      - hyperliquidTrader.ts: truncated file (placeOrder function incomplete)
+    status: all APIs operational, build passes
+
+  - date: 2026-02-19
+    round: round3-final
+    api_audit:
+      total: 20
+      ok: 20
+      fail: 0
+      slowest:
+        - /api/arbitrage/opportunities/ (16.8s - multi-exchange fetch)
+        - /api/neural-metrics/ (16.0s - ML inference)
+        - /api/coingecko/ (15.2s - external rate limit)
+        - /api/ordinals/ (6.2s - Hiro API)
+        - /api/ordinals-stats/ (4.7s - Hiro API)
+    scripts_created:
+      - scripts/api-audit.mjs (fast API-only audit, no browser)
+    status: ALL PASS - 20/20 endpoints operational
+
+  - date: 2026-02-19
+    round: round4-browser
+    browser_audit:
+      total_messages: 25
+      errors: 1
+      warnings: 1
+      info: 23
+      pages_with_errors: [Swap]
+      error_detail: "429 Too Many Requests on /api/coingecko proxy (rate limit from rapid page visits)"
+    fixes_applied:
+      - "Created catch-all CoinGecko proxy: src/app/api/coingecko/[...path]/route.ts"
+      - "Fixed src/app/swap/page.tsx: direct CoinGecko URL → /api/coingecko/ proxy"
+      - "Fixed src/hooks/useSimpleBitcoinPrice.ts: direct CoinGecko URL → /api/coingecko/ proxy"
+      - "Fixed src/hooks/useAssetManagement.ts: BASE_URL uses proxy when in browser"
+      - "Fixed src/components/dashboard/widgets/TopMovers.tsx: direct CoinGecko URL → /api/coingecko/ proxy"
+    improvement: "12 CORS errors → 1 rate-limit error (non-critical, normal CoinGecko free tier)"
+    status: PASS - All CORS errors eliminated, only CoinGecko rate limit remains (expected)

@@ -35,7 +35,7 @@ export function DifficultyChart() {
 
   const fetchDifficulty = useCallback(async () => {
     try {
-      const res = await fetch('/api/onchain/mining')
+      const res = await fetch('/api/onchain/mining/')
       if (!res.ok) throw new Error('Failed to fetch mining data')
       const rawData = await res.json()
       if (rawData.error) throw new Error(rawData.error)

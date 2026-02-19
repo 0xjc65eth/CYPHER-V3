@@ -1,0 +1,213 @@
+# Politica de auto-aprovacao para o Cypher Dev Agent
+# Todas as acoes de desenvolvimento sao aprovadas automaticamente
+# AVISO: Use apenas em ambientes de desenvolvimento local
+
+policy:
+  name: cypher-dev-auto-approve
+  version: 1.0.0
+  description: Auto-aprova todas as acoes de desenvolvimento do agente
+
+rules:
+  # Leitura de arquivos - sempre aprovado
+  - action: file.read
+    decision: approve
+    scope: "**/*"
+
+  # Escrita de arquivos - aprovado para codigo
+  - action: file.write
+    decision: approve
+    scope: "**/*"
+    exclude:
+      - "**/.env*"
+      - "**/credentials*"
+      - "**/*.pem"
+      - "**/*.key"
+
+  # Edicao de arquivos - aprovado
+  - action: file.edit
+    decision: approve
+    scope: "**/*"
+    exclude:
+      - "**/.env*"
+      - "**/credentials*"
+
+  # Execucao de comandos shell - aprovado para dev tools
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "npm *"
+      - "npx *"
+      - "yarn *"
+      - "pnpm *"
+      - "bun *"
+      - "node *"
+      - "python *"
+      - "python3 *"
+      - "pip *"
+      - "pip3 *"
+      - "uv *"
+      - "cargo *"
+      - "go *"
+      - "make *"
+      - "cmake *"
+      - "gcc *"
+      - "g++ *"
+      - "rustc *"
+      - "javac *"
+      - "java *"
+      - "mvn *"
+      - "gradle *"
+      - "dotnet *"
+      - "swift *"
+      - "ruby *"
+      - "gem *"
+      - "bundle *"
+      - "docker *"
+      - "docker-compose *"
+      - "kubectl *"
+      - "terraform *"
+      - "cat *"
+      - "ls *"
+      - "find *"
+      - "grep *"
+      - "rg *"
+      - "head *"
+      - "tail *"
+      - "wc *"
+      - "sort *"
+      - "uniq *"
+      - "diff *"
+      - "mkdir *"
+      - "cp *"
+      - "mv *"
+      - "tree *"
+      - "which *"
+      - "echo *"
+      - "printf *"
+      - "env"
+      - "pwd"
+
+  # Git - aprovado (exceto force operations)
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "git status"
+      - "git diff *"
+      - "git log *"
+      - "git add *"
+      - "git commit *"
+      - "git branch *"
+      - "git checkout *"
+      - "git switch *"
+      - "git merge *"
+      - "git pull *"
+      - "git fetch *"
+      - "git stash *"
+      - "git rebase *"
+      - "git cherry-pick *"
+      - "git tag *"
+      - "git remote *"
+      - "git show *"
+      - "git blame *"
+
+  # Git push - aprovado (sem force)
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "git push"
+      - "git push origin *"
+      - "git push -u *"
+
+  # GitHub CLI - aprovado
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "gh pr *"
+      - "gh issue *"
+      - "gh repo *"
+      - "gh api *"
+      - "gh run *"
+      - "gh workflow *"
+
+  # Claude Code CLI - aprovado
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "claude *"
+      - "claude -p *"
+      - "claude --continue *"
+      - "claude --dangerously-skip-permissions *"
+
+  # Pesquisa - aprovado
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "curl -s *"
+      - "curl -sI *"
+      - "curl -X GET *"
+      - "curl -X POST *"
+      - "wget -q *"
+      - "http *"
+      - "httpie *"
+      - "jq *"
+      - "xq *"
+      - "yq *"
+
+  # Profiling e benchmarks (Carmack Mode) - aprovado
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "perf *"
+      - "valgrind *"
+      - "heaptrack *"
+      - "hyperfine *"
+      - "time *"
+      - "strace *"
+      - "dtrace *"
+      - "instruments *"
+      - "py-spy *"
+      - "cargo flamegraph *"
+      - "go tool pprof *"
+      - "git bisect *"
+      - "ab *"
+      - "wrk *"
+      - "siege *"
+
+  # Testes e linters - aprovado
+  - action: shell.exec
+    decision: approve
+    commands:
+      - "jest *"
+      - "vitest *"
+      - "pytest *"
+      - "mocha *"
+      - "eslint *"
+      - "prettier *"
+      - "biome *"
+      - "black *"
+      - "ruff *"
+      - "mypy *"
+      - "tsc *"
+      - "rubocop *"
+      - "clippy *"
+
+  # Bloquear operacoes destrutivas
+  - action: shell.exec
+    decision: deny
+    commands:
+      - "rm -rf /*"
+      - "rm -rf ~/*"
+      - "git push --force *"
+      - "git push -f *"
+      - "git reset --hard *"
+      - "git clean -fd *"
+      - "sudo *"
+      - "chmod 777 *"
+      - "curl * | sh"
+      - "curl * | bash"
+      - "wget * | sh"
+
+  # Regra padrao - negar tudo que nao foi explicitamente aprovado
+  - action: "*"
+    decision: prompt
+    message: "Acao nao prevista na politica. Aprovar manualmente?"

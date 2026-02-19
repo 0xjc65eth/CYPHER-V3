@@ -49,7 +49,6 @@ export function useWalletDetection() {
           }
         }
       } catch (error) {
-        console.log('⚠️ Error detecting wallets:', error);
       }
 
       setProviders(detectedProviders);

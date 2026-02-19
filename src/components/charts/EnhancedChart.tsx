@@ -189,7 +189,6 @@ export const EnhancedChart: React.FC<EnhancedChartProps> = ({
         wsRef.current = ws;
 
         ws.onopen = () => {
-          console.log('WebSocket connected for', symbol);
         };
 
         ws.onmessage = (event) => {
@@ -233,7 +232,6 @@ export const EnhancedChart: React.FC<EnhancedChartProps> = ({
         };
 
         ws.onclose = () => {
-          console.log('WebSocket disconnected');
           // Attempt to reconnect after 5 seconds
           setTimeout(() => {
             if (wsRef.current?.readyState === WebSocket.CLOSED) {

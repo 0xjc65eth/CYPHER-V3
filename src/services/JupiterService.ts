@@ -4,6 +4,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { getJupiterFeeBps, JUPITER_FEE_ACCOUNT } from '@/config/fee-config';
 
 export interface JupiterConfig {
   baseUrl?: string;
@@ -207,7 +208,7 @@ export class JupiterService {
 
   constructor(config: JupiterConfig = {}) {
     this.config = {
-      baseUrl: 'https://quote-api.jup.ag',
+      baseUrl: 'https://api.jup.ag',
       cluster: 'mainnet-beta',
       timeout: 10000,
       ...config,
@@ -350,8 +351,12 @@ export class JupiterService {
     platformFeeBps?: number;
     maxAccounts?: number;
     quote?: boolean;
+    isPremium?: boolean;
   }): Promise<JupiterRoute[]> {
-    const params = {
+    // Use CYPHER platform fee unless explicitly overridden or user is premium
+    const effectiveFeeBps = options.platformFeeBps ?? getJupiterFeeBps(options.isPremium ?? false);
+
+    const params: Record<string, unknown> = {
       inputMint: options.inputMint,
       outputMint: options.outputMint,
       amount: options.amount,
@@ -364,8 +369,13 @@ export class JupiterService {
       quote: options.quote ?? true,
       ...(options.dexes && { dexes: options.dexes.join(',') }),
       ...(options.excludeDexes && { excludeDexes: options.excludeDexes.join(',') }),
-      ...(options.platformFeeBps && { platformFeeBps: options.platformFeeBps }),
     };
+
+    // Add platform fee - Jupiter natively deducts this from output
+    // and sends it to the feeAccount specified in the swap transaction
+    if (effectiveFeeBps > 0) {
+      params.platformFeeBps = effectiveFeeBps;
+    }
 
     const response = await this.makeRequest<QuoteResponse>('/v6/quote', params, 10000);
     return response.data;
@@ -373,9 +383,15 @@ export class JupiterService {
 
   /**
    * Get swap transaction for execution
+   * Automatically includes CYPHER fee account so Jupiter sends platform fees to our wallet
    */
   async getSwapTransaction(swapRequest: SwapRequest): Promise<SwapResponse> {
-    return this.makeRequest<SwapResponse>('/v6/swap', {}, 5000, 'POST', swapRequest);
+    // Inject CYPHER fee account if not already set and the quote includes platform fees
+    const request = { ...swapRequest };
+    if (!request.feeAccount && request.quoteResponse?.platformFee) {
+      request.feeAccount = JUPITER_FEE_ACCOUNT;
+    }
+    return this.makeRequest<SwapResponse>('/v6/swap', {}, 5000, 'POST', request);
   }
 
   /**
@@ -470,6 +486,7 @@ export class JupiterService {
     amount: number;
     maxPriceImpact?: number;
     preferredDexes?: string[];
+    isPremium?: boolean;
   }): Promise<{
     route: JupiterRoute | null;
     priceImpact: number;
@@ -482,6 +499,7 @@ export class JupiterService {
       outputMint: options.outputMint,
       amount: options.amount,
       dexes: options.preferredDexes,
+      isPremium: options.isPremium,
     });
 
     if (routes.length === 0) {

@@ -91,7 +91,6 @@ export default function QuickTradePage() {
               <div className="lg:col-span-2 flex justify-center">
                 <QuickTradeInterface
                   onSwapComplete={(result) => {
-                    console.log('Swap completed:', result);
                     // Handle swap completion
                   }}
                 />

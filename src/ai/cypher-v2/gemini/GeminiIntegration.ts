@@ -52,7 +52,7 @@ export class GeminiIntegration extends EventEmitter {
     super();
     
     this.config = {
-      apiKey: cypherConfig.apiKeys?.gemini || process.env.NEXT_PUBLIC_GEMINI_API_KEY || '',
+      apiKey: cypherConfig.apiKeys?.gemini || process.env.GEMINI_API_KEY || '',
       model: 'gemini-pro',
       temperature: 0.8,
       topP: 0.8,
@@ -85,7 +85,6 @@ export class GeminiIntegration extends EventEmitter {
         throw new Error('Gemini API key not found');
       }
 
-      console.log('🤖 Inicializando Google Gemini Pro...');
       
       this.genAI = new GoogleGenerativeAI(this.config.apiKey);
       this.model = this.genAI.getGenerativeModel({ 
@@ -105,7 +104,6 @@ export class GeminiIntegration extends EventEmitter {
       this.isInitialized = true;
       this.emit('initialized');
       
-      console.log('✅ Gemini Pro integrado com sucesso!');
       
     } catch (error) {
       console.error('❌ Erro ao inicializar Gemini:', error);
@@ -195,14 +193,12 @@ Responda sempre em português brasileiro, sendo útil, educativa e focada em cri
       // Build enhanced prompt with context
       const enhancedPrompt = this.buildEnhancedPrompt(prompt, intent, context);
       
-      console.log('🤖 Enviando prompt para Gemini:', enhancedPrompt.substring(0, 100) + '...');
       
       // Generate response with Gemini
       const result = await this.chatSession.sendMessage(enhancedPrompt);
       const response = await result.response;
       const text = response.text();
       
-      console.log('✅ Resposta do Gemini recebida:', text.substring(0, 100) + '...');
       
       // Parse and enhance the response
       const enhancedResponse = await this.parseGeminiResponse(text, intent, context);

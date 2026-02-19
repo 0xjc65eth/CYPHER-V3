@@ -27,7 +27,6 @@ export default function SecureTransactionWidget() {
     isLoading
   } = useTransactionAuth({
     onSuccess: (authToken) => {
-      console.log('Transaction authorized:', authToken)
       // Here you would execute the actual transaction
     }
   })

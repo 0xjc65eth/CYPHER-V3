@@ -11,8 +11,8 @@ import { NetworkType } from '../types'
 export const SANDSHREW_URL: string = 'https://mainnet.sandshrew.io/v1/'
 
 export const SANDSHREW_LASEREYES_KEY: string = "lasereyes"
-export const MAESTRO_API_KEY_MAINNET: string = "VIOi9IApvUkDFWBQ7I9oHsfUMWOIfDeO"
-export const MAESTRO_API_KEY_TESTNET4: string = "bVG4GSXShooC9f67hq5YQWAJfZyRPrEN"
+export const MAESTRO_API_KEY_MAINNET: string = process.env.NEXT_PUBLIC_MAESTRO_API_KEY_MAINNET || ""
+export const MAESTRO_API_KEY_TESTNET4: string = process.env.NEXT_PUBLIC_MAESTRO_API_KEY_TESTNET4 || ""
 
 export const MAESTRO_API_URL_MAINNET: string = "https://xbt-mainnet.gomaestro-api.org/v0"
 export const MAESTRO_API_URL_TESTNET4: string = "https://xbt-testnet.gomaestro-api.org/v0"

@@ -16,7 +16,6 @@ async function fetchWithTimeout(url: string, timeoutMs: number = FETCH_TIMEOUT):
 
 export async function GET(request: Request) {
   try {
-    console.log('🔄 API: Fetching real Runes data directly from Hiro API...')
 
     // Fetch runes list directly from Hiro API
     const response = await fetchWithTimeout(`${HIRO_API_BASE}/etchings?limit=50&offset=0`)
@@ -69,7 +68,6 @@ export async function GET(request: Request) {
       top_losers: [] // Price data not available
     }
 
-    console.log(`✅ API: Returning ${activeRunes.length} runes with real Hiro data`)
 
     return NextResponse.json({
       success: true,

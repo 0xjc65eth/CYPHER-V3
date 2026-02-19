@@ -3,7 +3,6 @@ import type { MempoolState } from '@/types/store'
 
 export async function GET() {
   try {
-    console.log('Fetching mempool data from mempool.space API...')
 
     // Fetch all data in parallel for better performance
     const [mempoolStatsRes, feeRatesRes, blocksHeightRes, blocksRes, recentTxsRes] = await Promise.all([
@@ -26,10 +25,6 @@ export async function GET() {
     const latestBlock = await blocksRes.json()
     const recentTxs = await recentTxsRes.json()
 
-    console.log('Mempool stats:', mempoolStats)
-    console.log('Fee rates:', feeRates)
-    console.log('Current height:', currentHeight)
-    console.log('Latest block:', latestBlock)
 
     // Format the data according to our application's state structure
     const mempoolData: MempoolState = {
@@ -54,7 +49,6 @@ export async function GET() {
       ]
     }
 
-    console.log('Formatted mempool data:', mempoolData)
     return NextResponse.json(mempoolData)
   } catch (error) {
     console.error('Error fetching mempool data:', error)
@@ -82,7 +76,6 @@ export async function GET() {
       ]
     }
 
-    console.log('Using fallback mempool data due to error')
     return NextResponse.json(fallbackData)
   }
 }

@@ -13,7 +13,6 @@ export async function POST(request: Request) {
     }
 
     // Calculate investor profile based on answers
-    console.log('Analyzing questionnaire answers:', answers)
 
     // Calculate average score from all answers
     const totalScore = answers.reduce((sum, answer) => sum + answer.value, 0)
@@ -71,7 +70,6 @@ export async function POST(request: Request) {
     const analysisTimestamp = new Date().toISOString()
 
     // In a real implementation, this would save the profile to a database
-    console.log(`Generated ${profileType} investor profile with score ${averageScore.toFixed(2)}`)
 
     return NextResponse.json({
       success: true,

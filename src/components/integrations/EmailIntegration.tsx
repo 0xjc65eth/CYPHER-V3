@@ -20,7 +20,6 @@ export const EmailIntegration: React.FC<{ className?: string }> = ({ className =
   const connectEmail = () => {
     if (email) {
       setIsConnected(true);
-      console.log('Email configured:', email);
     }
   };
 

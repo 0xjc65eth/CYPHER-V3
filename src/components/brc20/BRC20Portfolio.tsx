@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { brc20Service, type BRC20Portfolio, type BRC20Balance } from '@/services/BRC20Service';
-import { useLaserEyes } from '@omnisat/lasereyes';
+import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider';
 import { 
   Wallet, 
   TrendingUp, 
@@ -53,11 +53,9 @@ export function BRC20Portfolio({ address: propAddress }: BRC20PortfolioProps) {
     try {
       setLoading(true);
       setError(null);
-      console.log('Loading BRC-20 portfolio for:', addr);
       
       const portfolioData = await brc20Service.getBRC20Portfolio(addr);
       setPortfolio(portfolioData);
-      console.log('Portfolio loaded:', portfolioData);
     } catch (error) {
       console.error('Failed to load portfolio:', error);
       setError('Failed to load portfolio data');

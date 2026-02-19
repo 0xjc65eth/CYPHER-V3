@@ -102,42 +102,7 @@ type TabView = 'trending' | 'collections' | 'inscriptions' | 'activity';
 type SortBy = 'recent' | 'price_asc' | 'price_desc' | 'rarity' | 'number';
 type TimeRange = '1h' | '24h' | '7d' | '30d' | 'all';
 
-const MOCK_COLLECTIONS: Collection[] = [
-  {
-    id: '1',
-    name: 'Bitcoin Punks',
-    slug: 'bitcoin-punks',
-    description: 'The first 10k collection on Bitcoin',
-    imageUrl: '/collections/bitcoin-punks.jpg',
-    verified: true,
-    supply: 10000,
-    holders: 3456,
-    floorPrice: 0.15,
-    volume24h: 45.6,
-    volumeTotal: 1234.5,
-    change24h: 12.5,
-    listings: 234,
-    royaltyFee: 5,
-    createdAt: new Date('2023-01-15')
-  },
-  {
-    id: '2',
-    name: 'Ordinal Maxi Biz',
-    slug: 'omb',
-    description: 'Bitcoin Maxis on Ordinals',
-    imageUrl: '/collections/omb.jpg',
-    verified: true,
-    supply: 5000,
-    holders: 2100,
-    floorPrice: 0.08,
-    volume24h: 23.4,
-    volumeTotal: 567.8,
-    change24h: -5.3,
-    listings: 156,
-    royaltyFee: 4.5,
-    createdAt: new Date('2023-02-20')
-  }
-];
+// No mock data - all data comes from real API endpoints
 
 export function OrdinalsSystemV2() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -150,17 +115,17 @@ export function OrdinalsSystemV2() {
   const [selectedOrdinal, setSelectedOrdinal] = useState<Ordinal | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   
-  const [collections, setCollections] = useState<Collection[]>(MOCK_COLLECTIONS);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [ordinals, setOrdinals] = useState<Ordinal[]>([]);
   const [marketStats, setMarketStats] = useState<MarketStats>({
-    totalVolume: 5678.9,
-    volume24h: 234.5,
-    totalSales: 123456,
-    sales24h: 1234,
-    avgPrice: 0.095,
-    floorPrice: 0.045,
-    uniqueBuyers: 8901,
-    uniqueSellers: 6789
+    totalVolume: 0,
+    volume24h: 0,
+    totalSales: 0,
+    sales24h: 0,
+    avgPrice: 0,
+    floorPrice: 0,
+    uniqueBuyers: 0,
+    uniqueSellers: 0
   });
 
   // Filters
@@ -181,7 +146,7 @@ export function OrdinalsSystemV2() {
     setIsLoading(true);
     try {
       // Load ordinals data from API
-      const response = await fetch('/api/ordinals/list?' + new URLSearchParams({
+      const response = await fetch('/api/ordinals/list/?' + new URLSearchParams({
         sort: sortBy,
         timeRange,
         ...filters
@@ -247,7 +212,7 @@ export function OrdinalsSystemV2() {
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
     
     try {
-      const response = await fetch(`/api/ordinals/address/${address}?limit=20`, {
+      const response = await fetch(`/api/ordinals/address/${address}/?limit=20`, {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json'

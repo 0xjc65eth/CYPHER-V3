@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const ORDISCAN_API_KEY = 'e227a764-b31b-43cf-a60c-be5daa50cd2c';
+const ORDISCAN_API_KEY = process.env.ORDISCAN_API_KEY || '';
 
 // Real rare sat category definitions based on ordinal theory
 const RARE_SAT_CATEGORIES = [

@@ -25,172 +25,282 @@ interface ArbitrageOpportunity {
   sellLink: string;
 }
 
-const MARKETPLACE_FEES = {
+const MARKETPLACE_FEES: Record<string, number> = {
   'Magic Eden': 0.025,
-  'OrdSwap': 0.021,
-  'Gamma': 0.015,
   'Unisat': 0.02,
-  'OKX': 0.01,
-  'Ordinals Wallet': 0.025
 };
+
+// Estimated average network fee in BTC for a typical runes transaction
+const ESTIMATED_NETWORK_FEE = 0.00005;
+
+interface MagicEdenRune {
+  rune: string;
+  spacedRune?: string;
+  symbol?: string;
+  floorUnitPrice?: { formatted?: string; value?: number };
+  volume?: number;
+  volumeChange?: number;
+  sales?: number;
+  holders?: number;
+  listedCount?: number;
+  marketCap?: number;
+}
+
+interface UniSatRuneInfo {
+  runeid: string;
+  rune: string;
+  spacedRune: string;
+  number: number;
+  holders: number;
+  transactions: number;
+  supply: string;
+  divisibility: number;
+  symbol: string;
+}
+
+interface UniSatAuctionItem {
+  auctionId: string;
+  runeid: string;
+  rune: string;
+  spacedRune: string;
+  unitPrice: string;
+  totalPrice: string;
+  amount: string;
+  status: string;
+}
 
 export function useArbitrageOpportunities() {
   const [opportunities, setOpportunities] = useState<ArbitrageOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const generateOpportunities = useCallback(() => {
-    const marketplaces = Object.keys(MARKETPLACE_FEES);
-    const opportunities: ArbitrageOpportunity[] = [];
+  const fetchOpportunities = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-    // Generate Ordinals opportunities
-    const ordinalCollections = [
-      { name: 'Bitcoin Punks', basePrice: 0.45, volume: 12.5 },
-      { name: 'Ordinal Monkeys', basePrice: 0.38, volume: 8.7 },
-      { name: 'Bitcoin Wizards', basePrice: 0.52, volume: 15.4 },
-      { name: 'Pixel Pepes', basePrice: 0.29, volume: 6.2 },
-      { name: 'Bitcoin Frogs', basePrice: 0.67, volume: 22.1 }
-    ];
+    try {
+      // Fetch Magic Eden rune collection stats (floor prices)
+      const meRes = await fetch(
+        '/api/magiceden/runes/collection-stats/?limit=20&sortBy=volume&sortDirection=desc&window=1d'
+      );
 
-    ordinalCollections.forEach((collection) => {
-      // Generate 2-3 opportunities per collection
-      for (let i = 0; i < Math.floor(Math.random() * 2) + 1; i++) {
-        const buyMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        let sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        while (sellMarket === buyMarket) {
-          sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        }
+      if (!meRes.ok) {
+        throw new Error(`Magic Eden API error: ${meRes.status}`);
+      }
 
-        const priceVariation = 0.05 + Math.random() * 0.15; // 5-20% variation
-        const buyPrice = collection.basePrice * (1 - priceVariation / 2);
-        const sellPrice = collection.basePrice * (1 + priceVariation / 2);
+      const meData = await meRes.json();
+      const meRunes: MagicEdenRune[] = meData.runes || [];
 
-        const buyFee = MARKETPLACE_FEES[buyMarket as keyof typeof MARKETPLACE_FEES];
-        const sellFee = MARKETPLACE_FEES[sellMarket as keyof typeof MARKETPLACE_FEES];
-        const networkFee = 0.00005 + Math.random() * 0.00005;
+      if (meRunes.length === 0) {
+        setOpportunities([]);
+        setLoading(false);
+        return;
+      }
 
-        const totalCost = buyPrice * (1 + buyFee) + networkFee;
-        const totalRevenue = sellPrice * (1 - sellFee);
-        const profitAmount = totalRevenue - totalCost;
-        const profitPercent = (profitAmount / totalCost) * 100;
+      // Build a map of Magic Eden rune names to their floor prices (in BTC)
+      const meFloorPrices = new Map<
+        string,
+        { price: number; volume: number; rune: string; spacedRune: string }
+      >();
 
-        if (profitPercent > 3) { // Only show profitable opportunities
-          opportunities.push({
-            id: `ord-${collection.name}-${i}`,
-            type: 'ordinals',
-            asset: `${collection.name} #${Math.floor(Math.random() * 1000)}`,
-            collection: collection.name,
-            buyMarketplace: buyMarket,
-            sellMarketplace: sellMarket,
-            buyPrice,
-            sellPrice,
-            fees: { buyFee, sellFee, networkFee },
-            profitAmount,
-            profitPercent,
-            volume24h: collection.volume * (0.8 + Math.random() * 0.4),
-            liquidity: profitPercent > 10 ? 'High' : profitPercent > 7 ? 'Medium' : 'Low',
-            confidence: 0.7 + Math.random() * 0.3,
-            riskLevel: profitPercent > 15 ? 'high' : profitPercent > 10 ? 'medium' : 'low',
-            timestamp: new Date(),
-            buyLink: '#',
-            sellLink: '#'
+      for (const r of meRunes) {
+        const floorSats = r.floorUnitPrice?.value;
+        if (floorSats && floorSats > 0) {
+          // Magic Eden floor is in sats/unit, normalize the rune name for matching
+          const normalizedName = (r.rune || '').toUpperCase().replace(/[•·]/g, '');
+          meFloorPrices.set(normalizedName, {
+            price: floorSats / 1e8, // Convert sats to BTC
+            volume: r.volume || 0,
+            rune: r.rune || '',
+            spacedRune: r.spacedRune || r.rune || '',
           });
         }
       }
-    });
 
-    // Generate Runes opportunities
-    const runesTokens = [
-      { name: 'SATOSHI•NAKAMOTO', basePrice: 0.0089, volume: 0.234 },
-      { name: 'BITCOIN•WIZARDS', basePrice: 0.0156, volume: 0.345 },
-      { name: 'RARE•SATS', basePrice: 0.0678, volume: 0.567 },
-      { name: 'DOG•GO•TO•THE•MOON', basePrice: 0.00045, volume: 0.456 }
-    ];
-
-    runesTokens.forEach((token) => {
-      const buyMarket = 'Unisat';
-      const sellMarket = Math.random() > 0.5 ? 'OKX' : 'Magic Eden';
-
-      const priceVariation = 0.08 + Math.random() * 0.12;
-      const buyPrice = token.basePrice * (1 - priceVariation / 2);
-      const sellPrice = token.basePrice * (1 + priceVariation / 2);
-
-      const buyFee = MARKETPLACE_FEES[buyMarket as keyof typeof MARKETPLACE_FEES];
-      const sellFee = MARKETPLACE_FEES[sellMarket as keyof typeof MARKETPLACE_FEES];
-      const networkFee = 0.00003;
-
-      const totalCost = buyPrice * (1 + buyFee) + networkFee;
-      const totalRevenue = sellPrice * (1 - sellFee);
-      const profitAmount = totalRevenue - totalCost;
-      const profitPercent = (profitAmount / totalCost) * 100;
-
-      if (profitPercent > 5) {
-        opportunities.push({
-          id: `rune-${token.name}`,
-          type: 'runes',
-          asset: token.name,
-          buyMarketplace: buyMarket,
-          sellMarketplace: sellMarket,
-          buyPrice,
-          sellPrice,
-          fees: { buyFee, sellFee, networkFee },
-          profitAmount,
-          profitPercent,
-          volume24h: token.volume,
-          liquidity: 'Medium',
-          confidence: 0.6 + Math.random() * 0.3,
-          riskLevel: profitPercent > 12 ? 'high' : 'medium',
-          timestamp: new Date(),
-          buyLink: '#',
-          sellLink: '#'
-        });
+      // Fetch UniSat rune list for matching
+      let unisatRunes: UniSatRuneInfo[] = [];
+      try {
+        const usRes = await fetch('/api/unisat/runes/list/?limit=50');
+        if (usRes.ok) {
+          const usData = await usRes.json();
+          unisatRunes = usData.list || usData.data?.list || [];
+        }
+      } catch {
+        // UniSat rune list fetch failed - continue without it
       }
-    });
 
-    // Generate Rare Sats opportunity
-    if (Math.random() > 0.7) {
-      opportunities.push({
-        id: 'rare-sat-1',
-        type: 'rare-sats',
-        asset: 'Pizza Sat (Block 57043)',
-        buyMarketplace: 'OrdSwap',
-        sellMarketplace: 'Magic Eden',
-        buyPrice: 2.5,
-        sellPrice: 2.95,
-        fees: {
-          buyFee: MARKETPLACE_FEES['OrdSwap'],
-          sellFee: MARKETPLACE_FEES['Magic Eden'],
-          networkFee: 0.0001
-        },
-        profitAmount: 0.385,
-        profitPercent: 15.4,
-        volume24h: 5.2,
-        liquidity: 'Low',
-        confidence: 0.92,
-        riskLevel: 'high',
-        timestamp: new Date(),
-        buyLink: '#',
-        sellLink: '#'
-      });
+      // Build a map of UniSat rune IDs for matching
+      const unisatRuneMap = new Map<string, UniSatRuneInfo>();
+      for (const r of unisatRunes) {
+        const normalizedName = (r.rune || '').toUpperCase().replace(/[•·]/g, '');
+        unisatRuneMap.set(normalizedName, r);
+      }
+
+      // For runes that exist on both platforms, fetch UniSat market listings to get floor prices
+      const matchedRunes = Array.from(meFloorPrices.keys()).filter((name) =>
+        unisatRuneMap.has(name)
+      );
+
+      const results: ArbitrageOpportunity[] = [];
+
+      // Fetch UniSat auction prices for matched runes (batch in parallel, max 5 at a time)
+      const batchSize = 5;
+      for (let i = 0; i < matchedRunes.length; i += batchSize) {
+        const batch = matchedRunes.slice(i, i + batchSize);
+
+        const auctionPromises = batch.map(async (normalizedName) => {
+          const uniRune = unisatRuneMap.get(normalizedName);
+          const meInfo = meFloorPrices.get(normalizedName);
+          if (!uniRune || !meInfo) return null;
+
+          try {
+            const auctionRes = await fetch(`/api/unisat/market/runes/list/?runeid=${encodeURIComponent(uniRune.runeid)}&sort=priceAsc&limit=1&status=listed`
+            );
+
+            if (!auctionRes.ok) return null;
+
+            const auctionData = await auctionRes.json();
+            const listings: UniSatAuctionItem[] =
+              auctionData.list || auctionData.data?.list || [];
+
+            if (listings.length === 0) return null;
+
+            const cheapestListing = listings[0];
+            // UniSat unitPrice is in sats per unit
+            const unisatUnitPriceSats = parseFloat(cheapestListing.unitPrice);
+            if (isNaN(unisatUnitPriceSats) || unisatUnitPriceSats <= 0) return null;
+
+            const unisatPriceBtc = unisatUnitPriceSats / 1e8;
+            const mePriceBtc = meInfo.price;
+
+            // Determine which marketplace is cheaper
+            let buyMarketplace: string;
+            let sellMarketplace: string;
+            let buyPrice: number;
+            let sellPrice: number;
+
+            if (unisatPriceBtc < mePriceBtc) {
+              buyMarketplace = 'Unisat';
+              sellMarketplace = 'Magic Eden';
+              buyPrice = unisatPriceBtc;
+              sellPrice = mePriceBtc;
+            } else {
+              buyMarketplace = 'Magic Eden';
+              sellMarketplace = 'Unisat';
+              buyPrice = mePriceBtc;
+              sellPrice = unisatPriceBtc;
+            }
+
+            const buyFee = MARKETPLACE_FEES[buyMarketplace];
+            const sellFee = MARKETPLACE_FEES[sellMarketplace];
+            const networkFee = ESTIMATED_NETWORK_FEE;
+
+            const totalCost = buyPrice * (1 + buyFee) + networkFee;
+            const totalRevenue = sellPrice * (1 - sellFee);
+            const profitAmount = totalRevenue - totalCost;
+            const profitPercent = totalCost > 0 ? (profitAmount / totalCost) * 100 : 0;
+
+            // Determine liquidity based on listed count or volume
+            const volume24h = meInfo.volume;
+            let liquidity: string;
+            if (volume24h > 1) {
+              liquidity = 'High';
+            } else if (volume24h > 0.1) {
+              liquidity = 'Medium';
+            } else {
+              liquidity = 'Low';
+            }
+
+            // Confidence based on volume and spread magnitude
+            let confidence: number;
+            if (volume24h > 0.5 && Math.abs(profitPercent) < 20) {
+              confidence = 0.85;
+            } else if (volume24h > 0.1) {
+              confidence = 0.7;
+            } else {
+              confidence = 0.5;
+            }
+
+            // Risk level based on profit percent (very high spreads may indicate stale data)
+            let riskLevel: 'low' | 'medium' | 'high';
+            if (profitPercent > 15) {
+              riskLevel = 'high'; // May be stale listing
+            } else if (profitPercent > 5) {
+              riskLevel = 'medium';
+            } else {
+              riskLevel = 'low';
+            }
+
+            const spacedRune = meInfo.spacedRune || uniRune.spacedRune;
+
+            return {
+              id: `arb-${normalizedName}`,
+              type: 'runes' as const,
+              asset: spacedRune,
+              collection: spacedRune,
+              buyMarketplace,
+              sellMarketplace,
+              buyPrice,
+              sellPrice,
+              fees: { buyFee, sellFee, networkFee },
+              profitAmount,
+              profitPercent,
+              volume24h,
+              liquidity,
+              confidence,
+              riskLevel,
+              timestamp: new Date(),
+              buyLink:
+                buyMarketplace === 'Unisat'
+                  ? `https://unisat.io/runes/market?tick=${encodeURIComponent(uniRune.rune)}`
+                  : `https://magiceden.io/runes/${encodeURIComponent(meInfo.rune)}`,
+              sellLink:
+                sellMarketplace === 'Unisat'
+                  ? `https://unisat.io/runes/market?tick=${encodeURIComponent(uniRune.rune)}`
+                  : `https://magiceden.io/runes/${encodeURIComponent(meInfo.rune)}`,
+            };
+          } catch {
+            return null;
+          }
+        });
+
+        const batchResults = await Promise.all(auctionPromises);
+        for (const result of batchResults) {
+          if (result) {
+            results.push(result);
+          }
+        }
+      }
+
+      // Sort by profit percent descending, show all real spreads
+      results.sort((a, b) => b.profitPercent - a.profitPercent);
+      setOpportunities(results);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[useArbitrageOpportunities] Error:', message);
+      setError(message);
+      setOpportunities([]);
+    } finally {
+      setLoading(false);
     }
-
-    return opportunities.sort((a, b) => b.profitPercent - a.profitPercent);
   }, []);
 
   const refresh = useCallback(() => {
-    setLoading(true);
-    setTimeout(() => {
-      setOpportunities(generateOpportunities());
-      setLoading(false);
-    }, 1500);
-  }, [generateOpportunities]);
+    fetchOpportunities();
+  }, [fetchOpportunities]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    fetchOpportunities();
+
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchOpportunities, 60000);
+    return () => clearInterval(interval);
+  }, [fetchOpportunities]);
 
   return {
     opportunities,
     loading,
-    refresh
+    error,
+    refresh,
   };
 }

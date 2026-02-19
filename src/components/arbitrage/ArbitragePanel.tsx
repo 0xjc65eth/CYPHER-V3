@@ -55,8 +55,7 @@ export function ArbitragePanel({ className = '' }: ArbitragePanelProps) {
       if (result.success) {
         // Remove executed opportunity from list
         setOpportunities(prev => prev.filter(opp => opp.id !== opportunityId));
-        // Show success message
-        console.log('Arbitrage executed successfully:', result.message);
+        // Opportunity removed from list on success
       } else {
         console.error('Arbitrage execution failed:', result.message);
       }

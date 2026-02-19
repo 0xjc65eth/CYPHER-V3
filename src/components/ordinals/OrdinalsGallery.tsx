@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ExternalLink } from 'lucide-react';
 import { Inscription } from '@/stores/trading-store';
 
 interface OrdinalsGalleryProps {
@@ -68,8 +69,19 @@ export const OrdinalsGallery: React.FC<OrdinalsGalleryProps> = ({
             
             {/* Info overlay */}
             <div className="p-2 border-t border-bloomberg-orange/20">
-              <div className="text-xs font-terminal text-bloomberg-orange truncate">
-                #{inscription.number}
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-terminal text-bloomberg-orange truncate">
+                  #{inscription.number}
+                </div>
+                <a
+                  href={`https://ordinals.com/inscription/${inscription.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-blue-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
               {inscription.collection && (
                 <div className="text-xs text-bloomberg-orange/60 truncate">
@@ -112,9 +124,15 @@ export const OrdinalsGallery: React.FC<OrdinalsGalleryProps> = ({
           {/* Details */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <div className="text-sm font-terminal text-bloomberg-orange">
-                Inscription #{inscription.number}
-              </div>
+              <a
+                href={`https://ordinals.com/inscription/${inscription.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-terminal text-bloomberg-orange hover:text-blue-400 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Inscription #{inscription.number} <ExternalLink className="h-3 w-3 inline ml-0.5" />
+              </a>
               {inscription.rarity && (
                 <span className={`text-xs px-2 py-0.5 rounded border ${getRarityColor(inscription.rarity)}`}>
                   {inscription.rarity}
@@ -128,7 +146,7 @@ export const OrdinalsGallery: React.FC<OrdinalsGalleryProps> = ({
               {new Date(inscription.timestamp).toLocaleString()}
             </div>
           </div>
-          
+
           {/* Price */}
           <div className="text-right">
             {inscription.price ? (
@@ -141,9 +159,15 @@ export const OrdinalsGallery: React.FC<OrdinalsGalleryProps> = ({
               </div>
             )}
             {inscription.owner && (
-              <div className="text-xs text-bloomberg-orange/40 truncate max-w-24">
-                {inscription.owner.slice(0, 8)}...
-              </div>
+              <a
+                href={`https://mempool.space/address/${inscription.owner}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-bloomberg-orange/40 truncate max-w-24 block hover:text-blue-400 transition-colors"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {inscription.owner.slice(0, 8)}... <ExternalLink className="h-3 w-3 inline" />
+              </a>
             )}
           </div>
         </div>

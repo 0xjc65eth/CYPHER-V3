@@ -91,12 +91,12 @@ class HiroAPI {
     const cached = this.cache.get(key);
     if (cached && Date.now() - cached.timestamp < cached.ttl) {
       this.metrics.cacheHits++;
-      devLogger.log('HiroAPI', `Cache hit for: ${key}`);
+      devLogger.debug(`[HiroAPI] Cache hit for: ${key}`);
       return cached.data;
     }
     if (cached) {
       this.cache.delete(key);
-      devLogger.log('HiroAPI', `Cache expired for: ${key}`);
+      devLogger.debug(`[HiroAPI] Cache expired for: ${key}`);
     }
     this.metrics.cacheMisses++;
     return null;
@@ -517,8 +517,8 @@ class HiroAPI {
             description: `Collection of ${collectionKey} inscriptions`,
             content_type: collectionKey,
             total_items: 0,
-            floor_price: Math.random() * 1000000, // Mock floor price
-            volume_24h: Math.random() * 10000000, // Mock volume
+            floor_price: 0,
+            volume_24h: 0,
             created_at: inscription.timestamp || Date.now(),
             sample_inscription: inscription
           };
@@ -564,8 +564,8 @@ class HiroAPI {
         total_runes: runesData.total || runesData.results.length,
         total_holders: 0,
         total_transactions: 0,
-        market_cap: Math.random() * 1000000000, // Mock market cap
-        volume_24h: Math.random() * 50000000, // Mock 24h volume
+        market_cap: 0,
+        volume_24h: 0,
         latest_runes: runesData.results.slice(0, 5),
         success: true
       });
@@ -584,16 +584,16 @@ class HiroAPI {
       const latestBlock = await this.makeRequest('/extended/v1/block/latest');
       
       const stats = {
-        mempool_size: Math.floor(Math.random() * 50000) + 1000, // Mock mempool size
-        mempool_bytes: Math.floor(Math.random() * 100000000) + 10000000, // Mock bytes
-        usage_percent: Math.random() * 100,
-        total_fee: Math.floor(Math.random() * 10000000) + 100000, // Mock total fees
+        mempool_size: 0,
+        mempool_bytes: 0,
+        usage_percent: 0,
+        total_fee: 0,
         fee_histogram: [
-          { fee_rate: 1, tx_count: Math.floor(Math.random() * 1000) },
-          { fee_rate: 5, tx_count: Math.floor(Math.random() * 800) },
-          { fee_rate: 10, tx_count: Math.floor(Math.random() * 600) },
-          { fee_rate: 20, tx_count: Math.floor(Math.random() * 400) },
-          { fee_rate: 50, tx_count: Math.floor(Math.random() * 200) }
+          { fee_rate: 1, tx_count: 0 },
+          { fee_rate: 5, tx_count: 0 },
+          { fee_rate: 10, tx_count: 0 },
+          { fee_rate: 20, tx_count: 0 },
+          { fee_rate: 50, tx_count: 0 }
         ],
         latest_block: latestBlock || null,
         timestamp: Date.now(),
@@ -615,22 +615,22 @@ class HiroAPI {
       // Transform to standard format
       const estimates = {
         slow: {
-          fee_rate: Math.floor(Math.random() * 10) + 1, // 1-10 sat/vB
+          fee_rate: feeData?.low || 5,
           estimated_time: '60+ minutes',
           confidence: 95
         },
         standard: {
-          fee_rate: Math.floor(Math.random() * 20) + 10, // 10-30 sat/vB
+          fee_rate: feeData?.medium || 20,
           estimated_time: '10-30 minutes',
           confidence: 90
         },
         fast: {
-          fee_rate: Math.floor(Math.random() * 30) + 30, // 30-60 sat/vB
+          fee_rate: feeData?.high || 40,
           estimated_time: '1-10 minutes',
           confidence: 80
         },
         fastest: {
-          fee_rate: Math.floor(Math.random() * 50) + 60, // 60-110 sat/vB
+          fee_rate: feeData?.priority || 80,
           estimated_time: 'Next block',
           confidence: 70
         },
@@ -801,11 +801,11 @@ class HiroAPI {
           name: this.generateCollectionName(collectionKey),
           description: `Collection of inscriptions with pattern: ${collectionKey}`,
           supply: 0,
-          floor_price: Math.random() * 0.5 + 0.01,
-          volume_24h: Math.random() * 100000,
-          volume_change_24h: (Math.random() - 0.5) * 50,
+          floor_price: 0,
+          volume_24h: 0,
+          volume_change_24h: 0,
           unique_holders: 0,
-          sales_24h: Math.floor(Math.random() * 100),
+          sales_24h: 0,
           image: null,
           verified: false,
           category: this.categorizeCollection(inscription),
@@ -954,9 +954,9 @@ class HiroAPI {
       // Simulate mempool stats based on available data
       const currentTime = Date.now();
       const baseStats = {
-        count: Math.floor(Math.random() * 50000) + 10000, // Random but realistic
-        vsize: Math.floor(Math.random() * 200000000) + 50000000, // Random vsize
-        total_fee: Math.floor(Math.random() * 10000000) + 1000000, // Random fees
+        count: 0,
+        vsize: 0,
+        total_fee: 0,
         fee_histogram: this.generateFeeHistogram(),
         size_distribution: this.generateSizeDistribution()
       };
@@ -1006,25 +1006,15 @@ class HiroAPI {
 
   private generateFeeHistogram(): [number, number][] {
     return [
-      [0, Math.floor(Math.random() * 10000) + 2000],
-      [1, Math.floor(Math.random() * 15000) + 5000],
-      [2, Math.floor(Math.random() * 12000) + 4000],
-      [5, Math.floor(Math.random() * 8000) + 2000],
-      [10, Math.floor(Math.random() * 5000) + 1000],
-      [20, Math.floor(Math.random() * 3000) + 500],
-      [50, Math.floor(Math.random() * 1000) + 200],
-      [100, Math.floor(Math.random() * 500) + 100]
+      [0, 0], [1, 0], [2, 0], [5, 0],
+      [10, 0], [20, 0], [50, 0], [100, 0]
     ];
   }
 
   private generateSizeDistribution(): [string, number][] {
     return [
-      ['0-500', Math.floor(Math.random() * 8000) + 3000],
-      ['500-1000', Math.floor(Math.random() * 10000) + 5000],
-      ['1000-2000', Math.floor(Math.random() * 8000) + 4000],
-      ['2000-5000', Math.floor(Math.random() * 5000) + 2000],
-      ['5000-10000', Math.floor(Math.random() * 3000) + 1000],
-      ['10000+', Math.floor(Math.random() * 2000) + 500]
+      ['0-500', 0], ['500-1000', 0], ['1000-2000', 0],
+      ['2000-5000', 0], ['5000-10000', 0], ['10000+', 0]
     ];
   }
 
@@ -1038,9 +1028,9 @@ class HiroAPI {
       if (feeData) {
         // Transform Hiro fee data to standard format
         const result = {
-          fastestFee: feeData.high || Math.floor(Math.random() * 200) + 100,
-          halfHourFee: feeData.medium || Math.floor(Math.random() * 150) + 50,
-          hourFee: feeData.low || Math.floor(Math.random() * 100) + 20,
+          fastestFee: feeData.high || 100,
+          halfHourFee: feeData.medium || 50,
+          hourFee: feeData.low || 20,
           economyFee: Math.floor((feeData.low || 20) * 0.7),
           minimumFee: 1,
           // Additional priority levels
@@ -1349,13 +1339,13 @@ export function processBRC20Data(rawData: any[]): any[] {
     balance: token.balance || token.overall_balance || '0',
     totalBalance: token.overall_balance || token.balance || '0',
     transferrable: token.transferable_balance || token.available_balance || '0',
-    value: Math.random() * 100, // Mock value - would come from market data
+    value: 0,
     deployBlock: token.deploy_block_height || 840000,
     totalSupply: token.max_supply || '21000000',
-    holders: Math.floor(Math.random() * 10000) + 100,
-    transactions: token.tx_count || Math.floor(Math.random() * 50000),
+    holders: 0,
+    transactions: token.tx_count || 0,
     deployedAt: token.deploy_timestamp || new Date().toISOString(),
-    progress: token.mint_progress || Math.random() * 100
+    progress: token.mint_progress || 0
   }));
 }
 

@@ -156,13 +156,13 @@ export default function WalletPage() {
             <BRC20Transfer 
               ticker="ORDI" 
               balance={1000}
-              onSuccess={() => console.log('Transfer successful')}
+              onSuccess={() => {}}
             />
           )}
           {activeTab === 'psbt' && (
             <PSBTBuilder 
               runeName="UNCOMMON•GOODS"
-              onSuccess={(txid) => console.log('PSBT broadcast:', txid)}
+              onSuccess={(_txid) => {}}
             />
           )}
         </div>

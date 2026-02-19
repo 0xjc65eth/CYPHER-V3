@@ -162,12 +162,10 @@ export class OrdinalsDataAggregator extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.warn('Data aggregator is already running');
       return;
     }
 
     this.isRunning = true;
-    console.log('Starting Ordinals Data Aggregator...');
 
     // Start periodic updates
     this.startPeriodicUpdates();
@@ -181,7 +179,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
     await this.performInitialDataLoad();
 
     this.emit('started');
-    console.log('Ordinals Data Aggregator started successfully');
   }
 
   /**
@@ -193,7 +190,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
     }
 
     this.isRunning = false;
-    console.log('Stopping Ordinals Data Aggregator...');
 
     // Clear all intervals
     this.updateIntervals.forEach(interval => clearInterval(interval));
@@ -206,7 +202,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
     this.subscriptions.clear();
 
     this.emit('stopped');
-    console.log('Ordinals Data Aggregator stopped');
   }
 
   /**
@@ -338,7 +333,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
       let collectionsToCheck = collections || this.config.collectionsToTrack.slice(0, 20);
 
       if (collectionsToCheck.length === 0) {
-        console.log('No collections to track, using default popular collections...');
         collectionsToCheck = DEFAULT_COLLECTIONS;
 
         // Also try to fetch top collections from API to supplement defaults
@@ -347,9 +341,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
           const topCollectionIds = topCollections.map(c => c.id || c.slug).filter(Boolean);
           // Merge defaults with API results, avoiding duplicates
           collectionsToCheck = [...new Set([...collectionsToCheck, ...topCollectionIds])];
-          console.log(`Auto-populated ${collectionsToCheck.length} collections for arbitrage scanning`);
         } catch (error) {
-          console.warn('Failed to fetch top collections, using defaults only:', error);
         }
       }
 
@@ -360,7 +352,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
           const collectionData = await this.getAggregatedCollection(collectionId);
 
           if (!collectionData) {
-            console.warn(`⚠️ ${collectionId}: No collection data available`);
             continue;
           }
 
@@ -373,25 +364,21 @@ export class OrdinalsDataAggregator extends EventEmitter {
           // ENHANCEMENT 1: Stale price detection - reject if timestamp > 60s old
           const priceAge = (now - collectionData.lastUpdated) / 1000; // in seconds
           if (priceAge > DEFAULT_CONFIG.MAX_PRICE_AGE_SECONDS) {
-            console.warn(`⚠️ ${collectionId}: Stale price data (${priceAge}s old) - rejecting`);
             continue;
           }
 
           // Validate required fields exist (fees, netProfit, etc.)
           if (!arb.netProfit || !arb.netProfitPercentage || !arb.fees) {
-            console.warn(`⚠️ ${collectionId}: Missing required arbitrage fields`);
             continue;
           }
 
           // ENHANCEMENT 2: Use fee-adjusted profit (netProfitPercentage) for filtering
           if (arb.netProfitPercentage < minProfitPercentage) {
-            console.log(`❌ ${collectionId}: Net profit ${arb.netProfitPercentage.toFixed(2)}% < minimum ${minProfitPercentage}%`);
             continue;
           }
 
           // Double-check net profit is actually positive
           if (arb.netProfit <= 0) {
-            console.warn(`❌ ${collectionId}: Net profit ${arb.netProfit} BTC is not positive`);
             continue;
           }
 
@@ -400,13 +387,11 @@ export class OrdinalsDataAggregator extends EventEmitter {
 
           // Validate prices are realistic
           if (buyPrice <= 0 || sellPrice <= 0) {
-            console.warn(`❌ ${collectionId}: Invalid prices - buy: ${buyPrice}, sell: ${sellPrice}`);
             continue;
           }
 
           // Validate sell price is higher than buy price
           if (sellPrice <= buyPrice) {
-            console.warn(`❌ ${collectionId}: Sell price ${sellPrice} <= buy price ${buyPrice}`);
             continue;
           }
 
@@ -425,7 +410,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
             priceAge
           );
 
-          console.log(`✅ ${collectionId}: Valid opportunity - ${arb.netProfitPercentage.toFixed(2)}% net profit, ${liquidityScore} liquidity, ${priceAge.toFixed(1)}s age`);
 
           // ENHANCEMENT 4: Return object includes fees, netProfit, netProfitPercentage, liquidityScore
           opportunities.push({
@@ -467,7 +451,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
     target?: string,
     filters?: Record<string, any>
   ): string {
-    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const subscriptionId = `sub_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
     
     const subscription: DataSubscription = {
       id: subscriptionId,
@@ -540,7 +524,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
 
           allCollections.push(...standardized);
         } catch (error) {
-          console.warn(`Failed to fetch collections from ${marketplace}:`, error);
         }
       }
 
@@ -586,7 +569,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
           };
         }
       } catch (error) {
-        console.warn(`Failed to get price for ${inscriptionId}:`, error);
       }
     });
 
@@ -608,7 +590,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
         const client = this.clients[marketplace];
 
         if (!client) {
-          console.warn(`❌ ${marketplace}: Client not initialized`);
           marketplaceData[marketplace] = {
             floorPrice: 0,
             volume24h: 0,
@@ -657,7 +638,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
           }
 
           const responseTime = Date.now() - startTime;
-          console.log(`✅ ${marketplace}: Responded in ${responseTime}ms`);
 
         } catch (apiError) {
           const responseTime = Date.now() - startTime;
@@ -679,7 +659,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
 
           // Validate data quality
           if (standardized.floorPrice <= 0) {
-            console.warn(`⚠️ ${marketplace}: Invalid floor price (${standardized.floorPrice})`);
             marketplaceData[marketplace] = {
               floorPrice: 0,
               volume24h: 0,
@@ -703,9 +682,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
             available: true
           };
 
-          console.log(`✅ ${marketplace}: Floor ${standardized.floorPrice} BTC, Volume ${standardized.volume24h} BTC`);
         } else {
-          console.warn(`⚠️ ${marketplace}: No valid collection data`);
           marketplaceData[marketplace] = {
             floorPrice: 0,
             volume24h: 0,
@@ -793,7 +770,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
           }
         }
       } catch (error) {
-        console.warn(`Failed to fetch inscription ${inscriptionId} from ${marketplace}:`, error);
       }
     }
 
@@ -880,7 +856,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
       .filter(([_, data]) => data.available && data.floorPrice > 0);
 
     if (availableData.length === 0) {
-      console.log('⚠️ No available marketplace data for arbitrage calculation');
       return {
         bestFloorPrice: 0,
         bestFloorMarketplace: OrdinalsMarketplace.MAGIC_EDEN,
@@ -893,7 +868,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
 
     // Need at least 2 marketplaces for arbitrage
     if (availableData.length < 2) {
-      console.log(`⚠️ Only ${availableData.length} marketplace available, need 2+ for arbitrage`);
       return {
         bestFloorPrice: availableData[0][1].floorPrice,
         bestFloorMarketplace: availableData[0][0] as OrdinalsMarketplace,
@@ -938,10 +912,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
       const netProfit = priceSpread - fees.totalFees;
       const netProfitPercentage = (netProfit / bestFloorPrice) * 100;
 
-      console.log(`💰 Arbitrage check: Buy ${bestFloorPrice} BTC @ ${bestFloorMarketplace}, Sell ${highestFloorPrice} BTC @ ${sellMarketplace}`);
-      console.log(`   Gross Profit: ${priceSpread.toFixed(8)} BTC (${grossProfitPercentage.toFixed(2)}%)`);
-      console.log(`   Total Fees: ${fees.totalFees.toFixed(8)} BTC`);
-      console.log(`   Net Profit: ${netProfit.toFixed(8)} BTC (${netProfitPercentage.toFixed(2)}%)`);
 
       // CRITICAL: Only mark as opportunity if NET profit is positive
       if (netProfit > 0 && netProfitPercentage > 0.5) {
@@ -955,7 +925,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
           0 // Price age is 0 for fresh data
         );
 
-        console.log(`✅ VALID ARBITRAGE: Net profit ${netProfitPercentage.toFixed(2)}% after fees`);
 
         arbitrageOpportunity = {
           exists: true,
@@ -972,11 +941,9 @@ export class OrdinalsDataAggregator extends EventEmitter {
           lastUpdated: Date.now()
         };
       } else {
-        console.log(`❌ REJECTED: Net profit ${netProfitPercentage.toFixed(2)}% is negative or too low`);
         arbitrageOpportunity = { exists: false };
       }
     } else {
-      console.log(`❌ No arbitrage: Gross profit ${grossProfitPercentage.toFixed(2)}% too low`);
       arbitrageOpportunity = { exists: false };
     }
 
@@ -1112,9 +1079,16 @@ export class OrdinalsDataAggregator extends EventEmitter {
   }
 
   private calculateMarketSentiment(collections: AggregatedCollectionData[]): 'bullish' | 'bearish' | 'neutral' {
+    if (collections.length === 0) return 'neutral';
+
+    // Use actual collection data to determine sentiment
     const volumeChanges = collections.map(c => {
-      // Simplified calculation - would need historical data for accurate calculation
-      return Math.random() * 40 - 20; // Mock data: -20% to +20%
+      // Use real volume and floor price data when available
+      if (c.volume24h > 0 && c.floorPrice > 0) {
+        // Positive volume with stable/rising floor = bullish signal
+        return c.volume24h > 10 ? 10 : 0;
+      }
+      return 0;
     });
 
     const avgVolumeChange = volumeChanges.reduce((sum, change) => sum + change, 0) / volumeChanges.length;
@@ -1216,7 +1190,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
   }
 
   private async performInitialDataLoad(): Promise<void> {
-    console.log('Performing initial data load...');
 
     try {
       // Load top collections
@@ -1225,7 +1198,6 @@ export class OrdinalsDataAggregator extends EventEmitter {
       // Load market overview
       await this.getMarketOverview();
 
-      console.log('Initial data load completed');
     } catch (error) {
       console.error('Error during initial data load:', error);
     }
@@ -1234,12 +1206,10 @@ export class OrdinalsDataAggregator extends EventEmitter {
   private async initializeWebSockets(): Promise<void> {
     // Placeholder for WebSocket implementation
     // Would connect to marketplace WebSocket feeds for real-time updates
-    console.log('WebSocket connections would be initialized here');
   }
 
   private async closeWebSockets(): Promise<void> {
     // Placeholder for WebSocket cleanup
-    console.log('WebSocket connections would be closed here');
   }
 
   private startTargetTracking(type: 'collection' | 'inscription', target: string): void {

@@ -307,7 +307,6 @@ export default function OptimizedBloombergDashboard() {
             return response.data.data;
           }
         } catch (error) {
-          console.log('Mining API unavailable, using fallback');
         }
         
         return {
@@ -338,7 +337,6 @@ export default function OptimizedBloombergDashboard() {
             return response.data.data;
           }
         } catch (error) {
-          console.log('Lightning API unavailable, using fallback');
         }
         
         return {
@@ -359,22 +357,37 @@ export default function OptimizedBloombergDashboard() {
       'bloomberg-network-data',
       async () => {
         try {
+          // Fetch real data from mempool.space via our proxy
+          const [blocksRes, feesRes, mempoolRes] = await Promise.allSettled([
+            fetch('/api/mempool/?endpoint=/v1/blocks').then(r => r.ok ? r.json() : null),
+            fetch('/api/mempool/?endpoint=/v1/fees/recommended').then(r => r.ok ? r.json() : null),
+            fetch('/api/mempool/?endpoint=/mempool').then(r => r.ok ? r.json() : null),
+          ]);
+
+          const blocks = blocksRes.status === 'fulfilled' ? blocksRes.value : null;
+          const fees = feesRes.status === 'fulfilled' ? feesRes.value : null;
+          const mempool = mempoolRes.status === 'fulfilled' ? mempoolRes.value : null;
+
+          const latestBlock = Array.isArray(blocks) && blocks.length > 0 ? blocks[0] : null;
+          const blockHeight = latestBlock?.height || 0;
+          const blockTime = latestBlock?.timestamp ? Math.floor((Date.now() / 1000) - latestBlock.timestamp) : 0;
+
           return {
-            bitcoinNodes: Math.floor(13000 + Math.random() * 2000),
-            blockHeight: Math.floor(832456 + Math.random() * 10),
-            lastBlock: `${Math.floor(Date.now() / 1000 - Math.random() * 600)} sec ago`,
-            txInMempool: Math.floor(150000 + Math.random() * 50000),
-            avgFeeRate: Math.floor(25 + Math.random() * 20),
-            confirmationTime: `${Math.floor(10 + Math.random() * 5)} min`
+            bitcoinNodes: 0, // Not available from mempool API
+            blockHeight,
+            lastBlock: blockTime > 0 ? `${blockTime} sec ago` : '---',
+            txInMempool: mempool?.count || 0,
+            avgFeeRate: fees?.halfHourFee || 0,
+            confirmationTime: fees?.halfHourFee ? '~30 min' : '---'
           };
         } catch {
           return {
-            bitcoinNodes: 14532,
-            blockHeight: 832456,
-            lastBlock: '234 sec ago',
-            txInMempool: 167834,
-            avgFeeRate: 35,
-            confirmationTime: '12 min'
+            bitcoinNodes: 0,
+            blockHeight: 0,
+            lastBlock: '---',
+            txInMempool: 0,
+            avgFeeRate: 0,
+            confirmationTime: '---'
           };
         }
       },
@@ -406,7 +419,6 @@ export default function OptimizedBloombergDashboard() {
             }));
           }
         } catch (error) {
-          console.log('Activity API unavailable, using fallback');
         }
         
         return generateFallbackActivity();

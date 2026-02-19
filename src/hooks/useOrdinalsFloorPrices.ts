@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface OrdinalsCollection {
   name: string;
@@ -14,6 +14,17 @@ interface OrdinalsFloorPricesData {
   error: string | null;
 }
 
+const COLLECTION_SLUGS: Record<string, string> = {
+  'bitcoin-punks': 'Bitcoin Punks',
+  'nodemonkes': 'NodeMonkes',
+  'bitcoin-puppets': 'Bitcoin Puppets',
+  'quantum-cats': 'Quantum Cats',
+  'runestones': 'Runestones',
+  'bitmap': 'Bitmap',
+  'ink': 'Ink',
+  'ordinal-maxi-biz': 'Ordinal Maxi Biz',
+};
+
 export function useOrdinalsFloorPrices() {
   const [data, setData] = useState<OrdinalsFloorPricesData>({
     collections: [],
@@ -21,39 +32,65 @@ export function useOrdinalsFloorPrices() {
     error: null
   });
 
-  useEffect(() => {
-    const fetchData = () => {
-      // Simulated data for Ordinals collections
-      const collections: OrdinalsCollection[] = [
-        { name: 'Bitcoin Punks', floorPrice: 0.45, volume24h: 12.3, change24h: 5.2, listings: 234 },
-        { name: 'Ordinal Monkeys', floorPrice: 0.38, volume24h: 8.7, change24h: -2.1, listings: 189 },
-        { name: 'Bitcoin Wizards', floorPrice: 0.52, volume24h: 15.4, change24h: 8.9, listings: 156 },
-        { name: 'Pixel Pepes', floorPrice: 0.29, volume24h: 6.2, change24h: -4.5, listings: 412 },
-        { name: 'Bitcoin Frogs', floorPrice: 0.67, volume24h: 22.1, change24h: 12.3, listings: 98 },
-        { name: 'Ordinal Eggs', floorPrice: 0.19, volume24h: 3.8, change24h: -1.2, listings: 567 },
-        { name: 'Bitcoin Bears', floorPrice: 0.33, volume24h: 7.9, change24h: 3.4, listings: 234 }
-      ];
+  const fetchData = useCallback(async () => {
+    try {
+      // Use cached /api/ordinals endpoint (already has all collection data)
+      const res = await fetch('/api/ordinals/');
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      const json = await res.json();
 
-      // Add some randomness to simulate real-time changes
-      const updatedCollections = collections.map(col => ({
-        ...col,
-        floorPrice: col.floorPrice * (1 + (Math.random() - 0.5) * 0.05),
-        volume24h: col.volume24h * (1 + (Math.random() - 0.5) * 0.1),
-        change24h: col.change24h + (Math.random() - 0.5) * 2
-      }));
+      if (!json.success || !json.data?.trending_collections) {
+        throw new Error('Invalid ordinals API response');
+      }
+
+      const collections: OrdinalsCollection[] = [];
+      const slugs = Object.keys(COLLECTION_SLUGS);
+
+      for (const slug of slugs) {
+        const displayName = COLLECTION_SLUGS[slug];
+        const found = json.data.trending_collections.find(
+          (c: Record<string, unknown>) => c.symbol === slug
+        );
+
+        if (found) {
+          collections.push({
+            name: displayName,
+            floorPrice: found.floor ?? 0,
+            volume24h: (found.volume24h as number) ?? (found.volume as number) ?? 0,
+            change24h: found.change ?? 0,
+            listings: found.listed ?? 0,
+          });
+        } else {
+          collections.push({
+            name: displayName,
+            floorPrice: 0,
+            volume24h: 0,
+            change24h: 0,
+            listings: 0,
+          });
+        }
+      }
 
       setData({
-        collections: updatedCollections,
+        collections,
         loading: false,
-        error: null
+        error: null,
       });
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
+    } catch (error) {
+      console.error('[useOrdinalsFloorPrices] Failed to fetch floor prices:', error);
+      setData({
+        collections: [],
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch floor prices',
+      });
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 60000); // Refresh every 60 seconds
+    return () => clearInterval(interval);
+  }, [fetchData]);
 
   return data;
 }

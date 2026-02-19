@@ -23,8 +23,6 @@ export async function POST(request: Request) {
     // through a wallet connection or API
     
     // For demo purposes, we'll just return a success response
-    console.log('Executing transaction for opportunity:', opportunityId)
-    console.log('Wallet address:', address)
 
     // Simulate processing time
     await new Promise(resolve => setTimeout(resolve, 1000))

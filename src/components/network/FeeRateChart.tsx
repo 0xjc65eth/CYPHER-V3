@@ -35,7 +35,7 @@ export function FeeRateChart() {
 
   const fetchFees = useCallback(async () => {
     try {
-      const res = await fetch('/api/onchain/fees')
+      const res = await fetch('/api/onchain/fees/')
       if (!res.ok) throw new Error('Failed to fetch fee data')
       const data = await res.json()
       if (data.error) throw new Error(data.error)

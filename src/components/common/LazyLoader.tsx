@@ -83,7 +83,6 @@ export function preloadComponent(component: LazyExoticComponent<ComponentType<an
       componentModule._init(componentModule._payload);
     }
   } catch (error) {
-    console.warn('Component preload failed:', error);
   }
 }
 
@@ -287,7 +286,6 @@ export const preloadCommonComponents = () => {
   if (typeof window === 'undefined') return;
 
   // Preload critical dashboard components
-  import('@/components/dashboard/BloombergCypherTrade').catch(() => {});
   import('@/components/dashboard/BloombergProfessionalChart').catch(() => {});
   import('@/components/charts/BitcoinPriceChart').catch(() => {});
   
@@ -295,7 +293,6 @@ export const preloadCommonComponents = () => {
   import('@/components/wallet/WalletConnector').catch(() => {});
   import('@/components/wallet/BitcoinWalletConnect').catch(() => {});
   
-  console.log('🚀 Preloading common components...');
 };
 
 // Hook for managing lazy loading state

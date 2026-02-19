@@ -66,13 +66,6 @@ export async function POST(request: NextRequest) {
       suggestions
     };
 
-    // Log successful command execution
-    console.log(`[AI Command API] Successfully executed: ${sanitizedCommand}`, {
-      userId: body.userId,
-      executionTime: response.executionTime,
-      hasResult: !!commandResult
-    });
-
     return NextResponse.json(response);
 
   } catch (error) {

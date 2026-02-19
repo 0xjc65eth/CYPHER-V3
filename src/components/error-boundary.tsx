@@ -35,7 +35,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         errorMessage.includes('BitcoinProvider') ||
         errorMessage.includes('Cannot convert a BigInt') ||
         errorMessage.includes('Cannot read properties of undefined')) {
-      console.warn('Wallet provider error handled by boundary:', errorMessage)
       // Don't show error UI for wallet conflicts, just log them
       this.setState({ hasError: false })
       return
@@ -45,7 +44,6 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     if (errorMessage.includes("Cannot read properties of undefined (reading 'call')") ||
         errorMessage.includes('webpack') ||
         errorMessage.includes('__webpack_require__')) {
-      console.warn('Webpack module error handled by boundary:', errorMessage)
       // Attempt to reload the problematic module
       setTimeout(() => {
         this.setState({ hasError: false })

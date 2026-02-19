@@ -26,6 +26,9 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ordinals.com https://magiceden.io; connect-src 'self' https://api.hiro.so https://mempool.space https://api.coingecko.com https://pro-api.coinmarketcap.com https://api.binance.com; font-src 'self' data:; object-src 'none'; frame-ancestors 'none'"
 
 # External API Proxies for CORS handling (ONLY external services)
 [[redirects]]

@@ -117,7 +117,7 @@ export class EnhancedWalletDataService {
     if (cached) return cached;
 
     try {
-      const response = await fetch('/api/bitcoin/price');
+      const response = await fetch('/api/bitcoin/price/');
       const data = await response.json();
       
       if (data.success) {
@@ -153,7 +153,7 @@ export class EnhancedWalletDataService {
       const btcPrice = await this.getBitcoinPrice();
       
       // Fetch Bitcoin balance
-      const balanceResponse = await fetch(`/api/bitcoin/address/${address}/balance`);
+      const balanceResponse = await fetch(`/api/bitcoin/address/${address}/balance/`);
       const balanceData = await balanceResponse.json();
       
       const bitcoinBalance = balanceData.success ? balanceData.data.balance / 100000000 : 0;
@@ -301,7 +301,7 @@ export class EnhancedWalletDataService {
     if (cached) return cached;
 
     try {
-      const response = await fetch(`/api/bitcoin/address/${address}/txs?limit=${limit}`);
+      const response = await fetch(`/api/bitcoin/address/${address}/txs/?limit=${limit}`);
       const data = await response.json();
       
       if (data.success) {
@@ -323,7 +323,7 @@ export class EnhancedWalletDataService {
     if (cached) return cached;
 
     try {
-      const response = await fetch(`/api/ordinals/address/${address}`);
+      const response = await fetch(`/api/ordinals/address/${address}/`);
       const data = await response.json();
       
       if (data.success) {
@@ -350,7 +350,7 @@ export class EnhancedWalletDataService {
     if (cached) return cached;
 
     try {
-      const response = await fetch(`/api/runes/address/${address}`);
+      const response = await fetch(`/api/runes/address/${address}/`);
       const data = await response.json();
       
       if (data.success) {

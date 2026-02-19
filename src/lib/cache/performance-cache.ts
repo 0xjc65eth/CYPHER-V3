@@ -258,7 +258,6 @@ class PerformanceCache<T = any> {
       options?: any;
     }>
   ): Promise<void> {
-    console.log(`🔥 Warming cache with ${loaders.length} entries...`);
     
     await Promise.all(
       loaders.map(async ({ key, loader, options }) => {
@@ -311,7 +310,6 @@ class PerformanceCache<T = any> {
     // Batch delete for better performance
     await Promise.all(keysToRemove.map(key => this.delete(key)));
 
-    console.log(`🧹 Cache optimized: removed ${keysToRemove.length} entries`);
   }
 
   // Persistence (basic implementation)
@@ -512,14 +510,13 @@ export class CacheManager {
   }
 
   async warmAllCaches(): Promise<void> {
-    console.log('🔥 Warming all caches...');
     
     // Warm market data cache
     await performanceCaches.market.warm([
       {
         key: 'btc-price',
         loader: async () => {
-          const response = await fetch('/api/prices/btc');
+          const response = await fetch('/api/prices/btc/');
           return response.json();
         },
         options: { tags: ['prices', 'btc'] }

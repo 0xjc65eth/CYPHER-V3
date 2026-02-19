@@ -235,7 +235,6 @@ class PortfolioService {
             .map(result => result.value);
           
           if (prices.length === 0) {
-            console.warn('Failed to fetch Bitcoin price from all sources, using fallback');
             return 65000; // Valor de fallback
           }
           
@@ -274,7 +273,7 @@ class PortfolioService {
    */
   private async fetchBitcoinPriceFromCoinMarketCap(): Promise<number> {
     try {
-      const apiKey = process.env.NEXT_PUBLIC_COINMARKETCAP_API_KEY;
+      const apiKey = process.env.CMC_API_KEY;
       
       if (!apiKey) {
         throw new Error('CoinMarketCap API key not found');

@@ -1,265 +1,119 @@
 import { NextResponse } from 'next/server'
 
-// Lista de runas reais verificadas com dados atualizados
-const VERIFIED_RUNES = [
-  'ORDI', 'SATS', 'MEME', 'PEPE', 'DOGE', 'TRAC', 'CATS', 'RATS', 'MOON', 'SHIB',
-  'WOJAK', 'BITCOIN', 'NAKAMOTO', 'HODL', 'BULL', 'BEAR', 'WHALE', 'FROG', 'PUNK',
-  'WIZARD', 'MAGIC', 'GOLD', 'SILVER', 'DIAMOND', 'RUBY', 'EMERALD', 'SAPPHIRE'
-];
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
 
-// Dados reais de marketplaces para cada runa
-const RUNE_MARKETPLACES = {
-  'ORDI': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'SATS': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'MEME': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'PEPE': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'DOGE': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'TRAC': ['unisat.io', 'ordswap.io'],
-  'CATS': ['unisat.io', 'magiceden.io'],
-  'RATS': ['unisat.io', 'ordswap.io'],
-  'MOON': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'SHIB': ['unisat.io', 'magiceden.io'],
-  'WOJAK': ['unisat.io', 'ordswap.io'],
-  'BITCOIN': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'NAKAMOTO': ['unisat.io', 'magiceden.io'],
-  'HODL': ['unisat.io', 'ordswap.io'],
-  'BULL': ['unisat.io', 'magiceden.io'],
-  'BEAR': ['unisat.io', 'ordswap.io'],
-  'WHALE': ['unisat.io', 'magiceden.io'],
-  'FROG': ['unisat.io', 'ordswap.io'],
-  'PUNK': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'WIZARD': ['unisat.io', 'magiceden.io'],
-  'MAGIC': ['unisat.io', 'ordswap.io'],
-  'GOLD': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'SILVER': ['unisat.io', 'magiceden.io'],
-  'DIAMOND': ['unisat.io', 'ordswap.io'],
-  'RUBY': ['unisat.io', 'magiceden.io'],
-  'EMERALD': ['unisat.io', 'ordswap.io'],
-  'SAPPHIRE': ['unisat.io', 'magiceden.io']
-};
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL = 60_000; // 60 seconds
 
 export async function GET() {
   try {
-    console.log('Fetching top Runes data...')
+    // Check cache first
+    const cached = cache.get('runes-top');
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return NextResponse.json(cached.data, {
+        headers: { 'X-Cache': 'HIT' },
+      });
+    }
 
-    // Tentar obter dados da API de Runes
-    let runesData = []
 
+    // Strategy 1: Try Magic Eden collection stats (has real market data)
     try {
-      // Primeira fonte: Unisat API
-      const unisatResponse = await fetch('https://open-api.unisat.io/v1/market/runes/list?offset=0&limit=100&order=volume&sort=desc', {
-        headers: {
-          'Accept': 'application/json'
-        },
-        cache: 'no-store'
-      })
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const meHeaders: Record<string, string> = { 'Accept': 'application/json' };
+      const meApiKey = process.env.MAGICEDEN_API_KEY;
+      if (meApiKey) meHeaders['Authorization'] = `Bearer ${meApiKey}`;
+      const meRes = await fetch(
+        'https://api-mainnet.magiceden.dev/v2/ord/btc/runes/collection_stats/search?window=1d&sort=volume24h&direction=desc&offset=0&limit=30',
+        { headers: meHeaders, signal: controller.signal }
+      );
+      clearTimeout(timeout);
 
-      if (unisatResponse.ok) {
-        const unisatData = await unisatResponse.json()
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        const runes = Array.isArray(meData) ? meData : meData.results || [];
+        if (runes.length > 0) {
+          const processed = runes.map((r: any, index: number) => ({
+            rank: index + 1,
+            name: r.rune?.replace(/[•]/g, '') || '',
+            formatted_name: r.rune || '',
+            price: r.floorUnitPrice ? (typeof r.floorUnitPrice === 'object' ? r.floorUnitPrice.value || 0 : r.floorUnitPrice) / 1e8 : 0,
+            price_usd: 0,
+            volume_24h: r.volume24h || r.volume || 0,
+            market_cap: r.marketCap || 0,
+            holders: r.holders || r.ownerCount || 0,
+            supply: r.totalSupply || 0,
+            change_24h: r.priceChange24h || r.volumeChange || 0,
+            verified: true,
+            source: 'magiceden',
+          }));
 
-        if (unisatData.data && Array.isArray(unisatData.data.list)) {
-          runesData = unisatData.data.list
-          console.log(`Fetched ${runesData.length} runes from Unisat API`)
+          cache.set('runes-top', { data: processed, timestamp: Date.now() });
+          return NextResponse.json(processed);
         }
       }
     } catch (error) {
-      console.error('Error fetching Runes data from Unisat:', error)
     }
 
-    // Se não conseguiu dados da API, usar dados verificados
-    if (runesData.length === 0) {
-      console.log('Using verified runes data with realistic metrics')
+    // Strategy 2: Try Hiro API sorted by total mints
+    try {
+      const apiKey = process.env.HIRO_API_KEY;
+      const headers: Record<string, string> = { 'Accept': 'application/json' };
+      if (apiKey) {
+        headers['x-hiro-api-key'] = apiKey;
+      }
 
-      // Dados reais para runas verificadas
-      const btcPrice = 65000 // Preço estimado do BTC em USD
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const hiroRes = await fetch(
+        'https://api.hiro.so/runes/v1/etchings?limit=30&offset=0',
+        { headers, signal: controller.signal }
+      );
+      clearTimeout(timeout);
 
-      runesData = VERIFIED_RUNES.map((runeName: string, index: number) => {
-        // Calcular métricas realistas com base na popularidade (posição no array)
-        const popularity = 1 - (index / VERIFIED_RUNES.length)
+      if (hiroRes.ok) {
+        const hiroData = await hiroRes.json();
+        const results = hiroData.results || [];
 
-        // Preço em BTC (maior para runas mais populares)
-        const priceInBtc = (0.00001 + (0.0001 * popularity)) * (0.9 + Math.random() * 0.2)
+        const processed = results.map((rune: any, index: number) => {
+          const supply = rune.supply || {};
+          return {
+            rank: index + 1,
+            name: rune.name || '',
+            formatted_name: rune.spaced_name || rune.name || '',
+            price: 0,
+            price_usd: 0,
+            volume_24h: 0,
+            market_cap: 0,
+            holders: 0,
+            supply: supply.current || supply.total || '0',
+            change_24h: 0,
+            verified: true,
+            source: 'hiro',
+          };
+        });
 
-        // Volume em USD (maior para runas mais populares)
-        const volume = (10000 + (1000000 * popularity)) * (0.8 + Math.random() * 0.4)
-
-        // Market cap em USD
-        const marketCap = volume * 10 * (0.9 + Math.random() * 0.2)
-
-        // Holders (maior para runas mais populares)
-        const holders = Math.floor((5000 + (100000 * popularity)) * (0.9 + Math.random() * 0.2))
-
-        // Supply
-        const supply = Math.floor(21000000 * (0.5 + Math.random()))
-
-        // Obter marketplaces para esta runa
-        const marketplaces = RUNE_MARKETPLACES[runeName as keyof typeof RUNE_MARKETPLACES] || []
-
-        // Calcular preço de compra e venda com pequena variação
-        const buyPrice = priceInBtc * 0.98
-        const sellPrice = priceInBtc * 1.02
-
-        // Calcular mudança de preço nas últimas 24h (simulada)
-        const change24h = (Math.random() * 20) - 5 // -5% a +15%
-
-        // Calcular risco/retorno (simulado)
-        const riskReturn = ((Math.random() * 2) + 0.5).toFixed(2)
-
-        // Determinar se há oportunidade de arbitragem
-        const hasArbitrage = Math.random() > 0.7
-        const arbitragePercent = hasArbitrage ? ((Math.random() * 5) + 3).toFixed(1) : '0.0'
-        const arbitrage = hasArbitrage ? `Sim ${arbitragePercent}%` : 'Não'
-
-        return {
-          rank: index + 1,
-          name: runeName,
-          formatted_name: runeName,
-          price: priceInBtc,
-          price_usd: priceInBtc * btcPrice,
-          volume_24h: volume,
-          market_cap: marketCap,
-          holders: holders,
-          supply: supply,
-          buy_price: buyPrice.toFixed(6),
-          sell_price: sellPrice.toFixed(6),
-          change_24h: change24h,
-          liquidity: Math.floor(marketCap * 0.2),
-          riskReturn: riskReturn,
-          arbitrage: arbitrage,
-          verified: true,
-          marketplaces: marketplaces.map(marketplace => ({
-            name: marketplace,
-            url: `https://${marketplace}/runes/${runeName.toLowerCase()}`
-          })),
-          links: {
-            buy: marketplaces.length > 0 ? `https://${marketplaces[0]}/runes/${runeName.toLowerCase()}` : null,
-            info: `https://runealpha.xyz/rune/${runeName.toLowerCase()}`
-          },
-          exchanges: [
-            {
-              name: "Unisat",
-              url: `https://unisat.io/market/rune/${runeName.toLowerCase()}`,
-              price: priceInBtc * 1.02,
-              buyUrl: `https://unisat.io/market/rune/${runeName.toLowerCase()}/buy`,
-              sellUrl: `https://unisat.io/market/rune/${runeName.toLowerCase()}/sell`
-            },
-            {
-              name: "OKX",
-              url: `https://www.okx.com/web3/marketplace/ordinals/runes/${runeName.toLowerCase()}`,
-              price: priceInBtc * 0.98,
-              buyUrl: `https://www.okx.com/web3/marketplace/ordinals/runes/${runeName.toLowerCase()}/buy`,
-              sellUrl: `https://www.okx.com/web3/marketplace/ordinals/runes/${runeName.toLowerCase()}/sell`
-            }
-          ],
-          runeLink: `https://unisat.io/market/rune/${runeName.toLowerCase()}`,
-          buyLink: `https://unisat.io/market/rune/${runeName.toLowerCase()}/buy`,
-          sellLink: `https://unisat.io/market/rune/${runeName.toLowerCase()}/sell`,
-          detailsLink: `https://runealpha.xyz/rune/${runeName.toLowerCase()}`,
-          txLink: `https://mempool.space/rune/${runeName.toLowerCase()}`,
-          explorerLink: `https://runealpha.xyz/rune/${runeName.toLowerCase()}`
-        }
-      })
-    } else {
-      // Processar dados da API para o formato esperado
-      runesData = runesData.map((rune: any, index: number) => {
-        const runeName = rune.name || rune.ticker
-        const isVerified = VERIFIED_RUNES.includes(runeName)
-        const marketplaces = isVerified ? RUNE_MARKETPLACES[runeName as keyof typeof RUNE_MARKETPLACES] || [] : []
-
-        // Calcular preço de compra e venda com pequena variação
-        const price = rune.price || 0.00001
-        const buyPrice = price * 0.98
-        const sellPrice = price * 1.02
-
-        // Calcular mudança de preço nas últimas 24h (da API ou simulada)
-        const change24h = rune.change_24h || (Math.random() * 20) - 5 // -5% a +15%
-
-        // Calcular risco/retorno (simulado)
-        const riskReturn = ((Math.random() * 2) + 0.5).toFixed(2)
-
-        // Determinar se há oportunidade de arbitragem
-        const hasArbitrage = Math.random() > 0.7
-        const arbitragePercent = hasArbitrage ? ((Math.random() * 5) + 3).toFixed(1) : '0.0'
-        const arbitrage = hasArbitrage ? `Sim ${arbitragePercent}%` : 'Não'
-
-        return {
-          rank: index + 1,
-          name: runeName,
-          formatted_name: runeName,
-          price: price,
-          price_usd: rune.price_usd || (price * 65000),
-          volume_24h: rune.volume_24h || 0,
-          market_cap: rune.market_cap || 0,
-          holders: rune.holders || 0,
-          supply: rune.supply || 0,
-          buy_price: buyPrice.toFixed(6),
-          sell_price: sellPrice.toFixed(6),
-          change_24h: change24h,
-          liquidity: rune.liquidity || Math.floor((rune.market_cap || 0) * 0.2),
-          riskReturn: riskReturn,
-          arbitrage: arbitrage,
-          verified: isVerified,
-          marketplaces: marketplaces.map(marketplace => ({
-            name: marketplace,
-            url: `https://${marketplace}/runes/${runeName.toLowerCase()}`
-          })),
-          links: {
-            buy: marketplaces.length > 0 ? `https://${marketplaces[0]}/runes/${runeName.toLowerCase()}` : null,
-            info: `https://runealpha.xyz/rune/${runeName.toLowerCase()}`
-          },
-          exchanges: [
-            {
-              name: "Unisat",
-              url: `https://unisat.io/market/rune/${runeName.toLowerCase()}`,
-              price: price * 1.02,
-              buyUrl: `https://unisat.io/market/rune/${runeName.toLowerCase()}/buy`,
-              sellUrl: `https://unisat.io/market/rune/${runeName.toLowerCase()}/sell`
-            },
-            {
-              name: "OKX",
-              url: `https://www.okx.com/web3/marketplace/ordinals/runes/${runeName.toLowerCase()}`,
-              price: price * 0.98,
-              buyUrl: `https://www.okx.com/web3/marketplace/ordinals/runes/${runeName.toLowerCase()}/buy`,
-              sellUrl: `https://www.okx.com/web3/marketplace/ordinals/runes/${runeName.toLowerCase()}/sell`
-            }
-          ],
-          runeLink: `https://unisat.io/market/rune/${runeName.toLowerCase()}`,
-          buyLink: `https://unisat.io/market/rune/${runeName.toLowerCase()}/buy`,
-          sellLink: `https://unisat.io/market/rune/${runeName.toLowerCase()}/sell`,
-          detailsLink: `https://runealpha.xyz/rune/${runeName.toLowerCase()}`,
-          txLink: `https://mempool.space/rune/${runeName.toLowerCase()}`,
-          explorerLink: `https://runealpha.xyz/rune/${runeName.toLowerCase()}`
-        }
-      })
+        cache.set('runes-top', { data: processed, timestamp: Date.now() });
+        return NextResponse.json(processed);
+      }
+    } catch (error) {
     }
 
-    // Gerar oportunidades de arbitragem realistas
-    const arbitrageOpportunities = runesData.slice(0, 20)
-      .filter(() => Math.random() > 0.5) // Selecionar aleatoriamente algumas runas
-      .map((rune: any) => {
-        // Criar uma cópia do rune para não modificar o original
-        const arbitrageRune = { ...rune }
-
-        // Calcular diferença de preço entre exchanges (3-8%)
-        const priceDiff = (Math.random() * 5 + 3) / 100
-
-        // Ajustar preços nos exchanges para criar oportunidade de arbitragem
-        arbitrageRune.exchanges[0].price = arbitrageRune.price * (1 + priceDiff)
-        arbitrageRune.exchanges[1].price = arbitrageRune.price
-
-        // Atualizar arbitragem
-        const arbitragePercent = (priceDiff * 100).toFixed(1)
-        arbitrageRune.arbitrage = `Sim ${arbitragePercent}%`
-
-        return arbitrageRune
-      })
-
-    console.log(`Returning data for ${runesData.length} runes with ${arbitrageOpportunities.length} arbitrage opportunities`)
-
-    // Retornar diretamente o array de runas para compatibilidade com o hook useTopRunes
-    return NextResponse.json(runesData)
+    // All sources failed - return structured error
+    console.error('All runes-top data sources failed');
+    return NextResponse.json({
+      error: 'Failed to fetch top runes data from all sources',
+      sources_tried: ['magiceden', 'hiro'],
+      timestamp: Date.now(),
+    }, { status: 502 });
   } catch (error) {
-    console.error('Error in runes-top API:', error)
-    return NextResponse.json({ error: 'Failed to fetch top runes data' }, { status: 500 })
+    console.error('Error in runes-top API:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch top runes data' },
+      { status: 500 }
+    );
   }
 }

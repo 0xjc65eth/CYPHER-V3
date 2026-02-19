@@ -255,7 +255,6 @@ export default function BotConfiguration({ config, onUpdateConfig, isRunning }: 
 
   const handleParameterUpdate = (strategyKey: string, paramKey: string, value: any) => {
     // This would update strategy-specific parameters
-    console.log(`Updating ${strategyKey}.${paramKey} to ${value}`);
   };
 
   const getRiskLevelColor = (level: string) => {

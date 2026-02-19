@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const HIRO_API_KEY = '3100ea7623797d267da3bd6dc94f47f9';
+const HIRO_API_KEY = process.env.HIRO_API_KEY || '';
 const HIRO_BASE_URL = 'https://api.hiro.so/runes/v1';
 
 // Cache com TTL de 2 minutos (dados mais voláteis)
@@ -182,22 +182,13 @@ export async function GET(
         'API_REQUEST_FAILED'
       );
       
-      // Fallback para dados mock se API falhar
-      const mockData = {
-        etching: etching,
-        limit: limitNum,
-        offset: offsetNum,
-        total: 0,
-        results: [],
-        error: `Hiro API returned ${apiResponse.status}: ${apiResponse.statusText}`
-      };
-      
+      // Retornar erro real - SEM DADOS MOCK
       return NextResponse.json({
         success: false,
-        data: mockData,
-        source: 'hiro-runes-api-fallback',
+        data: null,
+        source: 'hiro-runes-api',
         timestamp: new Date().toISOString(),
-        error: `API request failed with status ${apiResponse.status}`,
+        error: `Hiro API returned ${apiResponse.status}: ${apiResponse.statusText}. No real activity data available.`,
         responseTime: Date.now() - startTime
       }, { status: apiResponse.status });
     }
@@ -257,7 +248,7 @@ export async function GET(
     
     // Generic fallback data
     const fallbackData = {
-      etching: params.etching || 'unknown',
+      etching: 'unknown',
       limit: 50,
       offset: 0,
       total: 0,

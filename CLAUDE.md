@@ -97,6 +97,39 @@ src/
 4. No console errors ✅
 5. Wallet integration working ✅
 
+## Cypher AgenteBot (OpenClaw)
+
+Este projeto tem um agente autonomo de desenvolvimento integrado via OpenClaw/ClawBot.
+
+### Skills Ativas
+- **code-writer**: Implementa features seguindo padroes Next.js/TypeScript/Tailwind
+- **debugger**: Encontra e corrige bugs (BigInt, hydration, wallet, APIs)
+- **refactor**: Refatora mantendo tema Bloomberg Terminal
+- **test-runner**: Roda jest/vitest e corrige falhas
+- **git-ops**: Commits, branches, PRs
+- **claude-code-bridge**: Delega ao Claude Code CLI
+- **researcher**: Pesquisa codebase, docs de APIs (CoinGecko, Hiro, Mempool)
+- **carmack-mode**: First principles para performance e simplicidade
+
+### Ativar o Agente
+
+```bash
+# Opcao 1: Claude Code autonomo (recomendado para dev local)
+claude --dangerously-skip-permissions
+
+# Opcao 2: OpenClaw gateway
+openclaw gateway --port 18789 --verbose
+
+# Opcao 3: VSCode Tasks (Cmd+Shift+P → Run Task)
+# - "Claude: Fix Bug"
+# - "Claude: Carmack Mode"
+# - "Claude: Full Autonomous"
+```
+
+### Politica de Aprovacao
+Todas as acoes de dev sao auto-aprovadas via `policies/approve-all.yaml`.
+Operacoes destrutivas (rm -rf, force push, sudo) sao bloqueadas.
+
 ---
-**Last Updated**: June 13, 2025 21:30
-**Maintained by**: Claude Code Assistant
+**Last Updated**: February 18, 2026
+**Maintained by**: Claude Code Assistant + Cypher AgenteBot

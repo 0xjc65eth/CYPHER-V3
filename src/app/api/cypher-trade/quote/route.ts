@@ -205,7 +205,7 @@ const DEX_CONFIG = {
   solana: [
     {
       name: 'JUPITER',
-      endpoint: 'https://quote-api.jup.ag/v6/quote',
+      endpoint: 'https://api.jup.ag/v6/quote',
       gasMultiplier: 0.001,
       trustScore: 96,
       liquidityWeight: 1.3,

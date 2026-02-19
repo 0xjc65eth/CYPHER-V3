@@ -39,54 +39,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Hiro API Error:', error);
-    
-    // Return mock data on error
-    const mockData = {
-      inscriptions: {
-        results: [
-          {
-            number: 52300000,
-            content_type: 'text/plain',
-            timestamp: new Date().toISOString(),
-            value: '0.045 BTC'
-          },
-          {
-            number: 52299999,
-            content_type: 'image/png',
-            timestamp: new Date().toISOString(),
-            value: '0.089 BTC'
-          }
-        ],
-        total: 52300000
-      },
-      brc20: {
-        results: [
-          {
-            ticker: 'ORDI',
-            max_supply: '21000000',
-            minted_supply: '21000000',
-            holders: 15234
-          },
-          {
-            ticker: 'SATS',
-            max_supply: '2100000000000000',
-            minted_supply: '2100000000000000',
-            holders: 45678
-          }
-        ]
-      },
-      stats: {
-        total_inscriptions: 52300000,
-        inscriptions_24h: 25000,
-        total_fees_btc: 1234.5,
-        active_addresses: 123456
-      }
-    };
 
+    // Return error - NO MOCK DATA
     return NextResponse.json(
-      endpoint === 'brc20' ? mockData.brc20 : 
-      endpoint === 'stats' ? mockData.stats : 
-      mockData.inscriptions
+      {
+        success: false,
+        error: 'Failed to fetch real data from Hiro API',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 503 }
     );
   }
 }

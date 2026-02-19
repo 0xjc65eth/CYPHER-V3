@@ -79,7 +79,7 @@ export function useRunes(options: UseRunesOptions = {}): UseRunesReturn {
         setFavorites(new Set(JSON.parse(stored)));
       }
     } catch (e) {
-      console.warn('Failed to load rune favorites:', e);
+      // localStorage not available
     }
   }, []);
 
@@ -87,7 +87,7 @@ export function useRunes(options: UseRunesOptions = {}): UseRunesReturn {
     try {
       localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify([...newFavorites]));
     } catch (e) {
-      console.warn('Failed to save rune favorites:', e);
+      // localStorage not available
     }
   }, []);
 
@@ -116,7 +116,6 @@ export function useRunes(options: UseRunesOptions = {}): UseRunesReturn {
 
       const message = e instanceof Error ? e.message : 'Failed to fetch runes';
       setError(message);
-      console.error('Error fetching runes:', e);
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
@@ -391,7 +390,7 @@ export function useRuneWatchlist(): UseRuneWatchlistReturn {
         setWatchlist(JSON.parse(stored));
       }
     } catch (e) {
-      console.warn('Failed to load rune watchlist:', e);
+      // localStorage not available
     }
   }, []);
 
@@ -399,7 +398,7 @@ export function useRuneWatchlist(): UseRuneWatchlistReturn {
     try {
       localStorage.setItem(STORAGE_KEYS.WATCHLIST, JSON.stringify(items));
     } catch (e) {
-      console.warn('Failed to save rune watchlist:', e);
+      // localStorage not available
     }
   }, []);
 
@@ -480,7 +479,7 @@ export function useRunePriceAlerts(): UseRunePriceAlertsReturn {
         setAlerts(JSON.parse(stored));
       }
     } catch (e) {
-      console.warn('Failed to load rune alerts:', e);
+      // localStorage not available
     }
   }, []);
 
@@ -488,7 +487,7 @@ export function useRunePriceAlerts(): UseRunePriceAlertsReturn {
     try {
       localStorage.setItem(STORAGE_KEYS.ALERTS, JSON.stringify(items));
     } catch (e) {
-      console.warn('Failed to save rune alerts:', e);
+      // localStorage not available
     }
   }, []);
 
@@ -496,7 +495,7 @@ export function useRunePriceAlerts(): UseRunePriceAlertsReturn {
     (alert: Omit<RunePriceAlert, 'id' | 'createdAt' | 'triggered' | 'triggeredAt' | 'notificationSent'>) => {
       const newAlert: RunePriceAlert = {
         ...alert,
-        id: `rune-alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        id: `rune-alert-${Date.now()}-${crypto.randomUUID().slice(0, 9)}`,
         createdAt: Date.now(),
         triggered: false,
         notificationSent: false,

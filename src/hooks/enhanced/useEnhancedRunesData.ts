@@ -83,10 +83,9 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log('🔄 Fetching enhanced Runes data...')
       
       try {
-        const response = await fetch(`/api/runes-list?limit=${limit}&offset=${offset}&order=${order}`)
+        const response = await fetch(`/api/runes-list/?limit=${limit}&offset=${offset}&order=${order}`)
         
         if (!response.ok) {
           throw new Error(`API request failed: ${response.status}`)
@@ -103,8 +102,6 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
           setHealthStatus('critical')
         }
         
-        console.log(`✅ Runes data fetched successfully from ${result.source}`)
-        console.log(`📊 Retrieved ${result.data?.length || 0} runes`)
         
         return {
           ...result,
@@ -146,14 +143,14 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
     supplyFormatted: formatSupply(rune.supply || '0'),
     rank: offset + index + 1,
     
-    // Add trend indicators (mock for now - would come from historical data)
+    // Trend indicators derived from real data (no mock random)
     trend: {
-      direction: Math.random() > 0.5 ? 'up' : 'down',
-      strength: Math.random() * 100,
+      direction: (rune.market?.price_change_24h || 0) >= 0 ? 'up' as const : 'down' as const,
+      strength: Math.min(100, Math.abs(rune.market?.price_change_24h || 0) * 5),
       period: '24h'
     },
-    
-    // Add health indicators
+
+    // Health indicators derived from real data
     health: {
       liquidityScore: Math.min(100, (rune.volume_24h || 0) / 10),
       adoptionScore: Math.min(100, (rune.unique_holders || 0) / 100),
@@ -163,13 +160,11 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
 
   // Refresh function
   const refreshData = useCallback(() => {
-    console.log('🔄 Manually refreshing Runes data...')
     refetch()
   }, [refetch])
 
   // Clear cache function
   const clearCache = useCallback(() => {
-    console.log('🧹 Clearing Runes data cache...')
     queryClient.removeQueries({ queryKey: ['enhanced-runes'] })
   }, [queryClient])
 
@@ -177,7 +172,7 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch('/api/system/hiro-health')
+        const response = await fetch('/api/system/hiro-health/')
         const health = await response.json()
         
         if (health.endpoints?.runes?.success) {

@@ -22,8 +22,6 @@ export async function POST(request: Request) {
     // In a real implementation, this would save the settings to a database
     
     // For demo purposes, we'll just return a success response
-    console.log('Saving settings for address:', address)
-    console.log('Settings:', settings)
 
     return NextResponse.json({
       success: true,

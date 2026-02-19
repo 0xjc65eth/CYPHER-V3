@@ -346,7 +346,6 @@ export class TaskQueue {
 
   private executeScheduledTask(scheduledTask: any): void {
     // This would integrate with the WorkerPool to execute the task
-    console.log('Executing scheduled task:', scheduledTask.task.id);
   }
 }
 

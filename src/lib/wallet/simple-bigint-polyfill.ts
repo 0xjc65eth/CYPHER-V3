@@ -11,7 +11,6 @@ export const safeBigInt = (value: any): bigint => {
     if (typeof value === 'string') return BigInt(value);
     return BigInt(0);
   } catch (error) {
-    console.warn('SafeBigInt conversion failed:', error);
     return BigInt(0);
   }
 };
@@ -31,7 +30,6 @@ export const formatBigInt = (value: bigint | number, decimals: number = 8): stri
     const remainderStr = remainder.toString().padStart(decimals, '0');
     return `${quotient}.${remainderStr}`.replace(/\.?0+$/, '');
   } catch (error) {
-    console.warn('FormatBigInt failed:', error);
     return '0';
   }
 };
@@ -44,7 +42,6 @@ export const bigIntMath = {
   divide: (a: any, b: any): bigint => {
     const divisor = safeBigInt(b);
     if (divisor === BigInt(0)) {
-      console.warn('Division by zero in bigIntMath.divide');
       return BigInt(0);
     }
     return safeBigInt(a) / divisor;
@@ -67,7 +64,6 @@ export const initializeSimpleBigIntPolyfill = () => {
     (window as any).formatBigInt = formatBigInt;
     (window as any).bigIntMath = bigIntMath;
     
-    console.log('✅ Simple BigInt polyfill initialized');
   }
 };
 

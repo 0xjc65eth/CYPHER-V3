@@ -190,7 +190,7 @@ export function TradingChartSystem({
 
     try {
       const interval = timeFrame.replace('m', 'min').replace('h', 'hour').replace('d', 'day').replace('w', 'week');
-      const response = await fetch(`/api/binance/klines?symbol=${symbol}&interval=${timeFrame}&limit=500`);
+      const response = await fetch(`/api/binance/klines/?symbol=${symbol}&interval=${timeFrame}&limit=500`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch chart data');
@@ -253,7 +253,6 @@ export function TradingChartSystem({
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        console.log('Chart WebSocket connected');
       };
 
       ws.onmessage = (event) => {
@@ -294,7 +293,6 @@ export function TradingChartSystem({
       };
 
       ws.onclose = () => {
-        console.log('Chart WebSocket disconnected');
         // Reconnect after 5 seconds
         setTimeout(connectWebSocket, 5000);
       };

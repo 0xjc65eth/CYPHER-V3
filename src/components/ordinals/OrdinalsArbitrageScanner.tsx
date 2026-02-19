@@ -13,19 +13,30 @@ import type {
 import OpportunityCard from './arbitrage/OpportunityCard';
 import FilterPanel from './arbitrage/FilterPanel';
 import StatsHeader from './arbitrage/StatsHeader';
+import { useUniSat } from '@/hooks/ordinals/useUniSat';
 
 /**
  * Main Ordinals Arbitrage Scanner Component
  * Orchestrates the entire arbitrage scanning feature
  */
 export default function OrdinalsArbitrageScanner() {
+  // Use UniSat hook for real BTC price
+  const unisat = useUniSat();
+
   // State management
   const [opportunities, setOpportunities] = useState<OrdinalsArbitrageOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
-  const [btcPrice, setBtcPrice] = useState<number>(50000); // Default fallback
+
+  // BTC price from hook, fallback to 50000
+  const btcPrice = useMemo(() => {
+    if (unisat.btcPrice.data) {
+      return Number(unisat.btcPrice.data) || 50000;
+    }
+    return 50000;
+  }, [unisat.btcPrice.data]);
 
   // Filter state with defaults
   const [filters, setFilters] = useState<ArbitrageFilters>({
@@ -38,22 +49,6 @@ export default function OrdinalsArbitrageScanner() {
     maxPriceAge: 60,
     limit: 20
   });
-
-  /**
-   * Fetch Bitcoin price for USD conversions
-   */
-  const fetchBtcPrice = useCallback(async () => {
-    try {
-      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
-      const data = await response.json();
-      if (data?.bitcoin?.usd) {
-        setBtcPrice(data.bitcoin.usd);
-      }
-    } catch (error) {
-      console.error('Failed to fetch BTC price:', error);
-      // Keep using previous/default price
-    }
-  }, []);
 
   /**
    * Fetch arbitrage opportunities from API
@@ -83,7 +78,7 @@ export default function OrdinalsArbitrageScanner() {
       }
 
       // Fetch from API
-      const response = await fetch(`/api/arbitrage/opportunities?${params.toString()}`, {
+      const response = await fetch(`/api/arbitrage/opportunities/?${params.toString()}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -116,8 +111,7 @@ export default function OrdinalsArbitrageScanner() {
    */
   useEffect(() => {
     fetchOpportunities();
-    fetchBtcPrice();
-  }, [fetchOpportunities, fetchBtcPrice]);
+  }, [fetchOpportunities]);
 
   /**
    * Auto-refresh every 30 seconds when enabled
@@ -125,14 +119,13 @@ export default function OrdinalsArbitrageScanner() {
   useEffect(() => {
     if (!autoRefresh) return;
 
-    // CoinGecko rate limit: increased to 60s
+    // BTC price now comes from useUniSat hook (auto-refreshes)
     const interval = setInterval(() => {
       fetchOpportunities();
-      fetchBtcPrice();
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchOpportunities, fetchBtcPrice]);
+  }, [autoRefresh, fetchOpportunities]);
 
   /**
    * Handle filter changes

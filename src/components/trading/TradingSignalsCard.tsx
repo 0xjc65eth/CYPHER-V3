@@ -40,7 +40,6 @@ export function TradingSignalsCard() {
 
       // Verificar se há símbolos válidos
       if (!symbols.length) {
-        console.warn('Nenhum símbolo válido para buscar preços');
         return;
       }
 

@@ -320,7 +320,6 @@ export function QuickTradePanel() {
   useEffect(() => {
     if (wallet.isConnected && wallet.address) {
       setUserAddress(wallet.address);
-      console.log('✅ Real wallet connected:', wallet.address);
     }
   }, [wallet.isConnected, wallet.address]);
 
@@ -338,12 +337,10 @@ export function QuickTradePanel() {
         return;
       }
 
-      console.log('🦊 Conectando carteira EVM...');
       const address = await connectEthereum();
       
       if (address) {
         setUserAddress(address);
-        console.log('✅ Carteira EVM conectada:', address);
         
         // Trocar para rede correta se necessário
         const networkConfig = {
@@ -376,12 +373,10 @@ export function QuickTradePanel() {
         return;
       }
 
-      console.log('👻 Conectando carteira Solana...');
       const address = await connectSolana();
       
       if (address) {
         setUserAddress(address);
-        console.log('✅ Carteira Solana conectada:', address);
       }
     } catch (error) {
       console.error('❌ Erro ao conectar carteira Solana:', error);
@@ -391,7 +386,6 @@ export function QuickTradePanel() {
 
 
   const analyzeTradeOpportunity = async () => {
-    console.log('🔍 Iniciando análise...', { fromToken, toToken, amount, network });
     
     // Use QuickTradeCalculator for validation
     if (!tradeValidation || !tradeValidation.isValid) {
@@ -415,9 +409,8 @@ export function QuickTradePanel() {
     setStep('analyzing');
 
     try {
-      console.log('📡 Enviando requisição para API...');
       
-      const response = await fetch('/api/quicktrade/analyze', {
+      const response = await fetch('/api/quicktrade/analyze/', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -431,7 +424,6 @@ export function QuickTradePanel() {
         })
       });
 
-      console.log('📨 Resposta recebida:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -440,12 +432,10 @@ export function QuickTradePanel() {
       }
 
       const data = await response.json();
-      console.log('✅ Dados recebidos:', data);
       
       if (data.success) {
         setAnalysis(data.data);
         setStep('results');
-        console.log('🎉 Análise completa!');
       } else {
         console.error('❌ Erro na resposta:', data.error);
         alert('Erro na análise: ' + data.error);
@@ -470,7 +460,7 @@ export function QuickTradePanel() {
     setStep('processing');
 
     try {
-      const response = await fetch('/api/quicktrade/process', {
+      const response = await fetch('/api/quicktrade/process/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -750,7 +740,6 @@ export function QuickTradePanel() {
               <QuickTradeWallet 
                 onWalletConnect={(address, networkType) => {
                   setUserAddress(address);
-                  console.log('QuickTrade wallet connected:', address, networkType);
                 }}
                 selectedNetwork={network}
               />

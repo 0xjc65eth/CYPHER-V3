@@ -91,21 +91,32 @@ export function AdvancedNeuralArbitrage() {
         setDataPoints(arbitrageModel.dataPoints);
       }
       
-      // Gerar tendências de mercado simuladas
-      generateMarketTrends();
-      
+      // Market trends - static curated content (not randomized)
+      setMarketTrends({
+        twitter: [
+          "Aumento de menções de #Ordinals nas últimas 24h",
+          "Influenciadores destacam oportunidades em #Runes"
+        ],
+        reddit: [
+          "Análises detalhadas de arbitragem entre Magic Eden e UniSat",
+          "Comunidade r/Bitcoin discute oportunidades em Ordinals"
+        ],
+        telegram: [
+          "Grupos de trading compartilhando oportunidades em Runes",
+          "Alertas de arbitragem em tempo real nos canais premium"
+        ],
+        news: [
+          "Mercado de Ordinals mostra disparidades de preço entre marketplaces",
+          "Diferenças de preço entre exchanges criam oportunidades de arbitragem"
+        ]
+      });
+
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
       console.error('Erro ao buscar insights neurais:', err);
-      setError('Erro ao buscar insights neurais. Usando dados simulados.');
-
-      // Gerar insights simulados em caso de erro
-      const simulatedInsights = generateSimulatedInsights(5);
-      setInsights(simulatedInsights);
-      
-      // Gerar tendências de mercado simuladas
-      generateMarketTrends();
+      setError('Erro ao buscar insights neurais.');
+      setInsights([]);
     } finally {
       setIsUpdating(false);
       setTimeout(() => {

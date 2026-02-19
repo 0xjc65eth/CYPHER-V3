@@ -136,7 +136,6 @@ export class ExpandedMultiAgentSystem extends EventEmitter {
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
-    console.log('🚀 Initializing 120 AI Agents System...');
     
     try {
       // Phase 1: Initialize core agents (original 23)
@@ -151,7 +150,6 @@ export class ExpandedMultiAgentSystem extends EventEmitter {
         distribution: this.getAgentDistribution()
       });
       
-      console.log(`✅ ${this.agents.size} agents initialized successfully`);
     } catch (error) {
       console.error('Failed to initialize agent system:', error);
       throw error;
@@ -371,7 +369,6 @@ export class ExpandedMultiAgentSystem extends EventEmitter {
     this.tasks.clear();
     this.removeAllListeners();
     this.isInitialized = false;
-    console.log('🛑 Agent system shut down');
   }
 }
 

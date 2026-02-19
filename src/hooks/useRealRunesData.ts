@@ -78,7 +78,6 @@ export const useRealRunesData = (options: UseRealRunesDataOptions = {}) => {
             }
           }
         } catch (detailError) {
-          console.warn(`Failed to fetch details for rune ${rune.name}:`, detailError);
         }
       }
 

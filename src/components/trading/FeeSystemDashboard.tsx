@@ -97,7 +97,7 @@ export const FeeSystemDashboard: React.FC = () => {
     
     try {
       // Fetch fee statistics
-      const response = await fetch('/api/fees/stats?period=30d')
+      const response = await fetch('/api/fees/stats/?period=30d')
       const data = await response.json()
       
       // Mock comprehensive stats
@@ -143,7 +143,6 @@ export const FeeSystemDashboard: React.FC = () => {
       }
 
       const quote = await hyperliquidIntegration.getQuote(tradeParams)
-      console.log('Demo trade quote:', quote)
 
       // Show success message
       alert(`Demo trade executed!\nCYPHER Fee: $${quote.cypherFee.toFixed(2)}\nHyperliquid URL: ${quote.redirectUrl}`)

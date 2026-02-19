@@ -12,8 +12,6 @@ class RateLimiter {
     this.limits.set('blockchain-info', { maxRequests: 20, windowMs: 60000 }); // 20 requests per minute
     this.limits.set('lightning-api', { maxRequests: 10, windowMs: 60000 }); // 10 requests per minute
     this.limits.set('activity-feed', { maxRequests: 25, windowMs: 60000 }); // 25 requests per minute
-    
-    console.log('🛡️ Rate limiter initialized with conservative limits to prevent server crashes');
   }
 
   canMakeRequest(api: string): boolean {

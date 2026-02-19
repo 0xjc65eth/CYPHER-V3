@@ -161,19 +161,6 @@ export class CypherFeeManager {
     const validation = this.validateTransaction(transaction);
     const calculatedFee = this.calculateFee(transaction);
 
-    // Log da transação para auditoria
-    console.log('🔄 CYPHER FEE PROCESSING:', {
-      transactionId: transaction.id,
-      network: transaction.network,
-      amount: transaction.amount,
-      usdValue: transaction.usdValue,
-      feeAmount: calculatedFee.feeAmountUSD,
-      feePercentage: calculatedFee.feePercentage,
-      recipientAddress: calculatedFee.recipientAddress,
-      isValid: validation.isValid,
-      timestamp: new Date().toISOString()
-    });
-
     return {
       calculatedFee,
       validation
@@ -198,13 +185,6 @@ export class CypherFeeManager {
         txHash: `sim_${Date.now()}_${calculatedFee.transactionId}`,
         timestamp: new Date()
       };
-
-      console.log('💰 CYPHER FEE COLLECTED:', {
-        ...result,
-        network: calculatedFee.network,
-        recipientAddress: calculatedFee.recipientAddress,
-        userAddress
-      });
 
       return result;
     } catch (error) {

@@ -49,7 +49,6 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({
   // Log PWA status for debugging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('[PWA Provider] Status:', status);
       if (error) console.error('[PWA Provider] Error:', error);
     }
   }, [status, error]);
@@ -57,7 +56,6 @@ export const PWAProvider: React.FC<PWAProviderProps> = ({
   // Handle successful installation
   const handleInstallSuccess = () => {
     setInstallPromptShown(true);
-    console.log('[PWA Provider] App installed successfully');
   };
 
   // Context value

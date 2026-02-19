@@ -37,6 +37,19 @@ import SpreadChart from '@/components/arbitrage/SpreadChart';
 import ExchangePriceTable from '@/components/arbitrage/ExchangePriceTable';
 import ProfitCalculator from '@/components/arbitrage/ProfitCalculator';
 import { triangularArbitrage, ArbitrageOpportunity as TriangularOpportunity } from '@/services/arbitrage/TriangularArbitrage';
+import { OpportunityScanner } from '@/components/arbitrage/OpportunityScanner';
+import { ExchangePriceGrid } from '@/components/arbitrage/ExchangePriceGrid';
+import { OrderBlocksPanel } from '@/components/arbitrage/OrderBlocksPanel';
+import { FairValueGapsPanel } from '@/components/arbitrage/FairValueGapsPanel';
+import { MarketMakerMetrics } from '@/components/arbitrage/MarketMakerMetrics';
+import { TriangularPathVisualizer } from '@/components/arbitrage/TriangularPathVisualizer';
+import { PerformanceAnalytics } from '@/components/arbitrage/PerformanceAnalytics';
+import { RiskManagementPanel } from '@/components/arbitrage/RiskManagementPanel';
+import { ProfessionalCharts } from '@/components/arbitrage/ProfessionalCharts';
+import { LiquidityHeatmap } from '@/components/arbitrage/LiquidityHeatmap';
+import { PaperTradingPanel } from '@/components/arbitrage/PaperTradingPanel';
+import { BacktestPanel } from '@/components/arbitrage/BacktestPanel';
+import { AlertSystemPanel } from '@/components/arbitrage/AlertSystemPanel';
 
 interface ArbitrageApiData {
   exchanges: Array<{
@@ -101,7 +114,7 @@ export default function ArbitragePage() {
 
   const fetchArbPrices = useCallback(async () => {
     try {
-      const res = await fetch('/api/arbitrage/prices');
+      const res = await fetch('/api/arbitrage/prices/');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ArbitrageApiData = await res.json();
       if (data.exchanges) {
@@ -363,6 +376,27 @@ export default function ArbitragePage() {
                 <TabsTrigger value="analytics" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
                   Analytics
                 </TabsTrigger>
+                <TabsTrigger value="smc" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  SMC Analysis
+                </TabsTrigger>
+                <TabsTrigger value="performance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Performance
+                </TabsTrigger>
+                <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Risk
+                </TabsTrigger>
+                <TabsTrigger value="charts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Charts
+                </TabsTrigger>
+                <TabsTrigger value="paper-trading" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Paper Trading
+                </TabsTrigger>
+                <TabsTrigger value="backtest" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Backtest
+                </TabsTrigger>
+                <TabsTrigger value="alerts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Alerts
+                </TabsTrigger>
                 <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
                   History
                 </TabsTrigger>
@@ -483,6 +517,60 @@ export default function ArbitragePage() {
                       arbOpportunities={arbData.opportunities}
                       fees={arbData.fees}
                     />
+
+                    {/* New Professional Components */}
+                    <div className="space-y-6 mt-6">
+                      {/* Exchange Price Grid */}
+                      <div>
+                        <h3 className="text-[#00ff88] font-bold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                          <BarChart3 className="h-4 w-4" />
+                          Live Exchange Prices
+                        </h3>
+                        <ExchangePriceGrid
+                          exchanges={arbData.exchanges}
+                          loading={arbLoading}
+                          bestBid={arbData.bestBid}
+                          bestAsk={arbData.bestAsk}
+                        />
+                      </div>
+
+                      {/* Opportunity Scanner - Professional Table */}
+                      {arbData.opportunities && arbData.opportunities.length > 0 && (
+                        <div>
+                          <h3 className="text-[#00ff88] font-bold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <Zap className="h-4 w-4" />
+                            Detected Opportunities (CCXT Real-Time)
+                          </h3>
+                          <OpportunityScanner
+                            opportunities={arbData.opportunities.map((opp: any, idx: number) => ({
+                              id: `opp-${idx}`,
+                              type: 'cex-dex',
+                              symbol: 'BTC/USDT',
+                              buyExchange: opp.buyFrom,
+                              sellExchange: opp.sellTo,
+                              buyPrice: opp.buyPrice,
+                              sellPrice: opp.sellPrice,
+                              spread: opp.sellPrice - opp.buyPrice,
+                              spreadPercent: opp.spreadPercent,
+                              estimatedProfit: opp.estimatedProfitPer1BTC,
+                              netProfit: opp.estimatedProfitPer1BTC,
+                              fees: {
+                                buy: opp.buyFee,
+                                sell: opp.sellFee,
+                                network: 0,
+                                total: opp.buyFee + opp.sellFee
+                              },
+                              riskScore: opp.netProfitPercent > 0.5 ? 3 : opp.netProfitPercent > 0.1 ? 5 : 7,
+                              confidence: Math.min(95, Math.max(50, Math.abs(opp.netProfitPercent) * 100)),
+                              executionTime: 60,
+                              timestamp: new Date()
+                            }))}
+                            loading={arbLoading}
+                            onSelectOpportunity={(opp) => setSelectedOpportunity(opp)}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </>
                 ) : null}
 
@@ -721,12 +809,8 @@ export default function ArbitragePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {triangularOpps.slice(0, 12).map((opp, i) => {
-                      // Build path string from trading steps
-                      const pathString = [opp.baseCurrency, ...opp.tradingPath.map(step => step.toCurrency)].join(' → ');
-                      const isExpired = new Date(opp.expiresAt) < new Date();
-                      const status = isExpired ? 'expired' : 'active';
 
                       return (
                         <motion.div
@@ -734,54 +818,18 @@ export default function ArbitragePage() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: i * 0.05 }}
-                          className={`bg-[#1a1a2e] border rounded-lg p-5 ${status === 'active' ? 'border-[#00ff88]/20' : 'border-[#2a2a3e] opacity-60'}`}
                         >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="text-sm font-bold text-[#00ff88] font-mono truncate flex-1 mr-2">
-                              {pathString}
-                            </div>
-                            <Badge className={`text-xs border ${status === 'active' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-gray-500/20 border-gray-500 text-gray-400'}`}>
-                              {status.toUpperCase()}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3 text-xs">
-                            <div>
-                              <span className="text-gray-500">Exchanges</span>
-                              <div className="text-gray-300 font-mono">{opp.exchanges.join(', ')}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Net Profit</span>
-                              <div className="text-[#00ff88] font-mono font-bold">{opp.expectedProfit.toFixed(2)}%</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Profit Amount</span>
-                              <div className="text-green-400 font-mono font-bold">${opp.profitAmount.toFixed(2)}</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Risk</span>
-                              <Badge className={`text-xs border ${
-                                opp.riskLevel === 'LOW' ? 'bg-green-500/20 border-green-500 text-green-400' :
-                                opp.riskLevel === 'MEDIUM' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' :
-                                'bg-red-500/20 border-red-500 text-red-400'
-                              }`}>
-                                {opp.riskLevel}
-                              </Badge>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Execution Time</span>
-                              <div className="text-gray-300 font-mono">{opp.executionTime}s</div>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Confidence</span>
-                              <div className="text-cyan-400 font-mono">{opp.confidence}%</div>
-                            </div>
-                            <div className="col-span-2">
-                              <span className="text-gray-500">Total Fees</span>
-                              <div className="text-red-400 font-mono text-[10px]">
-                                Trading: ${opp.fees.trading.toFixed(2)} | Network: ${opp.fees.network.toFixed(2)} | Slippage: ${opp.fees.slippage.toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
+                          <TriangularPathVisualizer
+                            path={{
+                              ...opp,
+                              status: new Date(opp.expiresAt) < new Date() ? 'expired' : 'active',
+                              createdAt: new Date(opp.createdAt || Date.now())
+                            }}
+                            onExecute={(path) => {
+                              // TODO: Implement paper trade execution
+                              alert(`Paper trade execution for path ${path.id} - Coming soon!`);
+                            }}
+                          />
                         </motion.div>
                       );
                     })}
@@ -812,69 +860,241 @@ export default function ArbitragePage() {
 
             {/* Analytics Tab */}
             <TabsContent value="analytics">
+              {(() => {
+                // Compute real analytics from arbData
+                const allOpps = arbData?.opportunities || [];
+                const profitableOpps = allOpps.filter(o => o.netProfitPercent > 0);
+                const totalProfit = profitableOpps.reduce((sum, o) => sum + o.estimatedProfitPer1BTC, 0);
+                const successRate = allOpps.length > 0 ? (profitableOpps.length / allOpps.length * 100) : 0;
+                const avgSpreadCaptured = allOpps.length > 0
+                  ? allOpps.reduce((sum, o) => sum + o.spreadPercent, 0) / allOpps.length
+                  : 0;
+                const bestTrade = allOpps.length > 0
+                  ? allOpps.reduce((best, o) => o.estimatedProfitPer1BTC > best.estimatedProfitPer1BTC ? o : best, allOpps[0])
+                  : null;
+
+                // Compute spread distribution from exchange data
+                const exchangeSpreads = (arbData?.exchanges || []).map(e => e.spreadPercent).filter(s => s > 0);
+                const spreadBuckets = [
+                  { range: '0.01% - 0.05%', min: 0.01, max: 0.05 },
+                  { range: '0.05% - 0.10%', min: 0.05, max: 0.10 },
+                  { range: '0.10% - 0.20%', min: 0.10, max: 0.20 },
+                  { range: '0.20% - 0.50%', min: 0.20, max: 0.50 },
+                  { range: '> 0.50%', min: 0.50, max: Infinity },
+                ].map(b => {
+                  const count = exchangeSpreads.filter(s => s >= b.min && s < b.max).length;
+                  const pct = exchangeSpreads.length > 0 ? Math.round(count / exchangeSpreads.length * 100) : 0;
+                  return { range: b.range, count, pct };
+                });
+
+                return (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Est. Profit / 1 BTC</div>
+                        <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          ${totalProfit.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-gray-400">{profitableOpps.length} profitable paths</div>
+                      </div>
+                      <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Profitable Rate</div>
+                        <div className="text-2xl font-bold text-[#00ff88]">{successRate.toFixed(1)}%</div>
+                        <div className="text-xs text-gray-400">{profitableOpps.length} / {allOpps.length} paths</div>
+                      </div>
+                      <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Avg Spread</div>
+                        <div className="text-2xl font-bold text-cyan-400">{avgSpreadCaptured.toFixed(4)}%</div>
+                        <div className="text-xs text-gray-400">across {arbData?.exchangeCount || 0} exchanges</div>
+                      </div>
+                      <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
+                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Best Path</div>
+                        <div className="text-2xl font-bold text-orange-400">
+                          {bestTrade ? `$${bestTrade.estimatedProfitPer1BTC.toFixed(2)}` : '--'}
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {bestTrade ? `${bestTrade.buyFrom} → ${bestTrade.sellTo}` : 'No data'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Spread Distribution */}
+                    <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
+                      <CardHeader>
+                        <CardTitle className="text-[#00ff88] flex items-center gap-2 text-base">
+                          <BarChart3 className="h-5 w-5" />
+                          Spread Distribution
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {spreadBuckets.map((bucket) => (
+                            <div key={bucket.range} className="flex items-center gap-3">
+                              <div className="w-32 text-xs text-gray-400 font-mono">{bucket.range}</div>
+                              <div className="flex-1 bg-[#0d0d1a] rounded-full h-4 overflow-hidden">
+                                <div
+                                  className="h-full bg-gradient-to-r from-[#00ff88]/60 to-[#00ff88] rounded-full transition-all"
+                                  style={{ width: `${Math.max(bucket.pct, 2)}%` }}
+                                />
+                              </div>
+                              <div className="w-16 text-xs text-gray-300 text-right font-mono">{bucket.count} ({bucket.pct}%)</div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Spread Chart */}
+                    <SpreadChart opportunities={opportunities} />
+
+                    <div className="text-center py-2">
+                      <p className="text-xs text-gray-500">Analytics computed from live exchange data. Refreshes every 15s.</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </TabsContent>
+
+            {/* SMC Analysis Tab */}
+            <TabsContent value="smc">
               <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Profit (24h)</div>
-                    <div className="text-2xl font-bold text-green-400">$1,247.30</div>
-                    <div className="text-xs text-green-400/60">+12.4% vs yesterday</div>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#00ff88] mb-1">Smart Money Concepts Analysis</h2>
+                    <p className="text-gray-400 text-sm">
+                      Institutional trading patterns and price action analysis
+                    </p>
                   </div>
-                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Success Rate</div>
-                    <div className="text-2xl font-bold text-[#00ff88]">87.3%</div>
-                    <div className="text-xs text-gray-400">142 / 163 trades</div>
-                  </div>
-                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Avg Spread Captured</div>
-                    <div className="text-2xl font-bold text-cyan-400">0.34%</div>
-                    <div className="text-xs text-gray-400">after fees</div>
-                  </div>
-                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Best Trade</div>
-                    <div className="text-2xl font-bold text-orange-400">$89.50</div>
-                    <div className="text-xs text-gray-400">Binance → Kraken</div>
+                  <Badge className="bg-blue-500/20 border-blue-500 text-blue-400 border">
+                    <Activity className="h-3 w-3 mr-1 animate-pulse" />
+                    LIVE DATA
+                  </Badge>
+                </div>
+
+                {/* Info Banner */}
+                <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border border-purple-500/30 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h3 className="text-purple-400 font-semibold mb-2">What is Smart Money Concepts (SMC)?</h3>
+                      <p className="text-sm text-gray-300 leading-relaxed mb-2">
+                        SMC reveals institutional trading activity by identifying zones where large players
+                        (banks, hedge funds, market makers) accumulate or distribute positions. These patterns
+                        repeat because institutions must move billions without causing massive slippage.
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                        <div className="bg-black/20 rounded p-2">
+                          <div className="text-green-400 font-semibold text-xs mb-1">Order Blocks</div>
+                          <div className="text-xs text-gray-400">
+                            Price zones where institutions accumulated large positions. Price often returns here.
+                          </div>
+                        </div>
+                        <div className="bg-black/20 rounded p-2">
+                          <div className="text-cyan-400 font-semibold text-xs mb-1">Fair Value Gaps</div>
+                          <div className="text-xs text-gray-400">
+                            Inefficient price zones left by rapid moves. ~75% historical fill rate.
+                          </div>
+                        </div>
+                        <div className="bg-black/20 rounded p-2">
+                          <div className="text-orange-400 font-semibold text-xs mb-1">Market Maker Metrics</div>
+                          <div className="text-xs text-gray-400">
+                            Volume Profile, POC, and inventory management insights.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* Spread Distribution */}
-                <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                  <CardHeader>
-                    <CardTitle className="text-[#00ff88] flex items-center gap-2 text-base">
-                      <BarChart3 className="h-5 w-5" />
-                      Spread Distribution
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {[
-                        { range: '0.01% - 0.05%', count: 48, pct: 30 },
-                        { range: '0.05% - 0.10%', count: 62, pct: 38 },
-                        { range: '0.10% - 0.20%', count: 35, pct: 22 },
-                        { range: '0.20% - 0.50%', count: 12, pct: 7 },
-                        { range: '> 0.50%', count: 6, pct: 3 },
-                      ].map((bucket) => (
-                        <div key={bucket.range} className="flex items-center gap-3">
-                          <div className="w-32 text-xs text-gray-400 font-mono">{bucket.range}</div>
-                          <div className="flex-1 bg-[#0d0d1a] rounded-full h-4 overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-[#00ff88]/60 to-[#00ff88] rounded-full transition-all"
-                              style={{ width: `${bucket.pct}%` }}
-                            />
-                          </div>
-                          <div className="w-16 text-xs text-gray-300 text-right font-mono">{bucket.count} ({bucket.pct}%)</div>
-                        </div>
-                      ))}
+                {/* Grid Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column - Order Blocks */}
+                  <div className="lg:col-span-1">
+                    <OrderBlocksPanel asset="BTC/USDT" timeframe="1h" maxBlocks={8} />
+                  </div>
+
+                  {/* Center Column - Fair Value Gaps */}
+                  <div className="lg:col-span-1">
+                    <FairValueGapsPanel asset="BTC/USDT" timeframe="1h" maxGaps={8} />
+                  </div>
+
+                  {/* Right Column - Market Maker Metrics */}
+                  <div className="lg:col-span-1">
+                    <MarketMakerMetrics symbol="BTC/USDT" />
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-yellow-400 font-semibold mb-1">Note on SMC Detection</h4>
+                      <p className="text-sm text-yellow-200/80">
+                        SMC signals are detected from candlestick patterns and require historical price data.
+                        In this demo, signals will appear once we integrate with a price data source (e.g., Binance API).
+                        The detection algorithms are ready and will automatically populate when connected to live data.
+                      </p>
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Spread Chart */}
-                <SpreadChart opportunities={opportunities} />
-
-                <div className="text-center py-2">
-                  <p className="text-xs text-gray-500">Analytics data is partially simulated. Full tracking integration in progress.</p>
+                  </div>
                 </div>
               </div>
+            </TabsContent>
+
+            {/* Performance Tab */}
+            <TabsContent value="performance">
+              <PerformanceAnalytics strategy="all" defaultPeriod="24h" />
+            </TabsContent>
+
+            {/* Risk Management Tab */}
+            <TabsContent value="risk">
+              <RiskManagementPanel
+                capital={10000}
+                currentExposure={0}
+                currentDrawdown={0}
+              />
+            </TabsContent>
+
+            {/* Charts Tab - Phase 4 */}
+            <TabsContent value="charts">
+              <div className="space-y-6">
+                {/* Professional TradingView-style Charts */}
+                <ProfessionalCharts
+                  symbol="BTC/USDT"
+                  timeframe="1h"
+                  height={500}
+                  showSMC={true}
+                />
+
+                {/* Liquidity Heatmap */}
+                <LiquidityHeatmap
+                  symbol="BTC/USDT"
+                  levels={30}
+                />
+              </div>
+            </TabsContent>
+
+            {/* Paper Trading Tab - Phase 5 */}
+            <TabsContent value="paper-trading">
+              <PaperTradingPanel
+                initialBalance={10000}
+                onTradeExecuted={() => {}}
+              />
+            </TabsContent>
+
+            {/* Backtest Tab - Phase 5 */}
+            <TabsContent value="backtest">
+              <BacktestPanel
+                onBacktestComplete={() => {}}
+              />
+            </TabsContent>
+
+            {/* Alerts Tab - Phase 5 */}
+            <TabsContent value="alerts">
+              <AlertSystemPanel
+                onAlertTriggered={() => {}}
+              />
             </TabsContent>
 
             {/* History Tab */}

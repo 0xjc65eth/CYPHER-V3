@@ -3,7 +3,6 @@ import { brc20Service } from '@/services/BRC20Service'
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('📊 Fetching BRC-20 analytics...')
 
     // Fetch tokens to calculate analytics
     const controller = new AbortController();
@@ -69,7 +68,6 @@ export async function GET(request: NextRequest) {
       source: 'hiro',
     };
 
-    console.log('✅ Successfully generated BRC-20 analytics')
     return NextResponse.json(analytics, {
       headers: {
         'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=240',

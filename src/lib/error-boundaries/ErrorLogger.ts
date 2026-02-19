@@ -35,19 +35,14 @@ class ProductionErrorLogger implements ErrorLogger {
             console.error('Monitoring Service - Exception:', error, context);
           },
           captureMessage: (message: string, level?: string, context?: any) => {
-            console.warn('Monitoring Service - Message:', message, level, context);
           },
           setUser: (user: { id: string; email?: string }) => {
-            console.info('Monitoring Service - User Set:', user);
           },
           setTag: (key: string, value: string) => {
-            console.info('Monitoring Service - Tag Set:', key, value);
           },
           setContext: (key: string, context: any) => {
-            console.info('Monitoring Service - Context Set:', key, context);
           },
           addBreadcrumb: (breadcrumb: any) => {
-            console.info('Monitoring Service - Breadcrumb:', breadcrumb);
           }
         };
       } catch (error) {
@@ -179,7 +174,7 @@ class ProductionErrorLogger implements ErrorLogger {
 
       // Send to custom endpoint if needed
       if (this.isProduction && typeof fetch !== 'undefined') {
-        await fetch('/api/errors', {
+        await fetch('/api/errors/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,7 +214,6 @@ class ProductionErrorLogger implements ErrorLogger {
   }
 
   warn(message: string, data?: any): void {
-    console.warn(`[WARN] ${message}`, data);
     
     if (this.monitoring) {
       this.monitoring.captureMessage(message, 'warning', data);
@@ -227,7 +221,6 @@ class ProductionErrorLogger implements ErrorLogger {
   }
 
   info(message: string, data?: any): void {
-    console.info(`[INFO] ${message}`, data);
     
     if (this.monitoring) {
       this.monitoring.captureMessage(message, 'info', data);

@@ -23,7 +23,7 @@ export function LightningStats() {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch('/api/lightning-data', { signal: controller.signal });
+        const res = await fetch('/api/lightning-data/', { signal: controller.signal });
         clearTimeout(timeout);
 
         if (res.ok) {
@@ -55,7 +55,6 @@ export function LightningStats() {
           }
         }
       } catch {
-        console.log('Lightning API unavailable, using fallback');
       }
     };
 

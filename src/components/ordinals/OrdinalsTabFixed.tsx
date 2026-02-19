@@ -184,97 +184,7 @@ type TabView = 'trending' | 'collections' | 'inscriptions' | 'activity' | 'analy
 type SortBy = 'recent' | 'price_asc' | 'price_desc' | 'rarity' | 'number' | 'volume' | 'popularity';
 type TimeRange = '1h' | '24h' | '7d' | '30d' | 'all';
 
-// Enhanced mock data
-const MOCK_COLLECTIONS: Collection[] = [
-  {
-    id: '1',
-    name: 'Bitcoin Punks',
-    slug: 'bitcoin-punks',
-    description: 'The first 10k collection on Bitcoin Ordinals. Hand-pixeled and provably rare.',
-    imageUrl: '/collections/bitcoin-punks.jpg',
-    bannerUrl: '/collections/bitcoin-punks-banner.jpg',
-    verified: true,
-    supply: 10000,
-    holders: 3456,
-    floorPrice: 0.15,
-    volume24h: 45.6,
-    volumeTotal: 1234.5,
-    change24h: 12.5,
-    change7d: -3.2,
-    listings: 234,
-    sales24h: 67,
-    royaltyFee: 5,
-    createdAt: new Date('2023-01-15'),
-    website: 'https://bitcoinpunks.com',
-    twitter: '@bitcoinpunks',
-    discord: 'bitcoinpunks',
-    tags: ['pfp', 'pixelart', 'blue-chip'],
-    stats: {
-      avgPrice: 0.25,
-      medianPrice: 0.18,
-      highestSale: 2.5,
-      uniqueOwners: 3456,
-      listedPercent: 2.34
-    }
-  },
-  {
-    id: '2',
-    name: 'Ordinal Maxi Biz',
-    slug: 'omb',
-    description: 'Bitcoin Maxis on Ordinals - The most based collection on Bitcoin',
-    imageUrl: '/collections/omb.jpg',
-    bannerUrl: '/collections/omb-banner.jpg',
-    verified: true,
-    supply: 5000,
-    holders: 2100,
-    floorPrice: 0.08,
-    volume24h: 23.4,
-    volumeTotal: 567.8,
-    change24h: -5.3,
-    change7d: 8.7,
-    listings: 156,
-    sales24h: 23,
-    royaltyFee: 4.5,
-    createdAt: new Date('2023-02-20'),
-    website: 'https://omb.ordinals.com',
-    twitter: '@OMBOrdinals',
-    tags: ['pfp', 'meme', 'community'],
-    stats: {
-      avgPrice: 0.12,
-      medianPrice: 0.09,
-      highestSale: 0.85,
-      uniqueOwners: 2100,
-      listedPercent: 3.12
-    }
-  }
-];
-
-const MOCK_ACTIVITY: ActivityItem[] = [
-  {
-    id: '1',
-    type: 'sale',
-    inscriptionNumber: 12345,
-    collection: 'Bitcoin Punks',
-    price: 0.25,
-    from: 'bc1q...abc123',
-    to: 'bc1q...def456',
-    timestamp: new Date(Date.now() - 5 * 60 * 1000),
-    txHash: 'abc123def456...',
-    marketplace: 'magic-eden'
-  },
-  {
-    id: '2',
-    type: 'listing',
-    inscriptionNumber: 67890,
-    collection: 'Ordinal Maxi Biz',
-    price: 0.12,
-    from: 'bc1q...ghi789',
-    to: '',
-    timestamp: new Date(Date.now() - 15 * 60 * 1000),
-    txHash: 'ghi789jkl012...',
-    marketplace: 'ordinals-wallet'
-  }
-];
+// No mock data - all data comes from real API endpoints
 
 export function OrdinalsTabFixed() {
   // State management
@@ -292,29 +202,29 @@ export function OrdinalsTabFixed() {
   const [soundEnabled, setSoundEnabled] = useState(false);
 
   // Data state
-  const [collections, setCollections] = useState<Collection[]>(MOCK_COLLECTIONS);
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [ordinals, setOrdinals] = useState<Ordinal[]>([]);
-  const [activity, setActivity] = useState<ActivityItem[]>(MOCK_ACTIVITY);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [analyticsData, setAnalyticsData] = useState<OrdinalsAnalytics | null>(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [marketStats, setMarketStats] = useState<MarketStats>({
-    totalVolume: 5678.9,
-    volume24h: 234.5,
-    volumeChange24h: 15.7,
-    totalSales: 123456,
-    sales24h: 1234,
-    avgPrice: 0.095,
-    avgPriceChange24h: 8.3,
-    floorPrice: 0.045,
-    floorPriceChange24h: -2.1,
-    uniqueBuyers: 8901,
-    uniqueSellers: 6789,
-    marketCap: 8945.6,
-    activeListings: 12456,
+    totalVolume: 0,
+    volume24h: 0,
+    volumeChange24h: 0,
+    totalSales: 0,
+    sales24h: 0,
+    avgPrice: 0,
+    avgPriceChange24h: 0,
+    floorPrice: 0,
+    floorPriceChange24h: 0,
+    uniqueBuyers: 0,
+    uniqueSellers: 0,
+    marketCap: 0,
+    activeListings: 0,
     topSale24h: {
-      price: 2.5,
-      collection: 'Bitcoin Punks',
-      inscriptionNumber: 12345
+      price: 0,
+      collection: '',
+      inscriptionNumber: 0
     }
   });
 
@@ -402,16 +312,16 @@ export function OrdinalsTabFixed() {
       });
 
       const [ordinalsRes, collectionsRes, activityRes, statsRes] = await Promise.all([
-        fetch(`/api/ordinals/list?${params}`, { 
+        fetch(`/api/ordinals/list/?${params}`, { 
           signal: abortControllerRef.current.signal 
         }),
-        fetch(`/api/ordinals/collections?${params}`, { 
+        fetch(`/api/ordinals/collections/?${params}`, { 
           signal: abortControllerRef.current.signal 
         }),
-        fetch(`/api/ordinals/activity?${params}`, { 
+        fetch(`/api/ordinals/activity/?${params}`, { 
           signal: abortControllerRef.current.signal 
         }),
-        fetch(`/api/ordinals/stats?${params}`, { 
+        fetch(`/api/ordinals/stats/?${params}`, { 
           signal: abortControllerRef.current.signal 
         })
       ]);
@@ -423,12 +333,12 @@ export function OrdinalsTabFixed() {
 
       if (collectionsRes.ok) {
         const data = await collectionsRes.json();
-        setCollections(data.collections || MOCK_COLLECTIONS);
+        setCollections(data.collections || []);
       }
 
       if (activityRes.ok) {
         const data = await activityRes.json();
-        setActivity(data.activity || MOCK_ACTIVITY);
+        setActivity(data.activity || []);
       }
 
       if (statsRes.ok) {
@@ -794,7 +704,6 @@ export function OrdinalsTabFixed() {
               ]}
               activeTab={activeTab}
               onTabChange={(tabId) => {
-                console.log('🎯 Tab changed to:', tabId);
                 setActiveTab(tabId as TabView);
               }}
             />

@@ -61,14 +61,12 @@ export function CryptoPricesCard() {
               setError(null);
             } else {
               // Se não temos dados formatados, manter os preços anteriores
-              console.warn('Nenhum preço válido retornado da API');
               if (prices.length === 0) {
                 // Se não temos preços anteriores, mostrar erro
                 setError('Não foi possível obter preços válidos. Tente novamente mais tarde.');
               }
             }
           } else {
-            console.warn('Dados de preços inválidos ou vazios');
             if (prices.length === 0) {
               setError('Dados de preços indisponíveis. Tente novamente mais tarde.');
             }

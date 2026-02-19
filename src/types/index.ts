@@ -8,4 +8,10 @@ export interface RootState {
   market: MarketState;
   mempool: MempoolState;
   mining: MiningState;
-} 
+}
+
+// Magic Eden API types
+export * from './magiceden';
+
+// UniSat API types
+export * from './unisat'; 

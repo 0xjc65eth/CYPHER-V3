@@ -147,7 +147,6 @@ function EnhancedErrorFallback({
     try {
       setReportSent(true);
       // In a real app, send to your error reporting service
-      console.log('Error report sent:', { error, errorId, level, name });
     } catch (err) {
       console.error('Failed to send error report:', err);
     }

@@ -16,7 +16,6 @@ export async function GET(
       }, { status: 400 });
     }
 
-    console.log(`🔍 Buscando detalhes do Ordinal: ${id}`);
 
     // Buscar dados paralelos
     const [details, transfers] = await Promise.allSettled([
@@ -35,12 +34,12 @@ export async function GET(
       data: result
     });
 
-  } catch (error) {
-    console.error('❌ Erro na API Ordinal Details:', error);
+  } catch (error: unknown) {
+    console.error('Erro na API Ordinal Details:', error);
     return NextResponse.json({
       success: false,
       error: 'Erro ao buscar detalhes do Ordinal',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }

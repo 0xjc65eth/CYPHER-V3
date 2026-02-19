@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
 
     // Email service implementation would go here
     // For now, we'll simulate successful email sending
-    console.log('Email sent:', { to, subject, type, timestamp: new Date() });
 
     // In a real implementation, you would:
     // 1. Use NodeMailer, SendGrid, or similar service

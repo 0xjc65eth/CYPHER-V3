@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
     const feeCalculation = await calculateFees(sanitizedBody);
 
     // Log successful calculation (for monitoring)
-    console.log(`Fee calculation for ${clientIP}: ${sanitizedBody.amountIn} ${sanitizedBody.tokenIn} -> ${sanitizedBody.tokenOut}`);
 
     // Return calculation with warnings if any
     const response: any = feeCalculation;
@@ -131,7 +130,7 @@ export async function OPTIONS() {
   return new NextResponse(null, {
     status: 200,
     headers: {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Max-Age': '86400',

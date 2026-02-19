@@ -105,7 +105,6 @@ async function refreshAccessToken(token: any) {
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     }
   } catch (error) {
-    console.log(error)
 
     return {
       ...token,

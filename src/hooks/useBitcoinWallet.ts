@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getBitcoinWallet } from '@/services/BitcoinWalletConnect';
 
 interface WalletState {
@@ -17,7 +17,7 @@ interface AvailableWallet {
   name: string;
   id: string;
   icon: string;
-  provider: any;
+  available: boolean;
 }
 
 export const useBitcoinWallet = () => {
@@ -30,157 +30,140 @@ export const useBitcoinWallet = () => {
     ordinalsBalance: [],
     runesBalance: []
   });
-  
+
   const [availableWallets, setAvailableWallets] = useState<AvailableWallet[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+  const bitcoinWalletRef = useRef<ReturnType<typeof getBitcoinWallet> | null>(null);
 
-  const bitcoinWallet = getBitcoinWallet();
+  // Lazy init — only on client
+  const getBtcWallet = useCallback(() => {
+    if (!bitcoinWalletRef.current && typeof window !== 'undefined') {
+      bitcoinWalletRef.current = getBitcoinWallet();
+    }
+    return bitcoinWalletRef.current;
+  }, []);
 
-  // Update wallet state
   const updateWalletState = useCallback(() => {
-    const currentState = bitcoinWallet.getWalletState();
-    setWalletState(currentState);
-  }, [bitcoinWallet]);
+    try {
+      const bw = getBtcWallet();
+      if (!bw || !mountedRef.current) return;
+      const s = bw.getState();      setWalletState({
+        isConnected: s.isConnected,
+        walletType: s.currentWallet,
+        address: s.currentAddress,
+        publicKey: null,
+        balance: s.balance,
+        ordinalsBalance: [],
+        runesBalance: []
+      });
+    } catch (err) {
+    }
+  }, [getBtcWallet]);
 
-  // Detect available wallets
   const detectWallets = useCallback(() => {
-    const wallets = bitcoinWallet.detectWallets();
-    setAvailableWallets(wallets);
-  }, [bitcoinWallet]);
+    try {
+      const bw = getBtcWallet();
+      if (!bw || typeof window === 'undefined') return;
+      const detected = bw.detectWallets(); // ← retorna Record<string, any>
+      // Converter Record para AvailableWallet[]
+      const list: AvailableWallet[] = Object.entries(detected).map(([id, info]: [string, any]) => ({
+        name: info.name || id,
+        id,
+        icon: info.icon || '',
+        available: info.available !== undefined ? info.available : true,
+      }));
+      if (mountedRef.current) setAvailableWallets(list);
+    } catch (err) {
+    }
+  }, [getBtcWallet]);
 
-  // Connect to wallet
   const connect = useCallback(async (walletId: string) => {
+    const bw = getBtcWallet();
+    if (!bw) throw new Error('BitcoinWallet not available');
     setIsConnecting(true);
     setError(null);
-
     try {
-      const result = await bitcoinWallet.connect(walletId);
-      
-      if (result.success) {
-        updateWalletState();
-        return result;
-      } else {
-        throw new Error('Failed to connect wallet');
-      }
+      const result = await bw.connect(walletId);
+      updateWalletState();
+      return { success: true, ...result };
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to connect wallet';
-      setError(errorMessage);
+      if (mountedRef.current) setError(error.message || 'Connection failed');
       throw error;
     } finally {
-      setIsConnecting(false);
+      if (mountedRef.current) setIsConnecting(false);
     }
-  }, [bitcoinWallet, updateWalletState]);
+  }, [getBtcWallet, updateWalletState]);
 
-  // Disconnect wallet
   const disconnect = useCallback(() => {
-    bitcoinWallet.disconnect();
+    const bw = getBtcWallet();
+    if (bw) bw.disconnect();
     updateWalletState();
     setError(null);
-  }, [bitcoinWallet, updateWalletState]);
+  }, [getBtcWallet, updateWalletState]);
 
-  // Refresh wallet info
   const refreshWalletInfo = useCallback(async () => {
-    if (walletState.isConnected) {
-      try {
-        await bitcoinWallet.getWalletInfo();
-        updateWalletState();
-      } catch (error: any) {
-        console.error('Error refreshing wallet info:', error);
-        setError(error.message || 'Failed to refresh wallet info');
-      }
-    }
-  }, [bitcoinWallet, walletState.isConnected, updateWalletState]);
-
-  // Sign transaction
-  const signTransaction = useCallback(async (transaction: string) => {
-    if (!walletState.isConnected) {
-      throw new Error('Wallet not connected');
-    }
-
+    const bw = getBtcWallet();
+    if (!bw || !walletState.isConnected) return;
     try {
-      return await bitcoinWallet.signTransaction(transaction);
-    } catch (error: any) {
-      const errorMessage = error.message || 'Failed to sign transaction';
-      setError(errorMessage);
-      throw error;
+      await bw.refreshData();      updateWalletState();
+    } catch (err: any) {
+      console.error('[useBitcoinWallet] refresh error:', err);
     }
-  }, [bitcoinWallet, walletState.isConnected]);
+  }, [getBtcWallet, walletState.isConnected, updateWalletState]);
 
-  // Get balance in different formats
+  const signTransaction = useCallback(async (psbtHex: string) => {
+    const bw = getBtcWallet();
+    if (!bw || !walletState.isConnected) throw new Error('Not connected');
+    const provider = bw.getCurrentProvider();
+    if (!provider) throw new Error('No provider');
+    // Cada wallet tem método diferente para assinar PSBT
+    if (provider.signPsbt) return await provider.signPsbt(psbtHex);
+    if (provider.signTransaction) return await provider.signTransaction(psbtHex);
+    throw new Error('Wallet does not support PSBT signing');
+  }, [getBtcWallet, walletState.isConnected]);
+
   const getFormattedBalance = useCallback(() => {
     const { balance } = walletState;
-    
     if (!balance) return { btc: '0', satoshis: '0', usd: '0' };
-    
-    let satoshis = 0;
-    
-    if (typeof balance === 'number') {
-      satoshis = balance;
-    } else if (balance.total !== undefined) {
-      satoshis = balance.total;
-    } else if (balance.confirmed !== undefined) {
-      satoshis = balance.confirmed;
-    }
-    
-    const btc = (satoshis / 100000000).toFixed(8);
-    
-    return {
-      btc,
-      satoshis: satoshis.toString(),
-      usd: '0' // TODO: Calculate USD value
-    };
+    let sats = 0;
+    if (typeof balance === 'number') sats = balance;
+    else if (balance.total !== undefined) sats = balance.total;
+    else if (balance.confirmed !== undefined) sats = balance.confirmed;
+    return { btc: (sats / 1e8).toFixed(8), satoshis: sats.toString(), usd: '0' };
   }, [walletState.balance]);
 
-  // Format address for display
   const getFormattedAddress = useCallback(() => {
-    const { address } = walletState;
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    if (!walletState.address) return '';
+    return `${walletState.address.slice(0, 6)}...${walletState.address.slice(-4)}`;
   }, [walletState.address]);
 
-  // Check if specific wallet is available
   const isWalletAvailable = useCallback((walletId: string) => {
-    return availableWallets.some(wallet => wallet.id === walletId);
+    return availableWallets.some(w => w.id === walletId && w.available);
   }, [availableWallets]);
 
-  // Initialize on mount
   useEffect(() => {
-    updateWalletState();
-    detectWallets();
+    mountedRef.current = true;
+    const timer = setTimeout(() => {
+      if (mountedRef.current) {
+        updateWalletState();
+        detectWallets();
+      }
+    }, 500); // Delay para extensões carregarem
+    return () => { mountedRef.current = false; clearTimeout(timer); };
   }, [updateWalletState, detectWallets]);
 
-  // Auto-refresh wallet info periodically
   useEffect(() => {
-    if (walletState.isConnected) {
-      const interval = setInterval(() => {
-        refreshWalletInfo();
-      }, 30000); // Refresh every 30 seconds
-
-      return () => clearInterval(interval);
-    }
+    if (!walletState.isConnected) return;
+    const interval = setInterval(refreshWalletInfo, 30000);
+    return () => clearInterval(interval);
   }, [walletState.isConnected, refreshWalletInfo]);
 
   return {
-    // State
-    walletState,
-    availableWallets,
-    isConnecting,
-    error,
-    
-    // Actions
-    connect,
-    disconnect,
-    refreshWalletInfo,
-    signTransaction,
-    
-    // Utilities
-    getFormattedBalance,
-    getFormattedAddress,
-    isWalletAvailable,
-    detectWallets,
-    
-    // Computed values
+    walletState, availableWallets, isConnecting, error,
+    connect, disconnect, refreshWalletInfo, signTransaction,
+    getFormattedBalance, getFormattedAddress, isWalletAvailable, detectWallets,
     isConnected: walletState.isConnected,
     address: walletState.address,
     walletType: walletState.walletType,
@@ -189,5 +172,4 @@ export const useBitcoinWallet = () => {
     runesCount: walletState.runesBalance?.length || 0
   };
 };
-
 export default useBitcoinWallet;

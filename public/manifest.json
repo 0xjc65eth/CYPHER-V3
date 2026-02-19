@@ -1,9 +1,7 @@
 {
-  "name": "CYPHER",
+  "name": "CYPHER ORDI FUTURE",
   "short_name": "CYPHER",
-  "description": "CYPHER - Professional Bitcoin Trading Terminal with AI-Powered Analytics",
-  "version": "3.0.0",
-  "manifest_version": 2,
+  "description": "Professional Bitcoin Trading Terminal with AI-Powered Analytics",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -27,23 +25,14 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any maskable"
     }
-  ],
-  "splash_pages": null,
-  "features": [
-    "bitcoin-analytics",
-    "ordinals-tracking",
-    "runes-analysis",
-    "ai-trading",
-    "quicktrade",
-    "arbitrage-detection"
   ],
   "prefer_related_applications": false,
   "shortcuts": [
@@ -58,7 +47,7 @@
       "name": "QuickTrade",
       "short_name": "Trade",
       "description": "Access QuickTrade interface",
-      "url": "/",
+      "url": "/swap",
       "icons": [{"src": "/favicon-32x32.png", "sizes": "32x32"}]
     },
     {
@@ -66,6 +55,13 @@
       "short_name": "Arbitrage",
       "description": "Check arbitrage opportunities",
       "url": "/arbitrage",
+      "icons": [{"src": "/favicon-32x32.png", "sizes": "32x32"}]
+    },
+    {
+      "name": "Portfolio",
+      "short_name": "Portfolio",
+      "description": "View your portfolio",
+      "url": "/portfolio",
       "icons": [{"src": "/favicon-32x32.png", "sizes": "32x32"}]
     }
   ]

@@ -6,7 +6,7 @@ import { HiroAPIError } from './types'
 
 // API Configuration
 const HIRO_API_BASE = process.env.NEXT_PUBLIC_HIRO_API_ENDPOINT || 'https://api.hiro.so'
-const HIRO_API_KEY = process.env.NEXT_PUBLIC_HIRO_API_KEY
+const HIRO_API_KEY = process.env.HIRO_API_KEY
 const HIRO_API_TIMEOUT = parseInt(process.env.NEXT_PUBLIC_HIRO_API_TIMEOUT || '30000')
 
 // Rate limiting configuration

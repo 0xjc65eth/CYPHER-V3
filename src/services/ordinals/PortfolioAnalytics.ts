@@ -747,8 +747,9 @@ export class PortfolioAnalytics {
   }
 
   private async calculatePeriodChange(inscriptionId: string, period: string): Promise<number> {
-    // Implementation for calculating price change over period
-    return Math.random() * 20 - 10; // Placeholder: -10% to +10%
+    // No historical price data available for individual inscriptions yet
+    // Return 0 instead of fake random values
+    return 0;
   }
 
   private calculateDiversificationScore(allocation: PortfolioAllocation[]): number {

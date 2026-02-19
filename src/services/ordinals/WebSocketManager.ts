@@ -95,12 +95,10 @@ export class OrdinalsWebSocketManager extends EventEmitter {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.warn('WebSocket manager is already running');
       return;
     }
 
     this.isRunning = true;
-    console.log('Starting Ordinals WebSocket Manager...');
 
     // Connect to each enabled marketplace
     const connectionPromises = this.config.enabledMarketplaces.map(marketplace => 
@@ -114,7 +112,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
       activeConnections: Array.from(this.connections.keys())
     });
 
-    console.log(`WebSocket Manager started with ${this.connections.size} active connections`);
   }
 
   /**
@@ -126,7 +123,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
     }
 
     this.isRunning = false;
-    console.log('Stopping Ordinals WebSocket Manager...');
 
     // Close all connections
     this.connections.forEach((ws, marketplace) => {
@@ -141,7 +137,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
     this.reconnectTimeouts.clear();
 
     this.emit('stopped');
-    console.log('WebSocket Manager stopped');
   }
 
   /**
@@ -216,7 +211,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   private async connectToMarketplace(marketplace: OrdinalsMarketplace): Promise<void> {
     const endpoint = this.WEBSOCKET_ENDPOINTS[marketplace];
     if (!endpoint) {
-      console.warn(`No WebSocket endpoint configured for ${marketplace}`);
       return;
     }
 
@@ -248,7 +242,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   }
 
   private handleConnection(marketplace: OrdinalsMarketplace, ws: WebSocket): void {
-    console.log(`Connected to ${marketplace} WebSocket`);
     
     this.updateConnectionStatus(marketplace, {
       connected: true,
@@ -294,7 +287,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   }
 
   private handleDisconnection(marketplace: OrdinalsMarketplace, event: CloseEvent): void {
-    console.warn(`Disconnected from ${marketplace} WebSocket`, event.code, event.reason);
     
     this.updateConnectionStatus(marketplace, {
       connected: false,
@@ -328,7 +320,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   }
 
   private handleConnectionTimeout(marketplace: OrdinalsMarketplace): void {
-    console.warn(`Connection timeout for ${marketplace}`);
     
     this.updateConnectionStatus(marketplace, {
       connected: false,
@@ -349,7 +340,6 @@ export class OrdinalsWebSocketManager extends EventEmitter {
 
     const delay = this.config.reconnectInterval * Math.pow(2, status.reconnectAttempts); // Exponential backoff
     
-    console.log(`Scheduling reconnection to ${marketplace} in ${delay}ms (attempt ${status.reconnectAttempts + 1})`);
 
     const timeout = setTimeout(() => {
       this.updateConnectionStatus(marketplace, {
@@ -547,7 +537,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
     // Detect whale transactions
     if (message.type === 'sale' && message.data.price > 1.0) { // > 1 BTC
       const event: MarketEvent = {
-        id: `whale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: `whale_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
         type: 'whale_activity',
         collectionId: message.data.collectionId,
         inscriptionId: message.data.inscriptionId,
@@ -569,7 +559,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
         
         if (Math.abs(changePercentage) > (this.config.filters.priceChangeThreshold || 20)) {
           const event: MarketEvent = {
-            id: `spike_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            id: `spike_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`,
             type: 'price_spike',
             collectionId: priceUpdate.collectionId,
             inscriptionId: priceUpdate.inscriptionId,

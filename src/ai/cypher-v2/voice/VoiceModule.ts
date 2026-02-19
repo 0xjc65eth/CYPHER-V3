@@ -35,7 +35,6 @@ export class VoiceModule extends EventEmitter {
     try {
       // Only initialize in browser environment
       if (typeof window === 'undefined') {
-        console.warn('VoiceModule: Skipping initialization in SSR environment');
         return;
       }
       
@@ -49,7 +48,6 @@ export class VoiceModule extends EventEmitter {
     } catch (error) {
       console.error('Erro ao inicializar VoiceModule:', error);
       // Don't throw error to prevent SSR failures
-      console.warn('VoiceModule: Continuing without voice capabilities');
     }
   }
 
@@ -92,14 +90,12 @@ export class VoiceModule extends EventEmitter {
         // Handle different types of speech recognition errors
         switch (event.error) {
           case 'network':
-            console.warn('⚠️ Erro de rede no reconhecimento de voz - tentando novamente em 3s...');
             // Don't emit error for network issues, just retry
             setTimeout(() => {
               if (this.isListeningActive && this.recognition) {
                 try {
                   this.recognition.start();
                 } catch (error) {
-                  console.warn('❌ Falha ao reiniciar reconhecimento:', error);
                 }
               }
             }, 3000);
@@ -111,20 +107,16 @@ export class VoiceModule extends EventEmitter {
             break;
           
           case 'no-speech':
-            console.info('🔇 Nenhuma fala detectada - modo listening ativo');
             // Don't emit error for no speech, this is normal
             break;
 
           case 'audio-capture':
-            console.warn('🎙️ Problema com captura de áudio - verificando microfone...');
             break;
 
           case 'service-not-allowed':
-            console.warn('🚫 Serviço de reconhecimento não permitido');
             break;
           
           default:
-            console.warn('⚠️ Erro de reconhecimento de voz:', event.error);
             // Don't emit errors for common browser issues
         }
       };
@@ -174,12 +166,10 @@ export class VoiceModule extends EventEmitter {
               this.monitorAmplitude();
             }
           } catch (micError) {
-            console.warn('Acesso ao microfone negado ou não disponível:', micError);
           }
         }
       }
     } catch (error) {
-      console.warn('AudioContext não disponível:', error);
     }
   }
 
@@ -219,7 +209,6 @@ export class VoiceModule extends EventEmitter {
     try {
       // Check if already listening to avoid conflicts
       if (this.isListeningActive) {
-        console.warn('Reconhecimento já está ativo');
         return;
       }
 
@@ -233,7 +222,6 @@ export class VoiceModule extends EventEmitter {
         this.recognition.start();
       } catch (error: any) {
         if (error.message?.includes('already started')) {
-          console.warn('Reconhecimento já iniciado, ignorando...');
           return;
         }
         throw error;
@@ -253,7 +241,6 @@ export class VoiceModule extends EventEmitter {
           (error.message.includes('not-allowed') || 
            error.message.includes('network') ||
            error.message.includes('already started'))) {
-        console.warn('Problema temporário com reconhecimento de voz:', error.message);
         return null;
       }
       
@@ -268,33 +255,19 @@ export class VoiceModule extends EventEmitter {
   }
 
   async speak(text: string, emotion: EmotionType = 'neutral'): Promise<void> {
-    console.log('🔊 VoiceModule.speak() chamado:', {
-      synthesis: !!this.synthesis,
-      voiceEnabled: this.config.voiceEnabled || this.config.voice?.enabled,
-      text: text?.substring(0, 50) + '...',
-      emotion,
-      orchestratorReady: this.aiOrchestrator.isReady()
-    });
-
     const voiceEnabled = this.config.voiceEnabled || this.config.voice?.enabled;
     if (!voiceEnabled || !text?.trim()) {
-      console.warn('❌ Síntese de voz bloqueada:', {
-        voiceEnabled,
-        hasText: !!text?.trim()
-      });
       return;
     }
 
     // Try AI Orchestrator first (ElevenLabs + fallback)
     if (this.aiOrchestrator.isReady()) {
       try {
-        console.log('🎤 Tentando síntese com AI Orchestrator...');
         const voiceResult = await this.aiOrchestrator.synthesizeVoice(text, emotion);
         
         if (voiceResult.success) {
           this.isSpeakingActive = true;
           this.emit('speakingStarted');
-          console.log(`✅ Síntese realizada via ${voiceResult.source}`);
           
           // If we got audio buffer from ElevenLabs, play it
           if (voiceResult.audioBuffer && voiceResult.source === 'elevenlabs') {
@@ -306,13 +279,11 @@ export class VoiceModule extends EventEmitter {
           return;
         }
       } catch (error) {
-        console.warn('⚠️ AI Orchestrator TTS falhou, usando síntese do navegador...', error);
       }
     }
 
     // Fallback to browser synthesis
     if (!this.synthesis) {
-      console.warn('❌ Nenhuma síntese de voz disponível');
       return;
     }
 
@@ -331,13 +302,11 @@ export class VoiceModule extends EventEmitter {
         utterance.onstart = () => {
           this.isSpeakingActive = true;
           this.emit('speakingStarted');
-          console.log('🔊 CYPHER AI falando:', text.substring(0, 50) + '...');
         };
 
         utterance.onend = () => {
           this.isSpeakingActive = false;
           this.emit('speakingEnded');
-          console.log('✅ Síntese de voz concluída');
           resolve();
         };
 
@@ -358,7 +327,6 @@ export class VoiceModule extends EventEmitter {
           if (this.isSpeakingActive) {
             this.synthesis.cancel();
             this.isSpeakingActive = false;
-            console.warn('⚠️ Timeout na síntese de voz');
             resolve();
           }
         }, 30000); // 30 second timeout

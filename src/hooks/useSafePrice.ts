@@ -20,7 +20,7 @@ export function useSafePrice(symbol: string) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['price', symbol],
     queryFn: async (): Promise<PriceData> => {
-      const response = await fetch(`/api/bitcoin?symbol=${symbol}`);
+      const response = await fetch(`/api/bitcoin/?symbol=${symbol}`);
       if (!response.ok) {
         throw new Error('Failed to fetch price');
       }
@@ -64,8 +64,7 @@ export function useSafeCryptoPrice(symbol: string) {
   const { data, isLoading, error } = useQuery({
     queryKey: ['crypto-price', symbol],
     queryFn: async () => {
-      const response = await fetch(
-        `/api/binance/klines?symbol=${symbol}&interval=1m&limit=1`
+      const response = await fetch(`/api/binance/klines/?symbol=${symbol}&interval=1m&limit=1`
       );
       if (!response.ok) throw new Error('Failed to fetch');
       const result = await response.json();

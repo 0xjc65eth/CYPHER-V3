@@ -91,10 +91,8 @@ export function useMarketData() {
           source: realData.source
         });
         
-        console.log('Real market data loaded successfully');
         return;
       } catch (realDataError) {
-        console.warn('Real data failed, trying CoinGecko fallback:', realDataError);
       }
 
       try {

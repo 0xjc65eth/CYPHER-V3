@@ -62,25 +62,16 @@ export function WalletDashboard() {
     
     setLoading(true);
     try {
-      const response = await fetch(`/api/portfolio/real-pnl?address=${wallet.address}`);
+      const response = await fetch(`/api/portfolio/real-pnl/?address=${wallet.address}`);
       const data = await response.json();
       
       if (data.success && data.data) {
         setPortfolioData(data.data);
         
         // Log data source for debugging
-        console.log('📊 Portfolio Data Source:', data.data.debug?.dataSource || 'Unknown');
-        console.log('🔍 Real Data:', data.data.debug?.isRealData ? 'YES' : 'NO');
         
-        // Generate price history for mini chart
-        const history = [];
-        for (let i = 24; i >= 0; i--) {
-          history.push({
-            time: `${i}h`,
-            value: data.data.portfolio.totalValue * (1 + (Math.random() - 0.5) * 0.1)
-          });
-        }
-        setPriceHistory(history);
+        // Price history would come from real portfolio API; skip fake generation
+        setPriceHistory([]);
       }
     } catch (err) {
       console.error('Error fetching portfolio:', err);

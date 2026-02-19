@@ -3,7 +3,9 @@ import { routeToAgent, agents } from '@/lib/agents/gemini-agents';
 import { dataFetcherMap } from '@/lib/agents/agent-data-fetchers';
 
 // Gemini configuration
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyAkxbuwYQwqJk8sKNiLkgIP5bwU5xPBl1w';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+if (!GEMINI_API_KEY) {
+}
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 

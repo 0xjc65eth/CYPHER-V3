@@ -317,14 +317,12 @@ class EnhancedNeuralLearningService extends EventEmitter {
     try {
       // Check TensorFlow.js backend status
       if (!tf.backend()) {
-        console.warn('TensorFlow.js backend not available, attempting to reinitialize...');
         await this.initializeTensorFlow();
       }
       
       // Check model integrity
       const corruptedModels = await this.checkModelIntegrity();
       if (corruptedModels.length > 0) {
-        console.warn(`Found ${corruptedModels.length} corrupted models, attempting recovery...`);
         await this.recoverCorruptedModels(corruptedModels);
       }
       
@@ -400,7 +398,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
           try {
             await this.modelPersistence.saveModel(model.tfModel, `emergency_${modelId}`);
           } catch (error) {
-            console.warn(`Failed to save model ${modelId} during emergency:`, error);
           }
         }
       }
@@ -408,7 +405,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
       // Save insights to cache
       await cacheService.set('emergency_insights', this.insights, { ttl: 24 * 60 * 60 * 1000 });
       
-      console.log('Emergency save completed');
     } catch (error) {
       console.error('Emergency save failed:', error);
     }
@@ -419,7 +415,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
    */
   private async attemptServiceRecovery(): Promise<void> {
     try {
-      console.log('Attempting service recovery...');
       
       // Reset state
       this.isTraining = false;
@@ -434,19 +429,16 @@ class EnhancedNeuralLearningService extends EventEmitter {
       // Try to recover models
       const emergencyModels = await this.recoverEmergencyModels();
       if (emergencyModels.length > 0) {
-        console.log(`Recovered ${emergencyModels.length} models from emergency save`);
       }
       
       // Recover insights
       const emergencyInsights = await cacheService.get<EnhancedNeuralInsight[]>('emergency_insights');
       if (emergencyInsights) {
         this.insights = emergencyInsights;
-        console.log(`Recovered ${emergencyInsights.length} insights from emergency save`);
       }
       
       this.isInitialized = true;
       
-      console.log('Service recovery completed successfully');
       this.emit(EnhancedNeuralLearningEvents.PERFORMANCE_UPDATED, {
         timestamp: new Date().toISOString(),
         status: 'recovered',
@@ -483,7 +475,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
           prediction.dispose();
         }
       } catch (error) {
-        console.warn(`Model ${modelId} integrity check failed:`, error);
         corruptedModels.push(modelId);
       }
     }
@@ -503,17 +494,14 @@ class EnhancedNeuralLearningService extends EventEmitter {
           const modelMetadata = this.models.get(modelId);
           if (modelMetadata) {
             modelMetadata.tfModel = savedModel;
-            console.log(`Recovered model ${modelId} from persistence`);
             continue;
           }
         }
         
         // If persistence fails, recreate the model
-        console.log(`Recreating model ${modelId}...`);
         const newModel = await this.recreateModel(modelId);
         if (newModel) {
           this.models.set(modelId, newModel);
-          console.log(`Successfully recreated model ${modelId}`);
         }
         
       } catch (error) {
@@ -541,7 +529,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
         case 'sentiment-analysis-model':
           return await this.createSentimentAnalysisModel();
         default:
-          console.warn(`Unknown model ID for recreation: ${modelId}`);
           return null;
       }
     } catch (error) {
@@ -577,7 +564,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
             }
           }
         } catch (error) {
-          console.warn(`Failed to recover emergency model ${emergencyId}:`, error);
         }
       }
     } catch (error) {
@@ -596,19 +582,16 @@ class EnhancedNeuralLearningService extends EventEmitter {
       
       // If memory usage is high, trigger cleanup
       if (memoryInfo.usedJSHeapSize > memoryInfo.totalJSHeapSize * 0.8) {
-        console.warn('High memory usage detected, performing cleanup...');
         this.performMemoryCleanup();
       }
       
       // Check TensorFlow.js memory
       const tfMemory = tf.memory();
       if (tfMemory.numBytes > 100 * 1024 * 1024) { // 100MB threshold
-        console.warn('High TensorFlow.js memory usage, disposing unused tensors...');
         tf.disposeVariables();
       }
       
     } catch (error) {
-      console.warn('Error checking memory usage:', error);
     }
   }
   
@@ -648,7 +631,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
         const history = this.performanceMonitor.getModelPerformanceHistory(modelId);
         if (history.length > 1000) {
           // Keep only recent history (this would need to be implemented in the monitor)
-          console.log(`Cleaning up performance history for model ${modelId}`);
         }
       }
       
@@ -657,7 +639,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
         (window as any).gc();
       }
       
-      console.log('Memory cleanup completed');
     } catch (error) {
       console.error('Error during memory cleanup:', error);
     }
@@ -687,7 +668,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
         });
       }
       
-      console.log(`Initialized ${this.models.size} neural models`);
     } catch (error) {
       console.error('Failed to initialize neural models:', error);
       this.emit(EnhancedNeuralLearningEvents.ERROR_OCCURRED, {
@@ -957,7 +937,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
             timestamp: new Date().toISOString()
           });
         } catch (error) {
-          console.warn(`Failed to save model ${modelId}:`, error);
         }
       }
       
@@ -994,7 +973,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
       
       // Auto-retry with simpler parameters if not exceeded max attempts
       if (this.retryAttempts.get(modelId)! < this.maxRetryAttempts) {
-        console.log(`Retrying training for model ${modelId} with simplified parameters...`);
         
         const retryOptions = {
           ...options,
@@ -1494,7 +1472,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
               weight: this.calculateModelWeight(model)
             });
           } catch (error) {
-            console.warn(`Failed to get prediction from model ${model.id}:`, error);
           }
         }
         
@@ -1870,7 +1847,6 @@ class EnhancedNeuralLearningService extends EventEmitter {
         
         // Trigger retraining for underperforming models
         // This would be implemented as a background process
-        console.log(`Models needing retraining: ${modelsNeedingRetrain.join(', ')}`);
       }
       
     } catch (error) {
@@ -2874,7 +2850,6 @@ class IndexedDBModelPersistence implements ModelPersistence {
       const model = await tf.loadLayersModel(`indexeddb://${this.dbName}-${modelId}`);
       return model;
     } catch (error) {
-      console.warn(`Error loading model ${modelId}:`, error);
       return null;
     }
   }

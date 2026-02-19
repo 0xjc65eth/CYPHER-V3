@@ -6,10 +6,6 @@ import '@/lib/lasereyes-bigint-fix'
 import '@/lib/bigint-fix'
 // CRITICAL: Import server error handlers to prevent crashes
 import '@/lib/server-error-handlers'
-// CRITICAL: Import wallet conflict resolver EARLY
-import '@/app/wallet-conflict-init'
-// CRITICAL: Import wallet provider patches
-import '@/app/wallet-providers-init'
 
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
@@ -17,7 +13,17 @@ import './globals.css'
 import { Providers } from './providers'
 import { ConditionalNavigation } from '@/components/navigation/ConditionalNavigation'
 import { ClientScriptLoader } from '@/components/ClientScriptLoader'
-import { DEFAULT_META } from '@/lib/constants/routes'
+const DEFAULT_META = {
+  title: 'CYPHER ORDI FUTURE | Advanced Bitcoin Trading Intelligence',
+  description: 'Professional Bitcoin trading platform with AI-powered insights, Ordinals, Runes, and advanced analytics',
+  keywords: 'bitcoin, trading, AI, ordinals, runes, cryptocurrency, analytics, arbitrage',
+  author: 'CYPHER ORDI FUTURE',
+  robots: 'index, follow',
+  ogType: 'website',
+  ogSiteName: 'CYPHER ORDI FUTURE',
+  twitterCard: 'summary_large_image',
+  twitterSite: '@cypherordi'
+}
 
 const inter = Inter({ subsets: ['latin'] })
 const jetbrainsMono = JetBrains_Mono({

@@ -8,7 +8,6 @@ export function useInflowOutflow() {
     queryKey: ['inflow-outflow'],
     queryFn: async () => {
       try {
-        console.log('Generating Bitcoin Ecosystem Insights - Inflow/Outflow data...')
 
         // Generate realistic inflow/outflow data based on price and volume
         const volume = marketData?.volume24h || 0
@@ -39,9 +38,9 @@ export function useInflowOutflow() {
           const dayFactor = (6 - i) / 6 // 0 to 1, higher for more recent days
           const trendFactor = 0.8 + (dayFactor * 0.4) // 0.8 to 1.2
 
-          // Add some randomness, but less for recent days to show a clearer trend
-          const randomVariance = (1 - dayFactor) * 0.3 // More variance for older days
-          const randomFactor = 1 - randomVariance + (Math.random() * randomVariance * 2)
+          // Deterministic variance based on day index instead of random
+          const varianceFactor = 1 + ((i % 3) - 1) * 0.05 // Deterministic ±5% wobble
+          const randomFactor = varianceFactor
 
           // Calculate inflow/outflow with trend and randomness
           let inflow, outflow
@@ -63,7 +62,6 @@ export function useInflowOutflow() {
           })
         }
 
-        console.log('Generated Inflow/Outflow data:', data)
         return data
       } catch (error) {
         console.error('Error generating Inflow/Outflow data:', error)

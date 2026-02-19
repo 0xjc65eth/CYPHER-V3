@@ -56,7 +56,6 @@ export class MultiAgentSystem extends EventEmitter {
     this.startTime = new Date();
     this.setupAgentConnections();
     
-    console.log('🧠 Multi-Agent System initialized');
   }
 
   private setupAgentConnections() {
@@ -83,7 +82,6 @@ export class MultiAgentSystem extends EventEmitter {
   async start() {
     if (this.isRunning) return;
     
-    console.log('🚀 Starting Multi-Agent System...');
     
     // Start trading engine
     this.tradingEngine.start();
@@ -95,13 +93,11 @@ export class MultiAgentSystem extends EventEmitter {
     this.isRunning = true;
     this.emit('system:started');
     
-    console.log('✅ Multi-Agent System is running');
   }
 
   async stop() {
     if (!this.isRunning) return;
     
-    console.log('🛑 Stopping Multi-Agent System...');
     
     // Stop agents
     this.agent024.stop();
@@ -113,11 +109,9 @@ export class MultiAgentSystem extends EventEmitter {
     this.isRunning = false;
     this.emit('system:stopped');
     
-    console.log('✅ Multi-Agent System stopped');
   }
 
   emergencyStop() {
-    console.log('🚨 EMERGENCY STOP INITIATED');
     
     this.agent025.emergencyStop();
     this.agent024.stop();

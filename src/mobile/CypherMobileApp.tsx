@@ -345,7 +345,6 @@ const MarketScreen: React.FC = () => {
 
   const navigateToTradeDetail = (symbol: string) => {
     // Navigation logic would go here
-    console.log('Navigate to trade detail:', symbol);
   };
 
   return (
@@ -571,7 +570,6 @@ const TradingScreen: React.FC = () => {
         price: orderType === 'limit' ? parseFloat(price) : undefined
       };
 
-      console.log('Submitting order:', order);
       Alert.alert('Success', 'Order submitted successfully');
       
       // Reset form
@@ -864,7 +862,6 @@ const CypherMobileApp: React.FC = () => {
       // Configure push notifications
       PushNotification.configure({
         onNotification: function(notification) {
-          console.log('Notification received:', notification);
         },
         requestPermissions: Platform.OS === 'ios'
       });
@@ -884,7 +881,6 @@ const CypherMobileApp: React.FC = () => {
     if (appConfig.features.biometricAuth) {
       try {
         const biometryType = await Biometrics.isSensorAvailable();
-        console.log('Biometry type:', biometryType);
       } catch (error) {
         console.error('Biometrics not available:', error);
       }

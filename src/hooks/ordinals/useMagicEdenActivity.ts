@@ -36,8 +36,11 @@ export function useMagicEdenActivity(
 
   useEffect(() => {
     const controller = new AbortController()
+
+    // Fetch immediately
     fetchActivities(controller.signal)
 
+    // Setup interval for periodic updates
     const interval = setInterval(() => {
       fetchActivities(controller.signal)
     }, 30_000)
@@ -46,7 +49,7 @@ export function useMagicEdenActivity(
       controller.abort()
       clearInterval(interval)
     }
-  }, [fetchActivities])
+  }, [collectionSymbol, limit]) // ✅ FIXED: Only depend on props, not fetchActivities
 
   return { activities, loading, error }
 }

@@ -393,7 +393,6 @@ export const createCacheSlice: StateCreator<
     
     compressCache: () => {
       // Implementation would depend on compression library
-      console.log('Cache compression not implemented')
     },
     
     getStats: (): CacheStats => {

@@ -481,7 +481,6 @@ How can I assist you today?`,
 
   // 🎬 Handle Actions
   const handleAction = (action: AIAction) => {
-    console.log('Executing action:', action);
     // Implementation for different action types
     switch (action.type) {
       case 'trade':

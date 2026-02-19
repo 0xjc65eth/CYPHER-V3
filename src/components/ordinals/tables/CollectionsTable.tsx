@@ -74,89 +74,7 @@ export function CollectionsTable() {
     trending: collection.trending
   })) || []
 
-  // Fallback mock data for demonstration
-  const mockCollections: Collection[] = [
-    {
-      id: '1',
-      name: 'NodeMonkes',
-      slug: 'nodemonkes',
-      imageUrl: '/collections/nodemonkes.png',
-      floorPrice: 0.0485,
-      floorChange24h: 5.2,
-      volume24h: 156.7,
-      volumeChange24h: 18.3,
-      holders: 1234,
-      totalSupply: 10000,
-      listedCount: 870,
-      listedPercent: 8.7,
-      verified: true,
-      trending: true
-    },
-    {
-      id: '2',
-      name: 'Bitcoin Puppets',
-      slug: 'bitcoin-puppets',
-      imageUrl: '/collections/bitcoin-puppets.png',
-      floorPrice: 0.032,
-      floorChange24h: -2.1,
-      volume24h: 89.7,
-      volumeChange24h: -5.4,
-      holders: 987,
-      totalSupply: 10000,
-      listedCount: 650,
-      listedPercent: 6.5,
-      verified: true,
-      trending: false
-    },
-    {
-      id: '3',
-      name: 'Runestones',
-      slug: 'runestones',
-      imageUrl: '/collections/runestones.png',
-      floorPrice: 0.028,
-      floorChange24h: 3.8,
-      volume24h: 76.2,
-      volumeChange24h: 12.5,
-      holders: 2345,
-      totalSupply: 112383,
-      listedCount: 8234,
-      listedPercent: 7.3,
-      verified: true,
-      trending: true
-    },
-    {
-      id: '4',
-      name: 'Quantum Cats',
-      slug: 'quantum-cats',
-      imageUrl: '/collections/quantum-cats.png',
-      floorPrice: 0.025,
-      floorChange24h: 8.9,
-      volume24h: 54.8,
-      volumeChange24h: 45.2,
-      holders: 543,
-      totalSupply: 3333,
-      listedCount: 234,
-      listedPercent: 7.0,
-      verified: false,
-      trending: true
-    },
-    {
-      id: '5',
-      name: 'Bitcoin Frogs',
-      slug: 'bitcoin-frogs',
-      imageUrl: '/collections/bitcoin-frogs.png',
-      floorPrice: 0.019,
-      floorChange24h: -1.2,
-      volume24h: 42.1,
-      volumeChange24h: 2.3,
-      holders: 678,
-      totalSupply: 5555,
-      listedCount: 456,
-      listedPercent: 8.2,
-      verified: true,
-      trending: false
-    }
-  ]
+  // No mock fallback - show empty state when no real data available
 
   const handleSort = (column: typeof sortBy) => {
     if (sortBy === column) {
@@ -177,7 +95,7 @@ export function CollectionsTable() {
     setFavorites(newFavorites)
   }
 
-  const filteredCollections = (collections.length > 0 ? collections : mockCollections)
+  const filteredCollections = (collections)
     .filter(collection => {
       const matchesSearch = collection.name.toLowerCase().includes(searchQuery.toLowerCase())
       const matchesFilter = filterBy === 'all' || 
@@ -416,7 +334,7 @@ export function CollectionsTable() {
 
         <div className="flex items-center justify-between mt-4">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredCollections.length} of {collections.length > 0 ? collections.length : mockCollections.length} collections
+            Showing {filteredCollections.length} of {collections.length} collections
             {isLoading && <span className="ml-2 text-orange-500">• Loading real data...</span>}
             {!isLoading && collections.length > 0 && <span className="ml-2 text-green-500">• Real-time data</span>}
           </p>

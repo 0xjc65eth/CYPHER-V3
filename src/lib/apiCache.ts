@@ -176,7 +176,7 @@ export class ApiCacheManager {
     // Try to get from cache first
     const cached = await cacheService.get<T>(cacheKey);
     if (cached) {
-      devLogger.log('API_CACHE', `Cache hit for ${cacheKey}`);
+      devLogger.debug(`[API_CACHE] Cache hit for ${cacheKey}`);
       return cached;
     }
 

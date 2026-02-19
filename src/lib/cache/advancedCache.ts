@@ -23,12 +23,12 @@ class AdvancedCache {
   }
 
   private initializeRedis() {
-    if (this.config.redisUrl) {
+    const url = this.config.redisUrl;
+    if (url && !url.includes('your_redis') && !url.includes('placeholder') && url.length >= 10) {
       try {
-        this.redis = new Redis(this.config.redisUrl);
+        this.redis = new Redis(url);
         
         this.redis.on('connect', () => {
-          console.log('✅ Redis connected');
         });
 
         this.redis.on('error', (err) => {

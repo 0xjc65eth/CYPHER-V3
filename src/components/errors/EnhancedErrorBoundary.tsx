@@ -172,7 +172,7 @@ class EnhancedErrorBoundary extends Component<EnhancedErrorBoundaryProps, ErrorB
     }
 
     // Send to custom endpoint
-    fetch('/api/errors', {
+    fetch('/api/errors/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

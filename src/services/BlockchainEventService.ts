@@ -225,9 +225,7 @@ export class BlockchainEventService {
                 }
               ]
             };
-            console.log('🔄 Using fallback runes data - API unavailable');
           } catch (fallbackError) {
-            console.log('⚠️ Runes monitoring temporarily disabled - API issues');
             return;
           }
         }
@@ -237,7 +235,6 @@ export class BlockchainEventService {
         }
       } catch (error) {
         // Silently handle errors to prevent spam
-        console.log('🔄 Runes monitoring: API temporarily unavailable');
       }
     };
 
@@ -507,12 +504,7 @@ export class BlockchainEventService {
   }
 
   private generateHash(): string {
-    const chars = '0123456789abcdef';
-    let result = '';
-    for (let i = 0; i < 16; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+    return crypto.randomUUID().replace(/-/g, '').slice(0, 16);
   }
 }
 

@@ -13,7 +13,6 @@ export class GeminiIntegration {
   constructor(config: CypherAIConfig) {
     this.config = config;
     if (!config.apiKeys?.gemini) {
-      console.warn('⚠️ Gemini API key não fornecida');
     }
   }
 
@@ -29,7 +28,6 @@ export class GeminiIntegration {
       
       // Test the connection
       const result = await this.model?.generateContent('Hello');
-      console.log('✅ Gemini Pro conectado com sucesso');
       
       this.isInitialized = true;
     } catch (error) {

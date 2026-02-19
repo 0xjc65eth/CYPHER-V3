@@ -19,7 +19,6 @@ export class BacktestingEngine {
 
   async loadHistoricalData(symbol: string): Promise<void> {
     // Em produção, carregar dados reais de uma API
-    console.log(`Loading historical data for ${symbol}`);
     
     // Mock data para demonstração
     const days = Math.floor((this.config.endDate.getTime() - this.config.startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -41,7 +40,6 @@ export class BacktestingEngine {
   }
 
   async runBacktest(): Promise<BacktestResult> {
-    console.log('Starting backtest...');
     
     const equityCurve: EquityPoint[] = [];
     const initialEquity = this.equity;

@@ -17,7 +17,6 @@ if (typeof window !== 'undefined') {
     useAppKitAccount = reownImports.useAppKitAccount
     useAppKitNetwork = reownImports.useAppKitNetwork
   } catch (error) {
-    console.warn('Reown AppKit not available:', error)
   }
 
   try {
@@ -25,7 +24,6 @@ if (typeof window !== 'undefined') {
     useWallet = solanaImports.useWallet
     useConnection = solanaImports.useConnection
   } catch (error) {
-    console.warn('Solana wallet adapter not available:', error)
   }
 }
 
@@ -174,7 +172,7 @@ export function MultiChainWalletConnect() {
     if (!evmChain) return
 
     try {
-      const response = await fetch('/api/wallet/balance', {
+      const response = await fetch('/api/wallet/balance/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -211,7 +209,7 @@ export function MultiChainWalletConnect() {
 
   const fetchSolanaBalance = async (address: string) => {
     try {
-      const response = await fetch('/api/wallet/balance', {
+      const response = await fetch('/api/wallet/balance/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

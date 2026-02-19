@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFeeReportFromDatabase } from '@/lib/database';
+import { getFeeReportFromDatabase } from '@/lib/database/legacy-database';
 
 export async function GET(request: NextRequest) {
   try {

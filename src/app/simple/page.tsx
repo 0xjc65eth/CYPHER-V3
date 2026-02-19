@@ -89,13 +89,13 @@ export default function SimplePage() {
                 <div>
                   <p className="text-gray-400 mb-1">EVM Networks:</p>
                   <p className="text-blue-400 font-mono break-all">
-                    0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB
+                    0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3
                   </p>
                 </div>
                 <div>
                   <p className="text-gray-400 mb-1">Solana:</p>
                   <p className="text-purple-400 font-mono break-all">
-                    EPbE1ZmLXkEJDitNb9KNu9Hq8mThS3P7LpBxdF3EkUwT
+                    4boXQgNDQ91UNmeVspdd1wZw2KkQKAZ2xdAd6UyJCwRH
                   </p>
                 </div>
               </div>

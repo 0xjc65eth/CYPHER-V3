@@ -11,6 +11,7 @@ interface WalletContextValue {
   disconnect: () => void
   refreshBalance: () => Promise<void>
   getTransactionHistory: () => Promise<Transaction[]>
+  signMessage: (message: string) => Promise<string>
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null)
@@ -66,6 +67,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
+  const signMessage = useCallback(async (message: string) => {
+    return await walletService.signMessage(message)
+  }, [])
+
   const value: WalletContextValue = {
     walletInfo,
     isConnecting,
@@ -74,6 +79,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     disconnect,
     refreshBalance,
     getTransactionHistory,
+    signMessage,
   }
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>

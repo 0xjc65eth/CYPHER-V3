@@ -276,7 +276,7 @@ export class ProfessionalMarketService {
   private async getCurrentPrice(symbol: string): Promise<number> {
     try {
       // Use our enhanced real-time prices API
-      const response = await fetch(`/api/realtime-prices?symbols=${symbol}`);
+      const response = await fetch(`/api/realtime-prices/?symbols=${symbol}`);
       const data = await response.json();
       
       if (data.success && data.data?.[symbol]) {
@@ -292,11 +292,9 @@ export class ProfessionalMarketService {
             timestamp: Date.now()
           });
         }
-        console.log(`📈 Real-time price for ${symbol}: $${priceData.price}`);
         return priceData.price;
       }
     } catch (error) {
-      console.log('Using fallback prices due to error:', error);
     }
     
     // Updated realistic fallback prices (Jan 2025)

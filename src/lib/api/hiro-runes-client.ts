@@ -222,7 +222,6 @@ export class HiroRunesClient {
       const cached = this.cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < 60000) { // 1 minuto de cache
         if (this.config.debug) {
-          console.log(`Cache hit for ${operation}`);
         }
         return cached.data;
       }
@@ -233,7 +232,6 @@ export class HiroRunesClient {
     for (let attempt = 1; attempt <= this.config.retries; attempt++) {
       try {
         if (this.config.debug) {
-          console.log(`${operation} attempt ${attempt}/${this.config.retries}: ${url}`);
         }
 
         const controller = new AbortController();
@@ -274,7 +272,6 @@ export class HiroRunesClient {
         }
 
         if (this.config.debug) {
-          console.log(`${operation} successful on attempt ${attempt}`);
         }
 
         return data;

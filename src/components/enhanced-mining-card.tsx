@@ -38,7 +38,6 @@ export function EnhancedMiningCard() {
 
   // Função para gerar dados de fallback quando a API não estiver disponível
   const generateFallbackData = (): MiningData => {
-    console.log('Gerando dados de fallback para mineração')
 
     // Pools simulados
     const mockPools: MiningPool[] = [
@@ -135,7 +134,6 @@ export function EnhancedMiningCard() {
 
       } catch (apiError) {
         console.error('Error accessing Mempool API directly:', apiError)
-        console.log('Using fallback data due to API error')
 
         // If it fails, use fallback data
         const fallbackData = generateFallbackData()
@@ -216,7 +214,6 @@ export function EnhancedMiningCard() {
     // Set a timeout to use fallback data if the API takes too long
     const timeoutId = setTimeout(() => {
       if (isLoading && !data) {
-        console.log('Timeout reached, using fallback data')
         const fallbackData = generateFallbackData()
         setData(fallbackData)
         setLastUpdated(new Date())

@@ -34,43 +34,26 @@ export function InscriptionsTable() {
     queryKey: ['ordinals-recent-inscriptions'],
     queryFn: async () => {
       const stats = await ordinalsService.getOrdinalsStats()
-      return stats.recent_sales.map(sale => ({
+      return stats.recent_sales.map((sale: any) => ({
         id: sale.inscription_number,
-        txid: sale.tx_id.substring(0, 8) + '...',
-        contentType: 'image/png', // Default
-        contentSize: Math.floor(Math.random() * 50000) + 5000,
-        fee: Math.floor(Math.random() * 50) + 15,
+        txid: sale.tx_id ? sale.tx_id.substring(0, 8) + '...' : 'unknown',
+        contentType: sale.content_type || 'unknown',
+        contentSize: sale.content_size || 0,
+        fee: sale.fee || 0,
         satNumber: sale.inscription_number * 10000,
-        block: 823000 + Math.floor(Math.random() * 1000),
+        block: sale.block_height || 0,
         timestamp: sale.timestamp,
-        address: sale.to_address.substring(0, 12) + '...',
-        collection: undefined,
-        rarity: 'common'
+        address: sale.to_address ? sale.to_address.substring(0, 12) + '...' : 'unknown',
+        collection: sale.collection_name || undefined,
+        rarity: sale.rarity || 'common'
       }))
     },
     refetchInterval: 60000,
     staleTime: 30000
   })
 
-  // Mock data with virtual scrolling support
-  const generateMockInscriptions = (count: number): Inscription[] => {
-    return Array.from({ length: count }, (_, i) => ({
-      id: 67234567 - i,
-      txid: `${Math.random().toString(36).substring(2, 15)}...`,
-      contentType: ['image/png', 'text/plain', 'application/json', 'image/jpeg', 'text/html'][Math.floor(Math.random() * 5)],
-      contentSize: Math.floor(Math.random() * 100000) + 1000,
-      fee: Math.floor(Math.random() * 100) + 10,
-      satNumber: 1234567890123 + i,
-      block: 823456 - Math.floor(i / 10),
-      timestamp: Date.now() - i * 60000,
-      address: `bc1q${Math.random().toString(36).substring(2, 10)}`,
-      collection: Math.random() > 0.7 ? ['NodeMonkes', 'Bitcoin Puppets', 'Runestones'][Math.floor(Math.random() * 3)] : undefined,
-      rarity: ['common', 'uncommon', 'rare', 'epic'][Math.floor(Math.random() * 4)]
-    }))
-  }
-
-  // Use real data if available, otherwise fallback to mock data
-  const allInscriptions = inscriptionsData || generateMockInscriptions(10000)
+  // Use real data; show empty state if unavailable
+  const allInscriptions = inscriptionsData || []
   const ROW_HEIGHT = 64
 
   const handleScroll = useCallback(() => {

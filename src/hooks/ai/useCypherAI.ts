@@ -40,9 +40,10 @@ export function useCypherAI() {
           price: btcPrice.price,
           volume: btcPrice.volume24h,
           change24h: btcPrice.change24h,
-          rsi: 50 + Math.random() * 50 - 25, // Simulado
-          macd: Math.random() * 20 - 10, // Simulado
-          sentiment: 50 + Math.random() * 50 // Simulado
+          // Derive approximate indicators from price change instead of random
+          rsi: 50 + (btcPrice.change24h || 0) * 2, // Approximate RSI from price change
+          macd: (btcPrice.change24h || 0) * 0.5, // Approximate MACD direction from change
+          sentiment: 50 + (btcPrice.change24h || 0) * 3 // Approximate sentiment from change
         };
 
         const newInsights = await cypherAI.generateInsights({

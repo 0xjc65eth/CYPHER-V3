@@ -163,8 +163,8 @@ export function PortfolioSystem() {
     try {
       // Fetch portfolio data
       const [assetsRes, transactionsRes] = await Promise.all([
-        fetch(`/api/portfolio/balance?address=${connectionState.account.address}`),
-        fetch(`/api/portfolio/transactions?address=${connectionState.account.address}`)
+        fetch(`/api/portfolio/balance/?address=${connectionState.account.address}`),
+        fetch(`/api/portfolio/transactions/?address=${connectionState.account.address}`)
       ]);
 
       if (!assetsRes.ok || !transactionsRes.ok) {

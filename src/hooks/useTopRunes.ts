@@ -4,10 +4,18 @@ export function useTopRunes() {
   return useQuery({
     queryKey: ['top-runes'],
     queryFn: async () => {
-      const res = await fetch('/api/runes-top')
-      if (!res.ok) throw new Error('Erro ao buscar Runes')
-      return res.json()
+      const res = await fetch('/api/runes-top/')
+      if (!res.ok) {
+        return []
+      }
+      const data = await res.json()
+      // Handle both array and {error} responses
+      if (Array.isArray(data)) return data
+      if (data.error) {
+        return []
+      }
+      return []
     },
-    refetchInterval: 60000, // 1 minuto
+    refetchInterval: 60000,
   })
-} 
+}

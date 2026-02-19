@@ -44,7 +44,6 @@ class CoinGeckoRateLimiter {
     while (!this.canMakeRequest()) {
       const oldestRequest = this.requestQueue[0];
       const waitTime = this.minuteInMs - (Date.now() - oldestRequest);
-      console.log(`[CoinGecko] Rate limit reached. Waiting ${Math.ceil(waitTime / 1000)}s...`);
       await new Promise(resolve => setTimeout(resolve, Math.max(waitTime, 1000)));
     }
   }
@@ -69,7 +68,7 @@ class CoinGeckoRateLimiter {
       return null;
     }
 
-    console.log(`[CoinGecko] Cache hit for ${url}`);
+    // Cache hit - no verbose logging
     return entry.data;
   }
 
@@ -130,7 +129,6 @@ class CoinGeckoRateLimiter {
         // Record the request
         this.recordRequest();
 
-        console.log(`[CoinGecko] Fetching ${url} (attempt ${attempt + 1}/${retries + 1})`);
 
         const response = await fetch(url);
 
@@ -138,7 +136,6 @@ class CoinGeckoRateLimiter {
           if (response.status === 429) {
             // Rate limit hit - wait longer
             const waitTime = retryDelay * Math.pow(2, attempt);
-            console.log(`[CoinGecko] 429 Rate limit. Waiting ${waitTime}ms before retry...`);
             await new Promise(resolve => setTimeout(resolve, waitTime));
             continue;
           }
@@ -151,7 +148,6 @@ class CoinGeckoRateLimiter {
         // Cache successful response
         this.setCache(url, data, cacheTTL);
 
-        console.log(`[CoinGecko] Successfully fetched ${url}`);
         return data;
 
       } catch (error) {
@@ -160,7 +156,6 @@ class CoinGeckoRateLimiter {
 
         if (attempt < retries) {
           const waitTime = retryDelay * Math.pow(2, attempt);
-          console.log(`[CoinGecko] Retrying in ${waitTime}ms...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
       }
@@ -176,7 +171,6 @@ class CoinGeckoRateLimiter {
    */
   clearCache(): void {
     this.cache.clear();
-    console.log('[CoinGecko] Cache cleared');
   }
 
   /**

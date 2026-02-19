@@ -37,7 +37,7 @@ function useSystemStatus() {
         setStatus(prev => ({ ...prev, api: 'checking' }));
         
         // Check API status
-        const apiResponse = await fetch('/api/health', { 
+        const apiResponse = await fetch('/api/health/', { 
           method: 'GET',
           cache: 'no-cache',
           signal: AbortSignal.timeout(5000)

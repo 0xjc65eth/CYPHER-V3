@@ -4,7 +4,6 @@ import { rateLimitedFetch } from '@/lib/rateLimitedFetch'
 
 export async function GET() {
   try {
-    console.log('Fetching neural metrics from multiple sources...')
 
     // Array para armazenar métricas neurais
     const metrics: NeuralMetric[] = []
@@ -100,7 +99,7 @@ export async function GET() {
         ? `https://${process.env.VERCEL_URL}`
         : 'http://localhost:3001';
 
-      const runesResponse = await fetch(`${baseUrl}/api/runes-stats`)
+      const runesResponse = await fetch(`${baseUrl}/api/runes-stats/`)
 
       if (runesResponse.ok) {
         const runesData = await runesResponse.json()

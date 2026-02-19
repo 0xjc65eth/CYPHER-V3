@@ -170,35 +170,26 @@ export function VoiceCommands() {
 
   const handleTradingCommand = (command: string) => {
     if (command.includes('buy')) {
-      console.log('🔄 Initiating buy order...')
     } else if (command.includes('sell')) {
-      console.log('🔄 Initiating sell order...')
     } else if (command.includes('portfolio')) {
-      console.log('📊 Showing portfolio...')
     }
   }
 
   const handleWalletCommand = (command: string) => {
     if (command.includes('connect')) {
-      console.log('🔗 Connecting wallet...')
     } else if (command.includes('balance')) {
-      console.log('💰 Checking balance...')
     }
   }
 
   const handleMarketCommand = (command: string) => {
     if (command.includes('price')) {
-      console.log('📈 Getting Bitcoin price...')
     } else if (command.includes('analysis')) {
-      console.log('🔍 Analyzing market...')
     }
   }
 
   const handleSystemCommand = (command: string) => {
     if (command.includes('theme')) {
-      console.log('🎨 Switching theme...')
     } else if (command.includes('help')) {
-      console.log('❓ Showing help...')
     }
   }
 

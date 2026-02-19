@@ -52,10 +52,9 @@ export const BloombergSMCAnalysis = React.memo(function BloombergSMCAnalysis() {
   useEffect(() => {
     const fetchSMCOpportunities = async () => {
       try {
-        console.log('🎯 Fetching SMC opportunities from CoinMarketCap...');
         
         // Fetch real market data for major trading pairs
-        const response = await fetch('/api/coinmarketcap?symbols=BTC,ETH,SOL,MATIC,ARB,AVAX,BNB,ADA,LINK,UNI');
+        const response = await fetch('/api/coinmarketcap/?symbols=BTC,ETH,SOL,MATIC,ARB,AVAX,BNB,ADA,LINK,UNI');
         const cmcData = await response.json();
         
         if (cmcData.success && cmcData.data?.current) {
@@ -163,10 +162,8 @@ export const BloombergSMCAnalysis = React.memo(function BloombergSMCAnalysis() {
             }
           });
           
-          console.log('✅ Generated SMC opportunities from real CMC data:', smcOpportunities.length);
           setOpportunities(smcOpportunities);
         } else {
-          console.log('⚠️ CMC API failed, using fallback data');
           setOpportunities(generateFallbackSMC());
         }
       } catch (error) {

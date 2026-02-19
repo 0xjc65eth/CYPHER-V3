@@ -115,20 +115,16 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
 
   const fetchMarketplaceData = async () => {
     try {
-      // Fetch from multiple marketplaces
-      const endpoints = [
-        'https://api.ordiscan.com/v1/marketplace/listings?limit=20',
-        'https://api.hiro.so/ordinals/v1/marketplace/listings'
+      // Fetch from proxy API routes instead of direct external calls
+      const proxyEndpoints = [
+        '/api/ordiscan?endpoint=/v1/marketplace/listings&limit=20',
+        '/api/hiro-ordinals?limit=20'
       ];
 
-      for (const endpoint of endpoints) {
+      for (const endpoint of proxyEndpoints) {
         try {
-          const response = await fetch(endpoint, {
-            headers: {
-              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_ORDISCAN_API_KEY}`
-            }
-          });
-          
+          const response = await fetch(endpoint);
+
           if (response.ok) {
             const data = await response.json();
             processMarketplaceData(data);

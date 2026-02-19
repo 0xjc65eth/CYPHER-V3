@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 function formatNum(n: number | string | null | undefined): string {
@@ -79,14 +80,36 @@ const EDUCATION_CONTENT = [
   },
 ]
 
-const MOCK_MARKET_LISTINGS = [
-  { id: 1, name: 'Uncommon Sat #450231', rarity: 'uncommon', price: 0.0012, currency: 'BTC', seller: 'sat_collector', listed: '2h ago' },
-  { id: 2, name: 'Rare Sat #18902', rarity: 'rare', price: 0.025, currency: 'BTC', seller: 'ordinal_whale', listed: '5h ago' },
-  { id: 3, name: 'Epic Sat #312', rarity: 'epic', price: 0.45, currency: 'BTC', seller: 'btc_maxi', listed: '1d ago' },
-  { id: 4, name: 'Legendary Halving Sat', rarity: 'legendary', price: 2.5, currency: 'BTC', seller: 'genesis_hoarder', listed: '3d ago' },
-  { id: 5, name: 'Uncommon Sat #781002', rarity: 'uncommon', price: 0.0009, currency: 'BTC', seller: 'rare_hunter', listed: '30m ago' },
-  { id: 6, name: 'Rare Sat #29411', rarity: 'rare', price: 0.018, currency: 'BTC', seller: 'sat_dealer', listed: '12h ago' },
-]
+interface MarketListing {
+  id: number | string
+  name: string
+  rarity: string
+  price: number
+  currency: string
+  seller: string
+  sellerFull: string
+  listed: string
+}
+
+function timeAgo(dateStr: string | number | undefined): string {
+  if (!dateStr) return 'recently'
+  const ts = typeof dateStr === 'number' ? dateStr : new Date(dateStr).getTime()
+  const diff = Math.floor((Date.now() - ts) / 1000)
+  if (diff < 60) return `${diff}s ago`
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+  return `${Math.floor(diff / 86400)}d ago`
+}
+
+function inferRarity(listing: any): string {
+  const name = (listing.name || listing.satType || listing.type || '').toLowerCase()
+  if (name.includes('mythic') || name.includes('genesis')) return 'mythic'
+  if (name.includes('legendary') || name.includes('halving')) return 'legendary'
+  if (name.includes('epic') || name.includes('difficulty')) return 'epic'
+  if (name.includes('rare') || name.includes('day')) return 'rare'
+  if (name.includes('uncommon') || name.includes('block')) return 'uncommon'
+  return 'common'
+}
 
 export default function RareSatsPage() {
   const [categories, setCategories] = useState<RareSatCategory[]>([])
@@ -95,11 +118,13 @@ export default function RareSatsPage() {
   const [lastUpdated, setLastUpdated] = useState(Date.now())
   const [explorerQuery, setExplorerQuery] = useState('')
   const [explorerResult, setExplorerResult] = useState<string | null>(null)
+  const [marketListings, setMarketListings] = useState<MarketListing[]>([])
+  const [marketLoading, setMarketLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
     try {
       setError(null)
-      const res = await fetch('/api/rare-sats/categories')
+      const res = await fetch('/api/rare-sats/categories/')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const d = await res.json()
       if (!d.success) throw new Error(d.error || 'API returned error')
@@ -112,11 +137,38 @@ export default function RareSatsPage() {
     }
   }, [])
 
+  const fetchMarketListings = useCallback(async () => {
+    try {
+      setMarketLoading(true)
+      const res = await fetch('/api/magiceden/raresats/listings/?limit=20&sortBy=price&sortDirection=asc')
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      const listings = data.listings || data.data || (Array.isArray(data) ? data : [])
+      const mapped: MarketListing[] = listings.map((l: any, i: number) => ({
+        id: l.id || l.orderId || i + 1,
+        name: l.name || l.satType || l.type || `Rare Sat #${l.satNumber || i + 1}`,
+        rarity: inferRarity(l),
+        price: Number(l.price || l.totalPrice || 0) / 1e8, // Convert sats to BTC
+        currency: 'BTC',
+        seller: l.seller ? `${l.seller.slice(0, 6)}...${l.seller.slice(-4)}` : 'unknown',
+        sellerFull: l.seller || '',
+        listed: timeAgo(l.createdAt || l.listedAt),
+      }))
+      setMarketListings(mapped)
+    } catch (err) {
+      console.error('Failed to fetch rare sat listings:', err)
+    } finally {
+      setMarketLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchData()
+    fetchMarketListings()
     const interval = setInterval(fetchData, 60_000)
-    return () => clearInterval(interval)
-  }, [fetchData])
+    const marketInterval = setInterval(fetchMarketListings, 120_000)
+    return () => { clearInterval(interval); clearInterval(marketInterval) }
+  }, [fetchData, fetchMarketListings])
 
   const sortedCategories = [...categories].sort(
     (a, b) => (RARITY_ORDER[a.rarity] ?? 99) - (RARITY_ORDER[b.rarity] ?? 99)
@@ -296,9 +348,17 @@ export default function RareSatsPage() {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold text-[#f59e0b]">Marketplace Listings</h2>
-                <span className="text-xs text-gray-500 bg-[#1a1a2e] border border-[#2a2a3e] px-3 py-1 rounded">
-                  {MOCK_MARKET_LISTINGS.length} listings
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={fetchMarketListings}
+                    className="text-xs text-gray-400 hover:text-[#f59e0b] transition-colors"
+                  >
+                    Refresh
+                  </button>
+                  <span className="text-xs text-gray-500 bg-[#1a1a2e] border border-[#2a2a3e] px-3 py-1 rounded">
+                    {marketListings.length} listings
+                  </span>
+                </div>
               </div>
 
               <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg overflow-hidden">
@@ -313,36 +373,58 @@ export default function RareSatsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {MOCK_MARKET_LISTINGS.map((listing) => {
-                      const colors = getColors(listing.rarity)
-                      return (
-                        <tr key={listing.id} className="border-b border-[#2a2a3e]/50 hover:bg-white/[0.02] transition-colors">
-                          <td className="p-4">
-                            <span className="text-sm font-bold text-gray-200">{listing.name}</span>
-                          </td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors.badge}`}>
-                              {listing.rarity.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="text-sm font-bold text-[#f59e0b] font-mono">{listing.price} {listing.currency}</span>
-                          </td>
-                          <td className="p-4">
-                            <span className="text-sm text-gray-400">{listing.seller}</span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <span className="text-xs text-gray-500">{listing.listed}</span>
-                          </td>
+                    {marketLoading ? (
+                      Array.from({ length: 6 }).map((_, i) => (
+                        <tr key={i} className="border-b border-[#2a2a3e]/50">
+                          <td className="p-4"><Skeleton className="h-4 w-40" /></td>
+                          <td className="p-4"><Skeleton className="h-4 w-20" /></td>
+                          <td className="p-4"><Skeleton className="h-4 w-24 ml-auto" /></td>
+                          <td className="p-4"><Skeleton className="h-4 w-28" /></td>
+                          <td className="p-4"><Skeleton className="h-4 w-16 ml-auto" /></td>
                         </tr>
-                      )
-                    })}
+                      ))
+                    ) : marketListings.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-gray-500">No listings available</td>
+                      </tr>
+                    ) : (
+                      marketListings.map((listing) => {
+                        const colors = getColors(listing.rarity)
+                        return (
+                          <tr key={listing.id} className="border-b border-[#2a2a3e]/50 hover:bg-white/[0.02] transition-colors">
+                            <td className="p-4">
+                              <span className="text-sm font-bold text-gray-200">{listing.name}</span>
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors.badge}`}>
+                                {listing.rarity.toUpperCase()}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="text-sm font-bold text-[#f59e0b] font-mono">{listing.price.toFixed(8)} {listing.currency}</span>
+                            </td>
+                            <td className="p-4">
+                              {listing.sellerFull ? (
+                                <a href={`https://mempool.space/address/${listing.sellerFull}`} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 font-mono hover:text-blue-400 transition-colors">
+                                  {listing.seller} <ExternalLink className="h-3 w-3 inline ml-0.5" />
+                                </a>
+                              ) : (
+                                <span className="text-sm text-gray-400 font-mono">{listing.seller}</span>
+                              )}
+                            </td>
+                            <td className="p-4 text-right">
+                              <span className="text-xs text-gray-500">{listing.listed}</span>
+                            </td>
+                          </tr>
+                        )
+                      })
+                    )}
                   </tbody>
                 </table>
               </div>
 
               <div className="text-center py-4">
-                <p className="text-xs text-gray-500">Marketplace data is simulated. Live integration coming soon.</p>
+                <p className="text-xs text-gray-500">Live data from Magic Eden Rare Sats API.</p>
               </div>
             </div>
           </TabsContent>

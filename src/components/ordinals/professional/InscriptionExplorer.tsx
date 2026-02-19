@@ -36,25 +36,16 @@ export default function InscriptionExplorer({ searchQuery = '' }: InscriptionExp
   const inscriptions = selectedCollection ? collectionInscriptions : allInscriptions
   const isLoading = selectedCollection ? isLoadingCollection : isLoadingAll
 
-  // Mock mempool data
-  const mempoolInscriptions = [
-    { id: 'pending-1', content: 'image/png', size: 45234, fee: 89, sat: 1234567890, time: '2 min ago' },
-    { id: 'pending-2', content: 'text/plain', size: 1024, fee: 45, sat: 2345678901, time: '5 min ago' },
-    { id: 'pending-3', content: 'application/json', size: 12456, fee: 67, sat: 3456789012, time: '8 min ago' },
-  ]
+  // Mempool data would come from mempool.space API - no mock data
+  const mempoolInscriptions: { id: string; content: string; size: number; fee: number; sat: number; time: string }[] = []
 
-  // Mock fee market data
+  // Fee market data would come from mempool.space API - no mock data
   const feeMarketData = {
-    current: 47,
-    next: 52,
-    fastest: 89,
-    economical: 23,
-    estimates: [
-      { blocks: 1, fee: 89 },
-      { blocks: 3, fee: 67 },
-      { blocks: 6, fee: 45 },
-      { blocks: 12, fee: 23 },
-    ]
+    current: 0,
+    next: 0,
+    fastest: 0,
+    economical: 0,
+    estimates: [] as { blocks: number; fee: number }[]
   }
 
   // Process real inscription data

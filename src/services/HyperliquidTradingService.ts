@@ -98,7 +98,6 @@ export class HyperliquidTradingService {
 
   async initialize(): Promise<boolean> {
     try {
-      console.log('🚀 Inicializando Hyperliquid Trading Service...');
       
       // Verificar conexão com API
       const health = await this.checkHealth();
@@ -112,7 +111,6 @@ export class HyperliquidTradingService {
       // Carregar dados iniciais
       await this.loadInitialData();
 
-      console.log('✅ Hyperliquid Trading Service inicializado com sucesso');
       return true;
     } catch (error) {
       console.error('❌ Erro ao inicializar Hyperliquid:', error);
@@ -146,7 +144,6 @@ export class HyperliquidTradingService {
         this.wsConnection = new WebSocket(wsUrl);
 
         this.wsConnection.onopen = () => {
-          console.log('✅ WebSocket Hyperliquid conectado');
           this.connected = true;
           this.reconnectAttempts = 0;
           
@@ -160,7 +157,6 @@ export class HyperliquidTradingService {
         };
 
         this.wsConnection.onclose = () => {
-          console.log('❌ WebSocket Hyperliquid desconectado');
           this.connected = false;
           this.attemptReconnect();
         };
@@ -192,7 +188,6 @@ export class HyperliquidTradingService {
     this.reconnectAttempts++;
     const delay = Math.pow(2, this.reconnectAttempts) * 1000; // Backoff exponencial
 
-    console.log(`🔄 Tentativa de reconexão ${this.reconnectAttempts}/${this.maxReconnectAttempts} em ${delay}ms`);
     
     setTimeout(async () => {
       try {
@@ -219,7 +214,6 @@ export class HyperliquidTradingService {
           this.handleMarketDataUpdate(data);
           break;
         default:
-          console.log('📡 Mensagem WebSocket não tratada:', data);
       }
     } catch (error) {
       console.error('❌ Erro ao processar mensagem WebSocket:', error);
@@ -328,7 +322,6 @@ export class HyperliquidTradingService {
         }
       }
 
-      console.log('✅ Dados iniciais carregados');
     } catch (error) {
       console.error('❌ Erro ao carregar dados iniciais:', error);
     }
@@ -433,7 +426,6 @@ export class HyperliquidTradingService {
     stopPrice?: number
   ): Promise<TradingResult> {
     try {
-      console.log(`📝 Enviando ordem: ${side} ${quantity} ${symbol} @ ${price || 'market'}`);
 
       // Validações básicas
       if (quantity <= 0) {
@@ -449,7 +441,7 @@ export class HyperliquidTradingService {
       }
 
       // Simular envio de ordem para Hyperliquid
-      const orderId = `HL_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const orderId = `HL_${Date.now()}_${crypto.randomUUID().slice(0, 9)}`;
       
       const order: Order = {
         orderId,
@@ -505,14 +497,12 @@ export class HyperliquidTradingService {
         order.remainingQuantity = 0;
         order.avgFillPrice = executionPrice;
 
-        console.log(`✅ Ordem executada: ${order.orderId} - ${order.quantity} ${order.symbol} @ $${executionPrice}`);
         
         // Atualizar posição se necessário
         await this.updatePosition(order);
         
       } else {
         order.status = 'rejected';
-        console.log(`❌ Ordem rejeitada: ${order.orderId}`);
       }
 
       this.ordersCache.set(orderId, order);
@@ -585,7 +575,6 @@ export class HyperliquidTradingService {
       this.ordersCache.set(orderId, order);
       this.notifySubscribers('orders', order);
 
-      console.log(`🚫 Ordem cancelada: ${orderId}`);
 
       return {
         success: true,
@@ -616,7 +605,6 @@ export class HyperliquidTradingService {
       );
 
       if (closeOrder.success) {
-        console.log(`🔒 Fechando posição: ${symbol}`);
       }
 
       return closeOrder;
@@ -679,7 +667,6 @@ export class HyperliquidTradingService {
     };
 
     this.wsConnection.send(JSON.stringify(subscribeMessage));
-    console.log(`📡 Subscrito aos dados de mercado: ${symbols.join(', ')}`);
   }
 
   async getPortfolioSummary(address: string): Promise<{ success: boolean; data?: any; error?: string }> {
@@ -838,7 +825,6 @@ export class HyperliquidTradingService {
     this.connected = false;
     this.subscribers.clear();
     
-    console.log('👋 Hyperliquid Trading Service desconectado');
   }
 }
 

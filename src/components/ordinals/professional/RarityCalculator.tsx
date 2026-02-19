@@ -26,66 +26,21 @@ export default function RarityCalculator() {
   const [selectedCollection, setSelectedCollection] = useState('nodemonkes')
   const { data: rarityData, isLoading } = useRarityData(inscriptionId || selectedCollection)
 
-  // Mock trait rarity data
-  const traitRarityData = [
-    { trait: 'Background', value: 'Gold', rarity: 3.2, score: 31.25 },
-    { trait: 'Body', value: 'Robot', rarity: 1.8, score: 55.56 },
-    { trait: 'Eyes', value: 'Laser', rarity: 0.9, score: 111.11 },
-    { trait: 'Mouth', value: 'Smile', rarity: 12.5, score: 8.00 },
-    { trait: 'Hat', value: 'Crown', rarity: 2.1, score: 47.62 },
-    { trait: 'Accessory', value: 'Chain', rarity: 5.7, score: 17.54 },
-  ]
-
-  // Mock statistical analysis
-  const statisticalAnalysis = {
-    totalScore: 271.08,
-    percentile: 94.3,
-    rank: 143,
-    totalSupply: 10000,
-    uniqueTraits: 6,
-    averageRarity: 4.37
+  // Rarity data comes from the useRarityData hook when available
+  // Use real data from the hook, or empty arrays when not available
+  const traitRarityData = rarityData?.traits || []
+  const statisticalAnalysis = rarityData?.stats || {
+    totalScore: 0,
+    percentile: 0,
+    rank: 0,
+    totalSupply: 0,
+    uniqueTraits: 0,
+    averageRarity: 0
   }
-
-  // Mock comparative index
-  const comparativeData = [
-    { collection: 'NodeMonkes', avgRarity: 45.2, floor: 0.045 },
-    { collection: 'Bitcoin Puppets', avgRarity: 52.1, floor: 0.032 },
-    { collection: 'Runestones', avgRarity: 38.7, floor: 0.028 },
-    { collection: 'Quantum Cats', avgRarity: 61.3, floor: 0.025 },
-    { collection: 'Bitcoin Frogs', avgRarity: 41.9, floor: 0.019 },
-  ]
-
-  // Mock historical trends
-  const historicalTrends = [
-    { date: '2024-01-01', avgRarity: 42.1, topRarity: 289.5, floor: 0.032 },
-    { date: '2024-01-08', avgRarity: 43.5, topRarity: 295.2, floor: 0.035 },
-    { date: '2024-01-15', avgRarity: 45.2, topRarity: 301.8, floor: 0.038 },
-    { date: '2024-01-22', avgRarity: 44.8, topRarity: 298.4, floor: 0.041 },
-    { date: '2024-01-29', avgRarity: 46.3, topRarity: 312.1, floor: 0.045 },
-  ]
-
-  // Mock rarity distribution
-  const rarityDistribution = [
-    { range: '0-50', count: 2341, percentage: 23.4 },
-    { range: '50-100', count: 3456, percentage: 34.6 },
-    { range: '100-150', count: 2123, percentage: 21.2 },
-    { range: '150-200', count: 1234, percentage: 12.3 },
-    { range: '200-250', count: 567, percentage: 5.7 },
-    { range: '250+', count: 279, percentage: 2.8 },
-  ]
-
-  // Mock price correlation data
-  const priceCorrelation = [
-    { rarity: 25, price: 0.032, size: 45 },
-    { rarity: 45, price: 0.035, size: 89 },
-    { rarity: 67, price: 0.038, size: 123 },
-    { rarity: 89, price: 0.042, size: 67 },
-    { rarity: 112, price: 0.048, size: 34 },
-    { rarity: 145, price: 0.056, size: 23 },
-    { rarity: 189, price: 0.067, size: 15 },
-    { rarity: 234, price: 0.089, size: 8 },
-    { rarity: 289, price: 0.123, size: 5 },
-  ]
+  const comparativeData: { collection: string; avgRarity: number; floor: number }[] = []
+  const historicalTrends: { date: string; avgRarity: number; topRarity: number; floor: number }[] = []
+  const rarityDistribution: { range: string; count: number; percentage: number }[] = []
+  const priceCorrelation: { rarity: number; price: number; size: number }[] = []
 
   const getRarityTier = (score: number) => {
     if (score >= 250) return { tier: 'Mythic', color: RARITY_COLORS.mythic }

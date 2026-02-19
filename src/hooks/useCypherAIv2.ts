@@ -88,13 +88,13 @@ interface UseCypherAIv2Return extends UseCypherAIv2State, UseCypherAIv2Actions {
 
 const defaultConfig: CypherAIConfig = {
   apiKeys: {
-    openai: process.env.NEXT_PUBLIC_OPENAI_API_KEY || '',
-    elevenlabs: process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || '',
-    coingecko: process.env.NEXT_PUBLIC_COINGECKO_API_KEY || '',
-    coinmarketcap: process.env.NEXT_PUBLIC_COINMARKETCAP_API_KEY || '',
-    binance: process.env.NEXT_PUBLIC_BINANCE_API_KEY || '',
-    google: process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '',
-    assemblyai: process.env.NEXT_PUBLIC_ASSEMBLYAI_API_KEY || ''
+    openai: '', // Routed through /api/cypher-ai/chat
+    elevenlabs: '', // Routed through /api/ai/text-to-speech
+    coingecko: '', // Routed through /api/coingecko
+    coinmarketcap: '', // Routed through /api/market/data
+    binance: '', // Routed through /api/market/data
+    google: '', // Routed through server-side API routes
+    assemblyai: '' // Routed through /api/ai/speech-to-text
   },
   personality: 'professional',
   language: 'pt-BR',
@@ -152,7 +152,6 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     
     const initializeAI = async () => {
       try {
-        console.log('🚀 Inicializando CYPHER AI v2...');
         
         ai.current = new CypherAI(finalConfig);
         
@@ -172,7 +171,6 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
         // Add welcome message
         addSystemMessage('🤖 CYPHER AI v2 inicializada! Como posso ajudar você hoje?', 'happy');
         
-        console.log('✅ CYPHER AI v2 pronta para uso!');
         
       } catch (error) {
         console.error('❌ Erro ao inicializar CYPHER AI v2:', error);
@@ -195,7 +193,6 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
 
     // Core events
     ai.current.on('initialized', (data) => {
-      console.log('🎯 AI inicializada:', data);
     });
 
     ai.current.on('message', (message: ConversationMessage) => {
@@ -245,7 +242,6 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
 
     ai.current.on('streamMarketData', (data: any) => {
       // Handle streamed market data
-      console.log('📊 Market data streamed:', data);
     });
 
     // Suggestions
@@ -287,7 +283,6 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
 
     // Intent detection
     ai.current.on('intentDetected', (intent: any) => {
-      console.log('🎯 Intent detectado:', intent.name, 'Confiança:', intent.confidence);
     });
 
     // Errors

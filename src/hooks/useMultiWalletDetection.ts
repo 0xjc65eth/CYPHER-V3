@@ -69,7 +69,6 @@ export const useMultiWalletDetection = () => {
               }
             }
           } catch (e) {
-            console.warn('Error detecting Ethereum wallets:', e);
           }
 
           // Solana wallets detection
@@ -95,7 +94,6 @@ export const useMultiWalletDetection = () => {
               }
             }
           } catch (e) {
-            console.warn('Error detecting Solana wallets:', e);
           }
 
           // Bitcoin wallets detection
@@ -146,7 +144,6 @@ export const useMultiWalletDetection = () => {
               });
             }
           } catch (e) {
-            console.warn('Error detecting Bitcoin wallets:', e);
           }
         }
       } catch (error) {

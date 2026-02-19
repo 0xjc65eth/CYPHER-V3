@@ -128,13 +128,11 @@ export function createSafeChart<T extends any[]>(
 // Export chart validation utilities
 export function validateChartData(data: any[], requiredFields: string[] = []): boolean {
   if (!Array.isArray(data) || data.length === 0) {
-    console.warn('Chart data validation failed: empty or invalid data');
     return false;
   }
 
   for (const field of requiredFields) {
     if (!data.every(item => typeof item === 'object' && field in item)) {
-      console.warn(`Chart data validation failed: missing required field "${field}"`);
       return false;
     }
   }

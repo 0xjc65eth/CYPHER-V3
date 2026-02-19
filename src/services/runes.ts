@@ -1,6 +1,6 @@
 /**
  * Runes Service
- * Provides Runes market data and analytics
+ * Provides Runes market data and analytics via API routes (server-side proxied)
  */
 
 export interface RuneMarketData {
@@ -74,79 +74,94 @@ class RunesService {
     return RunesService.instance;
   }
 
+  /**
+   * Fetch runes market data via the server-side API route
+   * which handles API keys and multi-source fallback
+   */
   async getRunesMarketData(): Promise<RuneMarketData[]> {
     try {
-      // Import the real data service
-      const { runesRealDataService } = await import('./runes/RunesRealDataService');
-      
-      // Get real data from multiple sources
-      const realData = await runesRealDataService.getRealRunesMarketData();
-      
-      if (realData && realData.length > 0) {
-        return realData;
+      const response = await fetch('/api/runes/market-overview/?limit=50');
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
-    } catch (error) {
-      console.error('Failed to fetch real Runes data, falling back to mock:', error);
-    }
 
-    // Fallback to enhanced mock data if real data fails
-    const runeNames = [
-      'RSIC•GENESIS•RUNE', 'RUNESTONE', 'DOG•GO•TO•THE•MOON',
-      'SATOSHI•NAKAMOTO', 'UNCOMMON•GOODS', 'Z•Z•Z•Z•Z•FEHU•Z•Z•Z•Z•Z',
-      'WANKO•MANKO•RUNE', 'BILLION•DOLLAR•CAT', 'MEME•ECONOMICS',
-      'BITCOIN•WIZARDS', 'THE•TICKER•IS•WORLD•PEACE', 'ANARCHO•CATBUS'
-    ];
+      const result = await response.json();
 
-    return runeNames.map((name, index) => {
-      const basePrice = 0.00001 + Math.random() * 0.001;
-      const change24h = (Math.random() - 0.5) * 20;
-      const volume24h = 10000 + Math.random() * 100000;
-      const supply = 1000000 + Math.random() * 99000000;
+      if (!result.success || !result.data || result.data.length === 0) {
+        return [];
+      }
 
-      return {
-        id: `rune_${index + 1}`,
-        name,
-        symbol: name.replace(/[•\s]/g, '').substring(0, 8),
+      // Transform API route response to RuneMarketData format
+      return result.data.map((r: any, index: number) => ({
+        id: r.id || `rune-${index}`,
+        name: r.spaced_name || r.name || '',
+        symbol: r.symbol || '◆',
         price: {
-          current: basePrice,
-          change24h,
-          change7d: (Math.random() - 0.5) * 40,
-          high24h: basePrice * 1.2,
-          low24h: basePrice * 0.8
+          current: r.floorPrice || 0,
+          change24h: r.change24h || 0,
+          change7d: 0,
+          high24h: 0,
+          low24h: 0,
         },
         marketCap: {
-          current: basePrice * supply,
+          current: r.marketCap || 0,
           rank: index + 1,
-          change24h: change24h * 0.8
+          change24h: 0,
         },
         volume: {
-          volume24h,
-          change24h: (Math.random() - 0.5) * 100,
-          volumeRank: Math.floor(Math.random() * runeNames.length) + 1
+          volume24h: r.volume24h || 0,
+          change24h: 0,
+          volumeRank: 0,
         },
         supply: {
-          circulating: supply * 0.8,
-          total: supply,
-          max: supply,
-          percentage: 80
+          circulating: parseFloat(r.supply || '0'),
+          total: parseFloat(r.supply || '0'),
+          max: parseFloat(r.supply || '0'),
+          percentage: r.mintable ? 0 : 100,
         },
-        holders: 100 + Math.floor(Math.random() * 10000),
+        holders: r.holders || 0,
         transactions: {
-          transfers24h: Math.floor(Math.random() * 1000),
-          mints24h: Math.floor(Math.random() * 100),
-          burns24h: Math.floor(Math.random() * 10)
+          transfers24h: r.transactions || r.sales24h || 0,
+          mints24h: 0,
+          burns24h: parseInt(r.burned || '0'),
         },
         minting: {
-          progress: 50 + Math.random() * 50,
-          remaining: Math.floor(Math.random() * 1000000),
-          rate: Math.floor(Math.random() * 1000)
-        }
-      };
-    });
+          progress: r.mintable ? 50 : 100,
+          remaining: 0,
+          rate: 0,
+        },
+      }));
+    } catch {
+      return [];
+    }
   }
 
   async getRunesAnalytics(): Promise<RunesAnalytics> {
     const marketData = await this.getRunesMarketData();
+
+    if (!marketData || marketData.length === 0) {
+      return {
+        marketOverview: {
+          totalMarketCap: 0,
+          totalVolume24h: 0,
+          averageChange24h: 0,
+          activeRunes: 0,
+          newRunes24h: 0,
+          marketSentiment: 'neutral'
+        },
+        topPerformers: {
+          gainers24h: [],
+          losers24h: [],
+          volumeLeaders: []
+        },
+        crossChainMetrics: {
+          bridgeVolume24h: 0,
+          activeBridges: 0,
+          averageBridgeTime: 0
+        }
+      };
+    }
+
     const totalMarketCap = marketData.reduce((sum, rune) => sum + rune.marketCap.current, 0);
     const totalVolume24h = marketData.reduce((sum, rune) => sum + rune.volume.volume24h, 0);
     const averageChange24h = marketData.reduce((sum, rune) => sum + rune.price.change24h, 0) / marketData.length;
@@ -165,13 +180,15 @@ class RunesService {
       .sort((a, b) => b.volume.volume24h - a.volume.volume24h)
       .slice(0, 3);
 
+    const newRunes24h = marketData.filter(r => r.minting.progress < 100).length;
+
     return {
       marketOverview: {
         totalMarketCap,
         totalVolume24h,
         averageChange24h,
         activeRunes: marketData.length,
-        newRunes24h: Math.floor(Math.random() * 5),
+        newRunes24h,
         marketSentiment: averageChange24h > 2 ? 'bullish' : averageChange24h < -2 ? 'bearish' : 'neutral'
       },
       topPerformers: {
@@ -180,26 +197,23 @@ class RunesService {
         volumeLeaders
       },
       crossChainMetrics: {
-        bridgeVolume24h: totalVolume24h * 0.1,
-        activeBridges: 3,
-        averageBridgeTime: 300 + Math.random() * 600
+        bridgeVolume24h: 0, // No cross-chain bridge data available yet
+        activeBridges: 0,
+        averageBridgeTime: 0
       }
     };
   }
 
   subscribeToRunesPrices(callback: (updates: any[]) => void): () => void {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      const updates = [
-        {
-          id: 'rune_1',
-          price: {
-            current: 0.00001 + Math.random() * 0.001,
-            change24h: (Math.random() - 0.5) * 20
-          }
+    const interval = setInterval(async () => {
+      try {
+        const marketData = await this.getRunesMarketData();
+        if (marketData && marketData.length > 0) {
+          callback(marketData);
         }
-      ];
-      callback(updates);
+      } catch {
+        // Price update fetch failed - will retry on next interval
+      }
     }, 30000);
 
     return () => clearInterval(interval);

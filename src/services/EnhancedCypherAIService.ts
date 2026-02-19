@@ -43,7 +43,6 @@ export class EnhancedCypherAIService extends CypherAIService {
     // Initialize voice manager with ElevenLabs integration
     this.voiceManager = new VoiceAIManager(elevenLabsApiKey);
     
-    console.log('🎤 Enhanced Cypher AI Service initialized with ElevenLabs voice');
   }
 
   /**
@@ -74,7 +73,6 @@ export class EnhancedCypherAIService extends CypherAIService {
       }
       
       this.lastResponseTime = Date.now() - startTime;
-      console.log(`🤖 Enhanced response generated in ${this.lastResponseTime}ms`);
       
       return enhancedResponse;
       
@@ -422,7 +420,6 @@ export class EnhancedCypherAIService extends CypherAIService {
       this.stopSpeaking();
     }
     
-    console.log(`🎤 Voice ${this.isVoiceEnabled ? 'enabled' : 'disabled'}`);
     return this.isVoiceEnabled;
   }
 
@@ -459,7 +456,6 @@ export class EnhancedCypherAIService extends CypherAIService {
       this.isVoiceEnabled = settings.enableVoice;
     }
     
-    console.log('🎤 Voice settings updated:', settings);
   }
 
   /**
@@ -475,7 +471,6 @@ export class EnhancedCypherAIService extends CypherAIService {
   destroy(): void {
     this.voiceManager.destroy();
     this.voiceResponseCache.clear();
-    console.log('🤖 Enhanced Cypher AI Service destroyed');
   }
 }
 

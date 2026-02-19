@@ -1,7 +1,6 @@
 'use client'
 
-import { useLaserEyes } from '@omnisat/lasereyes-react'
-import { XVERSE, UNISAT, OYL } from '@omnisat/lasereyes-core'
+import { useLaserEyes, XVERSE, UNISAT, OYL } from '@/providers/SimpleLaserEyesProvider'
 import { useCallback, useState } from 'react'
 
 export type WalletType = 'xverse' | 'unisat' | 'oyl'
@@ -31,7 +30,6 @@ export function usePortfolioWallet() {
       }
 
       await connect(provider)
-      console.log('✅ Wallet connected successfully via LaserEyes')
       return true
     } catch (err) {
       console.error('Failed to connect wallet:', err)

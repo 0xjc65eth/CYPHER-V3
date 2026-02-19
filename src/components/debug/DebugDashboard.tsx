@@ -173,7 +173,6 @@ export default function DebugDashboard({
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  console.log(devDebugger.generateReport());
                   logger.component('DebugDashboard', 'Report generated to console');
                 }}
                 className="text-xs"

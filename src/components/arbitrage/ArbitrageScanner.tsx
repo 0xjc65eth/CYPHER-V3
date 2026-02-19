@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useMultiCryptoRealTimePrice } from '@/hooks/useRealTimePrice';
-import { hiroOrdinalsService } from '@/services/HiroOrdinalsService';
-import { 
-  Zap, TrendingUp, DollarSign, Clock, AlertCircle, ExternalLink, 
+import { useArbitrageOpportunities } from '@/hooks/useArbitrageOpportunities';
+import {
+  Zap, TrendingUp, DollarSign, Clock, AlertCircle, ExternalLink,
   RefreshCw, Play, Pause, ArrowRight, Calculator,
-  ShoppingCart, Tag, Activity, BarChart3, Bell, 
+  ShoppingCart, Tag, Activity, BarChart3, Bell,
   AlertTriangle, TrendingDown, Volume2, Shield,
   Target, Flame, Award, Users, Globe
 } from 'lucide-react';
@@ -53,237 +53,63 @@ const MARKETPLACE_LINKS = {
 };
 
 export function ArbitrageScanner() {
-  const [opportunities, setOpportunities] = useState<ArbitrageOpportunity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const { opportunities: realOpportunities, loading: hookLoading, error: hookError, refresh } = useArbitrageOpportunities();
   const [activeTab, setActiveTab] = useState<'all' | 'ordinals' | 'runes' | 'rare-sats'>('all');
   const [sortBy, setSortBy] = useState<'profit' | 'confidence' | 'volume'>('profit');
-  const [filterMinProfit, setFilterMinProfit] = useState(10);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [filterMinProfit, setFilterMinProfit] = useState(0);
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [executedTrades, setExecutedTrades] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const { prices: cryptoPrices, loading: pricesLoading } = useMultiCryptoRealTimePrice();
 
-  // Generate real-time opportunities based on market data
-  const generateRealTimeOpportunities = async () => {
-    try {
-      // Fetch real data from APIs
-      const ordinalsData = await hiroOrdinalsService.getMarketData();
-      const brc20Data = await hiroOrdinalsService.getBRC20Tokens();
-      const btcPrice = cryptoPrices?.BTC?.price || 58000;
-      const ethPrice = cryptoPrices?.ETH?.price || 3800;
-      
-      const marketplaces = ['Magic Eden', 'OKX', 'Unisat', 'Gamma', 'OrdSwap', 'OrdinalsBot'];
-      const collections = [
-        { name: 'Ordinal Maxi Biz', basePrice: 0.05, volatility: 0.02 },
-        { name: 'Bitcoin Puppets', basePrice: 0.032, volatility: 0.015 },
-        { name: 'NodeMonkes', basePrice: 0.087, volatility: 0.025 },
-        { name: 'Taproot Wizards', basePrice: 0.12, volatility: 0.035 },
-        { name: 'Quantum Cats', basePrice: 0.095, volatility: 0.028 },
-        { name: 'Bitcoin Frogs', basePrice: 0.068, volatility: 0.018 }
-      ];
-      
-      const runesTokens = [
-        { name: 'UNCOMMON•GOODS', basePrice: 0.000012, volatility: 0.000005 },
-        { name: 'RSIC•GENESIS•RUNE', basePrice: 0.000089, volatility: 0.000025 },
-        { name: 'DOG•GO•TO•THE•MOON', basePrice: 0.000034, volatility: 0.000012 },
-        { name: 'SATOSHI•NAKAMOTO', basePrice: 0.000156, volatility: 0.000045 }
-      ];
-      
-      const rareSats = [
-        { name: 'Pizza Sat', basePrice: 0.025, volatility: 0.008 },
-        { name: 'Block 78 Sat', basePrice: 0.045, volatility: 0.015 },
-        { name: 'Palindrome Sat', basePrice: 0.038, volatility: 0.012 },
-        { name: 'Vintage Sat', basePrice: 0.056, volatility: 0.018 }
-      ];
-      
-      const opportunities: ArbitrageOpportunity[] = [];
-      
-      // Generate Ordinals opportunities
-      for (let i = 0; i < 3; i++) {
-        const collection = collections[Math.floor(Math.random() * collections.length)];
-        const buyMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        let sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        while (sellMarket === buyMarket) {
-          sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        }
-        
-        const buyPrice = collection.basePrice + (Math.random() - 0.5) * collection.volatility;
-        const sellPrice = buyPrice * (1.15 + Math.random() * 0.25); // 15-40% spread
-        
-        opportunities.push({
-          id: `ord-${Date.now()}-${i}`,
-          type: 'ordinals',
-          asset: `${collection.name} #${Math.floor(Math.random() * 10000)}`,
-          collection: collection.name,
-          buyMarketplace: buyMarket,
-          sellMarketplace: sellMarket,
-          buyPrice,
-          sellPrice,
-          fees: {
-            buyFee: 0.0025 + Math.random() * 0.002,
-            sellFee: 0.0039 + Math.random() * 0.002,
-            networkFee: 0.0001
-          },
-          profitAmount: 0,
-          profitPercent: 0,
-          volume24h: ordinalsData?.collections?.[i]?.volume_24h || (15 + Math.random() * 30),
-          liquidity: Math.random() > 0.3 ? 'High' : Math.random() > 0.6 ? 'Medium' : 'Low',
-          confidence: 75 + Math.floor(Math.random() * 20),
-          riskLevel: Math.random() > 0.6 ? 'low' : Math.random() > 0.3 ? 'medium' : 'high',
-          timestamp: new Date(),
-          buyLink: `${MARKETPLACE_LINKS[buyMarket as keyof typeof MARKETPLACE_LINKS] || '#'}`,
-          sellLink: `${MARKETPLACE_LINKS[sellMarket as keyof typeof MARKETPLACE_LINKS] || '#'}`
-        });
-      }
-      
-      // Generate Runes opportunities
-      for (let i = 0; i < 2; i++) {
-        const rune = runesTokens[Math.floor(Math.random() * runesTokens.length)];
-        const buyMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        let sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        while (sellMarket === buyMarket) {
-          sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        }
-        
-        const buyPrice = rune.basePrice + (Math.random() - 0.5) * rune.volatility;
-        const sellPrice = buyPrice * (1.20 + Math.random() * 0.30); // 20-50% spread for runes
-        
-        opportunities.push({
-          id: `rune-${Date.now()}-${i}`,
-          type: 'runes',
-          asset: rune.name,
-          buyMarketplace: buyMarket,
-          sellMarketplace: sellMarket,
-          buyPrice,
-          sellPrice,
-          fees: {
-            buyFee: 0.001 + Math.random() * 0.001,
-            sellFee: 0.0015 + Math.random() * 0.001,
-            networkFee: 0.00005
-          },
-          profitAmount: 0,
-          profitPercent: 0,
-          volume24h: 100 + Math.random() * 200,
-          liquidity: Math.random() > 0.4 ? 'Medium' : Math.random() > 0.7 ? 'High' : 'Low',
-          confidence: 70 + Math.floor(Math.random() * 25),
-          riskLevel: Math.random() > 0.4 ? 'medium' : Math.random() > 0.7 ? 'low' : 'high',
-          timestamp: new Date(),
-          buyLink: `${MARKETPLACE_LINKS[buyMarket as keyof typeof MARKETPLACE_LINKS] || '#'}`,
-          sellLink: `${MARKETPLACE_LINKS[sellMarket as keyof typeof MARKETPLACE_LINKS] || '#'}`
-        });
-      }
-      
-      // Generate Rare Sats opportunities
-      for (let i = 0; i < 2; i++) {
-        const rareSat = rareSats[Math.floor(Math.random() * rareSats.length)];
-        const buyMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        let sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        while (sellMarket === buyMarket) {
-          sellMarket = marketplaces[Math.floor(Math.random() * marketplaces.length)];
-        }
-        
-        const buyPrice = rareSat.basePrice + (Math.random() - 0.5) * rareSat.volatility;
-        const sellPrice = buyPrice * (1.18 + Math.random() * 0.25); // 18-43% spread
-        
-        opportunities.push({
-          id: `rare-${Date.now()}-${i}`,
-          type: 'rare-sats',
-          asset: `${rareSat.name} #${Math.floor(Math.random() * 100000)}`,
-          buyMarketplace: buyMarket,
-          sellMarketplace: sellMarket,
-          buyPrice,
-          sellPrice,
-          fees: {
-            buyFee: 0.002 + Math.random() * 0.001,
-            sellFee: 0.003 + Math.random() * 0.002,
-            networkFee: 0.0001
-          },
-          profitAmount: 0,
-          profitPercent: 0,
-          volume24h: 5 + Math.random() * 15,
-          liquidity: Math.random() > 0.5 ? 'Low' : Math.random() > 0.8 ? 'Medium' : 'High',
-          confidence: 65 + Math.floor(Math.random() * 25),
-          riskLevel: Math.random() > 0.3 ? 'high' : Math.random() > 0.6 ? 'medium' : 'low',
-          timestamp: new Date(),
-          buyLink: `${MARKETPLACE_LINKS[buyMarket as keyof typeof MARKETPLACE_LINKS] || '#'}`,
-          sellLink: `${MARKETPLACE_LINKS[sellMarket as keyof typeof MARKETPLACE_LINKS] || '#'}`
-        });
-      }
-      
-      // Calculate real profits and filter profitable opportunities
-      const profitableOpportunities = opportunities.map(opp => {
-        const totalBuyCost = opp.buyPrice * (1 + opp.fees.buyFee) + opp.fees.networkFee;
-        const totalSellRevenue = opp.sellPrice * (1 - opp.fees.sellFee);
-        const profit = totalSellRevenue - totalBuyCost;
-        const profitPercent = (profit / totalBuyCost) * 100;
-        
-        return {
-          ...opp,
-          profitAmount: profit,
-          profitPercent: profitPercent
-        };
-      }).filter(opp => opp.profitPercent > 5); // Only show opportunities with >5% profit
-      
-      return profitableOpportunities;
-    } catch (error) {
-      console.error('Error generating opportunities:', error);
-      return [];
-    }
-  };
+  // Map real hook data to the component's ArbitrageOpportunity interface
+  const opportunities: ArbitrageOpportunity[] = realOpportunities.map((opp) => ({
+    id: opp.id,
+    type: opp.type,
+    asset: opp.asset,
+    collection: opp.collection,
+    buyMarketplace: opp.buyMarketplace,
+    sellMarketplace: opp.sellMarketplace,
+    buyPrice: opp.buyPrice,
+    sellPrice: opp.sellPrice,
+    fees: opp.fees,
+    profitAmount: opp.profitAmount,
+    profitPercent: opp.profitPercent,
+    volume24h: opp.volume24h,
+    liquidity: opp.liquidity,
+    confidence: typeof opp.confidence === 'number' && opp.confidence <= 1
+      ? Math.round(opp.confidence * 100)
+      : opp.confidence,
+    riskLevel: opp.riskLevel,
+    timestamp: opp.timestamp,
+    buyLink: opp.buyLink,
+    sellLink: opp.sellLink,
+  }));
 
-  useEffect(() => {
-    const loadOpportunities = async () => {
-      setLoading(true);
-      
-      try {
-        // Generate real-time opportunities
-        const realTimeOpps = await generateRealTimeOpportunities();
-        
-        if (realTimeOpps.length > 0) {
-          setOpportunities(realTimeOpps);
-          setLastUpdate(new Date());
-          
-          // Play sound for high-profit opportunities (>25%)
-          if (soundEnabled && realTimeOpps.some(opp => opp.profitPercent > 25)) {
-            playNotificationSound();
-          }
-        }
-      } catch (error) {
-        console.error('Error loading opportunities:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const loading = hookLoading;
 
-    // Load initial opportunities
-    loadOpportunities();
-    
-    // Setup auto-refresh if enabled
-    if (autoRefresh) {
-      const interval = setInterval(loadOpportunities, 60000); // CoinGecko rate limit: increased to 60s
-      setRefreshInterval(interval);
-      
-      return () => {
-        if (interval) clearInterval(interval);
-        setRefreshInterval(null);
-      };
-    }
-  }, [autoRefresh, soundEnabled]);
-  
-  // Cleanup interval on unmount
+  // Update lastUpdate when data changes
   useEffect(() => {
-    return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
+    if (opportunities.length > 0) {
+      setLastUpdate(new Date());
+      if (soundEnabled && opportunities.some(opp => opp.profitPercent > 25)) {
+        playNotificationSound();
       }
-    };
-  }, [refreshInterval]);
+    }
+  }, [realOpportunities]);
+
+  // Auto-refresh via polling
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      refresh();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, refresh]);
 
   const filteredOpportunities = opportunities.filter(opp => 
     activeTab === 'all' || opp.type === activeTab
@@ -331,7 +157,7 @@ export function ArbitrageScanner() {
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
     } catch (error) {
-      console.log('Audio notification not available');
+      // Audio notification not available in this environment
     }
   };
   
@@ -344,33 +170,18 @@ export function ArbitrageScanner() {
     setTotalProfit(prev => prev + (opportunity.profitAmount * (cryptoPrices?.BTC?.price || 58000)));
   };
   
-  const handleManualRefresh = async () => {
-    setLoading(true);
-    
-    try {
-      const realTimeOpps = await generateRealTimeOpportunities();
-      
-      if (realTimeOpps.length > 0) {
-        setOpportunities(realTimeOpps);
-        setLastUpdate(new Date());
-        
-        // Play sound for high-profit opportunities
-        if (soundEnabled && realTimeOpps.some(opp => opp.profitPercent > 25)) {
-          playNotificationSound();
-        }
-      }
-    } catch (error) {
-      console.error('Error refreshing opportunities:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleManualRefresh = () => {
+    refresh();
   };
 
-  if (loading) {
+  if (loading && opportunities.length === 0) {
     return (
       <Card className="bg-gray-900 border-gray-700 p-8">
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-800 rounded w-1/3"></div>
+          <div className="flex items-center gap-3">
+            <RefreshCw className="w-5 h-5 text-orange-400 animate-spin" />
+            <span className="text-gray-400">Scanning Magic Eden and UniSat for arbitrage opportunities...</span>
+          </div>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-24 bg-gray-800 rounded"></div>
@@ -555,9 +366,9 @@ export function ArbitrageScanner() {
               <Users className="w-5 h-5 text-yellow-500" />
               <Bell className="w-4 h-4 text-red-400 animate-pulse" />
             </div>
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Active Traders</p>
-            <p className="text-3xl font-bold text-white">1,247</p>
-            <p className="text-xs text-yellow-400 mt-1">Peak hours</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Marketplaces</p>
+            <p className="text-3xl font-bold text-white">2</p>
+            <p className="text-xs text-yellow-400 mt-1">Magic Eden + UniSat</p>
           </div>
         </Card>
       </div>
@@ -628,6 +439,12 @@ export function ArbitrageScanner() {
         </div>
 
         <div className="p-6">
+          {hookError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {hookError}
+            </div>
+          )}
           <div className="space-y-4">
             {filteredOpportunities
               .filter(opp => opp.profitPercent >= filterMinProfit)
@@ -640,13 +457,23 @@ export function ArbitrageScanner() {
                 }
               })
               .map((opportunity) => (
-                <WallStreetOpportunityCard 
-                  key={opportunity.id} 
+                <WallStreetOpportunityCard
+                  key={opportunity.id}
                   opportunity={opportunity}
                   onTrade={handleDirectTrade}
                   btcPrice={cryptoPrices?.BTC?.price || 58000}
                 />
               ))}
+            {filteredOpportunities.length === 0 && !loading && (
+              <div className="text-center py-12">
+                <Target className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-gray-400 mb-2">No Opportunities Found</h3>
+                <p className="text-gray-500 text-sm">
+                  No arbitrage opportunities detected between Magic Eden and UniSat right now.
+                  The scanner checks for price discrepancies across marketplaces every 60 seconds.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </Card>
@@ -849,7 +676,7 @@ function WallStreetOpportunityCard({ opportunity, onTrade, btcPrice = 58000 }: O
           </span>
           <span className="flex items-center gap-1">
             <Users className="w-3 h-3" />
-            23 traders active
+            {opportunity.buyMarketplace} vs {opportunity.sellMarketplace}
           </span>
         </div>
       </div>

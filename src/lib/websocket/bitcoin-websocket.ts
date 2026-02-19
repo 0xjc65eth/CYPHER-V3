@@ -48,7 +48,6 @@ class BitcoinWebSocketManager extends EventEmitter {
     try {
       // Only connect in browser environment
       if (typeof window === 'undefined') {
-        console.log('WebSocket connection skipped - server environment');
         return;
       }
       
@@ -65,7 +64,6 @@ class BitcoinWebSocketManager extends EventEmitter {
           return;
         }
         
-        console.log('🔗 WebSocket conectado ao Binance');
         this.isConnected = true;
         this.reconnectAttempts = 0;
         this.emit('connected');
@@ -99,7 +97,6 @@ class BitcoinWebSocketManager extends EventEmitter {
       this.ws.onclose = () => {
         if (this.isDestroyed) return;
         
-        console.log('WebSocket desconectado');
         this.isConnected = false;
         this.emit('disconnected');
         this.handleReconnect();
@@ -140,8 +137,6 @@ class BitcoinWebSocketManager extends EventEmitter {
     }
 
     this.reconnectAttempts++;
-    console.log(`Tentando reconectar... (${this.reconnectAttempts}/${this.config.maxReconnectAttempts})`);
-
     // Limpar timer anterior se existir
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);

@@ -17,8 +17,14 @@ node_modules/
 /build
 /dist
 
-# Environment variables
+# Capacitor native platforms (generated)
+/android/
+/ios/
+
+# Environment variables (ALL .env files except .env.example)
 .env
+.env.*
+!.env.example
 .env.local
 .env.development.local
 .env.test.local
@@ -115,10 +121,15 @@ server.log
 .sentryclirc
 
 # API Keys and sensitive data
-.env.example
 api-keys.txt
 *.key
 *.pem
+
+# Production/deployment env files with real secrets
+# (already covered by .env.* above, but listed explicitly for clarity)
+# .env.production
+# .env.netlify
+# .env.staging
 
 # Cache files
 .cache/
@@ -134,4 +145,7 @@ api-keys.txt
 *.sqlite3
 
 # Redis dump
-dump.rdb
+dump.rdb.claude/
+
+# Claude Code
+.claude/

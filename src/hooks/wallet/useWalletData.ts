@@ -459,7 +459,7 @@ export function useWalletApiStatus() {
 
   const clearCache = useCallback(async (pattern: string) => {
     try {
-      const response = await fetch('/api/wallet-apis/status', {
+      const response = await fetch('/api/wallet-apis/status/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -483,7 +483,7 @@ export function useWalletApiStatus() {
 
   const warmupCache = useCallback(async (address: string) => {
     try {
-      const response = await fetch('/api/wallet-apis/status', {
+      const response = await fetch('/api/wallet-apis/status/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

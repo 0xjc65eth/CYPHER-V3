@@ -136,7 +136,6 @@ export class RouteOptimizer {
           crossChainRoutes.push(route);
         }
       } catch (error) {
-        console.warn(`Failed to build cross-chain route via ${bridge}:`, error);
       }
     }
 

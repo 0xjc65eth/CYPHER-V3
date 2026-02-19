@@ -39,7 +39,6 @@ export function useNeuralLearning(options: UseNeuralLearningOptions = {}) {
     if (autoStart && useEnhancedService) {
       // Enhanced service doesn't have start/stop methods like the original
       // It auto-initializes and runs continuously
-      console.log('Enhanced Neural Learning Service is auto-initializing...')
     } else if (autoStart) {
       startLearning()
     }
@@ -85,7 +84,6 @@ export function useNeuralLearning(options: UseNeuralLearningOptions = {}) {
       }
 
       const handleAutoRetrain = (data: any) => {
-        console.log('Auto-retrain triggered for models:', data.models)
       }
 
       // Register enhanced service listeners

@@ -40,13 +40,12 @@ export function useFearGreedIndex() {
           });
         }
       } catch (error) {
-        // If API fails, use simulated data
-        const simulatedValue = Math.floor(Math.random() * 30) + 35; // 35-65 range
+        // API failed - show error state instead of fake data
         setData({
-          index: simulatedValue,
-          label: simulatedValue < 45 ? 'Fear' : simulatedValue > 55 ? 'Greed' : 'Neutral',
+          index: 50,
+          label: 'Unavailable',
           loading: false,
-          error: null
+          error: 'Failed to fetch Fear & Greed Index'
         });
       }
     };

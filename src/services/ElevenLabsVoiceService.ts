@@ -40,7 +40,7 @@ export class ElevenLabsVoiceService {
 
   // Brazilian Portuguese voice optimized for young slang
   private static readonly DEFAULT_CONFIG: ElevenLabsVoiceConfig = {
-    apiKey: 'sk_9c2c1f484f2d3d452cc0a3b2858a82bfa61761766c329415',
+    apiKey: process.env.ELEVENLABS_API_KEY || '',
     voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam - young, energetic male voice
     modelId: 'eleven_multilingual_v2', // Best for Portuguese
     outputFormat: 'mp3_22050_32',
@@ -70,7 +70,6 @@ export class ElevenLabsVoiceService {
       
       if (this.audioContext.state === 'suspended') {
         // Will be resumed on first user interaction
-        console.log('🎤 AudioContext suspended, will resume on user interaction');
       }
     } catch (error) {
       console.error('🎤 Failed to initialize AudioContext:', error);
@@ -92,7 +91,6 @@ export class ElevenLabsVoiceService {
       // Check cache first for performance
       const cacheKey = `${processedText}-${emotion}`;
       if (this.voiceCache.has(cacheKey)) {
-        console.log('🎤 Using cached audio for:', processedText.substring(0, 50));
         return this.voiceCache.get(cacheKey)!;
       }
 
@@ -193,12 +191,10 @@ export class ElevenLabsVoiceService {
       const audioBuffer = await this.audioContext.decodeAudioData(combinedArray.buffer);
       options?.onFinished?.();
       
-      console.log(`🎤 ElevenLabs audio generated: ${audioBuffer.duration.toFixed(2)}s`);
       return audioBuffer;
 
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
-        console.log('🎤 Audio stream aborted');
         return null;
       }
       throw error;
@@ -321,7 +317,6 @@ export class ElevenLabsVoiceService {
       };
 
       this.currentSource.start(0);
-      console.log(`🔊 Playing audio: ${audioBuffer.duration.toFixed(2)}s`);
 
     } catch (error) {
       console.error('🔊 Audio playback error:', error);
@@ -358,7 +353,7 @@ export class ElevenLabsVoiceService {
     emotion: keyof typeof ElevenLabsVoiceService.EMOTION_PRESETS = 'casual'
   ): Promise<void> {
     const audioBuffer = await this.textToSpeech(text, emotion, {
-      onStarted: () => console.log('🎤 Quick speak started'),
+      onStarted: () => {},
       onChunkReceived: (chunk) => {
         // For ultra-fast response, we could play chunks as they arrive
         // But for simplicity, we'll wait for complete audio
@@ -385,7 +380,6 @@ export class ElevenLabsVoiceService {
     
     this.audioQueue.length = 0;
     this.isPlaying = false;
-    console.log('🔊 Audio stopped and queue cleared');
   }
 
   /**
@@ -422,7 +416,6 @@ export class ElevenLabsVoiceService {
    */
   clearCache(): void {
     this.voiceCache.clear();
-    console.log('🎤 Voice cache cleared');
   }
 
   /**
@@ -437,7 +430,6 @@ export class ElevenLabsVoiceService {
       this.audioContext = null;
     }
     
-    console.log('🎤 ElevenLabs Voice Service destroyed');
   }
 }
 

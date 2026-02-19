@@ -110,12 +110,9 @@ class EnhancedCypherAI {
 
   private async initialize() {
     try {
-      if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_OPENAI_API_KEY) {
-        this.openai = new OpenAI({
-          apiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY,
-          dangerouslyAllowBrowser: true
-        });
-        this.isInitialized = true;
+      if (typeof window !== 'undefined') {
+        // OpenAI calls should go through server-side API routes (/api/cypher-ai/chat)
+        // Do NOT initialize client-side OpenAI with API key
       }
     } catch (error) {
       console.error('Failed to initialize OpenAI:', error);

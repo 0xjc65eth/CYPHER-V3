@@ -33,7 +33,6 @@ export class ElevenLabsIntegration {
   constructor(config: CypherAIConfig) {
     this.apiKey = config.apiKeys?.elevenlabs || '';
     if (!this.apiKey) {
-      console.warn('⚠️ ElevenLabs API key não fornecida');
     }
   }
 
@@ -50,8 +49,6 @@ export class ElevenLabsIntegration {
       const testAudio = await this.synthesize('Teste de voz', 'neutral');
       if (testAudio) {
         this.isInitialized = true;
-        console.log('✅ ElevenLabs conectado com sucesso');
-        console.log(`📢 ${this.voices.length} vozes disponíveis`);
       }
     } catch (error) {
       console.error('❌ Erro ao inicializar ElevenLabs:', error);
@@ -83,7 +80,6 @@ export class ElevenLabsIntegration {
       
       if (ptVoice) {
         this.defaultVoiceId = ptVoice.voice_id;
-        console.log(`🇧🇷 Usando voz em português: ${ptVoice.name}`);
       }
     } catch (error) {
       console.error('Erro ao buscar vozes:', error);
@@ -279,7 +275,6 @@ export class ElevenLabsIntegration {
     const voice = this.voices.find(v => v.voice_id === voiceId);
     if (voice) {
       this.defaultVoiceId = voiceId;
-      console.log(`🎤 Voz padrão alterada para: ${voice.name}`);
     }
   }
 

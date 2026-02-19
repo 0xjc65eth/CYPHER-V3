@@ -91,7 +91,6 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
   // Handle order book click
   const handleOrderBookClick = useCallback((price: number, side: 'buy' | 'sell') => {
     // Auto-fill trade form
-    console.log(`Order book clicked: ${side} at ${price}`);
     // This would integrate with a trading form
   }, []);
 

@@ -26,7 +26,6 @@ export const patchBigIntSerialization = async () => {
     };
 
     isPatched = true;
-    console.log('✅ BigInt serialization patched');
   } catch (error) {
     console.error('❌ Failed to patch BigInt:', error);
   }
@@ -36,7 +35,6 @@ export const importLaserEyes = async () => {
   try {
     await patchBigIntSerialization();
     
-    console.warn('⚠️ Usando fallback do LaserEyes');
     
     // Usar fallback diretamente
     const fallbackModule = await import('./lasereyes-fallback');
@@ -62,7 +60,6 @@ export const applyLaserEyesPatch = () => {
     };
     Object.setPrototypeOf((window as any).Number, originalNumber);
     
-    console.log('✅ LaserEyes BigInt patch applied');
   }
 };
 

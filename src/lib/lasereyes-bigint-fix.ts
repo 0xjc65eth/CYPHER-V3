@@ -18,7 +18,6 @@ if (typeof window !== 'undefined') {
 
       // Check for safe conversion
       if (base > Number.MAX_SAFE_INTEGER || exponent > Number.MAX_SAFE_INTEGER) {
-        console.warn('BigInt value exceeds MAX_SAFE_INTEGER, using approximation');
         return Number.POSITIVE_INFINITY;
       }
 
@@ -35,11 +34,9 @@ if (typeof window !== 'undefined') {
     if (typeof value === 'bigint') {
       // Handle large BigInt values
       if (value > BigInt(Number.MAX_SAFE_INTEGER)) {
-        console.warn('BigInt value exceeds MAX_SAFE_INTEGER');
         return Number.MAX_SAFE_INTEGER;
       }
       if (value < BigInt(Number.MIN_SAFE_INTEGER)) {
-        console.warn('BigInt value below MIN_SAFE_INTEGER');
         return Number.MIN_SAFE_INTEGER;
       }
     }
@@ -50,7 +47,6 @@ if (typeof window !== 'undefined') {
   Object.setPrototypeOf((window as any).Number, originalNumber);
   Object.defineProperties((window as any).Number, Object.getOwnPropertyDescriptors(originalNumber));
 
-  console.log('✅ LaserEyes BigInt fix applied');
 }
 
 export {};

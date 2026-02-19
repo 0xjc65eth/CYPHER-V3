@@ -61,33 +61,38 @@ export function useArbitrageAlerts() {
   useEffect(() => {
     if (!settings.arbitrageAlerts) return;
 
-    // Simular detecção de arbitragem (em produção seria real)
-    const checkArbitrage = () => {
-      const random = Math.random();
-      if (random > 0.95) { // 5% chance de detectar oportunidade
-        const opportunity = {
-          exchange1: 'Binance',
-          exchange2: 'Coinbase',
-          priceDiff: Math.random() * 500 + 100,
-          profitPercent: Math.random() * 2 + 0.5,
-        };
+    // Check real arbitrage opportunities from API
+    const checkArbitrage = async () => {
+      try {
+        const res = await fetch('/api/arbitrage/opportunities/');
+        if (!res.ok) return;
+        const data = await res.json();
+        const opportunities = data.opportunities || data || [];
 
-        addNotification({
-          type: 'arbitrage',
-          title: 'Arbitrage Opportunity Detected!',
-          message: `${opportunity.profitPercent.toFixed(2)}% profit between ${opportunity.exchange1} and ${opportunity.exchange2}`,
-          data: opportunity,
-          action: {
-            label: 'View Details',
-            onClick: () => window.location.href = '/trading',
-          },
-        });
+        // Only notify for significant opportunities (>0.5% profit)
+        for (const opp of opportunities) {
+          if (opp.profitPercent > 0.5) {
+            addNotification({
+              type: 'arbitrage',
+              title: 'Arbitrage Opportunity Detected!',
+              message: `${opp.profitPercent.toFixed(2)}% profit between ${opp.exchange1 || opp.buyExchange} and ${opp.exchange2 || opp.sellExchange}`,
+              data: opp,
+              action: {
+                label: 'View Details',
+                onClick: () => window.location.href = '/arbitrage',
+              },
+            });
 
-        devLogger.log('ARBITRAGE', 'New opportunity detected', opportunity);
+            devLogger.log('ARBITRAGE', 'New opportunity detected', opp);
+            break; // Only notify for the best opportunity per check
+          }
+        }
+      } catch {
+        // Silently fail - arbitrage API may not be available
       }
     };
 
-    const interval = setInterval(checkArbitrage, 30000); // Check every 30 seconds
+    const interval = setInterval(checkArbitrage, 60000); // Check every minute
     return () => clearInterval(interval);
   }, [addNotification, settings.arbitrageAlerts]);
 }
@@ -99,42 +104,12 @@ export function useNeuralInsights() {
   useEffect(() => {
     if (!settings.neuralInsights) return;
 
-    // Simular insights neurais
-    const generateInsight = () => {
-      const insights = [
-        { 
-          title: 'Bullish Pattern Detected',
-          message: 'Neural network detected ascending triangle formation with 78% confidence',
-        },
-        {
-          title: 'Market Sentiment Shift',
-          message: 'Social sentiment turning bullish, expecting price movement in 4-6 hours',
-        },
-        {
-          title: 'Whale Activity Alert',
-          message: 'Large accumulation detected: 500+ BTC moved to cold storage',
-        },
-      ];
+    // Neural insights are generated server-side; this hook is a placeholder
+    // until the neural insight API endpoint is available.
+    // No fake random insights are generated.
+    devLogger.log('NEURAL', 'Neural insights hook active - waiting for API integration');
 
-      const random = Math.random();
-      if (random > 0.9) { // 10% chance
-        const insight = insights[Math.floor(Math.random() * insights.length)];
-        
-        addNotification({
-          type: 'neural',
-          title: insight.title,
-          message: insight.message,
-          action: {
-            label: 'Analyze',
-            onClick: () => window.location.href = '/analytics',
-          },
-        });
-
-        devLogger.log('NEURAL', 'New insight generated', insight);
-      }
-    };
-
-    const interval = setInterval(generateInsight, 60000); // Check every minute
-    return () => clearInterval(interval);
+    // Placeholder: no interval needed until real API is available
+    return () => {};
   }, [addNotification, settings.neuralInsights]);
 }

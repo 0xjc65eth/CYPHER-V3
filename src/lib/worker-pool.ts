@@ -181,7 +181,6 @@ export class WorkerPool {
       this.workerStatus[i] = true;
     }
     
-    console.log(`✅ Worker Pool inicializado com ${this.workerCount} workers`);
   }
   
   // Distribuir tarefa
@@ -246,7 +245,6 @@ export class WorkerPool {
     if (error) {
       console.error(`Task ${taskId} failed:`, error);
     } else {
-      console.log(`Task ${taskId} completed in ${duration.toFixed(2)}ms by Worker ${workerId}`);
     }
     
     // Processar próxima tarefa

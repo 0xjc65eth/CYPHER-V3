@@ -5,7 +5,6 @@
 
 import { EventEmitter } from 'events';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
-import { hmacSecurity } from '@/lib/security/HMACSecuritySystem';
 
 // Service Architecture Types
 export interface ServiceConfig {

@@ -304,7 +304,6 @@ export class WalletIntegrationService {
           accounts = addresses?.addresses || addresses || [];
         }
       } catch (e) {
-        console.log('getAddresses failed, trying alternative methods');
       }
 
       // Method 2: Try direct request method
@@ -319,7 +318,6 @@ export class WalletIntegrationService {
             accounts = response.result.addresses;
           }
         } catch (e) {
-          console.log('getAccounts request failed:', e);
         }
       }
 

@@ -42,7 +42,6 @@ class QuickTradeAggregator {
       if (result.status === 'fulfilled' && result.value) {
         quotes.push(result.value);
       } else {
-        console.warn(`Failed to get quote from ${supportedDEXs[index]}:`, result);
       }
     });
 
@@ -141,7 +140,7 @@ class QuickTradeAggregator {
   ): Promise<Quote | null> {
     try {
       // Jupiter API integration
-      const response = await fetch(`https://quote-api.jup.ag/v6/quote?inputMint=${tokenIn.address}&outputMint=${tokenOut.address}&amount=${amountIn}&slippageBps=50`);
+      const response = await fetch(`https://api.jup.ag/v6/quote?inputMint=${tokenIn.address}&outputMint=${tokenOut.address}&amount=${amountIn}&slippageBps=50`);
       
       if (!response.ok) {
         throw new Error('Jupiter API error');

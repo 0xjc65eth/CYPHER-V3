@@ -434,52 +434,60 @@ export class RealArbitrageService {
   }
   
   /**
-   * Get Ordinals marketplace prices (fallback with deterministic variations)
+   * Get Ordinals marketplace prices from real APIs
+   * NOTE: Only returns Magic Eden price as the single verified source.
+   * Other marketplaces require their own API integrations to provide real floor prices.
    */
   private async getOrdinalsMarketplacePrices(collection: any): Promise<ExchangePrice[]> {
-    const marketplaces = [
-      { name: 'Magic Eden', fee: 0.025, variation: 1.0 },
-      { name: 'UniSat', fee: 0.02, variation: 1.05 },
-      { name: 'OKX NFT', fee: 0.02, variation: 0.98 },
-      { name: 'Ordiscan', fee: 0.015, variation: 1.02 }
-    ];
-
+    const results: ExchangePrice[] = [];
     const basePrice = collection.floor_price;
 
-    return marketplaces.map(marketplace => ({
-      exchange: marketplace.name,
-      price: basePrice * marketplace.variation,
-      volume: collection.sales_24h || 10,
-      timestamp: Date.now(),
-      fees: marketplace.fee,
-      available: true,
-      link: `https://${marketplace.name.toLowerCase().replace(' ', '')}.io/collection/${collection.id}`
-    }));
+    if (basePrice && basePrice > 0) {
+      // Magic Eden is the primary source - use real floor price
+      results.push({
+        exchange: 'Magic Eden',
+        price: basePrice,
+        volume: collection.sales_24h || 0,
+        timestamp: Date.now(),
+        fees: 0.025,
+        available: true,
+        link: `https://magiceden.io/ordinals/marketplace/${collection.id}`
+      });
+    }
+
+    // TODO: Add real API calls for UniSat, OKX NFT when their collection floor price APIs are integrated
+    // Without real prices from other marketplaces, we cannot determine arbitrage opportunities
+
+    return results;
   }
 
   /**
-   * Get Runes marketplace prices (deterministic variations)
+   * Get Runes marketplace prices from real APIs
+   * NOTE: Only returns data when real floor prices are available.
+   * Fake price variations have been removed - real cross-marketplace
+   * arbitrage detection is handled by useArbitrageOpportunities hook
+   * and RunesArbitrageService which fetch real prices from Magic Eden + UniSat.
    */
   private async getRunesMarketplacePrices(rune: any): Promise<ExchangePrice[]> {
-    const marketplaces = [
-      { name: 'UniSat', fee: 0.02, variation: 1.0 },
-      { name: 'Magic Eden', fee: 0.025, variation: 1.08 },
-      { name: 'OKX', fee: 0.02, variation: 0.96 },
-      { name: 'Ordiscan', fee: 0.015, variation: 1.04 }
-    ];
+    const results: ExchangePrice[] = [];
 
-    // Generate base price from supply and holders
-    const basePrice = Math.max(0.1, Math.min(100, rune.holders / 100));
+    // If the rune has a real floor price (from upstream API), use it
+    if (rune.floorUnitPrice?.value && rune.floorUnitPrice.value > 0) {
+      results.push({
+        exchange: 'Magic Eden',
+        price: rune.floorUnitPrice.value / 1e8, // sats to BTC
+        volume: rune.volume24h || 0,
+        timestamp: Date.now(),
+        fees: 0.025,
+        available: true,
+        link: `https://magiceden.io/runes/${rune.name}`
+      });
+    }
 
-    return marketplaces.map(marketplace => ({
-      exchange: marketplace.name,
-      price: basePrice * marketplace.variation,
-      volume: rune.holders ? rune.holders / 20 : 5,
-      timestamp: Date.now(),
-      fees: marketplace.fee,
-      available: true,
-      link: `https://${marketplace.name.toLowerCase().replace(' ', '')}.io/runes/${rune.name}`
-    }));
+    // TODO: Add real UniSat/OKX floor price API calls for cross-marketplace comparison
+    // The useArbitrageOpportunities hook already does this properly for the frontend
+
+    return results;
   }
 
   /**

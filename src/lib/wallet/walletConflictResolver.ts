@@ -8,7 +8,6 @@
 
 // ENABLED - Active protection against wallet extension conflicts
 if (typeof window !== 'undefined') {
-  console.log('🛡️ ULTRA-PROTEÇÃO: Ativando defesa máxima contra conflitos de wallet...');
   
   // 1. INTERCEPTAÇÃO TOTAL de Object.defineProperty
   const originalDefineProperty = Object.defineProperty;
@@ -180,7 +179,6 @@ if (typeof window !== 'undefined') {
     return originalFetch.apply(this, arguments);
   };
   
-  console.log('🛡️ Dev overlay neutralizado');
 }
 
 export class WalletConflictResolver {
@@ -202,7 +200,6 @@ export class WalletConflictResolver {
   }
 
   private initializeProtection() {
-    console.log('🛡️ Inicializando proteção avançada contra conflitos...');
     
     // Criar providers isolados para CYPHER AI
     this.createIsolatedProviders();
@@ -316,12 +313,10 @@ export class WalletConflictResolver {
 
   disableProtection() {
     this.isProtectionActive = false;
-    console.log('⚠️ Proteção contra conflitos DESATIVADA');
   }
 
   enableProtection() {
     this.isProtectionActive = true;
-    console.log('✅ Proteção contra conflitos ATIVADA');
   }
 }
 
@@ -360,7 +355,6 @@ if (typeof window !== 'undefined') {
   // Delay para garantir que execute após outras extensões
   setTimeout(() => {
     WalletConflictResolver.getInstance();
-    console.log('🚀 CYPHER AI Wallet Protection: ATIVO');
   }, 100);
 }
 

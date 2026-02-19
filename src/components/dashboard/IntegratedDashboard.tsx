@@ -8,7 +8,7 @@ import { TradingChartSystem } from '@/components/charts/TradingChartSystem';
 import { CypherAISystem } from '@/components/ai/CypherAISystem';
 import { PortfolioSystem } from '@/components/portfolio/PortfolioSystem';
 import { OrdinalsSystemV2 } from '@/components/ordinals/OrdinalsSystemV2';
-import { RunesSystemV2 } from '@/components/runes/RunesSystemV2';
+import { RunesTabSystem } from '@/components/runes/RunesTabSystem';
 import { AnalyticsSystem } from '@/components/analytics/AnalyticsSystem';
 import { MarketTradingFloor } from '@/components/market/MarketTradingFloor';
 import {
@@ -88,7 +88,7 @@ export function IntegratedDashboard() {
       case 'ordinals':
         return <OrdinalsSystemV2 />;
       case 'runes':
-        return <RunesSystemV2 />;
+        return <RunesTabSystem />;
       case 'analytics':
         return <AnalyticsSystem />;
       case 'market':

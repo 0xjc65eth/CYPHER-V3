@@ -2,14 +2,17 @@
 
 import { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, PieChart } from 'lucide-react';
+import { useMempool } from '@/hooks/ordinals/useMempool';
 
 interface MarketMetrics {
   totalCollections: number;
   totalVolume24h: number;
   totalVolume7d: number;
+  totalVolumeAllTime: number;
   avgFloorPrice: number;
   totalListed: number;
   totalOwners: number;
+  totalSupply: number;
   marketCap: number;
 }
 
@@ -19,23 +22,41 @@ interface ProfessionalDashboardProps {
 }
 
 export default function ProfessionalDashboard({ collections, loading }: ProfessionalDashboardProps) {
+  // Use mempool hook for real BTC price and network data
+  const mempool = useMempool();
+
+  // WebSocket connection status (from parent)
+  const wsConnected = typeof window !== 'undefined' && window.localStorage.getItem('ws-connected') === 'true';
   const metrics = useMemo((): MarketMetrics => {
     if (collections.length === 0) {
       return {
         totalCollections: 0,
         totalVolume24h: 0,
         totalVolume7d: 0,
+        totalVolumeAllTime: 0,
         avgFloorPrice: 0,
         totalListed: 0,
         totalOwners: 0,
+        totalSupply: 0,
         marketCap: 0
       };
     }
 
     const totalVolume24h = collections.reduce((sum, c) => sum + (c.volume24h || 0), 0);
     const totalVolume7d = collections.reduce((sum, c) => sum + (c.volume7d || 0), 0);
+    // All-time total volume (fallback when 24h volume is unavailable)
+    const totalVolumeAllTime = collections.reduce((sum, c) => sum + (c.totalVolume || 0), 0);
     const totalListed = collections.reduce((sum, c) => sum + (c.listed || 0), 0);
-    const totalOwners = collections.reduce((sum, c) => sum + (c.owners || 0), 0);
+
+    // Sanitize owners: cap each collection's owners at 500k to prevent garbage values
+    const totalOwners = collections.reduce((sum, c) => {
+      const owners = Number(c.owners || 0);
+      return sum + (Number.isFinite(owners) && owners > 0 && owners < 1_000_000 ? Math.round(owners) : 0);
+    }, 0);
+
+    // Total supply across all collections (used for liquidity ratio)
+    const totalSupply = collections.reduce((sum, c) => sum + (c.supply || 0), 0);
+
     const validFloorPrices = collections.filter(c => c.floorPrice).map(c => c.floorPrice);
     const avgFloorPrice = validFloorPrices.length > 0
       ? validFloorPrices.reduce((sum, p) => sum + p, 0) / validFloorPrices.length
@@ -50,9 +71,11 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
       totalCollections: collections.length,
       totalVolume24h,
       totalVolume7d,
+      totalVolumeAllTime,
       avgFloorPrice,
       totalListed,
       totalOwners,
+      totalSupply,
       marketCap
     };
   }, [collections]);
@@ -64,13 +87,21 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
     return ((metrics.totalVolume24h - avg7d) / avg7d) * 100;
   }, [metrics]);
 
-  const formatBTC = (sats: number): string => {
-    return (sats / 1e8).toFixed(4);
+  const formatBTC = (btcValue: number): string => {
+    return btcValue.toFixed(4);
   };
 
-  const formatUSD = (sats: number, btcPrice: number = 50000): string => {
-    const btc = sats / 1e8;
-    const usd = btc * btcPrice;
+  // Get real BTC price from mempool hook, fallback to 50000
+  const btcPriceUSD = useMemo(() => {
+    if (mempool.bitcoinPrices.data) {
+      const priceData = mempool.bitcoinPrices.data as Record<string, number>;
+      return priceData.USD || 50000;
+    }
+    return 50000;
+  }, [mempool.bitcoinPrices.data]);
+
+  const formatUSD = (btcValue: number): string => {
+    const usd = btcValue * btcPriceUSD;
     if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
     if (usd >= 1_000) return `$${(usd / 1_000).toFixed(1)}K`;
     return `$${usd.toFixed(0)}`;
@@ -142,20 +173,35 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
             <h2 className="text-xl font-bold text-white mb-1">ORDINALS MARKET OVERVIEW</h2>
             <p className="text-sm text-gray-400">Institutional-Grade Bitcoin Ordinals Analytics</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-xs text-green-400 font-medium">LIVE MARKET DATA</span>
+          <div className="flex items-center gap-4">
+            {/* WebSocket Status */}
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
+              <span className={`text-xs font-medium ${wsConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                {wsConnected ? 'REALTIME' : 'POLLING'}
+              </span>
+            </div>
+
+            {/* Live Data Indicator */}
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-[#f59e0b] rounded-full animate-pulse"></div>
+              <span className="text-xs text-[#f59e0b] font-medium">LIVE DATA</span>
+            </div>
           </div>
         </div>
 
         {/* Quick Stats Bar */}
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-[#2a2a3e]">
           <div className="text-center">
-            <div className="text-xs text-gray-400 mb-1">24H VOLUME</div>
-            <div className="text-lg font-bold text-[#f59e0b] font-mono">
-              {formatBTC(metrics.totalVolume24h)} BTC
+            <div className="text-xs text-gray-400 mb-1">
+              {metrics.totalVolume24h > 0 ? '24H VOLUME' : 'TOTAL VOLUME'}
             </div>
-            <div className="text-xs text-gray-500">{formatUSD(metrics.totalVolume24h)}</div>
+            <div className="text-lg font-bold text-[#f59e0b] font-mono">
+              {formatBTC(metrics.totalVolume24h > 0 ? metrics.totalVolume24h : metrics.totalVolumeAllTime)} BTC
+            </div>
+            <div className="text-xs text-gray-500">
+              {formatUSD(metrics.totalVolume24h > 0 ? metrics.totalVolume24h : metrics.totalVolumeAllTime)}
+            </div>
           </div>
           <div className="text-center border-x border-[#2a2a3e]">
             <div className="text-xs text-gray-400 mb-1">MARKET CAP</div>
@@ -185,18 +231,18 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
         />
 
         <MetricCard
-          title="24H Volume"
-          value={`${formatBTC(metrics.totalVolume24h)} BTC`}
-          subValue={formatUSD(metrics.totalVolume24h)}
-          change={volume24hChange}
+          title={metrics.totalVolume24h > 0 ? '24H Volume' : 'Total Volume'}
+          value={`${formatBTC(metrics.totalVolume24h > 0 ? metrics.totalVolume24h : metrics.totalVolumeAllTime)} BTC`}
+          subValue={formatUSD(metrics.totalVolume24h > 0 ? metrics.totalVolume24h : metrics.totalVolumeAllTime)}
+          change={metrics.totalVolume24h > 0 ? volume24hChange : undefined}
           icon={Activity}
-          trend={volume24hChange > 0 ? 'up' : 'down'}
+          trend={metrics.totalVolume24h > 0 ? (volume24hChange > 0 ? 'up' : 'down') : 'neutral'}
         />
 
         <MetricCard
-          title="7D Volume"
-          value={`${formatBTC(metrics.totalVolume7d)} BTC`}
-          subValue={formatUSD(metrics.totalVolume7d)}
+          title={metrics.totalVolume7d > 0 ? '7D Volume' : 'All-Time Vol'}
+          value={`${formatBTC(metrics.totalVolume7d > 0 ? metrics.totalVolume7d : metrics.totalVolumeAllTime)} BTC`}
+          subValue={metrics.totalVolume7d > 0 ? formatUSD(metrics.totalVolume7d) : 'Cumulative across collections'}
           icon={BarChart3}
           trend="neutral"
         />
@@ -232,7 +278,7 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
 
         <MetricCard
           title="Liquidity Ratio"
-          value={`${((metrics.totalListed / (metrics.totalCollections * 1000)) * 100).toFixed(1)}%`}
+          value={`${metrics.totalSupply > 0 ? ((metrics.totalListed / metrics.totalSupply) * 100).toFixed(1) : '0.0'}%`}
           subValue="Listed / Total Supply"
           icon={BarChart3}
         />
@@ -272,6 +318,43 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
           </p>
         </div>
       </div>
+
+      {/* Network Status Bar - powered by Mempool.space */}
+      {mempool.recommendedFees.data && (
+        <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-[#f59e0b] rounded-full animate-pulse"></div>
+              <span className="text-xs font-semibold text-[#f59e0b] uppercase tracking-wider">Bitcoin Network Status</span>
+            </div>
+            <span className="text-[10px] text-gray-500 font-mono">via mempool.space</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase mb-1">BTC Price</div>
+              <div className="text-sm font-bold text-white font-mono">${btcPriceUSD.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase mb-1">Fast Fee</div>
+              <div className="text-sm font-bold text-green-400 font-mono">{mempool.recommendedFees.data.fastestFee} sat/vB</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase mb-1">Medium Fee</div>
+              <div className="text-sm font-bold text-yellow-400 font-mono">{mempool.recommendedFees.data.halfHourFee} sat/vB</div>
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 uppercase mb-1">Economy Fee</div>
+              <div className="text-sm font-bold text-blue-400 font-mono">{mempool.recommendedFees.data.economyFee} sat/vB</div>
+            </div>
+            {mempool.mempoolStats.data && (
+              <div>
+                <div className="text-[10px] text-gray-500 uppercase mb-1">Mempool Size</div>
+                <div className="text-sm font-bold text-white font-mono">{(mempool.mempoolStats.data.count || 0).toLocaleString()} txs</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

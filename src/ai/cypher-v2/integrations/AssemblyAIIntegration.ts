@@ -53,7 +53,6 @@ export class AssemblyAIIntegration {
   constructor(config: CypherAIConfig) {
     this.apiKey = config.apiKeys?.assemblyai || '';
     if (!this.apiKey) {
-      console.warn('⚠️ AssemblyAI API key não fornecida');
     }
   }
 
@@ -73,7 +72,6 @@ export class AssemblyAIIntegration {
 
       if (response.ok) {
         this.isInitialized = true;
-        console.log('✅ AssemblyAI conectado com sucesso');
       }
     } catch (error) {
       console.error('❌ Erro ao inicializar AssemblyAI:', error);
@@ -121,7 +119,6 @@ export class AssemblyAIIntegration {
       this.websocket = new WebSocket(wsUrl);
 
       this.websocket.onopen = () => {
-        console.log('🎤 AssemblyAI WebSocket conectado');
         
         // Authenticate
         this.websocket?.send(JSON.stringify({
@@ -149,15 +146,12 @@ export class AssemblyAIIntegration {
             break;
             
           case 'SessionBegins':
-            console.log('🎙️ Sessão de transcrição iniciada');
             break;
             
           case 'SessionTerminated':
-            console.log('🔚 Sessão de transcrição encerrada');
             break;
             
           default:
-            console.log('AssemblyAI message:', data);
         }
       };
 
@@ -167,7 +161,6 @@ export class AssemblyAIIntegration {
       };
 
       this.websocket.onclose = () => {
-        console.log('WebSocket fechado');
       };
 
       // Return control methods

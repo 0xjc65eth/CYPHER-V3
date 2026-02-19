@@ -27,30 +27,10 @@ export function useNeuralPricePrediction(symbol = 'BTC') {
       try {
         setData(prev => ({ ...prev, isLoading: true, error: null }))
         
-        // Simulate neural network prediction
-        const mockPredictions: PricePrediction[] = [
-          {
-            price: 45000 + Math.random() * 10000,
-            confidence: 0.75 + Math.random() * 0.2,
-            trend: 'bullish',
-            timeframe: '1h'
-          },
-          {
-            price: 44000 + Math.random() * 12000,
-            confidence: 0.65 + Math.random() * 0.25,
-            trend: 'neutral',
-            timeframe: '4h'
-          },
-          {
-            price: 43000 + Math.random() * 15000,
-            confidence: 0.55 + Math.random() * 0.3,
-            trend: 'bearish',
-            timeframe: '1d'
-          }
-        ]
-        
+        // Neural price prediction not yet integrated with real ML model
+        // Return empty predictions instead of fake random values
         setData({
-          predictions: mockPredictions,
+          predictions: [],
           isLoading: false,
           error: null,
           lastUpdated: new Date()

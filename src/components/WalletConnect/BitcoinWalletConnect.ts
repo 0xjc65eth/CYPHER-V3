@@ -785,7 +785,6 @@ class BitcoinWalletConnect {
 
   private log(...args: any[]): void {
     if (this.options.enableLogging) {
-      console.log('[BitcoinWalletConnect]', ...args);
     }
   }
 

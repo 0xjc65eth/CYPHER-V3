@@ -19,9 +19,9 @@ class RealAIService {
   private assemblyApiKey: string;
 
   constructor() {
-    this.openaiApiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || '';
-    this.geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-    this.assemblyApiKey = process.env.NEXT_PUBLIC_ASSEMBLY_API_KEY || '';
+    this.openaiApiKey = ''; // AI calls routed through /api/cypher-ai/chat server-side
+    this.geminiApiKey = ''; // AI calls routed through /api/cypher-ai/chat server-side
+    this.assemblyApiKey = ''; // Speech calls routed through /api/ai/speech-to-text server-side
   }
 
   // OpenAI GPT-4 Integration
@@ -201,7 +201,6 @@ class RealAIService {
         try {
           return await this.processWithOpenAI(message, context);
         } catch (error) {
-          console.warn('OpenAI failed, falling back to Gemini');
           return await this.processWithGemini(message, context);
         }
       }
@@ -210,7 +209,6 @@ class RealAIService {
       try {
         return await this.processWithGemini(message, context);
       } catch (error) {
-        console.warn('Gemini failed, falling back to OpenAI');
         return await this.processWithOpenAI(message, context);
       }
     } catch (error) {

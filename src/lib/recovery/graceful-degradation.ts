@@ -412,7 +412,7 @@ class GracefulDegradationManager {
   private async checkApiHealth(): Promise<boolean> {
     try {
       // Ping a lightweight health endpoint
-      const response = await fetch('/api/health', { 
+      const response = await fetch('/api/health/', { 
         method: 'HEAD',
         signal: AbortSignal.timeout(2000)
       })

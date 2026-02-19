@@ -194,7 +194,6 @@ export function WalletConnector() {
       });
       
       setShowWallets(false);
-      console.log(`✅ Connected to ${walletId} on ${selectedNetwork}`);
       
     } catch (error) {
       console.error('Error connecting wallet:', error);
@@ -250,7 +249,6 @@ export function WalletConnector() {
       
       setShowAddressInput(false);
       setManualAddress('');
-      console.log(`✅ Connected to manual address on ${selectedNetwork}`);
       
     } catch (error) {
       console.error('Error connecting manual address:', error);

@@ -11,7 +11,6 @@ export class SupabaseService {
   private static instance: SupabaseService
   
   private constructor() {
-    console.log('Supabase Service initialized')
   }
   
   public static getInstance(): SupabaseService {
@@ -47,7 +46,6 @@ export class SupabaseService {
         throw error
       }
       
-      console.log(`Model ${model.id} saved to Supabase`)
     } catch (error) {
       console.error('Error in saveModel:', error)
       throw error
@@ -69,7 +67,6 @@ export class SupabaseService {
       }
       
       if (!data) {
-        console.log(`Model ${modelId} not found in Supabase`)
         return null
       }
       
@@ -89,7 +86,6 @@ export class SupabaseService {
         performanceMetrics: data.performance_metrics
       }
       
-      console.log(`Model ${modelId} loaded from Supabase`)
       return model
     } catch (error) {
       console.error('Error in loadModel:', error)
@@ -111,7 +107,6 @@ export class SupabaseService {
       }
       
       if (!data || data.length === 0) {
-        console.log('No models found in Supabase')
         return []
       }
       
@@ -131,7 +126,6 @@ export class SupabaseService {
         performanceMetrics: item.performance_metrics
       }))
       
-      console.log(`${models.length} models loaded from Supabase`)
       return models
     } catch (error) {
       console.error('Error in loadAllModels:', error)
@@ -200,7 +194,6 @@ export class SupabaseService {
         }
       }
       
-      console.log('Training data saved to Supabase')
     } catch (error) {
       console.error('Error in saveTrainingData:', error)
       throw error
@@ -265,7 +258,6 @@ export class SupabaseService {
         runeData: runeData || []
       }
       
-      console.log('Training data loaded from Supabase')
       return result
     } catch (error) {
       console.error('Error in loadTrainingData:', error)
@@ -299,7 +291,6 @@ export class SupabaseService {
         throw error
       }
       
-      console.log(`${insights.length} insights saved to Supabase`)
     } catch (error) {
       console.error('Error in saveInsights:', error)
       throw error
@@ -327,7 +318,6 @@ export class SupabaseService {
       }
       
       if (!data || data.length === 0) {
-        console.log('No insights found in Supabase')
         return []
       }
       
@@ -344,7 +334,6 @@ export class SupabaseService {
         dataPoints: item.data_points
       }))
       
-      console.log(`${insights.length} insights loaded from Supabase`)
       return insights
     } catch (error) {
       console.error('Error in loadInsights:', error)
@@ -357,14 +346,6 @@ export class SupabaseService {
     try {
       // Esta função é apenas para referência
       // Na prática, você deve criar as tabelas através do painel do Supabase
-      console.log('Tables should be set up through the Supabase dashboard')
-      console.log('Required tables:')
-      console.log('- neural_models')
-      console.log('- market_data')
-      console.log('- mempool_data')
-      console.log('- ordinal_data')
-      console.log('- rune_data')
-      console.log('- neural_insights')
     } catch (error) {
       console.error('Error in setupTables:', error)
       throw error

@@ -256,7 +256,6 @@ export const useHyperLiquidWebSocket = (address?: string, enabled = true) => {
 
     // TODO: Implement WebSocket connection to HyperLiquid
     // This would require WebSocket endpoint from HyperLiquid API
-    console.log('WebSocket connection placeholder for:', address);
     
     setConnected(false); // Set to true when WebSocket is implemented
     

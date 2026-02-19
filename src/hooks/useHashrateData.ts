@@ -45,14 +45,13 @@ export const useHashrateData = () => {
 
       try {
         // Buscar dados reais da API
-        const response = await fetch('/api/hashrate-data')
+        const response = await fetch('/api/hashrate-data/')
 
         if (!response.ok) {
           throw new Error('Failed to fetch hashrate data')
         }
 
         const data = await response.json()
-        console.log('Hashrate data received:', data)
         setData(data)
         setIsLoading(false)
       } catch (error) {

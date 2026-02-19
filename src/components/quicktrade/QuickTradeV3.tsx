@@ -94,7 +94,7 @@ export function QuickTradeV3() {
 
     setIsAnalyzing(true);
     try {
-      const response = await fetch('/api/quicktrade/analyze', {
+      const response = await fetch('/api/quicktrade/analyze/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -150,7 +150,7 @@ export function QuickTradeV3() {
     setIsExecuting(true);
     try {
       // Process the swap
-      const processResponse = await fetch('/api/quicktrade/process', {
+      const processResponse = await fetch('/api/quicktrade/process/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,7 +177,6 @@ export function QuickTradeV3() {
       });
 
       // In production, redirect to the exchange
-      console.log('Redirect URL:', processData.data.redirectUrl);
       
       // Clear form
       setAmountIn('');

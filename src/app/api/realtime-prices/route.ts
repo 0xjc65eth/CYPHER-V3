@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
     const symbols = searchParams.get('symbols')?.split(',') || ['BTC', 'ETH', 'SOL'];
     const convert = searchParams.get('convert') || 'USD';
 
-    console.log('🚀 Fetching real-time prices for:', symbols);
 
     // Get current prices from CoinMarketCap using our service
     const quotes = await coinMarketCapService.getCryptocurrencyQuotes({
@@ -15,7 +14,6 @@ export async function GET(request: NextRequest) {
       convert
     });
 
-    console.log('📊 CoinMarketCap response:', Object.keys(quotes));
 
     // Transform data to expected format
     const pricesData: { [key: string]: any } = {};
@@ -45,11 +43,9 @@ export async function GET(request: NextRequest) {
           low24h: quote.price * (1 - Math.abs(quote.percent_change_24h) / 100 * 0.4)
         };
       } else {
-        console.warn(`⚠️ No data found for symbol: ${symbol}`);
       }
     }
 
-    console.log('✅ Successfully processed prices for:', Object.keys(pricesData));
 
     return NextResponse.json({
       success: true,

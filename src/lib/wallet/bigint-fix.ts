@@ -42,11 +42,9 @@ if (typeof window !== 'undefined') {
       if (value >= BigInt(Number.MIN_SAFE_INTEGER) && value <= BigInt(Number.MAX_SAFE_INTEGER)) {
         return Number(value);
       }
-      console.warn('BigInt value out of safe range:', value.toString());
       return value > 0n ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
     }
     return Number(value);
   };
 
-  console.log('✅ BigInt fix applied for LaserEyes');
 }

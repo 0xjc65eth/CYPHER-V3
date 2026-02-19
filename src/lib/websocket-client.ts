@@ -71,7 +71,6 @@ class WebSocketManager {
     if (typeof window === 'undefined' || this.isDestroyed) return;
     
     // For demo purposes, simulate a successful WebSocket connection
-    console.log('🔌 Simulating WebSocket connection for demo...');
     
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
@@ -81,7 +80,6 @@ class WebSocketManager {
     this.reconnectTimeout = setTimeout(() => {
       if (this.isDestroyed) return;
       
-      console.log('✅ Demo WebSocket connected');
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.startHeartbeat();
@@ -138,7 +136,6 @@ class WebSocketManager {
     this.reconnectAttempts++;
     const delay = Math.min(this.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1), 30000);
     
-    console.log(`🔄 Scheduling reconnect attempt ${this.reconnectAttempts} in ${delay}ms`);
     
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
@@ -194,7 +191,6 @@ class WebSocketManager {
     if (this.ws && this.isConnected) {
       this.ws.send(JSON.stringify(data));
     } else {
-      console.warn('⚠️ WebSocket not connected, message queued');
     }
   }
 
@@ -398,7 +394,6 @@ class WebSocketManager {
     }, 20000);
     this.mockIntervals.push(notificationsInterval);
 
-    console.log('📊 Started broadcasting mock data for demo');
   }
 }
 
@@ -509,7 +504,6 @@ export function useRealTimeData<T>(channel: string): {
         unsubscribeData();
         unsubscribeError();
       } catch (error) {
-        console.warn('Error unsubscribing:', error);
       }
     };
   }, [channel]);

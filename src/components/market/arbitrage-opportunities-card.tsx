@@ -36,128 +36,54 @@ export function ArbitrageOpportunitiesCard() {
     setMounted(true)
     setLastUpdated(new Date())
     
-    // Simulated arbitrage opportunities data
-    const simulatedOpportunities: ArbitrageOpportunity[] = [
-      {
-        id: 'arb-1',
-        type: 'ordinals',
-        name: 'Bitcoin Puppets',
-        symbol: 'BTCP',
-        buyExchange: 'Magic Eden',
-        buyPrice: 0.175,
-        buyLink: 'https://magiceden.io/ordinals/marketplace/bitcoin-puppets',
-        sellExchange: 'Gamma.io',
-        sellPrice: 0.192,
-        sellLink: 'https://gamma.io/ordinals/collections/bitcoin-puppets',
-        profitPercentage: 9.7,
-        estimatedFees: 0.002,
-        netProfit: 0.015,
-        volume24h: 125000,
-        timeDetected: new Date(Date.now() - 25 * 60000), // 25 minutes ago
-        difficulty: 'easy'
-      },
-      {
-        id: 'arb-2',
-        type: 'runes',
-        name: 'PEPE',
-        symbol: 'PEPE',
-        buyExchange: 'RuneAlpha',
-        buyPrice: 0.00000115,
-        buyLink: 'https://runealpha.xyz/rune/PEPE',
-        sellExchange: 'Unisat',
-        sellPrice: 0.00000132,
-        sellLink: 'https://unisat.io/market/rune/PEPE',
-        profitPercentage: 14.8,
-        estimatedFees: 0.00000005,
-        netProfit: 0.00000012,
-        volume24h: 345000,
-        timeDetected: new Date(Date.now() - 12 * 60000), // 12 minutes ago
-        difficulty: 'medium'
-      },
-      {
-        id: 'arb-3',
-        type: 'ordinals',
-        name: 'Taproot Wizards',
-        symbol: 'WIZARDS',
-        buyExchange: 'Ordinals Market',
-        buyPrice: 1.75,
-        buyLink: 'https://ordinals.market/collection/taproot-wizards',
-        sellExchange: 'Magic Eden',
-        sellPrice: 1.85,
-        sellLink: 'https://magiceden.io/ordinals/marketplace/taproot-wizards',
-        profitPercentage: 5.7,
-        estimatedFees: 0.015,
-        netProfit: 0.085,
-        volume24h: 156000,
-        timeDetected: new Date(Date.now() - 45 * 60000), // 45 minutes ago
-        difficulty: 'medium'
-      },
-      {
-        id: 'arb-4',
-        type: 'runes',
-        name: 'MEME',
-        symbol: 'MEME',
-        buyExchange: 'Unisat',
-        buyPrice: 0.00000078,
-        buyLink: 'https://unisat.io/market/rune/MEME',
-        sellExchange: 'OKX',
-        sellPrice: 0.00000092,
-        sellLink: 'https://www.okx.com/web3/marketplace/runes/MEME',
-        profitPercentage: 17.9,
-        estimatedFees: 0.00000004,
-        netProfit: 0.0000001,
-        volume24h: 285000,
-        timeDetected: new Date(Date.now() - 8 * 60000), // 8 minutes ago
-        difficulty: 'hard'
-      },
-      {
-        id: 'arb-5',
-        type: 'ordinals',
-        name: 'Bitcoin Frogs',
-        symbol: 'FROGS',
-        buyExchange: 'Gamma.io',
-        buyPrice: 0.088,
-        buyLink: 'https://gamma.io/ordinals/collections/bitcoin-frogs',
-        sellExchange: 'Magic Eden',
-        sellPrice: 0.095,
-        sellLink: 'https://magiceden.io/ordinals/marketplace/bitcoin-frogs',
-        profitPercentage: 8.0,
-        estimatedFees: 0.001,
-        netProfit: 0.006,
-        volume24h: 78500,
-        timeDetected: new Date(Date.now() - 35 * 60000), // 35 minutes ago
-        difficulty: 'easy'
-      },
-    ]
-    
-    setOpportunities(simulatedOpportunities)
+    // Fetch real arbitrage opportunities from API
+    fetchArbitrageData()
   }, [])
+
+  // Fetch arbitrage opportunities from API
+  const fetchArbitrageData = async () => {
+    setIsLoading(true)
+    try {
+      const res = await fetch('/api/arbitrage/opportunities/')
+      if (!res.ok) throw new Error(`API returned ${res.status}`)
+      const json = await res.json()
+      const data = json.data || json.opportunities || []
+
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped: ArbitrageOpportunity[] = data.slice(0, 5).map((opp: any, i: number) => ({
+          id: opp.id || `arb-${i}`,
+          type: (opp.type || 'ordinals') as 'ordinals' | 'runes',
+          name: opp.name || opp.pair || 'Unknown',
+          symbol: opp.symbol || opp.pair || '???',
+          buyExchange: opp.buyExchange || opp.source || 'Exchange A',
+          buyPrice: opp.buyPrice || opp.sourcePrice || 0,
+          buyLink: opp.buyLink || '#',
+          sellExchange: opp.sellExchange || opp.target || 'Exchange B',
+          sellPrice: opp.sellPrice || opp.targetPrice || 0,
+          sellLink: opp.sellLink || '#',
+          profitPercentage: opp.profitPercentage || opp.spread || 0,
+          estimatedFees: opp.estimatedFees || 0,
+          netProfit: opp.netProfit || opp.estimatedProfit || 0,
+          volume24h: opp.volume24h || opp.volume || 0,
+          timeDetected: new Date(opp.timeDetected || Date.now()),
+          difficulty: (opp.difficulty || 'medium') as 'easy' | 'medium' | 'hard',
+        }))
+        setOpportunities(mapped)
+      } else {
+        setOpportunities([])
+      }
+      setLastUpdated(new Date())
+    } catch (err) {
+      console.error('Failed to fetch arbitrage data:', err)
+      setOpportunities([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Refresh data
   const refreshData = () => {
-    setIsLoading(true)
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
-      setLastUpdated(new Date())
-      
-      // Update one opportunity to simulate real-time changes
-      setOpportunities(prev => {
-        const updated = [...prev]
-        const randomIndex = Math.floor(Math.random() * updated.length)
-        const randomProfit = (Math.random() * 5) + 5
-        
-        updated[randomIndex] = {
-          ...updated[randomIndex],
-          profitPercentage: randomProfit,
-          netProfit: updated[randomIndex].buyPrice * (randomProfit / 100),
-          timeDetected: new Date()
-        }
-        
-        return updated
-      })
-    }, 1000)
+    fetchArbitrageData()
   }
 
   // Format time ago

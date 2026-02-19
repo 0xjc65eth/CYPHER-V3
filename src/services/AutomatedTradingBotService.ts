@@ -160,17 +160,14 @@ export class AutomatedTradingBotService {
 
   async startBot() {
     if (this.isRunning) {
-      console.log('🤖 Trading bot já está rodando!');
       return;
     }
 
     this.isRunning = true;
-    console.log('🚀 Iniciando CYPHER Trading Bot...');
     
     // Inicializar Hyperliquid Trading Service
     const hyperliquidConnected = await this.hyperliquidService.initialize();
     if (!hyperliquidConnected) {
-      console.log('⚠️ Hyperliquid não conectou, usando modo simulação');
     }
     
     // Anunciar início por voz
@@ -190,7 +187,6 @@ export class AutomatedTradingBotService {
     if (!this.isRunning) return;
 
     this.isRunning = false;
-    console.log('⏹️ Parando CYPHER Trading Bot...');
     
     // Desconectar Hyperliquid
     await this.hyperliquidService.disconnect();
@@ -329,7 +325,6 @@ export class AutomatedTradingBotService {
   }
 
   private async executeArbitrageOpportunity(opportunity: TradingOpportunity) {
-    console.log(`🔄 Executando arbitragem: ${opportunity.reason}`);
     
     // Simular execução de trade
     const success = Math.random() > 0.1; // 90% de sucesso
@@ -359,12 +354,10 @@ export class AutomatedTradingBotService {
       }
     } else {
       this.updatePerformance(-20, false); // Perda pequena por falha
-      console.log('❌ Falha na execução da arbitragem');
     }
   }
 
   private async executeMomentumTrade(opportunity: TradingOpportunity) {
-    console.log(`📈 Executando trade de momentum: ${opportunity.reason}`);
     
     try {
       // Usar Hyperliquid para trade real se conectado
@@ -393,10 +386,7 @@ export class AutomatedTradingBotService {
           };
 
           this.activePositions.push(position);
-          console.log(`🎯 Posição real aberta via Hyperliquid: ${position.asset} - ${position.quantity.toFixed(4)} @ $${position.entryPrice.toFixed(2)}`);
-          console.log(`📝 Order ID: ${orderResult.orderId}`);
         } else {
-          console.log(`❌ Falha no trade real: ${orderResult.error}`);
         }
       } else {
         // Fallback para simulação
@@ -418,7 +408,6 @@ export class AutomatedTradingBotService {
           };
 
           this.activePositions.push(position);
-          console.log(`🎯 Posição simulada aberta: ${position.asset} - ${position.quantity.toFixed(4)} @ $${position.entryPrice.toFixed(2)}`);
         }
       }
     } catch (error) {
@@ -427,7 +416,6 @@ export class AutomatedTradingBotService {
   }
 
   private async executeDCATrade(opportunity: TradingOpportunity) {
-    console.log(`💰 Executando DCA: ${opportunity.reason}`);
     
     // DCA sempre executa (simulação)
     const position: TradingPosition = {
@@ -443,7 +431,6 @@ export class AutomatedTradingBotService {
     };
 
     this.activePositions.push(position);
-    console.log(`🔄 DCA executado: ${position.asset} - $50 @ $${position.entryPrice.toFixed(2)}`);
   }
 
   private startOpportunityScanning() {
@@ -488,7 +475,6 @@ export class AutomatedTradingBotService {
           };
 
           this.opportunities.push(opportunity);
-          console.log(`🔄 Oportunidade real de arbitragem: ${opportunity.reason}`);
         }
       }
 
@@ -516,7 +502,6 @@ export class AutomatedTradingBotService {
         };
 
         this.opportunities.push(opportunity);
-        console.log(`⚡ Oportunidade de volatilidade detectada: ${opportunity.reason}`);
       }
     } catch (error) {
       console.error('❌ Erro na análise de oportunidades especiais:', error);
@@ -582,7 +567,6 @@ export class AutomatedTradingBotService {
   private async closePosition(position: TradingPosition, reason: string) {
     this.updatePerformance(position.pnl, position.pnl > 0);
     
-    console.log(`✅ Posição fechada: ${position.asset} - PnL: $${position.pnl.toFixed(2)} (${reason})`);
     
     if (Math.abs(position.pnl) > 50) { // Anunciar trades significativos
       const message = position.pnl > 0 ? 
@@ -646,7 +630,6 @@ export class AutomatedTradingBotService {
 • Oportunidades detectadas: ${this.opportunities.length}
 `;
 
-    console.log(report);
 
     // Anunciar performance se houver trades significativos
     if (this.performance.totalTrades >= 5) {
@@ -704,7 +687,6 @@ export class AutomatedTradingBotService {
     const strategy = this.strategies.find(s => s.name === strategyName);
     if (strategy) {
       strategy.active = !strategy.active;
-      console.log(`🔄 Estratégia "${strategyName}" ${strategy.active ? 'ativada' : 'desativada'}`);
       
       await this.voiceService.speak(
         `${strategy.active ? 'Ativei' : 'Desativei'} a estratégia ${strategyName}. ${strategy.active ? 'Vamos fazer dinheiro!' : 'Ficou de fora agora.'}`,

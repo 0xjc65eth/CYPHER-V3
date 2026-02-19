@@ -102,10 +102,9 @@ export function useEnhancedOrdinalsData(options: EnhancedOrdinalsOptions = {}): 
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log('🎨 Fetching enhanced Ordinals data...')
       
       try {
-        const response = await fetch('/api/ordinals-stats')
+        const response = await fetch('/api/ordinals-stats/')
         
         if (!response.ok) {
           throw new Error(`Ordinals API request failed: ${response.status}`)
@@ -125,8 +124,6 @@ export function useEnhancedOrdinalsData(options: EnhancedOrdinalsOptions = {}): 
           setHealthStatus('critical')
         }
         
-        console.log(`✅ Ordinals data fetched successfully`)
-        console.log(`📊 Collections source: ${collections_source}, Inscriptions source: ${inscriptions_source}`)
         
         return {
           ...result,
@@ -188,13 +185,11 @@ export function useEnhancedOrdinalsData(options: EnhancedOrdinalsOptions = {}): 
 
   // Refresh function
   const refreshData = useCallback(() => {
-    console.log('🔄 Manually refreshing Ordinals data...')
     refetch()
   }, [refetch])
 
   // Clear cache function
   const clearCache = useCallback(() => {
-    console.log('🧹 Clearing Ordinals data cache...')
     queryClient.removeQueries({ queryKey: ['enhanced-ordinals'] })
   }, [queryClient])
 
@@ -202,7 +197,7 @@ export function useEnhancedOrdinalsData(options: EnhancedOrdinalsOptions = {}): 
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const response = await fetch('/api/system/hiro-health')
+        const response = await fetch('/api/system/hiro-health/')
         const health = await response.json()
         
         if (health.endpoints?.ordinals?.success && health.endpoints?.collections?.success) {
@@ -243,7 +238,7 @@ export function useCollectionDetails(collectionSlug: string) {
   return useQuery({
     queryKey: ['collection-details', collectionSlug],
     queryFn: async () => {
-      const response = await fetch(`/api/ordinals/collections/${collectionSlug}`)
+      const response = await fetch(`/api/ordinals/collections/${collectionSlug}/`)
       if (!response.ok) throw new Error('Failed to fetch collection details')
       return response.json()
     },
@@ -257,7 +252,7 @@ export function useOrdinalsActivity(limit = 10) {
   return useQuery({
     queryKey: ['ordinals-activity', limit],
     queryFn: async () => {
-      const response = await fetch(`/api/ordinals/activity?limit=${limit}`)
+      const response = await fetch(`/api/ordinals/activity/?limit=${limit}`)
       if (!response.ok) throw new Error('Failed to fetch ordinals activity')
       return response.json()
     },
@@ -271,7 +266,7 @@ export function useFloorPriceHistory(collectionSlug: string, period = '7d') {
   return useQuery({
     queryKey: ['floor-price-history', collectionSlug, period],
     queryFn: async () => {
-      const response = await fetch(`/api/ordinals/collections/${collectionSlug}/floor-history?period=${period}`)
+      const response = await fetch(`/api/ordinals/collections/${collectionSlug}/floor-history/?period=${period}`)
       if (!response.ok) throw new Error('Failed to fetch floor price history')
       return response.json()
     },

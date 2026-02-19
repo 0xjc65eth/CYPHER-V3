@@ -1,23 +1,33 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useState, Suspense, useEffect } from 'react'
-import { initializeWalletProviderPatches } from '@/lib/wallet-providers-patch'
+import { useState, Suspense } from 'react'
 import { Provider } from 'react-redux'
 import { ErrorBoundary } from 'react-error-boundary'
 import { store } from '@/store'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { NotificationContainer } from '@/components/notifications'
-// import { NotificationSystemActivator } from '@/components/notifications/NotificationSystemActivator'
 import { AuthProvider } from '@/lib/auth/AuthContext'
 import { WalletProvider } from '@/contexts/WalletContext'
-// Temporarily use simple provider to avoid BigInt issues
+// SimpleLaserEyesProvider avoids BigInt serialization crashes from the real @omnisat/lasereyes-react provider.
+// The active BTC wallet flow (WalletService + sats-connect) does NOT depend on LaserEyes.
 import { LaserEyesProvider as LaserEyesWalletProvider } from '@/providers/SimpleLaserEyesProvider'
-// import { WalletProvider as LaserEyesWalletProvider } from '@/providers/WalletProvider'
-// import { LaserEyesSafeWrapper } from '@/components/LaserEyesSafeWrapper'
-import { AudioManager } from '@/components/notifications/AudioManager'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { PremiumProvider } from '@/contexts/PremiumContext'
+// Wagmi for EVM wallet support (MetaMask, etc.) - required by unified-navbar
+import { http, createConfig, WagmiProvider } from 'wagmi'
+import { mainnet } from 'wagmi/chains'
+import { injected } from 'wagmi/connectors'
+
+const wagmiConfig = createConfig({
+  chains: [mainnet],
+  transports: {
+    [mainnet.id]: http(),
+  },
+  connectors: [
+    injected(),
+  ],
+})
 
 // Error fallback component
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -117,11 +127,13 @@ function SafeWalletProvider({ children }: { children: React.ReactNode }) {
       FallbackComponent={ErrorFallback}
       onError={(error) => console.error('Wallet Provider Error:', error)}
     >
-      <LaserEyesWalletProvider>
+      <WagmiProvider config={wagmiConfig}>
         <WalletProvider>
-          {children}
+          <LaserEyesWalletProvider>
+            {children}
+          </LaserEyesWalletProvider>
         </WalletProvider>
-      </LaserEyesWalletProvider>
+      </WagmiProvider>
     </ErrorBoundary>
   )
 }
@@ -153,11 +165,6 @@ function SafePremiumProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // Apply wallet provider patches on mount
-  useEffect(() => {
-    initializeWalletProviderPatches();
-  }, []);
-
   return (
     <ErrorBoundary
       FallbackComponent={ErrorFallback}

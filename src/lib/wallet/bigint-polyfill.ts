@@ -42,7 +42,6 @@ function safeToNumber(value: any): number {
     }
     
     // Fallback: return a reasonable number based on sign
-    console.warn('BigInt too large for safe conversion, using fallback:', value);
     return value > 0n ? Number.MAX_SAFE_INTEGER : Number.MIN_SAFE_INTEGER;
   }
   
@@ -75,7 +74,6 @@ function safeBigIntOperation(operation: Function, ...args: any[]): any {
     
     return operation.apply(null, safeArgs);
   } catch (error) {
-    console.warn('BigInt operation failed, using fallback:', error);
     return 0;
   }
 }
@@ -178,7 +176,6 @@ export function removeBigIntPolyfill(): void {
     // Mark as removed
     window.__bigIntPolyfillApplied = false;
     
-    console.log('🧹 Enhanced BigInt polyfill removed');
   }
 }
 

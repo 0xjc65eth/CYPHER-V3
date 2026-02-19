@@ -4,7 +4,12 @@
 import { intervalManager } from './api/interval-manager';
 import { requestDeduplicator } from './api/request-deduplicator';
 
-if (typeof process !== 'undefined') {
+// Guard against multiple initializations (Next.js re-evaluates modules on HMR)
+const INIT_KEY = '__server_error_handlers_initialized__';
+const g = globalThis as any;
+
+if (typeof process !== 'undefined' && !g[INIT_KEY]) {
+  g[INIT_KEY] = true;
   // Fix memory leak warnings by increasing max listeners
   process.setMaxListeners(20);
   
@@ -42,12 +47,10 @@ if (typeof process !== 'undefined') {
     
     // In development, log and continue instead of crashing
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Development server continuing...');
       return; // Don't exit in development
     }
     
     // In production, exit gracefully
-    console.log('🔄 Production server will restart...');
     process.exit(1);
   });
 
@@ -67,19 +70,16 @@ if (typeof process !== 'undefined') {
           reason.message?.includes('rate limit') ||
           reason.message?.includes('429')) {
         errorType = 'rate_limit';
-        console.log('📡 Rate limit rejection detected - this is normal behavior');
         return; // Don't crash for rate limits
       }
       
       if (reason.message?.includes('fetch') || reason.code === 'ECONNREFUSED') {
         errorType = 'network';
-        console.log('🌐 Network error detected - continuing operation');
         return;
       }
       
       if (reason.message?.includes('AbortError')) {
         errorType = 'abort';
-        console.log('🔄 Request abort detected - normal cleanup behavior');
         return;
       }
     }
@@ -102,18 +102,15 @@ if (typeof process !== 'undefined') {
     
     // In development, log and continue
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Development server continuing...');
       return;
     }
     
     // In production, exit gracefully
-    console.log('🔄 Production server will restart...');
     process.exit(1);
   });
 
   // Enhanced graceful shutdown with resource cleanup
   const gracefulShutdown = (signal: string) => {
-    console.log(`🛑 ${signal} received - starting graceful shutdown...`);
     
     try {
       // Clear all intervals and pending requests
@@ -121,14 +118,12 @@ if (typeof process !== 'undefined') {
       requestDeduplicator.clearAll();
       
       // Close any other resources
-      console.log('🧹 Resources cleaned up');
     } catch (error) {
       console.error('Error during cleanup:', error);
     }
     
     // Give time for cleanup then exit
     setTimeout(() => {
-      console.log('✅ Graceful shutdown completed');
       process.exit(0);
     }, 2000); // Reduced to 2 seconds
   };
@@ -143,7 +138,6 @@ if (typeof process !== 'undefined') {
     }
   }, ERROR_WINDOW);
 
-  console.log('🛡️ Enhanced server error handlers initialized - crash protection active');
 }
 
 export default {};

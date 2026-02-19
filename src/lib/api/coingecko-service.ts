@@ -27,10 +27,10 @@ class CoinGeckoService {
   private lastRequestTime = 0;
 
   // Rate limiting configuration for free tier
-  private readonly MIN_REQUEST_INTERVAL = 2000; // 2 seconds between requests
-  private readonly MAX_REQUESTS_PER_MINUTE = 10; // Conservative limit
-  private readonly CACHE_TTL = 45000; // 45 seconds cache
-  private readonly MAX_RETRIES = 4;
+  private readonly MIN_REQUEST_INTERVAL = 800; // 800ms between requests (CoinGecko allows ~30/min)
+  private readonly MAX_REQUESTS_PER_MINUTE = 25; // Free tier allows ~30, leave headroom
+  private readonly CACHE_TTL = 60000; // 60 seconds cache (reduces total requests)
+  private readonly MAX_RETRIES = 2; // Fail faster to avoid cascading timeouts
   private readonly BASE_BACKOFF = 1000; // 1 second base backoff
 
   private requestTimestamps: number[] = [];

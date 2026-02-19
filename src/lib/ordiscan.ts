@@ -15,9 +15,8 @@ export async function fetchOrdiscanData(endpoint: string) {
           return getMockData(endpoint);
         }
 
-        const apiKey = process.env.NEXT_PUBLIC_ORDISCAN_API_KEY;
+        const apiKey = process.env.ORDISCAN_API_KEY;
         if (!apiKey) {
-          console.warn('API key not found, using mock data');
           return getMockData(endpoint);
         }
 

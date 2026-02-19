@@ -47,7 +47,6 @@ export function SmcAnalysisCard() {
       const recentHigh = currentPrice / (1 - (priceChange > 0 ? priceChange : 0)) * 1.02 // Slightly higher than recent high
       const recentLow = currentPrice * (1 - volatility) // Lower based on volatility
 
-      console.log(`SMC Analysis - Current Price: $${currentPrice.toLocaleString()}, Recent High: $${recentHigh.toLocaleString()}, Recent Low: $${recentLow.toLocaleString()}`)
 
       // Fibonacci retracement levels - standard SMC analysis levels
       const fib786 = recentLow + (recentHigh - recentLow) * 0.786
@@ -166,7 +165,6 @@ export function SmcAnalysisCard() {
       })
 
       setIsLoading(false)
-      console.log('SMC Analysis completed with real market data')
     }
   }, [marketData]);
 

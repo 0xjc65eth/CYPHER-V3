@@ -4,7 +4,7 @@ Esta documentação descreve as 4 rotas API Next.js implementadas para integraç
 
 ## Configuração
 
-- **API Key**: `3100ea7623797d267da3bd6dc94f47f9`
+- **API Key**: Set via `HIRO_API_KEY` environment variable
 - **Base URL**: `https://api.hiro.so/runes/v1/`
 - **Headers**: `X-API-Key`
 - **Cache**: 1-5 minutos dependendo da volatilidade dos dados

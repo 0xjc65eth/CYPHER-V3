@@ -157,7 +157,6 @@ export const FinalChart: React.FC<FinalChartProps> = ({
         };
       }
     } catch (err) {
-      console.log('Advanced chart not available, using Recharts');
       setIsAdvancedChart(false);
     }
   };

@@ -54,7 +54,7 @@ const DEX_CONFIGS: Record<DEXType, DEXConfig> = {
     feeNumerator: 0, // Dynamic fees
     supportedNetworks: [101], // Solana
     isActive: true,
-    apiEndpoint: 'https://quote-api.jup.ag/v6',
+    apiEndpoint: 'https://api.jup.ag/v6',
     swapUrl: 'https://jup.ag/swap'
   },
   [DEXType.ORCA]: {

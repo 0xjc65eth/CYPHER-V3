@@ -16,7 +16,6 @@ if (typeof window !== 'undefined') {
       }
       return originalPow.call(Math, base, exponent)
     } catch (error) {
-      console.warn('Math.pow BigInt conversion error, using fallback:', error)
       return 0
     }
   }

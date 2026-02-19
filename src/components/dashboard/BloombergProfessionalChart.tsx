@@ -40,114 +40,119 @@ export const BloombergProfessionalChart = React.memo(function BloombergProfessio
   const assets = ['BTC', 'ETH', 'SOL', 'ORDI', 'RUNE'];
   const timeframes = ['1M', '5M', '15M', '1H', '4H', '1D'];
 
+  // Fetch real OHLCV data from charts API
+  const fetchChartData = async () => {
+    try {
+      const intervalMap: Record<string, string> = {
+        '1M': '1m', '5M': '5m', '15M': '15m',
+        '1H': '1h', '4H': '4h', '1D': '1d'
+      };
+      const binanceInterval = intervalMap[timeframe] || '1h';
+      const symbol = selectedAsset === 'RUNE' ? 'BTCUSDT' : `${selectedAsset}USDT`;
+
+      const res = await fetch(
+        `/api/charts/historical?symbol=${symbol}&interval=${binanceInterval}&limit=50`
+      );
+      if (!res.ok) throw new Error(`API returned ${res.status}`);
+
+      const json = await res.json();
+      if (!json.success || !json.data || json.data.length === 0) {
+        setChartData([]);
+        return;
+      }
+
+      const data: ChartDataPoint[] = json.data.map((c: any, i: number) => {
+        const prevClose = i > 0 ? json.data[i - 1].close : c.open;
+        return {
+          time: new Date(c.time).toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }),
+          price: c.close,
+          volume: c.volume || 0,
+          change: prevClose > 0 ? ((c.close - prevClose) / prevClose) * 100 : 0,
+          high: c.high || c.close,
+          low: c.low || c.close,
+          open: c.open || c.close,
+          close: c.close
+        };
+      });
+
+      setChartData(data);
+
+      // Calculate real technical indicators from the data
+      const closes = data.map(d => d.close);
+      computeIndicators(closes);
+    } catch (err) {
+      console.error('BloombergProfessionalChart fetch error:', err);
+      setChartData([]);
+    }
+
+    setLastUpdate(new Date());
+  };
+
+  // Compute real RSI, MACD, MA from close prices
+  const computeIndicators = (closes: number[]) => {
+    if (closes.length < 14) {
+      setIndicators([]);
+      return;
+    }
+
+    // RSI(14)
+    let gains = 0, losses = 0;
+    for (let i = closes.length - 14; i < closes.length; i++) {
+      const diff = closes[i] - closes[i - 1];
+      if (diff > 0) gains += diff;
+      else losses -= diff;
+    }
+    const avgGain = gains / 14;
+    const avgLoss = losses / 14;
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    const rsi = 100 - (100 / (1 + rs));
+
+    // MA(20)
+    const ma20Period = Math.min(20, closes.length);
+    const ma20 = closes.slice(-ma20Period).reduce((a, b) => a + b, 0) / ma20Period;
+
+    // Simple MACD approximation (12-EMA minus 26-EMA)
+    const ema = (data: number[], period: number) => {
+      const k = 2 / (period + 1);
+      let val = data[0];
+      for (let i = 1; i < data.length; i++) {
+        val = data[i] * k + val * (1 - k);
+      }
+      return val;
+    };
+    const ema12 = ema(closes, 12);
+    const ema26 = ema(closes, Math.min(26, closes.length));
+    const macdValue = ema12 - ema26;
+
+    const lastPrice = closes[closes.length - 1];
+    const maSignal: 'BUY' | 'SELL' | 'HOLD' = lastPrice > ma20 ? 'BUY' : lastPrice < ma20 ? 'SELL' : 'HOLD';
+    const rsiSignal: 'BUY' | 'SELL' | 'HOLD' = rsi < 30 ? 'BUY' : rsi > 70 ? 'SELL' : 'HOLD';
+    const macdSignal: 'BUY' | 'SELL' | 'HOLD' = macdValue > 0 ? 'BUY' : 'SELL';
+
+    setIndicators([
+      { name: 'RSI(14)', value: rsi, signal: rsiSignal, strength: Math.abs(rsi - 50) * 2, color: 'text-purple-400' },
+      { name: 'MACD', value: macdValue, signal: macdSignal, strength: Math.min(100, Math.abs(macdValue / lastPrice) * 10000), color: 'text-blue-400' },
+      { name: 'MA(20)', value: ma20, signal: maSignal, strength: Math.min(100, Math.abs((lastPrice - ma20) / ma20) * 1000), color: 'text-green-400' },
+    ]);
+  };
+
   useEffect(() => {
-    generateChartData();
-    generateTechnicalIndicators();
-  }, [selectedAsset, timeframe]); // Remove isLive from deps
+    fetchChartData();
+  }, [selectedAsset, timeframe]);
 
   useEffect(() => {
     if (isLive) {
       const interval = setInterval(() => {
-        updateLiveData();
-      }, 5000); // Update every 5 seconds
-      
+        fetchChartData();
+      }, 15000); // Refresh every 15 seconds
+
       return () => clearInterval(interval);
     }
-  }, [isLive]); // Separate effect for live updates
-
-  const generateChartData = () => {
-    const basePrice = getAssetPrice(selectedAsset);
-    const data: ChartDataPoint[] = [];
-    const dataPoints = 50;
-    
-    for (let i = 0; i < dataPoints; i++) {
-      const time = new Date(Date.now() - (dataPoints - i) * getTimeframeMs(timeframe));
-      const volatility = 0.02 + Math.random() * 0.03; // 2-5% volatility
-      const change = (Math.random() - 0.5) * volatility;
-      const price = basePrice * (1 + change * (i / dataPoints));
-      
-      const open = i > 0 ? data[i - 1].close : price;
-      const close = price;
-      const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-      const volume = 1000000 + Math.random() * 5000000;
-
-      data.push({
-        time: time.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: false 
-        }),
-        price: close,
-        volume,
-        change: change * 100,
-        high,
-        low,
-        open,
-        close
-      });
-    }
-    
-    setChartData(data);
-  };
-
-  const generateTechnicalIndicators = () => {
-    const indicatorsList: TechnicalIndicator[] = [
-      {
-        name: 'RSI(14)',
-        value: 65.8 + Math.random() * 20 - 10,
-        signal: Math.random() > 0.5 ? 'BUY' : 'HOLD',
-        strength: 75 + Math.random() * 20,
-        color: 'text-purple-400'
-      },
-      {
-        name: 'MACD',
-        value: 1247.8 + Math.random() * 500 - 250,
-        signal: Math.random() > 0.3 ? 'BUY' : 'SELL',
-        strength: 82 + Math.random() * 15,
-        color: 'text-blue-400'
-      },
-      {
-        name: 'MA(20)',
-        value: getAssetPrice(selectedAsset) * (0.98 + Math.random() * 0.04),
-        signal: 'BUY',
-        strength: 88 + Math.random() * 10,
-        color: 'text-green-400'
-      },
-      {
-        name: 'BBANDS',
-        value: 0.75 + Math.random() * 0.3,
-        signal: Math.random() > 0.6 ? 'BUY' : 'HOLD',
-        strength: 70 + Math.random() * 25,
-        color: 'text-yellow-400'
-      }
-    ];
-    
-    setIndicators(indicatorsList);
-  };
-
-  const updateLiveData = () => {
-    setChartData(prev => {
-      const newData = [...prev];
-      const lastPoint = newData[newData.length - 1];
-      const change = (Math.random() - 0.5) * 0.005; // 0.5% max change
-      const newPrice = lastPoint.close * (1 + change);
-      
-      // Update last point
-      newData[newData.length - 1] = {
-        ...lastPoint,
-        close: newPrice,
-        price: newPrice,
-        high: Math.max(lastPoint.high, newPrice),
-        low: Math.min(lastPoint.low, newPrice),
-        change: change * 100
-      };
-      
-      return newData;
-    });
-    
-    setLastUpdate(new Date());
-  };
+  }, [isLive, selectedAsset, timeframe]);
 
   const getAssetPrice = (asset: string): number => {
     const prices: { [key: string]: number } = {
@@ -320,17 +325,28 @@ export const BloombergProfessionalChart = React.memo(function BloombergProfessio
               ))}
             </div>
             
-            {/* Simulated Price Line */}
-            <svg className="absolute inset-0 w-full h-full">
-              <path
-                d={`M 0,${120 + Math.sin(0) * 30} ${chartData.map((_, i) => 
-                  `L ${(i / chartData.length) * 100},${120 + Math.sin(i * 0.5) * 30 + (Math.random() - 0.5) * 20}`
-                ).join(' ')}`}
-                fill="none"
-                stroke="url(#priceGradient)"
-                strokeWidth="2"
-                className="drop-shadow-sm"
-              />
+            {/* Price Line from real data */}
+            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 256" preserveAspectRatio="none">
+              {chartData.length > 1 && (() => {
+                const prices = chartData.map(d => d.close);
+                const minP = Math.min(...prices);
+                const maxP = Math.max(...prices);
+                const range = maxP - minP || 1;
+                return (
+                  <path
+                    d={chartData.map((d, i) => {
+                      const x = (i / (chartData.length - 1)) * 100;
+                      const y = 240 - ((d.close - minP) / range) * 220 + 10;
+                      return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="url(#priceGradient)"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                    className="drop-shadow-sm"
+                  />
+                );
+              })()}
               <defs>
                 <linearGradient id="priceGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#f97316" />

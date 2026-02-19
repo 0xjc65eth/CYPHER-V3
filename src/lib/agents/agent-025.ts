@@ -48,7 +48,6 @@ export class Agent025_AutoTrading extends EventEmitter {
   constructor(tradingEngine: TradingEngine) {
     super();
     this.tradingEngine = tradingEngine;
-    console.log('🤖 AGENT_025 initialized - Auto-Trading Engine');
   }
 
   start() {
@@ -59,7 +58,6 @@ export class Agent025_AutoTrading extends EventEmitter {
     this.config.emergencyStop = false;
     
     this.emit('agent:started');
-    console.log('✅ AGENT_025 activated - Auto-trading enabled');
   }
 
   stop() {
@@ -69,7 +67,6 @@ export class Agent025_AutoTrading extends EventEmitter {
     this.config.enabled = false;
     
     this.emit('agent:stopped');
-    console.log('🛑 AGENT_025 deactivated - Auto-trading disabled');
   }
 
   emergencyStop() {
@@ -78,7 +75,6 @@ export class Agent025_AutoTrading extends EventEmitter {
     
     // Cancel all pending orders
     this.emit('emergency:stop');
-    console.log('🚨 EMERGENCY STOP - All trading halted');
   }
 
   async processSignal(signal: TradingSignal): Promise<TradeExecution | null> {
@@ -117,7 +113,6 @@ export class Agent025_AutoTrading extends EventEmitter {
       this.lastTradeTime = new Date();
       
       this.emit('trade:executed', execution);
-      console.log(`✅ Trade executed: ${signal.action} ${positionSize} ${signal.symbol} @ ${signal.price}`);
       
       return execution;
     } catch (error: any) {
@@ -145,13 +140,11 @@ export class Agent025_AutoTrading extends EventEmitter {
   private canExecuteTrade(signal: TradingSignal): boolean {
     // Check if auto-trading is enabled
     if (!this.config.enabled || this.config.emergencyStop) {
-      console.log('Auto-trading is disabled');
       return false;
     }
 
     // Check confidence threshold
     if (signal.confidence < this.config.minConfidence) {
-      console.log(`Signal confidence too low: ${signal.confidence} < ${this.config.minConfidence}`);
       return false;
     }
 
@@ -159,14 +152,12 @@ export class Agent025_AutoTrading extends EventEmitter {
     if (this.lastTradeTime) {
       const timeSinceLastTrade = Date.now() - this.lastTradeTime.getTime();
       if (timeSinceLastTrade < this.config.cooldownPeriod) {
-        console.log(`Cooldown period active: ${timeSinceLastTrade}ms < ${this.config.cooldownPeriod}ms`);
         return false;
       }
     }
 
     // Check daily loss limit
     if (this.dailyPnL < -this.config.maxDailyLoss) {
-      console.log(`Daily loss limit reached: ${this.dailyPnL}%`);
       this.emergencyStop();
       return false;
     }

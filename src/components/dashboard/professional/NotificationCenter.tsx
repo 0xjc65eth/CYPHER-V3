@@ -175,40 +175,8 @@ export function NotificationCenter() {
     return `${days}d ago`;
   };
 
-  // Simulate real-time notifications
-  useEffect(() => {
-    const simulateNotifications = () => {
-      const mockNotifications = [
-        {
-          type: 'price_alert' as const,
-          title: 'ETH Price Movement',
-          message: 'Ethereum moved 3% in the last 15 minutes',
-          priority: 'medium' as const
-        },
-        {
-          type: 'ai_insight' as const,
-          title: 'Trading Opportunity',
-          message: 'AI detected arbitrage opportunity on ORDI/USDT',
-          priority: 'high' as const
-        },
-        {
-          type: 'market_update' as const,
-          title: 'Market Update',
-          message: 'Fear & Greed Index changed to Extreme Greed (82)',
-          priority: 'low' as const
-        }
-      ];
-
-      const randomNotification = mockNotifications[Math.floor(Math.random() * mockNotifications.length)];
-      
-      if (Math.random() > 0.8) { // 20% chance every interval
-        addNotification(randomNotification);
-      }
-    };
-
-    const interval = setInterval(simulateNotifications, 30000); // Every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
+  // Notifications are added via the addNotification function when real events occur.
+  // No simulated/fake notifications are generated.
 
   return (
     <>

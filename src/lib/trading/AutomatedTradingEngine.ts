@@ -77,18 +77,15 @@ export class AutomatedTradingEngine extends EventEmitter {
     }
   ) {
     super();
-    console.log('🤖 AutomatedTradingEngine initialized');
   }
 
   async start(): Promise<void> {
     if (this.isActive) {
-      console.warn('Trading engine is already active');
       return;
     }
 
     this.isActive = true;
     this.emit('engineStarted');
-    console.log('🚀 Trading engine started');
   }
 
   async startTrading(): Promise<void> {
@@ -98,7 +95,6 @@ export class AutomatedTradingEngine extends EventEmitter {
   async stop(): Promise<void> {
     this.isActive = false;
     this.emit('engineStopped');
-    console.log('⏹️ Trading engine stopped');
   }
 
   async stopTrading(): Promise<void> {
@@ -107,7 +103,6 @@ export class AutomatedTradingEngine extends EventEmitter {
 
   async executeSignal(signal: TradingSignal): Promise<boolean> {
     try {
-      console.log('📈 Executing trading signal:', signal);
       
       // Mock execution for demo
       const position: Position = {

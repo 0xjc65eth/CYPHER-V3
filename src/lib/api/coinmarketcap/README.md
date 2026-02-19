@@ -249,7 +249,7 @@ try {
 
 ```env
 # .env.local
-CMC_API_KEY=c045d2a9-6f2d-44e9-8297-a88ab83b463b
+CMC_API_KEY=your_cmc_api_key_here
 ```
 
 ### Limites de Rate

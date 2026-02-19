@@ -118,49 +118,36 @@ export default function ArbitrageScanner({ className }: ArbitrageScannerProps) {
     }
   };
 
-  const findArbitrageForPair = async (pair: string): Promise<ArbitrageOpportunity | null> => {
-    // Simulate fetching prices from different DEXs
-    const prices = supportedDEXs.map(dex => ({
-      dex: dex.name,
-      id: dex.id,
-      price: Math.random() * 1000 + 1000, // Random price between 1000-2000
-      gasEstimate: dex.avgGas + Math.random() * 50
-    }));
+  const findArbitrageForPair = async (_pair: string): Promise<ArbitrageOpportunity | null> => {
+    // Fetch real arbitrage opportunities from the API
+    try {
+      const res = await fetch(`/api/arbitrage/opportunities/?type=all&minSpread=1&limit=1`);
+      if (!res.ok) return null;
 
-    // Find best buy and sell prices
-    const sortedByPrice = prices.sort((a, b) => a.price - b.price);
-    const buyPrice = sortedByPrice[0];
-    const sellPrice = sortedByPrice[sortedByPrice.length - 1];
+      const data = await res.json();
+      const opps = data.opportunities || [];
+      if (opps.length === 0) return null;
 
-    const priceDiff = sellPrice.price - buyPrice.price;
-    const profitPercentage = (priceDiff / buyPrice.price) * 100;
-
-    // Estimate gas costs and net profit
-    const estimatedGasCost = (buyPrice.gasEstimate + sellPrice.gasEstimate) * 20; // $20 per 100 gwei
-    const grossProfit = priceDiff * 100; // Assume 100 token trade
-    const netProfit = grossProfit - estimatedGasCost;
-
-    // Only return if profitable after gas
-    if (netProfit > 10 && profitPercentage > 0.1) {
+      const opp = opps[0];
       return {
-        id: `arb_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        pair,
-        buyDex: buyPrice.dex,
-        sellDex: sellPrice.dex,
-        buyPrice: buyPrice.price,
-        sellPrice: sellPrice.price,
-        priceDiff,
-        profitPercentage,
-        volume24h: Math.random() * 10000000, // Random volume
-        confidence: Math.min(0.6 + (profitPercentage / 10), 0.95),
-        gasEstimate: buyPrice.gasEstimate + sellPrice.gasEstimate,
-        netProfit,
+        id: opp.id || `arb_${Date.now()}`,
+        pair: opp.symbol || opp.pair || _pair,
+        buyDex: opp.buySource || opp.buyExchange || 'Unknown',
+        sellDex: opp.sellSource || opp.sellExchange || 'Unknown',
+        buyPrice: opp.buyPrice || 0,
+        sellPrice: opp.sellPrice || 0,
+        priceDiff: (opp.sellPrice || 0) - (opp.buyPrice || 0),
+        profitPercentage: opp.spreadPercent || opp.spread || 0,
+        volume24h: opp.volume24h || 0,
+        confidence: opp.confidence || 0.5,
+        gasEstimate: opp.estimatedFees || 0,
+        netProfit: opp.estimatedProfit || opp.netProfit || 0,
         timestamp: Date.now(),
         status: 'active'
       };
+    } catch {
+      return null;
     }
-
-    return null;
   };
 
   const executeArbitrage = async (opportunity: ArbitrageOpportunity) => {
@@ -174,10 +161,7 @@ export default function ArbitrageScanner({ className }: ArbitrageScannerProps) {
         )
       );
 
-      // Simulate execution (in real implementation, this would execute actual trades)
-      console.log('Executing arbitrage:', opportunity);
-      
-      // You would integrate with actual DEX APIs here
+      // TODO: In real implementation, this would execute actual trades via DEX APIs
       // const buyResult = await executeBuyOrder(opportunity);
       // const sellResult = await executeSellOrder(opportunity);
       

@@ -252,7 +252,6 @@ export async function fetchAllExchangePrices(
     if (result.status === 'fulfilled') {
       prices.push(result.value);
     } else {
-      console.warn(`Failed to fetch from ${targetExchanges[i]}:`, result.reason?.message || result.reason);
     }
   }
 

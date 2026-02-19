@@ -125,7 +125,6 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
         tradingBot.emergencyStop();
         break;
       default:
-        console.log('Unknown voice command:', command);
     }
   };
 

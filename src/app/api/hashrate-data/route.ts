@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
-    console.log('Fetching hashrate data from mempool.space API...')
 
     // Fetch multiple data points in parallel with cache control
     const [hashrateRes, difficultyRes, poolsRes, blocksRes] = await Promise.all([
@@ -34,10 +33,6 @@ export async function GET() {
     const poolsData = await poolsRes.json()
     const currentHeight = await blocksRes.text()
 
-    console.log('Hashrate data:', hashrateData)
-    console.log('Difficulty data:', difficultyData)
-    console.log('Pools data:', poolsData)
-    console.log('Current height:', currentHeight)
 
     // Calculate hashrate in EH/s (exahash per second)
     // The API returns hashrate in H/s, so we divide by 10^18 to get EH/s
@@ -79,7 +74,6 @@ export async function GET() {
       lastUpdated: new Date().toISOString()
     }
 
-    console.log('Formatted hashrate data:', formattedData)
     return NextResponse.json(formattedData)
   } catch (error) {
     console.error('Error fetching hashrate data:', error)
@@ -105,7 +99,6 @@ export async function GET() {
       lastUpdated: new Date().toISOString()
     }
 
-    console.log('Using fallback hashrate data due to error')
     return NextResponse.json(fallbackData)
   }
 }

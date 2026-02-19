@@ -12,30 +12,40 @@ export const useMempoolData = () => {
   useEffect(() => {
     const fetchMempoolData = async () => {
       try {
-        // TODO: Replace with actual API call
-        const mockData: MempoolState = {
-          pendingTransactions: Math.floor(Math.random() * 1000),
-          averageFeeRate: Math.random() * 100,
-          mempoolSize: Math.floor(Math.random() * 10000),
+        // Fetch real mempool data from mempool.space API
+        const [mempoolRes, feesRes, blocksRes] = await Promise.allSettled([
+          fetch('/api/mempool/?endpoint=/mempool').then(r => r.ok ? r.json() : null),
+          fetch('/api/mempool/?endpoint=/v1/fees/recommended').then(r => r.ok ? r.json() : null),
+          fetch('/api/mempool/?endpoint=/v1/blocks').then(r => r.ok ? r.json() : null),
+        ])
+
+        const mempool = mempoolRes.status === 'fulfilled' ? mempoolRes.value : null
+        const fees = feesRes.status === 'fulfilled' ? feesRes.value : null
+        const blocks = blocksRes.status === 'fulfilled' ? blocksRes.value : null
+
+        const latestBlock = blocks?.[0]
+
+        const data: MempoolState = {
+          pendingTransactions: mempool?.count || 0,
+          averageFeeRate: fees?.halfHourFee || 0,
+          mempoolSize: mempool?.vsize || 0,
           lastUpdated: new Date().toISOString(),
           transactions: [],
           feeRates: {
-            low: Math.random() * 10,
-            medium: Math.random() * 20,
-            high: Math.random() * 30
+            low: fees?.hourFee || 0,
+            medium: fees?.halfHourFee || 0,
+            high: fees?.fastestFee || 0
           },
-          blocks: [
-            {
-              height: 0,
-              hash: '',
-              timestamp: Date.now(),
-              size: 0,
-              weight: 0
-            }
-          ]
+          blocks: [{
+            height: latestBlock?.height || 0,
+            hash: latestBlock?.id || '',
+            timestamp: (latestBlock?.timestamp || 0) * 1000,
+            size: latestBlock?.size || 0,
+            weight: latestBlock?.weight || 0
+          }]
         }
 
-        dispatch(setMempoolData(mockData))
+        dispatch(setMempoolData(data))
       } catch (error) {
         console.error('Error fetching mempool data:', error)
       }

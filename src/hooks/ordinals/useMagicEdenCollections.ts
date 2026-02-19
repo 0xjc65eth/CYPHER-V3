@@ -33,8 +33,11 @@ export function useMagicEdenCollections(limit: number = 20): UseMagicEdenCollect
 
   useEffect(() => {
     const controller = new AbortController()
+
+    // Fetch immediately
     fetchCollections(controller.signal)
 
+    // Setup interval for periodic updates
     const interval = setInterval(() => {
       fetchCollections(controller.signal)
     }, 60_000)
@@ -43,7 +46,7 @@ export function useMagicEdenCollections(limit: number = 20): UseMagicEdenCollect
       controller.abort()
       clearInterval(interval)
     }
-  }, [fetchCollections])
+  }, [limit]) // ✅ FIXED: Only depend on limit, not fetchCollections
 
   return { collections, loading, error }
 }

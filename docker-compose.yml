@@ -20,13 +20,17 @@ services:
       - PORT=4444
       - WS_PORT=8080
       - METRICS_PORT=9090
+      # Redis connection (used by cache, sessions, job locking)
+      - REDIS_URL=redis://redis:6379
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # PostgreSQL (used by Supabase or direct connection)
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
       - POSTGRES_DB=cypher_ordi
       - POSTGRES_USER=cypher
       - POSTGRES_PASSWORD=cypher_password_2025
+      # Auth secrets
       - JWT_SECRET=cypher_jwt_secret_2025_production
       - ADMIN_JWT_SECRET=cypher_admin_jwt_secret_2025_production
     depends_on:

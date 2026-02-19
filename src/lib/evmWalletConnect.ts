@@ -89,9 +89,8 @@ export class EVMWalletService {
         }
       }
 
-      console.log('🔍 EVM wallets detected:', availableWallets);
     } catch (error) {
-      console.warn('Error detecting EVM wallets:', error);
+      console.error('Error detecting EVM wallets:', error);
     }
 
     return availableWallets;
@@ -143,8 +142,6 @@ export class EVMWalletService {
 
       // Configurar listeners
       this.setupEventListeners(provider, walletType);
-
-      console.log(`✅ ${walletType} connected:`, { address, chainId: connection.chainId });
 
       return connection;
 
@@ -223,7 +220,7 @@ export class EVMWalletService {
           provider.removeListener('chainChanged', listener);
           provider.removeListener('disconnect', listener);
         } catch (error) {
-          console.warn('Error removing listener:', error);
+          // Listener removal failed silently
         }
       });
     }
@@ -245,7 +242,6 @@ export class EVMWalletService {
     if (connection) {
       connection.address = newAddress;
       this.emit('accountChanged', { walletType, address: newAddress });
-      console.log(`🔄 ${walletType} account changed:`, newAddress);
     }
   }
 
@@ -257,7 +253,6 @@ export class EVMWalletService {
     if (connection) {
       connection.chainId = newChainId;
       this.emit('chainChanged', { walletType, chainId: newChainId });
-      console.log(`🔄 ${walletType} chain changed:`, newChainId);
     }
   }
 
@@ -268,7 +263,6 @@ export class EVMWalletService {
     this.connections.delete(walletType);
     this.eventListeners.delete(walletType);
     this.emit('disconnected', { walletType });
-    console.log(`🔌 ${walletType} disconnected`);
   }
 
   /**
@@ -389,7 +383,7 @@ export class EVMWalletService {
             connection.provider.removeListener('chainChanged', listener);
             connection.provider.removeListener('disconnect', listener);
           } catch (error) {
-            console.warn('Error removing listener:', error);
+            // Listener removal failed silently
           }
         });
       }
@@ -397,7 +391,6 @@ export class EVMWalletService {
       this.connections.delete(walletType);
       this.eventListeners.delete(walletType);
       
-      console.log(`🔌 ${walletType} disconnected manually`);
     }
   }
 

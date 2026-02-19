@@ -127,7 +127,6 @@ export default function QuickTradePage() {
   // Handler para conexão de carteira
   const handleWalletConnect = (address: string, walletType: string) => {
     setConnectedAddress(address);
-    console.log('✅ Carteira conectada no QuickTrade:', { address, walletType });
   };
 
   // Handler para trocar tokens
@@ -341,7 +340,6 @@ export default function QuickTradePage() {
                 network={selectedNetwork}
                 userAddress={connectedAddress || wallet.address || ''}
                 onSwapComplete={(result) => {
-                  console.log('✅ Swap completed:', result);
                 }}
                 onError={(error) => {
                   console.error('❌ Swap error:', error);

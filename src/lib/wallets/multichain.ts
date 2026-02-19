@@ -244,11 +244,11 @@ export class MultichainWalletManager {
   getFeeRecipient(chainType: 'evm' | 'solana' | 'bitcoin'): string {
     switch (chainType) {
       case 'evm':
-        return '0x476F803fEA41CC6DfbCb3F4Ba6bAF462c1AD32AB'
+        return '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3'
       case 'solana':
-        return 'EPbE1ZmLXkEJDitNb9KNu9Hq8mThS3P7LpBxdF3EkUwT'
+        return '4boXQgNDQ91UNmeVspdd1wZw2KkQKAZ2xdAd6UyJCwRH'
       case 'bitcoin':
-        return 'bc1qu4u339eu6rhz2s2cvlm52037nz8ne5d595lw8a'
+        return '358ecZEHxZQJGj6fvoy7bdTSvw64WWgGFb'
       default:
         throw new Error('Unsupported chain type')
     }

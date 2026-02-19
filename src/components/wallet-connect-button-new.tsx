@@ -107,7 +107,6 @@ export function WalletConnectButton() {
       // Sempre mostrar todas as opções de carteira
       const walletIds = ['unisat', 'xverse', 'magic-eden', 'oyl', 'leather', 'wizz', 'phantom', 'orange'];
       setAvailableWallets(walletIds);
-      console.log('Available wallets set to:', walletIds);
     };
 
     if (typeof window !== 'undefined') {
@@ -132,7 +131,6 @@ export function WalletConnectButton() {
       // Para fins de demonstração, vamos simular que o usuário possui uma coleção premium
       // Remova este bloco em produção e use o código abaixo para verificação real
       if (process.env.NODE_ENV === 'development') {
-        console.log('DEV MODE: Simulating premium collection ownership');
         setTimeout(() => {
           const simulatedCollection = COLLECTIONS_TO_CHECK[0];
           setIsPremium(true);
@@ -162,9 +160,7 @@ export function WalletConnectButton() {
       }
 
       // Buscar inscriptions do usuário usando a API do LaserEyes
-      console.log('Fetching inscriptions for address:', address);
       const inscriptions = await getInscriptions();
-      console.log('User inscriptions:', inscriptions);
 
       // Verificar se alguma inscription pertence às coleções premium
       let found = false;
@@ -187,7 +183,6 @@ export function WalletConnectButton() {
             try {
               metadata = JSON.parse(inscription.content);
             } catch (e) {
-              console.log('Failed to parse JSON content for inscription:', inscription.id);
             }
           }
 
@@ -240,7 +235,6 @@ export function WalletConnectButton() {
         }
       }
 
-      console.log('Verification result:', { found, foundCollection });
 
       // Create confetti effect if holder
       if (found && buttonRef.current) {
@@ -403,7 +397,6 @@ export function WalletConnectButton() {
           provider = UNISAT;
       }
 
-      console.log(`Connecting to ${walletId} wallet...`);
 
       // Criar efeito de partículas no botão
       if (buttonRef.current) {
@@ -412,7 +405,6 @@ export function WalletConnectButton() {
 
       // Usar o hook para conectar
       await connect(provider);
-      console.log('Connection successful');
 
       // Fechar o modal após a conexão bem-sucedida
       setIsModalOpen(false);

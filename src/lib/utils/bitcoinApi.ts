@@ -35,11 +35,9 @@ if (typeof window === 'undefined') {
     });
     
     redis.ping().catch(() => {
-      console.warn('Redis not available, using memory cache');
       redis = null;
     });
   } catch (error) {
-    console.warn('Redis initialization failed, using memory cache');
     redis = null;
   }
 }

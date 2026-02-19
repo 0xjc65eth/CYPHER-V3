@@ -9,38 +9,8 @@ interface ChartDataPoint {
   volume: number;
 }
 
-// Helper function to generate mock historical data
-function generateHistoricalData(
-  symbol: string,
-  interval: string,
-  limit: number
-): ChartDataPoint[] {
-  const now = Date.now();
-  const intervalMs = getIntervalInMs(interval);
-  const basePrice = symbol === 'BTCUSDT' ? 98500 : 1000;
-  const data: ChartDataPoint[] = [];
-
-  for (let i = limit - 1; i >= 0; i--) {
-    const time = now - (i * intervalMs);
-    const randomVariation = (Math.random() - 0.5) * 0.02; // 2% variation
-    const close = basePrice * (1 + randomVariation);
-    const open = close * (1 + (Math.random() - 0.5) * 0.01);
-    const high = Math.max(open, close) * (1 + Math.random() * 0.005);
-    const low = Math.min(open, close) * (1 - Math.random() * 0.005);
-    const volume = Math.random() * 1000000;
-
-    data.push({
-      time,
-      open,
-      high,
-      low,
-      close,
-      volume
-    });
-  }
-
-  return data;
-}
+// REMOVIDO: generateHistoricalData - Não geramos dados históricos falsos
+// Apenas dados reais de Binance API ou outras fontes verificadas
 
 function getIntervalInMs(interval: string): number {
   const intervals: Record<string, number> = {
@@ -90,16 +60,17 @@ export async function GET(request: NextRequest) {
       }
     } catch (error) {
       console.error('Binance API error:', error);
+      // Return error - NO MOCK DATA
+      return NextResponse.json(
+        {
+          success: false,
+          data: null,
+          error: 'Failed to fetch real historical data from Binance API',
+          message: error instanceof Error ? error.message : 'Unknown error'
+        },
+        { status: 503 }
+      );
     }
-
-    // Fallback to mock data
-    const mockData = generateHistoricalData(symbol, interval, limit);
-    
-    return NextResponse.json({
-      success: true,
-      data: mockData,
-      source: 'mock'
-    });
 
   } catch (error) {
     console.error('Historical data API error:', error);

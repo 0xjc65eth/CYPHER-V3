@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
       message: `ORDI command ${command} received`
     };
     
-    console.log(`[ORDI API] Command received: ${command}`);
     
     return NextResponse.json(response);
   } catch (error) {

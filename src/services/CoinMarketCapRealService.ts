@@ -319,12 +319,12 @@ class CoinMarketCapRealService {
         id: symbol,
         symbol: fallback.symbol!,
         name: fallback.name!,
-        price: fallback.price! * (1 + (Math.random() - 0.5) * 0.1),
-        change24h: fallback.change24h! + (Math.random() - 0.5) * 2,
+        price: fallback.price!,
+        change24h: fallback.change24h!,
         changePercentage24h: fallback.change24h!,
-        volume24h: Math.random() * 1000000000,
-        marketCap: fallback.price! * Math.random() * 1000000000,
-        rank: Math.floor(Math.random() * 100) + 1,
+        volume24h: 0,
+        marketCap: 0,
+        rank: 0,
         lastUpdated: new Date()
       };
     });

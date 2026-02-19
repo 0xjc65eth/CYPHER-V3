@@ -155,22 +155,44 @@ export const CollectionStats: React.FC<CollectionStatsProps> = ({
       {/* Price History Sparkline */}
       <div className="bg-bloomberg-black-700 p-3 rounded border border-bloomberg-orange/20">
         <div className="text-xs text-bloomberg-orange/60 mb-2">Price Trend (7d)</div>
-        <div className="h-8 flex items-end justify-between gap-1">
-          {Array.from({ length: 7 }, (_, i) => {
-            const height = Math.random() * 100;
-            return (
-              <div 
-                key={i}
-                className="bg-bloomberg-orange/60 w-2 rounded-t"
-                style={{ height: `${height}%` }}
-              ></div>
-            );
-          })}
-        </div>
-        <div className="flex justify-between text-xs text-bloomberg-orange/40 mt-1">
-          <span>7d ago</span>
-          <span>Today</span>
-        </div>
+        {recentInscriptions.length > 0 ? (
+          <>
+            <div className="h-8 flex items-end justify-between gap-1">
+              {/* Use real recent activity distribution across 7 buckets */}
+              {Array.from({ length: 7 }, (_, i) => {
+                const dayStart = last24h - ((6 - i) * 24 * 60 * 60 * 1000);
+                const dayEnd = dayStart + (24 * 60 * 60 * 1000);
+                const dayItems = filteredInscriptions.filter(
+                  ins => ins.timestamp >= dayStart && ins.timestamp < dayEnd
+                );
+                const maxDayCount = Math.max(
+                  1,
+                  ...Array.from({ length: 7 }, (_, j) => {
+                    const ds = last24h - ((6 - j) * 24 * 60 * 60 * 1000);
+                    const de = ds + (24 * 60 * 60 * 1000);
+                    return filteredInscriptions.filter(ins => ins.timestamp >= ds && ins.timestamp < de).length;
+                  })
+                );
+                const height = (dayItems.length / maxDayCount) * 100;
+                return (
+                  <div
+                    key={i}
+                    className="bg-bloomberg-orange/60 w-2 rounded-t"
+                    style={{ height: `${Math.max(height, 2)}%` }}
+                  ></div>
+                );
+              })}
+            </div>
+            <div className="flex justify-between text-xs text-bloomberg-orange/40 mt-1">
+              <span>7d ago</span>
+              <span>Today</span>
+            </div>
+          </>
+        ) : (
+          <div className="h-8 flex items-center justify-center">
+            <span className="text-xs text-bloomberg-orange/40">No activity data available</span>
+          </div>
+        )}
       </div>
 
       {totalCount === 0 && (

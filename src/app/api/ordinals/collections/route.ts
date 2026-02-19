@@ -83,7 +83,6 @@ export async function GET(request: Request) {
       data = results.filter(Boolean) as unknown[];
 
       if (data.length > 0) {
-        console.log(`[Collections API] Success: ${data.length} collections from Magic Eden`);
       }
     } catch (err) {
       console.error(`[Collections API] Error fetching Magic Eden collections:`, err);

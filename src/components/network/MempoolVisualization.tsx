@@ -42,7 +42,7 @@ export function MempoolVisualization() {
     try {
       const [blocksRes, statsRes] = await Promise.all([
         fetch('https://mempool.space/api/v1/fees/mempool-blocks'),
-        fetch('/api/onchain/mempool'),
+        fetch('/api/onchain/mempool/'),
       ])
 
       if (!blocksRes.ok) throw new Error('Failed to fetch mempool blocks')

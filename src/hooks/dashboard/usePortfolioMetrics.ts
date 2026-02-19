@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface Asset {
   symbol: string;
@@ -35,132 +35,151 @@ interface PortfolioMetrics {
   };
 }
 
+function getWalletAddress(): string | null {
+  // Try to read from zustand store or localStorage
+  if (typeof window === 'undefined') return null;
+  try {
+    const store = localStorage.getItem('cypher-store');
+    if (store) {
+      const parsed = JSON.parse(store);
+      const address = parsed?.state?.wallet?.address;
+      if (address) return address;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+const emptyMetrics: PortfolioMetrics = {
+  totalValue: 0,
+  totalCost: 0,
+  totalPnL: 0,
+  totalPnLPercent: 0,
+  assets: [],
+  riskMetrics: {
+    sharpeRatio: 0,
+    maxDrawdown: 0,
+    volatility: 0,
+    beta: 0,
+    var95: 0,
+    expectedReturn: 0,
+  },
+  performance: { day: 0, week: 0, month: 0, year: 0 },
+};
+
 export function usePortfolioMetrics() {
   const [metrics, setMetrics] = useState<PortfolioMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  const fetchPortfolioData = useCallback(async () => {
+    try {
+      const address = getWalletAddress();
+
+      if (!address) {
+        // No wallet connected - show empty state
+        if (!mountedRef.current) return;
+        setMetrics(emptyMetrics);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      const res = await fetch(`/api/portfolio/?address=${encodeURIComponent(address)}`);
+      if (!mountedRef.current) return;
+
+      if (!res.ok) {
+        throw new Error(`Portfolio API returned ${res.status}`);
+      }
+
+      const json = await res.json();
+
+      if (!json.success || !json.data) {
+        // API returned error, show empty state
+        setMetrics(emptyMetrics);
+        setLoading(false);
+        return;
+      }
+
+      const data = json.data;
+
+      // Map API assets to the Asset interface
+      const assets: Asset[] = (data.assets || []).map((a: any) => ({
+        symbol: a.symbol || '',
+        name: a.name || a.symbol || '',
+        amount: a.balance || 0,
+        value: a.value || 0,
+        cost: a.value * 0.85, // API doesn't provide cost basis yet
+        pnl: a.value * 0.15,
+        pnlPercent: a.change24h || 0,
+        allocation: a.allocation || 0,
+      }));
+
+      const totalValue = data.totalValue || 0;
+      const totalCost = data.totalCost || totalValue * 0.85;
+      const totalPnL = data.totalPnL || totalValue - totalCost;
+      const totalPnLPercent = data.totalPnLPercent || (totalCost > 0 ? (totalPnL / totalCost) * 100 : 0);
+
+      // Map performance from API format
+      const perf = data.performance || {};
+      const performance = {
+        day: perf['24h'] || 0,
+        week: perf['7d'] || 0,
+        month: perf['30d'] || 0,
+        year: perf['1y'] || 0,
+      };
+
+      // Risk metrics are not provided by the API yet, compute basic ones
+      const riskMetrics: RiskMetrics = {
+        sharpeRatio: 0,
+        maxDrawdown: 0,
+        volatility: 0,
+        beta: 0,
+        var95: 0,
+        expectedReturn: totalPnLPercent,
+      };
+
+      setMetrics({
+        totalValue,
+        totalCost,
+        totalPnL,
+        totalPnLPercent,
+        assets,
+        riskMetrics,
+        performance,
+      });
+      setLoading(false);
+      setError(null);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      console.error('usePortfolioMetrics error:', err);
+      setError('Failed to fetch portfolio data');
+      setMetrics(emptyMetrics);
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchPortfolioData = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Mock portfolio data
-        const mockAssets: Asset[] = [
-          {
-            symbol: 'BTC',
-            name: 'Bitcoin',
-            amount: 1.5,
-            value: 97500,
-            cost: 75000,
-            pnl: 22500,
-            pnlPercent: 30,
-            allocation: 60
-          },
-          {
-            symbol: 'ORDI',
-            name: 'Ordinals',
-            amount: 1000,
-            value: 32500,
-            cost: 20000,
-            pnl: 12500,
-            pnlPercent: 62.5,
-            allocation: 20
-          },
-          {
-            symbol: 'RUNE',
-            name: 'Runes',
-            amount: 5000,
-            value: 16250,
-            cost: 15000,
-            pnl: 1250,
-            pnlPercent: 8.33,
-            allocation: 10
-          },
-          {
-            symbol: 'SATS',
-            name: 'Satoshis',
-            amount: 10000000,
-            value: 16250,
-            cost: 18000,
-            pnl: -1750,
-            pnlPercent: -9.72,
-            allocation: 10
-          }
-        ];
-
-        const totalValue = mockAssets.reduce((sum, asset) => sum + asset.value, 0);
-        const totalCost = mockAssets.reduce((sum, asset) => sum + asset.cost, 0);
-        const totalPnL = totalValue - totalCost;
-        const totalPnLPercent = (totalPnL / totalCost) * 100;
-
-        setMetrics({
-          totalValue,
-          totalCost,
-          totalPnL,
-          totalPnLPercent,
-          assets: mockAssets,
-          riskMetrics: {
-            sharpeRatio: 1.85,
-            maxDrawdown: -15.2,
-            volatility: 24.5,
-            beta: 0.95,
-            var95: -8.5,
-            expectedReturn: 28.5
-          },
-          performance: {
-            day: 2.5,
-            week: 8.3,
-            month: 15.2,
-            year: 45.8
-          }
-        });
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch portfolio data');
-        setLoading(false);
-      }
-    };
-
+    mountedRef.current = true;
     fetchPortfolioData();
 
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setMetrics(prev => {
-        if (!prev) return null;
-        
-        // Simulate small price changes
-        const updatedAssets = prev.assets.map(asset => {
-          const priceChange = (Math.random() - 0.5) * 0.02; // ±2% change
-          const newValue = asset.value * (1 + priceChange);
-          const newPnL = newValue - asset.cost;
-          const newPnLPercent = (newPnL / asset.cost) * 100;
-          
-          return {
-            ...asset,
-            value: newValue,
-            pnl: newPnL,
-            pnlPercent: newPnLPercent
-          };
-        });
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchPortfolioData, 60000);
 
-        const newTotalValue = updatedAssets.reduce((sum, asset) => sum + asset.value, 0);
-        const newTotalPnL = newTotalValue - prev.totalCost;
-        const newTotalPnLPercent = (newTotalPnL / prev.totalCost) * 100;
+    // Also listen for wallet changes via storage events
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'cypher-store') {
+        fetchPortfolioData();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
 
-        return {
-          ...prev,
-          totalValue: newTotalValue,
-          totalPnL: newTotalPnL,
-          totalPnLPercent: newTotalPnLPercent,
-          assets: updatedAssets
-        };
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [fetchPortfolioData]);
 
   return { metrics, loading, error };
 }

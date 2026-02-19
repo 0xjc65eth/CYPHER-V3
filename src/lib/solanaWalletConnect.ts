@@ -79,9 +79,7 @@ export class SolanaWalletService {
         availableWallets.push('sollet');
       }
 
-      console.log('🔍 Solana wallets detected:', availableWallets);
     } catch (error) {
-      console.warn('Error detecting Solana wallets:', error);
     }
 
     return availableWallets;
@@ -125,7 +123,6 @@ export class SolanaWalletService {
       // Configurar listeners
       this.setupEventListeners(provider, walletType);
 
-      console.log(`✅ ${walletType} connected:`, { address, balance });
 
       return connection;
 
@@ -189,7 +186,6 @@ export class SolanaWalletService {
       return data.result.value / 1000000000;
 
     } catch (error) {
-      console.warn('Error fetching balance:', error);
       return 0;
     }
   }
@@ -241,7 +237,6 @@ export class SolanaWalletService {
       return tokenAccounts;
 
     } catch (error) {
-      console.warn('Error fetching token accounts:', error);
       return [];
     }
   }
@@ -251,12 +246,10 @@ export class SolanaWalletService {
    */
   private setupEventListeners(provider: SolanaWalletProvider, walletType: string) {
     const connectHandler = () => {
-      console.log(`🔗 ${walletType} connected`);
       this.emit('connected', { walletType });
     };
 
     const disconnectHandler = () => {
-      console.log(`🔌 ${walletType} disconnected`);
       this.handleDisconnect(walletType);
     };
 
@@ -277,7 +270,6 @@ export class SolanaWalletService {
           provider.removeListener('disconnect', listener);
           provider.removeListener('accountChanged', listener);
         } catch (error) {
-          console.warn('Error removing listener:', error);
         }
       });
     }
@@ -306,7 +298,6 @@ export class SolanaWalletService {
       connection.balance = await this.getBalance(newPublicKey);
       
       this.emit('accountChanged', { walletType, address: newPublicKey });
-      console.log(`🔄 ${walletType} account changed:`, newPublicKey);
     }
   }
 
@@ -317,7 +308,6 @@ export class SolanaWalletService {
     this.connections.delete(walletType);
     this.eventListeners.delete(walletType);
     this.emit('disconnected', { walletType });
-    console.log(`🔌 ${walletType} disconnected`);
   }
 
   /**
@@ -363,7 +353,6 @@ export class SolanaWalletService {
       try {
         await connection.provider.disconnect();
       } catch (error) {
-        console.warn('Error during wallet disconnect:', error);
       }
 
       // Remover listeners
@@ -375,7 +364,6 @@ export class SolanaWalletService {
             connection.provider.removeListener('disconnect', listener);
             connection.provider.removeListener('accountChanged', listener);
           } catch (error) {
-            console.warn('Error removing listener:', error);
           }
         });
       }
@@ -383,7 +371,6 @@ export class SolanaWalletService {
       this.connections.delete(walletType);
       this.eventListeners.delete(walletType);
       
-      console.log(`🔌 ${walletType} disconnected manually`);
     }
   }
 

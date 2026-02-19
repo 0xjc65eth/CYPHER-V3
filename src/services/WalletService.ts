@@ -1,6 +1,6 @@
 'use client'
 
-import { BitcoinNetworkType, getAddress, getCapabilities, request } from 'sats-connect'
+import { BitcoinNetworkType, AddressPurpose, request } from 'sats-connect'
 
 // Types
 export interface WalletAddress {
@@ -39,9 +39,13 @@ export interface WalletInfo {
   paymentAddress: WalletAddress | null
   ordinalsAddress: WalletAddress | null
   balance: WalletBalance | null
+  signature: string | null
+  verified: boolean
 }
 
 export type WalletType = 'xverse' | 'unisat'
+
+const CONNECTION_TIMEOUT_MS = 30_000
 
 class WalletService {
   private walletInfo: WalletInfo = {
@@ -50,9 +54,20 @@ class WalletService {
     paymentAddress: null,
     ordinalsAddress: null,
     balance: null,
+    signature: null,
+    verified: false,
   }
 
   private listeners: ((info: WalletInfo) => void)[] = []
+
+  private withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out after ${CONNECTION_TIMEOUT_MS / 1000}s. Please try again.`)), CONNECTION_TIMEOUT_MS)
+      ),
+    ])
+  }
 
   // Subscribe to wallet changes
   subscribe(callback: (info: WalletInfo) => void) {
@@ -63,7 +78,7 @@ class WalletService {
   }
 
   private notify() {
-    this.listeners.forEach((listener) => listener(this.walletInfo))
+    this.listeners.forEach((listener) => listener({ ...this.walletInfo }))
   }
 
   // Check if wallet is available
@@ -71,16 +86,8 @@ class WalletService {
     if (typeof window === 'undefined') return false
 
     if (walletType === 'xverse') {
-      try {
-        const capabilities = await getCapabilities({
-          onFinish: (response) => response,
-          onCancel: () => null,
-          payload: { network: { type: BitcoinNetworkType.Mainnet } }
-        })
-        return !!capabilities
-      } catch {
-        return false
-      }
+      // Check for any sats-connect compatible wallet (Xverse, Magic Eden, etc.)
+      return !!(window as any).XverseProviders || !!(window as any).BitcoinProvider
     }
 
     if (walletType === 'unisat') {
@@ -90,55 +97,59 @@ class WalletService {
     return false
   }
 
-  // Connect to Xverse wallet
+  // Connect to Xverse wallet using sats-connect v3 request() API
   async connectXverse(): Promise<WalletInfo> {
     try {
-      const getAddressOptions = {
-        payload: {
-          purposes: ['payment', 'ordinals'] as const,
+      const response = await this.withTimeout(
+        request('getAddresses', {
+          purposes: [AddressPurpose.Payment, AddressPurpose.Ordinals],
           message: 'Connect to CYPHER V3',
-          network: {
-            type: BitcoinNetworkType.Mainnet
-          }
-        },
-        onFinish: (response: any) => {
-          const addresses = response.addresses
-          const paymentAddress = addresses.find((addr: any) => addr.purpose === 'payment')
-          const ordinalsAddress = addresses.find((addr: any) => addr.purpose === 'ordinals')
+        }),
+        'Xverse wallet connection'
+      )
 
-          this.walletInfo = {
-            connected: true,
-            walletType: 'xverse',
-            paymentAddress: paymentAddress ? {
-              address: paymentAddress.address,
-              publicKey: paymentAddress.publicKey,
-              purpose: 'payment'
-            } : null,
-            ordinalsAddress: ordinalsAddress ? {
-              address: ordinalsAddress.address,
-              publicKey: ordinalsAddress.publicKey,
-              purpose: 'ordinals'
-            } : null,
-            balance: null,
-          }
-
-          this.notify()
-          return this.walletInfo
-        },
-        onCancel: () => {
-          throw new Error('User cancelled wallet connection')
-        }
+      if (response.status === 'error') {
+        throw new Error(response.error?.message || 'Xverse connection failed')
       }
 
-      await getAddress(getAddressOptions)
+      const addresses = response.result.addresses
+      const paymentAddr = addresses.find((addr: any) => addr.purpose === AddressPurpose.Payment)
+      const ordinalsAddr = addresses.find((addr: any) => addr.purpose === AddressPurpose.Ordinals)
+
+      this.walletInfo = {
+        connected: true,
+        walletType: 'xverse',
+        paymentAddress: paymentAddr ? {
+          address: paymentAddr.address,
+          publicKey: paymentAddr.publicKey,
+          purpose: 'payment'
+        } : null,
+        ordinalsAddress: ordinalsAddr ? {
+          address: ordinalsAddr.address,
+          publicKey: ordinalsAddr.publicKey,
+          purpose: 'ordinals'
+        } : null,
+        balance: null,
+        signature: null,
+        verified: false,
+      }
+
+      this.notify()
 
       // Fetch balance after connection
       if (this.walletInfo.paymentAddress) {
         await this.updateBalance()
       }
 
+      // Auto-verify ownership via signMessage
+      await this.verifyOwnership()
+
       return this.walletInfo
-    } catch (error) {
+    } catch (error: any) {
+      // User cancelled via wallet UI
+      if (error?.code === 4001 || error?.message?.includes('cancel')) {
+        throw new Error('User cancelled wallet connection')
+      }
       console.error('Failed to connect Xverse wallet:', error)
       throw error
     }
@@ -154,7 +165,7 @@ class WalletService {
       const unisat = (window as any).unisat
 
       // Request connection
-      const accounts = await unisat.requestAccounts()
+      const accounts = await this.withTimeout(unisat.requestAccounts(), 'UniSat wallet connection')
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found')
       }
@@ -176,12 +187,17 @@ class WalletService {
           purpose: 'ordinals'
         },
         balance: null,
+        signature: null,
+        verified: false,
       }
 
       this.notify()
 
       // Fetch balance after connection
       await this.updateBalance()
+
+      // Auto-verify ownership via signMessage
+      await this.verifyOwnership()
 
       return this.walletInfo
     } catch (error) {
@@ -218,6 +234,51 @@ class WalletService {
     throw new Error('Invalid wallet type')
   }
 
+  // Sign a message with the connected wallet
+  async signMessage(message: string): Promise<string> {
+    if (!this.walletInfo.connected || !this.walletInfo.paymentAddress) {
+      throw new Error('Wallet not connected')
+    }
+
+    if (this.walletInfo.walletType === 'xverse') {
+      const response = await request('signMessage', {
+        address: this.walletInfo.paymentAddress.address,
+        message,
+      })
+
+      if (response.status === 'success') {
+        return (response.result as any).signature as string
+      }
+      throw new Error('Xverse signMessage failed')
+    }
+
+    if (this.walletInfo.walletType === 'unisat') {
+      const unisat = (window as any).unisat
+      return await unisat.signMessage(message)
+    }
+
+    throw new Error('Wallet type not supported for message signing')
+  }
+
+  // Auto-verify ownership after connection
+  private async verifyOwnership(): Promise<void> {
+    if (!this.walletInfo.paymentAddress) return
+
+    const message = `CYPHER V3 Ownership Verification\nAddress: ${this.walletInfo.paymentAddress.address}\nTimestamp: ${new Date().toISOString()}`
+
+    try {
+      const signature = await this.signMessage(message)
+      this.walletInfo.signature = signature
+      this.walletInfo.verified = true
+      this.notify()
+    } catch (err) {
+      // User rejected signing — keep connected but unverified
+      this.walletInfo.signature = null
+      this.walletInfo.verified = false
+      this.notify()
+    }
+  }
+
   // Disconnect wallet
   disconnect() {
     this.walletInfo = {
@@ -226,13 +287,15 @@ class WalletService {
       paymentAddress: null,
       ordinalsAddress: null,
       balance: null,
+      signature: null,
+      verified: false,
     }
     this.notify()
   }
 
   // Get wallet info
   getWalletInfo(): WalletInfo {
-    return this.walletInfo
+    return { ...this.walletInfo }
   }
 
   // Update balance from blockchain
@@ -361,30 +424,18 @@ class WalletService {
     }
 
     if (this.walletInfo.walletType === 'xverse') {
-      return new Promise((resolve, reject) => {
-        const signPsbtOptions = {
-          payload: {
-            network: {
-              type: BitcoinNetworkType.Mainnet
-            },
-            message: 'Sign transaction',
-            psbtBase64,
-            broadcast: false,
-            inputsToSign: [{
-              address: this.walletInfo.paymentAddress!.address,
-              signingIndexes: signInputs
-            }]
-          },
-          onFinish: (response: any) => {
-            resolve(response.psbtBase64)
-          },
-          onCancel: () => {
-            reject(new Error('User cancelled signing'))
-          }
-        }
+      const response = await request('signPsbt', {
+        psbt: psbtBase64,
+        broadcast: false,
+        signInputs: {
+          [this.walletInfo.paymentAddress!.address]: signInputs,
+        },
+      } as any)
 
-        request('signPsbt', signPsbtOptions)
-      })
+      if (response.status === 'success') {
+        return (response.result as any).psbt
+      }
+      throw new Error('User cancelled signing')
     }
 
     if (this.walletInfo.walletType === 'unisat') {

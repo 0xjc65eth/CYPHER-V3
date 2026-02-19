@@ -249,7 +249,10 @@ export class WebSocketServer extends EventEmitter {
    */
   private async authenticateClient(client: WebSocketClient, token: string): Promise<void> {
     try {
-      const secret = process.env.JWT_SECRET || 'your-secret-key';
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error('JWT_SECRET environment variable is required');
+      }
       const decoded = jwt.verify(token, secret) as any;
       
       client.userId = decoded.userId;
@@ -542,7 +545,8 @@ export class WebSocketServer extends EventEmitter {
       'user.',
       'portfolio.',
       'orders.',
-      'trades.user'
+      'trades.user',
+      'agent:',
     ];
     
     return authChannels.some(prefix => channel.startsWith(prefix));
@@ -560,8 +564,79 @@ export class WebSocketServer extends EventEmitter {
       'ml.predictions',
       'social.signals',
       'news.sentiment',
-      'system.health'
+      'system.health',
+      // Runes real-time channels
+      'runes.activity',
+      'runes.prices',
+      // Agent Trading channels
+      'agent:status',
+      'agent:trades',
+      'agent:consensus',
+      'agent:lp',
+      'agent:pnl',
+      'agent:mm_quotes',
+      'agent:errors',
     ];
+  }
+
+  /**
+   * Wire orchestrator events to WebSocket broadcasts.
+   * Call this after the agent orchestrator is initialized.
+   */
+  public wireAgentEvents(orchestrator: any): void {
+    // Agent status changes
+    orchestrator.on('status_change', (data: any) => {
+      this.broadcast('agent:status', data);
+    });
+    orchestrator.on('agent_started', (data: any) => {
+      this.broadcast('agent:status', { ...data, status: 'active' });
+    });
+    orchestrator.on('agent_stopped', (data: any) => {
+      this.broadcast('agent:status', { ...data, status: 'off' });
+    });
+    orchestrator.on('agent_paused', (data: any) => {
+      this.broadcast('agent:status', { ...data, status: 'paused' });
+    });
+    orchestrator.on('emergency_stop', (data: any) => {
+      this.broadcast('agent:status', { ...data, status: 'emergency_stop' });
+    });
+
+    // Trade executions
+    orchestrator.on('trade_executed', (data: any) => {
+      this.broadcast('agent:trades', data);
+    });
+    orchestrator.on('positions_closed', (data: any) => {
+      this.broadcast('agent:trades', { type: 'positions_closed', ...data });
+    });
+
+    // Consensus decisions
+    orchestrator.on('consensus_rejected', (data: any) => {
+      this.broadcast('agent:consensus', { type: 'rejected', ...data });
+    });
+
+    // LP events
+    orchestrator.on('lp_monitor', (data: any) => {
+      this.broadcast('agent:lp', data);
+    });
+    orchestrator.on('lp_rebalance_suggestion', (data: any) => {
+      this.broadcast('agent:lp', { type: 'rebalance_suggestion', ...data });
+    });
+
+    // Market making quotes
+    orchestrator.on('mm_quotes', (data: any) => {
+      this.broadcast('agent:mm_quotes', data);
+    });
+
+    // PnL updates (risk events)
+    orchestrator.on('risk_pause', (data: any) => {
+      this.broadcast('agent:pnl', { type: 'risk_pause', ...data });
+    });
+
+    // Compound cycles
+    orchestrator.on('compound_cycle', (data: any) => {
+      this.broadcast('agent:pnl', { type: 'compound', ...data });
+    });
+
   }
 
   /**

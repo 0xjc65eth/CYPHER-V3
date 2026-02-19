@@ -274,7 +274,7 @@ async function fetchFromUniSat(address: string, page = 0, limit = 50): Promise<R
 
   const data = await response.json();
   
-  if (!data.code === 0) {
+  if (data.code !== 0) {
     throw new Error(`UniSat API error: ${data.msg || 'Unknown error'}`);
   }
 
@@ -401,32 +401,23 @@ export async function GET(
     } catch (error) {
       devLogger.error(error as Error, 'Failed to fetch runes balances with fallback');
       
-      // Return mock empty data when all providers fail
-      const mockData: RunesPortfolio = {
-        address: sanitizedAddress,
-        total_runes: 0,
-        balances: [],
-        page,
-        limit,
-        has_more: false,
-        last_updated: Date.now()
-      };
-
+      // Return error - NO MOCK DATA
       const response: ApiResponse<RunesPortfolio> = {
-        success: true,
-        data: mockData,
+        success: false,
+        data: null,
         cached: false,
+        error: 'All runes providers failed. No real data available.',
         pagination: {
-          page: mockData.page,
-          limit: mockData.limit,
-          total: mockData.total_runes,
-          hasMore: mockData.has_more
+          page,
+          limit,
+          total: 0,
+          hasMore: false
         }
       };
 
-      devLogger.log('API', `Returning mock data for runes due to provider failures`);
-      devLogger.performance(`Runes Balance API (Mock)`, Date.now() - startTime);
-      return NextResponse.json(response);
+      devLogger.log('API', `All runes providers failed for address ${sanitizedAddress}`);
+      devLogger.performance(`Runes Balance API (Failed)`, Date.now() - startTime);
+      return NextResponse.json(response, { status: 503 });
     }
 
   } catch (error) {

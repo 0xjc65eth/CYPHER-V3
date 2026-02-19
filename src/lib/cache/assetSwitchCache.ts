@@ -23,7 +23,6 @@ export class AssetSwitchCacheManager {
     const previousAsset = this.activeAsset
     this.activeAsset = newAsset
     
-    console.log(`🔄 Switching from ${previousAsset} to ${newAsset}`)
     
     // Invalidate queries related to the new asset
     await this.invalidateAssetQueries(newAsset)
@@ -85,7 +84,6 @@ export class AssetSwitchCacheManager {
       // Update timestamp
       this.cacheTimestamps.set(asset, Date.now())
       
-      console.log(`✅ Fresh data fetched for ${asset}`)
     } catch (error) {
       console.error(`❌ Failed to fetch fresh data for ${asset}:`, error)
     }
@@ -107,7 +105,6 @@ export class AssetSwitchCacheManager {
     })
     
     this.cacheTimestamps.delete(asset)
-    console.log(`🗑️ Cleared cache for ${asset}`)
   }
   
   /**
@@ -128,7 +125,6 @@ export class AssetSwitchCacheManager {
     })
     
     if (staleAssets.length > 0) {
-      console.log(`🧹 Cleaned up stale cache for: ${staleAssets.join(', ')}`)
     }
   }
   
@@ -159,7 +155,6 @@ export class AssetSwitchCacheManager {
     })
     
     await Promise.all(preloadPromises)
-    console.log(`📦 Preloaded data for: ${assets.join(', ')}`)
   }
   
   /**
@@ -273,7 +268,6 @@ export const warmupAssetCache = async (
       queryFn: () => fetchFn(asset),
       staleTime: 30000
     }).catch(error => {
-      console.warn(`Failed to warmup cache for ${asset}:`, error)
     })
   )
   
