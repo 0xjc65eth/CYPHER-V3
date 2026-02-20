@@ -202,7 +202,7 @@ export class HiroOrdinalsService {
         genesis_fee: 50000,
         genesis_height: 820000,
         genesis_block_hash: '00000000000000000001234567890abcdef',
-        address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+        address: '',
         output_value: 10000,
         sat_ordinal: '2099999997689999',
         sat_rarity: 'common'
@@ -361,7 +361,7 @@ export class HiroOrdinalsService {
         sales_count_24h: 89,
         holders_count: 3456,
         listed_count: 870,
-        creator_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+        creator_address: '',
         inscription_range: {
           min: 17000000,
           max: 17010000

@@ -246,19 +246,7 @@ export function CypherTrade() {
       
       // Check if wallet is actually installed
       if (!walletProvider) {
-        
-        // Generate realistic demo addresses for each network
-        const demoAddresses = {
-          Bitcoin: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-          Ethereum: '0x742d35Cc6aC0532C0a5db2B24e4b3f4E8D6e5D8a',
-          Solana: 'DjVE6JNiYqPL2QXyCjtBN4KMELr5VfrD6k1Ms',
-          Arbitrum: '0x742d35Cc6aC0532C0a5db2B24e4b3f4E8D6e5D8a',
-          Polygon: '0x742d35Cc6aC0532C0a5db2B24e4b3f4E8D6e5D8a',
-          Base: '0x742d35Cc6aC0532C0a5db2B24e4b3f4E8D6e5D8a'
-        };
-        
-        address = demoAddresses[selectedNetwork] || demoAddresses.Bitcoin;
-        alert(`🔗 Demo mode: Connected to ${walletId}\n📍 Network: ${selectedNetwork}\n💡 Install ${walletId} extension for real connection`);
+        throw new Error(`${walletId} wallet extension not found. Please install it first.`);
       } else {
         // Try real wallet connection
         
@@ -288,13 +276,7 @@ export function CypherTrade() {
             throw new Error('No accounts returned');
           }
         } catch (providerError) {
-          // Fallback to demo addresses
-          const demoAddresses = {
-            Bitcoin: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-            Ethereum: '0x742d35Cc6aC0532C0a5db2B24e4b3f4E8D6e5D8a',
-            Solana: 'DjVE6JNiYqPL2QXyCjtBN4KMELr5VfrD6k1Ms'
-          };
-          address = demoAddresses[selectedNetwork] || demoAddresses.Bitcoin;
+          throw new Error(`Failed to connect to ${walletId}: ${(providerError as Error).message}`);
         }
       }
       

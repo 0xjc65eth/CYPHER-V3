@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createHash, timingSafeEqual } from 'crypto';
+import bcrypt from 'bcryptjs';
+import { strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 5 attempts per 15 minutes (Redis-backed with in-memory fallback)
+    const rateLimitResponse = await strictRateLimit(request, 5, 900);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { password } = await request.json();
 
     if (!password || typeof password !== 'string') {
@@ -15,17 +20,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
     }
 
-    // Hash the provided password and compare using timing-safe comparison
-    const inputHash = createHash('sha256').update(password).digest('hex');
-
-    const inputBuffer = Buffer.from(inputHash, 'hex');
-    const storedBuffer = Buffer.from(adminPasswordHash, 'hex');
-
-    if (inputBuffer.length !== storedBuffer.length) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
-    }
-
-    const isValid = timingSafeEqual(inputBuffer, storedBuffer);
+    // Compare password using bcrypt
+    const isValid = await bcrypt.compare(password, adminPasswordHash);
 
     if (!isValid) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });

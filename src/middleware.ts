@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Security headers for all routes
+  // Redirect /quicktrade to canonical /quick-trade
+  if (request.nextUrl.pathname === '/quicktrade' || request.nextUrl.pathname.startsWith('/quicktrade/')) {
+    const url = request.nextUrl.clone();
+    url.pathname = url.pathname.replace(/^\/quicktrade/, '/quick-trade');
+    return NextResponse.redirect(url, 308);
+  }
+
   const response = NextResponse.next();
 
   // CORS headers for API routes only
   if (request.nextUrl.pathname.startsWith('/api/')) {
-    // Only allow same origin for sensitive API endpoints
     const origin = request.headers.get('origin');
     const allowedOrigins = [
       'http://localhost:4444',
@@ -17,8 +22,18 @@ export function middleware(request: NextRequest) {
     if (origin && allowedOrigins.includes(origin)) {
       response.headers.set('Access-Control-Allow-Origin', origin);
     } else if (!origin) {
-      // Allow same-origin requests (no origin header)
-      response.headers.set('Access-Control-Allow-Origin', 'http://localhost:4444');
+      // No Origin header — allow same-origin navigations and server-to-server
+      const fetchSite = request.headers.get('sec-fetch-site');
+      if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') {
+        // Cross-origin request without Origin header — deny
+        return new Response('Forbidden', { status: 403 });
+      }
+    } else {
+      // Origin present but not in allowed list — deny for mutating methods
+      const method = request.method.toUpperCase();
+      if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+        return new Response('Forbidden', { status: 403 });
+      }
     }
 
     response.headers.set('Access-Control-Allow-Credentials', 'true');
@@ -40,12 +55,15 @@ export function middleware(request: NextRequest) {
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-  // Content Security Policy for enhanced security
+  // Content Security Policy with nonce for script-src
+  const nonce = crypto.randomUUID();
+  response.headers.set('X-Nonce', nonce);
+
   response.headers.set(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com",
+      `script-src 'self' 'nonce-${nonce}' https://s3.tradingview.com`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "connect-src 'self' https: wss:",

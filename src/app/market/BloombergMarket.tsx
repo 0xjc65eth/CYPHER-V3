@@ -191,8 +191,8 @@ export default function BloombergMarketPage() {
       })
     : null;
 
-  const bestBid = exchanges.data ? Math.max(...exchanges.data.filter(e => e.bid != null).map(e => e.bid!)) : null;
-  const bestAsk = exchanges.data ? Math.min(...exchanges.data.filter(e => e.ask != null).map(e => e.ask!)) : null;
+  const bestBid = Array.isArray(exchanges.data) ? Math.max(...exchanges.data.filter(e => e.bid != null).map(e => e.bid!)) : null;
+  const bestAsk = Array.isArray(exchanges.data) ? Math.min(...exchanges.data.filter(e => e.ask != null).map(e => e.ask!)) : null;
 
   const toggleSort = (col: string) => {
     setExchangeSort(prev => ({ col, asc: prev.col === col ? !prev.asc : false }));

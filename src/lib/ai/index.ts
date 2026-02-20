@@ -9,4 +9,4 @@ export { sentimentAnalyzer, SentimentAnalyzer } from './sentimentAnalyzer';
 export type { SentimentResult } from './sentimentAnalyzer';
 
 // Re-exportar TensorFlow para uso em outros módulos
-// export * as tf from '@tensorflow/tfjs';
+// export * as tf from '@tensorflow/tfjs-node';

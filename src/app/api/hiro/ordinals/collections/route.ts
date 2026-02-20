@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     // Fetch collections from Hiro Ordinals API
     const response = await hiroOrdinalsService.getCollections({ limit, offset });
 
-    if (!response || !response.results) {
+    if (!response || !Array.isArray(response.results)) {
       return NextResponse.json({
         code: 0,
         msg: 'fallback',

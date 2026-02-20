@@ -142,17 +142,38 @@ export function WalletConnector() {
     setIsConnecting(true);
     
     try {
-      // Simulate wallet connection
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock address for demo
-      const mockAddresses = {
-        bitcoin: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
-        ethereum: '0x742F...5D8a',
-        solana: 'DjVE...k1Ms'
-      };
-      
-      const address = mockAddresses[selectedNetwork];
+      // Attempt real wallet connection
+      let address = '';
+
+      if (typeof window !== 'undefined') {
+        if (selectedNetwork === 'bitcoin') {
+          const xverse = (window as any).XverseProviders?.BitcoinProvider;
+          const unisat = (window as any).unisat;
+          if (xverse) {
+            const response = await xverse.request('getAccounts', null);
+            address = response.result?.[0]?.address || '';
+          } else if (unisat) {
+            const accounts = await unisat.requestAccounts();
+            address = accounts[0] || '';
+          }
+        } else if (selectedNetwork === 'ethereum') {
+          const ethereum = (window as any).ethereum;
+          if (ethereum) {
+            const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+            address = accounts[0] || '';
+          }
+        } else if (selectedNetwork === 'solana') {
+          const solana = (window as any).solana;
+          if (solana) {
+            const result = await solana.connect();
+            address = result.publicKey?.toString() || '';
+          }
+        }
+      }
+
+      if (!address) {
+        throw new Error(`No ${selectedNetwork} wallet provider found. Install a wallet extension.`);
+      }
       
       let assets: Asset[] = [];
       let transactions: Transaction[] = [];

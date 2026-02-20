@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiCache, CacheKeys, CACHE_TTL, isValidBitcoinAddress, sanitizeAddress } from '@/lib/apiCache';
 import { devLogger } from '@/lib/logger';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // Types
 interface BitcoinBalance {
@@ -143,8 +144,12 @@ async function fetchFromBlockstream(address: string): Promise<BitcoinBalance> {
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
+    // Rate limit check (Redis-backed with in-memory fallback, 60 req/min)
+    const rateLimitResponse = await rateLimit(request, 60, 60);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const searchParams = request.nextUrl.searchParams;
     const address = searchParams.get('address');
     const forceRefresh = searchParams.get('refresh') === 'true';

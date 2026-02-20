@@ -1,4 +1,4 @@
-import { store } from '@/store'
+import type { RootState as ZustandRootState } from '@/store/zustand'
 
 // Define interfaces for state
 export interface UserState {
@@ -51,4 +51,4 @@ export interface MiningState {
 }
 
 // Root state type
-export type RootState = ReturnType<typeof store.getState> 
+export type RootState = ZustandRootState

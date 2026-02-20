@@ -1,7 +1,7 @@
-import useSWR from 'swr';
+import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect, useMemo } from 'react';
 
-// Fetcher function for SWR
+// Fetcher function
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 // Types for arbitrage data
@@ -19,24 +19,23 @@ export interface ArbitrageOpportunity {
   sellLink: string;
   baseCurrency: string;
   volume24h?: number;
-  liquidity: number; // 0-100 scale
-  confidence: number; // 0-100 scale
+  liquidity: number;
+  confidence: number;
   lastUpdated: number;
   marketCap?: number;
   aiAnalysis?: string;
-  // New fields for advanced features
   riskScore: 'low' | 'medium' | 'high';
-  trustScore: number; // 0-100
+  trustScore: number;
   estimatedFees: {
     network: number;
     platform: number;
     bridge?: number;
     total: number;
   };
-  executionTime: number; // seconds
-  historicalSuccess?: number; // success rate percentage
-  priceConsistency?: number; // 0-100
-  discoveryTime?: number; // timestamp when first detected
+  executionTime: number;
+  historicalSuccess?: number;
+  priceConsistency?: number;
+  discoveryTime?: number;
 }
 
 export interface ArbitrageStats {
@@ -52,34 +51,29 @@ export function useArbitrage(minSpread: number = 5, assetType: string = 'all') {
   const [opportunities, setOpportunities] = useState<ArbitrageOpportunity[]>([]);
   const [stats, setStats] = useState<ArbitrageStats | null>(null);
 
-  // Fetch aggregated price data from our API
-  const { data, error, mutate } = useSWR(
-    `/api/arbitrage/opportunities?minSpread=${minSpread}&type=${assetType}`,
-    fetcher,
-    {
-      refreshInterval: 3000, // Refresh every 3 seconds
-      revalidateOnFocus: true,
-      dedupingInterval: 1000
-    }
-  );
+  const { data, error, refetch } = useQuery({
+    queryKey: ['arbitrage-opportunities', minSpread, assetType],
+    queryFn: () => fetcher(`/api/arbitrage/opportunities?minSpread=${minSpread}&type=${assetType}`),
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
+    staleTime: 1000,
+  });
 
-  // Process and filter opportunities
   const processedOpportunities = useMemo(() => {
     if (!data?.opportunities) return [];
 
     return data.opportunities
       .filter((opp: any) => opp.spread >= minSpread)
       .filter((opp: any) => assetType === 'all' || opp.type === assetType)
-      .sort((a: any, b: any) => b.spread - a.spread); // Sort by highest spread first
+      .sort((a: any, b: any) => b.spread - a.spread);
   }, [data, minSpread, assetType]);
 
-  // Calculate statistics
   const calculatedStats = useMemo(() => {
     if (!processedOpportunities.length) return null;
 
-    const totalSpread = processedOpportunities.reduce((sum, opp) => sum + opp.spread, 0);
+    const totalSpread = processedOpportunities.reduce((sum: number, opp: any) => sum + opp.spread, 0);
     const avgSpread = totalSpread / processedOpportunities.length;
-    const highValueOpportunities = processedOpportunities.filter(opp => opp.spread >= 10).length;
+    const highValueOpportunities = processedOpportunities.filter((opp: any) => opp.spread >= 10).length;
 
     return {
       totalOpportunities: processedOpportunities.length,
@@ -90,7 +84,6 @@ export function useArbitrage(minSpread: number = 5, assetType: string = 'all') {
     };
   }, [processedOpportunities]);
 
-  // Update state when data changes
   useEffect(() => {
     if (processedOpportunities) {
       setOpportunities(processedOpportunities);
@@ -103,11 +96,11 @@ export function useArbitrage(minSpread: number = 5, assetType: string = 'all') {
   return {
     opportunities,
     loading: !data && !error,
-    error: error?.message || (data?.error ? data.error : null),
+    error: error instanceof Error ? error.message : (data?.error ? data.error : null),
     lastUpdate: data?.timestamp,
     totalSpread: stats?.totalSpread,
     avgSpread: stats?.avgSpread,
-    refresh: mutate
+    refresh: refetch
   };
 }
 
@@ -122,7 +115,6 @@ export function useArbitrageScanner() {
     setScanProgress(0);
 
     try {
-      // Fetch real scan results from the arbitrage API
       setScanProgress(25);
       const response = await fetch('/api/arbitrage/opportunities/?type=all&minSpread=1');
       setScanProgress(75);
@@ -151,14 +143,13 @@ export function useArbitrageScanner() {
 
 // Hook for individual opportunity analysis
 export function useOpportunityAnalysis(opportunity: ArbitrageOpportunity | null) {
-  const { data, error } = useSWR(
-    opportunity ? `/api/arbitrage/analyze?symbol=${opportunity.symbol}&buySource=${opportunity.buySource}&sellSource=${opportunity.sellSource}` : null,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000 // Cache for 1 minute
-    }
-  );
+  const { data, error } = useQuery({
+    queryKey: ['arbitrage-analyze', opportunity?.symbol, opportunity?.buySource, opportunity?.sellSource],
+    queryFn: () => fetcher(`/api/arbitrage/analyze?symbol=${opportunity!.symbol}&buySource=${opportunity!.buySource}&sellSource=${opportunity!.sellSource}`),
+    enabled: !!opportunity,
+    refetchOnWindowFocus: false,
+    staleTime: 60000,
+  });
 
   return {
     analysis: data?.analysis,
@@ -166,34 +157,33 @@ export function useOpportunityAnalysis(opportunity: ArbitrageOpportunity | null)
     recommendations: data?.recommendations,
     aiExplanation: data?.aiExplanation,
     loading: !data && !error && opportunity !== null,
-    error: error?.message
+    error: error instanceof Error ? error.message : undefined
   };
 }
 
 // Hook for market depth and liquidity analysis
 export function useMarketDepthAnalysis(symbol: string, sources: string[]) {
-  const { data, error } = useSWR(
-    symbol && sources.length > 0 ? `/api/arbitrage/depth?symbol=${symbol}&sources=${sources.join(',')}` : null,
-    fetcher,
-    {
-      refreshInterval: 5000,
-      revalidateOnFocus: true
-    }
-  );
+  const { data, error } = useQuery({
+    queryKey: ['arbitrage-depth', symbol, sources],
+    queryFn: () => fetcher(`/api/arbitrage/depth?symbol=${symbol}&sources=${sources.join(',')}`),
+    enabled: !!symbol && sources.length > 0,
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
 
   const depthAnalysis = useMemo(() => {
     if (!data?.depth) return null;
 
-    const totalBuyVolume = data.depth.reduce((sum: number, source: any) => 
+    const totalBuyVolume = data.depth.reduce((sum: number, source: any) =>
       sum + (source.bids?.reduce((bidSum: number, bid: any) => bidSum + bid.amount, 0) || 0), 0
     );
 
-    const totalSellVolume = data.depth.reduce((sum: number, source: any) => 
+    const totalSellVolume = data.depth.reduce((sum: number, source: any) =>
       sum + (source.asks?.reduce((askSum: number, ask: any) => askSum + ask.amount, 0) || 0), 0
     );
 
-    const imbalance = totalBuyVolume > 0 && totalSellVolume > 0 
-      ? (totalBuyVolume - totalSellVolume) / (totalBuyVolume + totalSellVolume) 
+    const imbalance = totalBuyVolume > 0 && totalSellVolume > 0
+      ? (totalBuyVolume - totalSellVolume) / (totalBuyVolume + totalSellVolume)
       : 0;
 
     return {
@@ -208,20 +198,18 @@ export function useMarketDepthAnalysis(symbol: string, sources: string[]) {
   return {
     depthAnalysis,
     loading: !data && !error,
-    error: error?.message
+    error: error instanceof Error ? error.message : undefined
   };
 }
 
 // Hook for historical arbitrage performance
 export function useArbitrageHistory(timeframe: string = '24h') {
-  const { data, error } = useSWR(
-    `/api/arbitrage/history?timeframe=${timeframe}`,
-    fetcher,
-    {
-      refreshInterval: 60000, // Refresh every minute
-      revalidateOnFocus: false
-    }
-  );
+  const { data, error } = useQuery({
+    queryKey: ['arbitrage-history', timeframe],
+    queryFn: () => fetcher(`/api/arbitrage/history?timeframe=${timeframe}`),
+    refetchInterval: 60000,
+    refetchOnWindowFocus: false,
+  });
 
   const historyAnalysis = useMemo(() => {
     if (!data?.history) return null;
@@ -237,7 +225,7 @@ export function useArbitrageHistory(timeframe: string = '24h') {
       totalProfit,
       successRate,
       avgProfit: successfulArbs.length > 0 ? totalProfit / successfulArbs.length : 0,
-      bestOpportunity: opportunities.reduce((best: any, current: any) => 
+      bestOpportunity: opportunities.reduce((best: any, current: any) =>
         current.spread > (best?.spread || 0) ? current : best, null
       )
     };
@@ -247,6 +235,6 @@ export function useArbitrageHistory(timeframe: string = '24h') {
     history: data?.history || [],
     analysis: historyAnalysis,
     loading: !data && !error,
-    error: error?.message
+    error: error instanceof Error ? error.message : undefined
   };
 }

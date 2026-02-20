@@ -2,9 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, Suspense } from 'react'
-import { Provider } from 'react-redux'
 import { ErrorBoundary } from 'react-error-boundary'
-import { store } from '@/store'
 import { NotificationProvider } from '@/contexts/NotificationContext'
 import { NotificationContainer } from '@/components/notifications'
 import { AuthProvider } from '@/lib/auth/AuthContext'
@@ -63,19 +61,6 @@ function LoadingFallback() {
 }
 
 // Individual provider wrappers with error boundaries
-function SafeReduxProvider({ children }: { children: React.ReactNode }) {
-  return (
-    <ErrorBoundary
-      FallbackComponent={ErrorFallback}
-      onError={(error) => console.error('Redux Provider Error:', error)}
-    >
-      <Provider store={store}>
-        {children}
-      </Provider>
-    </ErrorBoundary>
-  )
-}
-
 function SafeQueryProvider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
     () =>
@@ -171,21 +156,19 @@ export function Providers({ children }: { children: React.ReactNode }) {
       onError={(error) => console.error('Root Provider Error:', error)}
     >
       <Suspense fallback={<LoadingFallback />}>
-        <SafeReduxProvider>
-          <SafeQueryProvider>
-            <SafeAuthProvider>
-              <SafeWalletProvider>
-                <SafePremiumProvider>
-                  <SafeNotificationProvider>
-                    <ServiceWorkerRegistration />
-                    {children}
-                    <NotificationContainer />
-                  </SafeNotificationProvider>
-                </SafePremiumProvider>
-              </SafeWalletProvider>
-            </SafeAuthProvider>
-          </SafeQueryProvider>
-        </SafeReduxProvider>
+        <SafeQueryProvider>
+          <SafeAuthProvider>
+            <SafeWalletProvider>
+              <SafePremiumProvider>
+                <SafeNotificationProvider>
+                  <ServiceWorkerRegistration />
+                  {children}
+                  <NotificationContainer />
+                </SafeNotificationProvider>
+              </SafePremiumProvider>
+            </SafeWalletProvider>
+          </SafeAuthProvider>
+        </SafeQueryProvider>
       </Suspense>
     </ErrorBoundary>
   )

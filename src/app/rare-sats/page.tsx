@@ -143,7 +143,8 @@ export default function RareSatsPage() {
       const res = await fetch('/api/magiceden/raresats/listings/?limit=20&sortBy=price&sortDirection=asc')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      const listings = data.listings || data.data || (Array.isArray(data) ? data : [])
+      const rawListings = data.listings || data.data || data;
+      const listings = Array.isArray(rawListings) ? rawListings : [];
       const mapped: MarketListing[] = listings.map((l: any, i: number) => ({
         id: l.id || l.orderId || i + 1,
         name: l.name || l.satType || l.type || `Rare Sat #${l.satNumber || i + 1}`,

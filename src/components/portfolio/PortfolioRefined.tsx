@@ -54,33 +54,14 @@ import {
 import { format, subDays, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
-import { Line, Bar, Doughnut, Pie } from 'react-chartjs-2';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+  LineChart,
+  Line as RechartsLine,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 // Enhanced interfaces for comprehensive portfolio management
 interface PortfolioAsset {
@@ -1037,7 +1018,18 @@ export function PortfolioRefined() {
                     <RefreshCw className="w-8 h-8 text-green-500 animate-spin" />
                   </div>
                 ) : portfolioChart.datasets.length > 0 ? (
-                  <Line data={portfolioChart} options={CHART_OPTIONS} />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={portfolioChart.labels.map((label: string, i: number) => ({
+                      name: label,
+                      value: portfolioChart.datasets[0]?.data[i] ?? 0
+                    }))}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid #333', color: '#fff' }} />
+                      <RechartsLine type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">
                     No data available
@@ -1050,36 +1042,39 @@ export function PortfolioRefined() {
             <div className="bg-gray-800 rounded-xl border border-gray-700 p-6">
               <h2 className="text-xl font-semibold text-white mb-6">Asset Allocation</h2>
               
-              <div className="h-64 mb-4">
-                <Doughnut
-                  data={{
-                    labels: ['Bitcoin', 'Ordinals', 'Runes', 'BRC-20', 'Other'],
-                    datasets: [{
-                      data: [
-                        portfolioSummary.diversity.bitcoin * 100,
-                        portfolioSummary.diversity.ordinals * 100,
-                        portfolioSummary.diversity.runes * 100,
-                        portfolioSummary.diversity.brc20 * 100,
-                        portfolioSummary.diversity.other * 100
-                      ],
-                      backgroundColor: [
-                        '#F59E0B',
-                        '#8B5CF6',
-                        '#10B981',
-                        '#3B82F6',
-                        '#6B7280'
-                      ],
-                      borderWidth: 0
-                    }]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false }
-                    }
-                  }}
-                />
+              <div className="h-64 mb-4 flex items-center justify-center">
+                <div className="relative w-48 h-48">
+                  <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                    {(() => {
+                      const segments = [
+                        { pct: portfolioSummary.diversity.bitcoin * 100, color: '#F59E0B' },
+                        { pct: portfolioSummary.diversity.ordinals * 100, color: '#8B5CF6' },
+                        { pct: portfolioSummary.diversity.runes * 100, color: '#10B981' },
+                        { pct: portfolioSummary.diversity.brc20 * 100, color: '#3B82F6' },
+                        { pct: portfolioSummary.diversity.other * 100, color: '#6B7280' },
+                      ];
+                      let offset = 0;
+                      return segments.filter(s => s.pct > 0).map((seg, i) => {
+                        const circumference = 2 * Math.PI * 40;
+                        const dash = (seg.pct / 100) * circumference;
+                        const gap = circumference - dash;
+                        const el = (
+                          <circle
+                            key={i}
+                            cx="50" cy="50" r="40"
+                            fill="none"
+                            stroke={seg.color}
+                            strokeWidth="20"
+                            strokeDasharray={`${dash} ${gap}`}
+                            strokeDashoffset={-offset}
+                          />
+                        );
+                        offset += dash;
+                        return el;
+                      });
+                    })()}
+                  </svg>
+                </div>
               </div>
 
               <div className="space-y-2">

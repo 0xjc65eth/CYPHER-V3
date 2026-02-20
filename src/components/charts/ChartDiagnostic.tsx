@@ -24,17 +24,7 @@ export function ChartDiagnostic() {
         errorList.push(`Recharts import failed: ${results.rechartsError}`);
       }
 
-      // Test 2: Check if ApexCharts is available
-      try {
-        const apexcharts = await import('apexcharts');
-        results.apexchartsImport = 'SUCCESS';
-      } catch (error) {
-        results.apexchartsImport = 'FAILED';
-        results.apexchartsError = error instanceof Error ? error.message : 'Unknown error';
-        errorList.push(`ApexCharts import failed: ${results.apexchartsError}`);
-      }
-
-      // Test 3: Check if Lightweight Charts is available
+      // Test 2: Check if Lightweight Charts is available
       try {
         const lightweight = await import('lightweight-charts');
         results.lightweightImport = 'SUCCESS';
@@ -114,9 +104,6 @@ export function ChartDiagnostic() {
           <div className="space-y-1 text-sm">
             <div className={diagnostics.rechartsImport === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
               Recharts: {diagnostics.rechartsImport || 'Testing...'}
-            </div>
-            <div className={diagnostics.apexchartsImport === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
-              ApexCharts: {diagnostics.apexchartsImport || 'Testing...'}
             </div>
             <div className={diagnostics.lightweightImport === 'SUCCESS' ? 'text-green-400' : 'text-red-400'}>
               Lightweight: {diagnostics.lightweightImport || 'Testing...'}

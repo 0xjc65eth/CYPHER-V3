@@ -8,15 +8,23 @@ import { createUISlice, UISlice } from './slices/uiSlice'
 import { createCacheSlice, CacheSlice } from './slices/cacheSlice'
 import { createRealTimeSlice, RealTimeSlice } from './slices/realTimeSlice'
 import { createSecuritySlice, SecuritySlice } from './slices/securitySlice'
+import { createMiningSlice, MiningSlice } from './slices/miningSlice'
+import { createMempoolSlice, MempoolSlice } from './slices/mempoolSlice'
+import { createUserSlice, UserSlice } from './slices/userSlice'
+import { createAssetSlice, AssetSlice } from './slices/assetSlice'
 
 // Root state interface
-export interface RootState extends 
-  WalletSlice, 
-  MarketSlice, 
-  UISlice, 
-  CacheSlice, 
+export interface RootState extends
+  WalletSlice,
+  MarketSlice,
+  UISlice,
+  CacheSlice,
   RealTimeSlice,
-  SecuritySlice {}
+  SecuritySlice,
+  MiningSlice,
+  MempoolSlice,
+  UserSlice,
+  AssetSlice {}
 
 // Create the main store with all middleware
 export const useStore = create<RootState>()(
@@ -30,6 +38,10 @@ export const useStore = create<RootState>()(
           ...createCacheSlice(...a),
           ...createRealTimeSlice(...a),
           ...createSecuritySlice(...a),
+          ...createMiningSlice(...a),
+          ...createMempoolSlice(...a),
+          ...createUserSlice(...a),
+          ...createAssetSlice(...a),
         }))
       ),
       {

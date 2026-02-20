@@ -53,35 +53,16 @@ import {
 import { format, subDays, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  RadialLinearScale
-} from 'chart.js';
-import { Line, Bar, Doughnut, Radar, Scatter } from 'react-chartjs-2';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-  RadialLinearScale
-);
+  LineChart,
+  Line as RechartsLine,
+  BarChart,
+  Bar as RechartsBar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 // Enhanced interfaces for comprehensive analytics
 interface MetricCard {
@@ -210,34 +191,13 @@ type TimeRange = '1h' | '4h' | '24h' | '7d' | '30d' | '90d' | '1y' | 'all';
 type ChartType = 'price' | 'volume' | 'onchain' | 'mining' | 'defi' | 'derivatives' | 'sentiment' | 'correlation';
 type ViewMode = 'overview' | 'professional' | 'institutional' | 'research';
 
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false
-    },
-    tooltip: {
-      mode: 'index' as const,
-      intersect: false,
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
-      titleColor: '#fff',
-      bodyColor: '#fff',
-      borderColor: '#333',
-      borderWidth: 1,
-      padding: 12,
-      cornerRadius: 8,
-      displayColors: false,
-      callbacks: {
-        title: function(context: any) {
-          return context[0].label;
-        },
-        label: function(context: any) {
-          return `${context.dataset.label}: ${context.formattedValue}`;
-        }
-      }
-    }
-  },
+const CHART_TOOLTIP_STYLE = {
+  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  border: '1px solid #333',
+  color: '#fff',
+};
+
+const _CHART_OPTIONS_LEGACY = {
   scales: {
     x: {
       grid: {
@@ -1094,9 +1054,31 @@ export function AnalyticsSystemPro() {
                 </div>
               ) : chartData.datasets.length > 0 ? (
                 chartType === 'volume' ? (
-                  <Bar data={chartData} options={CHART_OPTIONS} />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData.labels?.map((label: string, i: number) => ({
+                      name: label,
+                      value: chartData.datasets[0]?.data[i] ?? 0
+                    })) || []}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                      <RechartsBar dataKey="value" fill="#10B981" />
+                    </BarChart>
+                  </ResponsiveContainer>
                 ) : (
-                  <Line data={chartData} options={CHART_OPTIONS} />
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData.labels?.map((label: string, i: number) => ({
+                      name: label,
+                      value: chartData.datasets[0]?.data[i] ?? 0
+                    })) || []}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                      <XAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                      <RechartsLine type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
                 )
               ) : (
                 <div className="flex items-center justify-center h-full text-gray-500">

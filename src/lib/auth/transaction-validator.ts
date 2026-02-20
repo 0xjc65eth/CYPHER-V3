@@ -1,4 +1,5 @@
 import { createHash } from 'crypto'
+import * as secp256k1 from '@noble/secp256k1'
 
 export interface TransactionToSign {
   id: string
@@ -70,7 +71,7 @@ export class TransactionValidator {
     return message
   }
 
-  // Verify a signed transaction
+  // Verify a signed transaction with ECDSA signature verification
   static async verifySignature(
     signedTransaction: SignedTransaction,
     expectedAddress: string
@@ -91,6 +92,32 @@ export class TransactionValidator {
         return {
           isValid: false,
           error: 'Transaction address mismatch'
+        }
+      }
+
+      // Verify ECDSA signature using @noble/secp256k1
+      const message = this.createSigningMessage(signedTransaction.transaction)
+      const messageHash = createHash('sha256').update(message).digest()
+
+      let signatureBytes: Uint8Array
+      try {
+        signatureBytes = Uint8Array.from(Buffer.from(signedTransaction.signature, 'hex'))
+      } catch {
+        return { isValid: false, error: 'Invalid signature format' }
+      }
+
+      let publicKeyBytes: Uint8Array
+      try {
+        publicKeyBytes = Uint8Array.from(Buffer.from(signedTransaction.publicKey, 'hex'))
+      } catch {
+        return { isValid: false, error: 'Invalid public key format' }
+      }
+
+      const isSignatureValid = secp256k1.verify(signatureBytes, messageHash, publicKeyBytes)
+      if (!isSignatureValid) {
+        return {
+          isValid: false,
+          error: 'Invalid signature'
         }
       }
 

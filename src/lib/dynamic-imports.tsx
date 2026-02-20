@@ -57,23 +57,12 @@ export const DynamicLightweightChart = createDynamicComponent(
   () => import('lightweight-charts').then(mod => ({ default: mod.createChart }))
 );
 
-export const DynamicApexChart = createDynamicComponent(
-  () => import('react-apexcharts').then(mod => ({ default: mod.default })),
-  { ssr: false }
-);
-
 /**
- * Heavy Library Components - Only loaded when needed
+ * Note: ApexCharts, TensorFlow, and D3 dynamic imports removed during dependency cleanup.
+ * - ApexCharts: replaced by lightweight-charts and recharts
+ * - TensorFlow: moved to server-side only (@tensorflow/tfjs-node)
+ * - D3: replaced by recharts
  */
-export const DynamicTensorFlow = createDynamicComponent(
-  () => import('@tensorflow/tfjs').then(mod => ({ default: mod })),
-  { ssr: false }
-);
-
-export const DynamicD3 = createDynamicComponent(
-  () => import('d3').then(mod => ({ default: mod })),
-  { ssr: false }
-);
 
 /**
  * Utility function to dynamically import libraries
@@ -136,8 +125,4 @@ export default {
   DynamicRechartsAreaChart,
   DynamicRechartsBarChart,
   DynamicLightweightChart,
-  DynamicApexChart,
-  // Libraries
-  DynamicTensorFlow,
-  DynamicD3,
 };

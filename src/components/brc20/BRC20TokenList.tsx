@@ -63,7 +63,8 @@ export function BRC20TokenList({ onTokenSelect, showPortfolioOnly = false, userA
       });
 
       // Transform Hiro API data to extended format
-      const extendedTokens: ExtendedBRC20Token[] = response.results.map((token) => {
+      const results = Array.isArray(response.results) ? response.results : [];
+      const extendedTokens: ExtendedBRC20Token[] = results.map((token) => {
         const maxSupply = parseFloat(token.max_supply) || 0;
         const mintedSupply = parseFloat(token.minted_supply) || 0;
         const progress = maxSupply > 0 ? (mintedSupply / maxSupply) * 100 : 100;

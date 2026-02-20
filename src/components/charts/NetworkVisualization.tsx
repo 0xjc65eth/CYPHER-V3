@@ -163,204 +163,93 @@ export function NetworkVisualization() {
     return { nodes, links }
   }
 
+  // Render network using simple circular layout (d3 removed)
   useEffect(() => {
     if (!svgRef.current || !containerRef.current) return
 
-    // Dynamic import of D3
-    import('d3').then((d3) => {
-      const svg = d3.select(svgRef.current)
-      const container = containerRef.current!
-      const width = container.clientWidth
-      const height = 400
+    const svgEl = svgRef.current
+    const container = containerRef.current
+    const width = container.clientWidth
+    const height = 400
 
-      svg.selectAll("*").remove()
+    // Clear previous content
+    while (svgEl.firstChild) svgEl.removeChild(svgEl.firstChild)
 
-      const { nodes, links } = generateNetworkData(selectedVisualization)
+    const { nodes, links } = generateNetworkData(selectedVisualization)
 
-      // Color scheme based on groups
-      const colorScheme = {
-        bitcoin: ['#F7931A', '#3B82F6', '#10B981', '#8B5CF6'],
-        ordinals: ['#8B5CF6', '#EC4899', '#F59E0B', '#EF4444'],
-        runes: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
-      }
+    const colorScheme = {
+      bitcoin: ['#F7931A', '#3B82F6', '#10B981', '#8B5CF6'],
+      ordinals: ['#8B5CF6', '#EC4899', '#F59E0B', '#EF4444'],
+      runes: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444']
+    }
+    const colors = colorScheme[selectedVisualization]
 
-      const colors = colorScheme[selectedVisualization]
-
-      // Create simulation
-      const simulation = d3.forceSimulation(nodes as any)
-        .force("link", d3.forceLink(links).id((d: any) => d.id).distance(80))
-        .force("charge", d3.forceManyBody().strength(-200))
-        .force("center", d3.forceCenter(width / 2, height / 2))
-        .force("collision", d3.forceCollide().radius((d: any) => d.size + 2))
-
-      // Add zoom behavior
-      const zoom = d3.zoom()
-        .scaleExtent([0.1, 4])
-        .on("zoom", (event) => {
-          g.attr("transform", event.transform)
-          setZoomLevel(event.transform.k)
-        })
-
-      svg.call(zoom as any)
-
-      // Create main group
-      const g = svg.append("g")
-
-      // Add links
-      const link = g.append("g")
-        .selectAll("line")
-        .data(links)
-        .join("line")
-        .attr("stroke", "#666")
-        .attr("stroke-opacity", 0.6)
-        .attr("stroke-width", (d: any) => Math.sqrt(d.value))
-
-      // Add link labels for important connections
-      const linkLabels = g.append("g")
-        .selectAll("text")
-        .data(links.filter((d: any) => d.value > 5))
-        .join("text")
-        .attr("font-size", "10px")
-        .attr("fill", "#999")
-        .attr("text-anchor", "middle")
-        .text((d: any) => d.value.toFixed(1))
-
-      // Add nodes
-      const node = g.append("g")
-        .selectAll("circle")
-        .data(nodes)
-        .join("circle")
-        .attr("r", (d: any) => d.size)
-        .attr("fill", (d: any) => colors[(d.group - 1) % colors.length])
-        .attr("stroke", "#fff")
-        .attr("stroke-width", 2)
-        .style("cursor", "pointer")
-        .call(d3.drag()
-          .on("start", (event, d: any) => {
-            if (!event.active) simulation.alphaTarget(0.3).restart()
-            d.fx = d.x
-            d.fy = d.y
-          })
-          .on("drag", (event, d: any) => {
-            d.fx = event.x
-            d.fy = event.y
-          })
-          .on("end", (event, d: any) => {
-            if (!event.active) simulation.alphaTarget(0)
-            d.fx = null
-            d.fy = null
-          }) as any)
-
-      // Add node labels
-      const nodeLabels = g.append("g")
-        .selectAll("text")
-        .data(nodes)
-        .join("text")
-        .attr("dx", 12)
-        .attr("dy", ".35em")
-        .attr("font-size", "12px")
-        .attr("fill", "#fff")
-        .text((d: any) => d.label.length > 15 ? d.label.substring(0, 15) + '...' : d.label)
-        .style("pointer-events", "none")
-
-      // Tooltip
-      const tooltip = d3.select("body").append("div")
-        .attr("class", "tooltip")
-        .style("position", "absolute")
-        .style("visibility", "hidden")
-        .style("background", "rgba(0, 0, 0, 0.8)")
-        .style("color", "white")
-        .style("padding", "8px")
-        .style("border-radius", "4px")
-        .style("font-size", "12px")
-        .style("z-index", "1000")
-
-      node
-        .on("mouseover", (event, d: any) => {
-          tooltip
-            .style("visibility", "visible")
-            .html(`
-              <strong>${d.label}</strong><br/>
-              Group: ${d.group}<br/>
-              Value: ${d.value.toFixed(2)}<br/>
-              Connections: ${links.filter(l => (l.source as any).id === d.id || (l.target as any).id === d.id).length}
-            `)
-        })
-        .on("mousemove", (event) => {
-          tooltip
-            .style("top", (event.pageY - 10) + "px")
-            .style("left", (event.pageX + 10) + "px")
-        })
-        .on("mouseout", () => {
-          tooltip.style("visibility", "hidden")
-        })
-
-      // Animation loop
-      let animationFrame: number
-      const tick = () => {
-        link
-          .attr("x1", (d: any) => d.source.x)
-          .attr("y1", (d: any) => d.source.y)
-          .attr("x2", (d: any) => d.target.x)
-          .attr("y2", (d: any) => d.target.y)
-
-        linkLabels
-          .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
-          .attr("y", (d: any) => (d.source.y + d.target.y) / 2)
-
-        node
-          .attr("cx", (d: any) => d.x)
-          .attr("cy", (d: any) => d.y)
-
-        nodeLabels
-          .attr("x", (d: any) => d.x)
-          .attr("y", (d: any) => d.y)
-
-        if (isAnimating && simulation.alpha() > 0.01) {
-          animationFrame = requestAnimationFrame(tick)
-        }
-      }
-
-      simulation.on("tick", tick)
-
-      // Cleanup
-      return () => {
-        if (animationFrame) cancelAnimationFrame(animationFrame)
-        tooltip.remove()
-        simulation.stop()
-      }
+    // Position nodes in a circular layout
+    const cx = width / 2
+    const cy = height / 2
+    const radius = Math.min(width, height) * 0.35
+    nodes.forEach((node, i) => {
+      const angle = (2 * Math.PI * i) / nodes.length
+      node.x = cx + radius * Math.cos(angle)
+      node.y = cy + radius * Math.sin(angle)
     })
+
+    const ns = 'http://www.w3.org/2000/svg'
+    const g = document.createElementNS(ns, 'g')
+    svgEl.appendChild(g)
+
+    // Draw links
+    const nodeMap = new Map(nodes.map(n => [n.id, n]))
+    links.forEach(link => {
+      const source = nodeMap.get(typeof link.source === 'string' ? link.source : (link.source as any).id)
+      const target = nodeMap.get(typeof link.target === 'string' ? link.target : (link.target as any).id)
+      if (!source || !target) return
+      const line = document.createElementNS(ns, 'line')
+      line.setAttribute('x1', String(source.x || 0))
+      line.setAttribute('y1', String(source.y || 0))
+      line.setAttribute('x2', String(target.x || 0))
+      line.setAttribute('y2', String(target.y || 0))
+      line.setAttribute('stroke', '#666')
+      line.setAttribute('stroke-opacity', '0.4')
+      line.setAttribute('stroke-width', String(Math.sqrt(link.value)))
+      g.appendChild(line)
+    })
+
+    // Draw nodes
+    nodes.forEach(node => {
+      const circle = document.createElementNS(ns, 'circle')
+      circle.setAttribute('cx', String(node.x || 0))
+      circle.setAttribute('cy', String(node.y || 0))
+      circle.setAttribute('r', String(node.size))
+      circle.setAttribute('fill', colors[(node.group - 1) % colors.length])
+      circle.setAttribute('stroke', '#fff')
+      circle.setAttribute('stroke-width', '2')
+      circle.style.cursor = 'pointer'
+      g.appendChild(circle)
+
+      // Label
+      const text = document.createElementNS(ns, 'text')
+      text.setAttribute('x', String((node.x || 0) + node.size + 4))
+      text.setAttribute('y', String((node.y || 0) + 4))
+      text.setAttribute('fill', '#fff')
+      text.setAttribute('font-size', '11')
+      text.textContent = node.label.length > 12 ? node.label.substring(0, 12) + '...' : node.label
+      g.appendChild(text)
+    })
+
+    setZoomLevel(1)
   }, [selectedVisualization, isAnimating])
 
   const handleZoomIn = () => {
-    if (svgRef.current) {
-      import('d3').then((d3) => {
-        d3.select(svgRef.current).transition().call(
-          d3.zoom().scaleBy as any, 1.5
-        )
-      })
-    }
+    setZoomLevel(prev => Math.min(prev * 1.5, 4))
   }
 
   const handleZoomOut = () => {
-    if (svgRef.current) {
-      import('d3').then((d3) => {
-        d3.select(svgRef.current).transition().call(
-          d3.zoom().scaleBy as any, 0.67
-        )
-      })
-    }
+    setZoomLevel(prev => Math.max(prev * 0.67, 0.1))
   }
 
   const handleReset = () => {
-    if (svgRef.current) {
-      import('d3').then((d3) => {
-        d3.select(svgRef.current).transition().call(
-          d3.zoom().transform as any,
-          d3.zoomIdentity
-        )
-      })
-    }
+    setZoomLevel(1)
   }
 
   return (

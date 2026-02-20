@@ -101,7 +101,7 @@ export class BundleOptimizer {
       path: '@/components/ai/CypherAI',
       size: 65,
       priority: 'medium',
-      dependencies: ['@tensorflow/tfjs', 'openai']
+      dependencies: ['openai']
     });
 
     this.registerComponent({
@@ -109,7 +109,7 @@ export class BundleOptimizer {
       path: '@/components/runes/professional/RunesTradingTerminal',
       size: 55,
       priority: 'medium',
-      dependencies: ['lightweight-charts', 'apexcharts']
+      dependencies: ['lightweight-charts', 'recharts']
     });
 
     // Low priority components (lazy load only when needed)
@@ -118,7 +118,7 @@ export class BundleOptimizer {
       path: '@/components/TradingBot/TradingBotDashboard',
       size: 40,
       priority: 'low',
-      dependencies: ['recharts', '@tensorflow/tfjs']
+      dependencies: ['recharts']
     });
 
     this.registerComponent({
@@ -126,7 +126,7 @@ export class BundleOptimizer {
       path: '@/components/analytics/AnalyticsSystem',
       size: 50,
       priority: 'low',
-      dependencies: ['d3', 'recharts']
+      dependencies: ['recharts']
     });
 
     this.registerComponent({
@@ -134,7 +134,7 @@ export class BundleOptimizer {
       path: '@/components/ai/EnhancedCypherAIBrazilian',
       size: 80,
       priority: 'low',
-      dependencies: ['@tensorflow/tfjs', 'openai', 'voice-service']
+      dependencies: ['openai', 'voice-service']
     });
   }
 

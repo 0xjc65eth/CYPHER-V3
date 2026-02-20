@@ -1,7 +1,8 @@
-declare module '@tensorflow/tfjs' {
-  export * from '@tensorflow/tfjs-node';
+declare module '@tensorflow/tfjs-node' {
   export const version: string;
   export function tensor(values: any, shape?: number[], dtype?: string): any;
+  export function tensor2d(values: any, shape?: [number, number], dtype?: string): any;
+  export function tensor3d(values: any, shape?: [number, number, number], dtype?: string): any;
   export function model(args: any): any;
   export function sequential(args?: any): any;
   export const layers: any;
@@ -15,4 +16,9 @@ declare module '@tensorflow/tfjs' {
   export function dispose(tensor: any): void;
   export function memory(): any;
   export const backend: any;
+  export type Tensor = any;
+  export type Tensor1D = any;
+  export type Tensor2D = any;
+  export type Tensor3D = any;
+  export type LayersModel = any;
 }

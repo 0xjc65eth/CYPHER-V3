@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-node';
 import { SentimentAnalyzer } from 'node-sentiment';
 import { StandardScaler, KMeans } from 'machinelearn';
 import { Matrix } from 'ml-matrix';

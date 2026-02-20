@@ -205,7 +205,7 @@ async function fetchPortfolioData(address: string) {
     }
 
     // Add Ordinals
-    if (portfolio?.inscriptions?.results) {
+    if (portfolio?.inscriptions?.results && Array.isArray(portfolio.inscriptions.results)) {
       for (const inscription of portfolio.inscriptions.results.slice(0, 10)) {
         const value = await getInscriptionValue(inscription.id);
         assets.push({

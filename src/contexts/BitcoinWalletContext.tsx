@@ -66,20 +66,30 @@ export function BitcoinWalletProvider({ children }: { children: React.ReactNode 
 
   const connectWallet = async (provider: string) => {
     try {
-      // Mock connection for demo
-      const mockAddress = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
+      // Attempt real wallet connection via provider API
+      let address: string | null = null;
+
+      if (provider === 'xverse' && typeof window !== 'undefined' && (window as any).XverseProviders?.BitcoinProvider) {
+        const response = await (window as any).XverseProviders.BitcoinProvider.request('getAccounts', null);
+        address = response?.result?.[0]?.address || null;
+      } else if (provider === 'unisat' && typeof window !== 'undefined' && (window as any).unisat) {
+        const accounts = await (window as any).unisat.requestAccounts();
+        address = accounts?.[0] || null;
+      }
+
+      if (!address) {
+        console.error(`Wallet connection failed: no address returned from ${provider}`);
+        dispatch({ type: 'DISCONNECT' });
+        return;
+      }
+
       dispatch({
         type: 'CONNECT',
-        payload: { address: mockAddress, provider }
-      });
-      
-      // Mock balance
-      dispatch({
-        type: 'UPDATE_BALANCE',
-        payload: Math.random() * 10
+        payload: { address, provider }
       });
     } catch (error) {
       console.error('Failed to connect wallet:', error);
+      dispatch({ type: 'DISCONNECT' });
     }
   };
 

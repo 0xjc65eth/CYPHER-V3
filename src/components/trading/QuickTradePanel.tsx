@@ -410,7 +410,7 @@ export function QuickTradePanel() {
 
     try {
       
-      const response = await fetch('/api/quicktrade/analyze/', {
+      const response = await fetch('/api/quick-trade/analyze/', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -460,7 +460,7 @@ export function QuickTradePanel() {
     setStep('processing');
 
     try {
-      const response = await fetch('/api/quicktrade/process/', {
+      const response = await fetch('/api/quick-trade/process/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -127,9 +127,9 @@ api-keys.txt
 
 # Production/deployment env files with real secrets
 # (already covered by .env.* above, but listed explicitly for clarity)
-# .env.production
-# .env.netlify
-# .env.staging
+.env.production
+.env.netlify
+.env.staging
 
 # Cache files
 .cache/

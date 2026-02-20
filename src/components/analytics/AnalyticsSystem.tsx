@@ -31,33 +31,16 @@ import {
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
-import { Line, Bar, Doughnut } from 'react-chartjs-2';
-
-// Register ChartJS components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+  LineChart,
+  Line as RechartsLine,
+  BarChart,
+  Bar as RechartsBar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer
+} from 'recharts';
 
 interface MetricCard {
   id: string;
@@ -106,26 +89,14 @@ interface MarketMetrics {
 type TimeRange = '1h' | '24h' | '7d' | '30d' | '90d' | '1y' | 'all';
 type ChartType = 'price' | 'volume' | 'onchain' | 'mining' | 'defi';
 
-const CHART_OPTIONS = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      display: false
-    },
-    tooltip: {
-      mode: 'index' as const,
-      intersect: false,
-      backgroundColor: 'rgba(0, 0, 0, 0.9)',
-      titleColor: '#fff',
-      bodyColor: '#fff',
-      borderColor: '#333',
-      borderWidth: 1,
-      padding: 12,
-      cornerRadius: 8,
-      displayColors: false
-    }
-  },
+const CHART_TOOLTIP_STYLE = {
+  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  border: '1px solid #333',
+  color: '#fff',
+};
+
+// Legacy constant kept for reference - recharts uses inline props
+const _CHART_OPTIONS_LEGACY = {
   scales: {
     x: {
       grid: {
@@ -610,9 +581,31 @@ export function AnalyticsSystem() {
                   <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
                 </div>
               ) : chartType === 'price' ? (
-                <Line data={priceChartData} options={CHART_OPTIONS} />
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={priceChartData.labels.map((label: string, i: number) => ({
+                    name: label,
+                    value: priceChartData.datasets[0]?.data[i] ?? 0
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="name" tick={{ fill: '#888', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#888', fontSize: 11 }} />
+                    <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <RechartsLine type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
               ) : (
-                <Bar data={volumeChartData} options={CHART_OPTIONS} />
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={volumeChartData.labels.map((label: string, i: number) => ({
+                    name: label,
+                    value: volumeChartData.datasets[0]?.data[i] ?? 0
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis dataKey="name" tick={{ fill: '#888', fontSize: 11 }} />
+                    <YAxis tick={{ fill: '#888', fontSize: 11 }} />
+                    <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
+                    <RechartsBar dataKey="value" fill="#10B981" />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </div>
           </div>

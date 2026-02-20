@@ -7,11 +7,11 @@
  */
 
 export const VIP_WALLETS = {
-  FULL_ACCESS: [
-    'bc1pe5nke262wwvpmg3f9w9a0huwg30cculrnjysd3yrmvew3wgc6ydsqr0t98',
-    'bc1pm2cm5erm245jkwtdl64medqd4utf32m4y9m8qkcfpg37jgqw8rxq9d3kn9',
-  ] as string[],
-  SUPER_ADMIN: 'bc1pp546x6uxwl5vjtw3h4rjaj8pcr8ny688ax5jf4ygng73csa2jd3sengvuy',
+  FULL_ACCESS: (process.env.VIP_WALLETS_FULL_ACCESS || '')
+    .split(',')
+    .map(a => a.trim())
+    .filter(Boolean),
+  SUPER_ADMIN: process.env.VIP_WALLET_SUPER_ADMIN || '',
 }
 
 export type AccessTier = 'free' | 'premium' | 'vip' | 'super_admin'

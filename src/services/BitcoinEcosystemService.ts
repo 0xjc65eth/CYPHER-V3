@@ -146,7 +146,7 @@ class BitcoinEcosystemService {
         offset: 0,
         type: 'Block 1 Sat',
         inscription: 'Genesis Block Satoshi',
-        address: address || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        address: address || ''
       },
       {
         id: 'sat_002',
@@ -156,7 +156,7 @@ class BitcoinEcosystemService {
         block: 57043,
         offset: 100,
         type: 'Pizza Transaction Sat',
-        address: address || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        address: address || ''
       },
       {
         id: 'sat_003',
@@ -166,7 +166,7 @@ class BitcoinEcosystemService {
         block: 100000,
         offset: 50,
         type: 'Palindrome Sat',
-        address: address || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        address: address || ''
       },
       {
         id: 'sat_004',
@@ -177,7 +177,7 @@ class BitcoinEcosystemService {
         offset: 0,
         type: 'Block 9 Sat',
         inscription: 'Early Bitcoin History',
-        address: address || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        address: address || ''
       },
       {
         id: 'sat_005',
@@ -187,7 +187,7 @@ class BitcoinEcosystemService {
         block: 200000,
         offset: 89,
         type: 'Fibonacci Sequence Sat',
-        address: address || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
+        address: address || ''
       }
     ];
 

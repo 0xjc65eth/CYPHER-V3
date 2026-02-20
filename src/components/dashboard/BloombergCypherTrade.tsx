@@ -144,8 +144,8 @@ export const BloombergCypherTrade = React.memo(function BloombergCypherTrade() {
       const response = await bitcoin.request('getAccounts', null);
       return response.result[0].address;
     }
-    // Fallback for demo
-    return 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh';
+    // No wallet connected
+    return '';
   };
   
   const signWithXverse = async (address: string): Promise<string> => {

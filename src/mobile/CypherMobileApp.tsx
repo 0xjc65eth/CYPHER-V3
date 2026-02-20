@@ -20,7 +20,6 @@ import {
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { Provider as StateProvider } from 'react-redux';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -903,31 +902,29 @@ const CypherMobileApp: React.FC = () => {
   }
 
   return (
-    <StateProvider store={{}}>
-      <QueryClientProvider client={new QueryClient()}>
-        <StatusBar
-          backgroundColor={theme.colors.background}
-          barStyle="light-content"
-        />
-        <NavigationContainer>
-          <Stack.Navigator
-            screenOptions={{
-              headerShown: false,
-              cardStyle: { backgroundColor: theme.colors.background }
-            }}
-          >
-            {isAuthenticated ? (
-              <Stack.Screen name="Main" component={MainTabs} />
-            ) : (
-              <>
-                <Stack.Screen name="Login" component={LoginScreen} />
-                <Stack.Screen name="Register" component={RegisterScreen} />
-              </>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </QueryClientProvider>
-    </StateProvider>
+    <QueryClientProvider client={new QueryClient()}>
+      <StatusBar
+        backgroundColor={theme.colors.background}
+        barStyle="light-content"
+      />
+      <NavigationContainer>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
+            cardStyle: { backgroundColor: theme.colors.background }
+          }}
+        >
+          {isAuthenticated ? (
+            <Stack.Screen name="Main" component={MainTabs} />
+          ) : (
+            <>
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Register" component={RegisterScreen} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </QueryClientProvider>
   );
 };
 

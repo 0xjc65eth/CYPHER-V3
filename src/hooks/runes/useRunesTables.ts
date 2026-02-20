@@ -1,11 +1,11 @@
-// Custom hooks for Runes Tables with SWR and advanced caching
+// Custom hooks for Runes Tables with React Query and advanced caching
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import useSWR from 'swr';
-import { 
-  RuneTokenData, 
-  RuneHolderData, 
-  RuneTransactionData, 
+import { useQuery } from '@tanstack/react-query';
+import {
+  RuneTokenData,
+  RuneHolderData,
+  RuneTransactionData,
   MarketMoverData,
   TableFilters,
   SortConfig,
@@ -34,7 +34,7 @@ export const useTopRunesTable = (config: UseTableConfig = {}) => {
     sortBy: 'marketCap',
     sortOrder: 'desc'
   });
-  
+
   const [pagination, setPagination] = useState<PaginationConfig>({
     page: 1,
     pageSize: 50,
@@ -53,17 +53,14 @@ export const useTopRunesTable = (config: UseTableConfig = {}) => {
     return params.toString();
   }, [filters]);
 
-  const { data, error, isLoading, mutate } = useSWR<TopRunesResponse>(
-    `/api/runes/top?${queryString}`,
-    fetcher,
-    {
-      refreshInterval: config.autoRefresh ? (config.refreshInterval || 30000) : 0,
-      revalidateOnFocus: false,
-      dedupingInterval: 5000,
-      errorRetryCount: 3,
-      ...config
-    }
-  );
+  const { data, error, isLoading, refetch } = useQuery<TopRunesResponse>({
+    queryKey: ['runes-top', queryString],
+    queryFn: () => fetcher(`/api/runes/top?${queryString}`),
+    refetchInterval: config.autoRefresh ? (config.refreshInterval || 30000) : false,
+    refetchOnWindowFocus: false,
+    staleTime: 5000,
+    retry: 3,
+  });
 
   useEffect(() => {
     if (data) {
@@ -95,8 +92,8 @@ export const useTopRunesTable = (config: UseTableConfig = {}) => {
   }, [pagination.pageSize]);
 
   const refresh = useCallback(() => {
-    mutate();
-  }, [mutate]);
+    refetch();
+  }, [refetch]);
 
   return {
     data: data?.data || [],
@@ -139,17 +136,15 @@ export const useHoldersTable = (runeId: string, config: UseTableConfig = {}) => 
     return params.toString();
   }, [filters]);
 
-  const { data, error, isLoading, mutate } = useSWR<HoldersResponse>(
-    runeId ? `/api/runes/${runeId}/holders?${queryString}` : null,
-    fetcher,
-    {
-      refreshInterval: config.autoRefresh ? (config.refreshInterval || 30000) : 0,
-      revalidateOnFocus: false,
-      dedupingInterval: 10000,
-      errorRetryCount: 3,
-      ...config
-    }
-  );
+  const { data, error, isLoading, refetch } = useQuery<HoldersResponse>({
+    queryKey: ['runes-holders', runeId, queryString],
+    queryFn: () => fetcher(`/api/runes/${runeId}/holders?${queryString}`),
+    enabled: !!runeId,
+    refetchInterval: config.autoRefresh ? (config.refreshInterval || 30000) : false,
+    refetchOnWindowFocus: false,
+    staleTime: 10000,
+    retry: 3,
+  });
 
   useEffect(() => {
     if (data) {
@@ -181,8 +176,8 @@ export const useHoldersTable = (runeId: string, config: UseTableConfig = {}) => 
   }, [pagination.pageSize]);
 
   const refresh = useCallback(() => {
-    mutate();
-  }, [mutate]);
+    refetch();
+  }, [refetch]);
 
   return {
     data: data?.data || [],
@@ -226,17 +221,14 @@ export const useRecentTransactionsTable = (config: UseTableConfig = {}) => {
     return params.toString();
   }, [filters]);
 
-  const { data, error, isLoading, mutate } = useSWR<TransactionsResponse>(
-    `/api/runes/transactions?${queryString}`,
-    fetcher,
-    {
-      refreshInterval: config.autoRefresh ? (config.refreshInterval || 15000) : 0,
-      revalidateOnFocus: true,
-      dedupingInterval: 3000,
-      errorRetryCount: 3,
-      ...config
-    }
-  );
+  const { data, error, isLoading, refetch } = useQuery<TransactionsResponse>({
+    queryKey: ['runes-transactions', queryString],
+    queryFn: () => fetcher(`/api/runes/transactions?${queryString}`),
+    refetchInterval: config.autoRefresh ? (config.refreshInterval || 15000) : false,
+    refetchOnWindowFocus: true,
+    staleTime: 3000,
+    retry: 3,
+  });
 
   useEffect(() => {
     if (data) {
@@ -268,8 +260,8 @@ export const useRecentTransactionsTable = (config: UseTableConfig = {}) => {
   }, [pagination.pageSize]);
 
   const refresh = useCallback(() => {
-    mutate();
-  }, [mutate]);
+    refetch();
+  }, [refetch]);
 
   return {
     data: data?.data || [],
@@ -289,25 +281,22 @@ export const useRecentTransactionsTable = (config: UseTableConfig = {}) => {
 export const useMarketMoversTable = (config: UseTableConfig = {}) => {
   const [timeframe, setTimeframe] = useState<'1h' | '24h' | '7d'>('24h');
 
-  const { data, error, isLoading, mutate } = useSWR<MarketMoversResponse>(
-    `/api/runes/market-movers?timeframe=${timeframe}`,
-    fetcher,
-    {
-      refreshInterval: config.autoRefresh ? (config.refreshInterval || 60000) : 0,
-      revalidateOnFocus: false,
-      dedupingInterval: 30000,
-      errorRetryCount: 3,
-      ...config
-    }
-  );
+  const { data, error, isLoading, refetch } = useQuery<MarketMoversResponse>({
+    queryKey: ['runes-market-movers', timeframe],
+    queryFn: () => fetcher(`/api/runes/market-movers?timeframe=${timeframe}`),
+    refetchInterval: config.autoRefresh ? (config.refreshInterval || 60000) : false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    retry: 3,
+  });
 
   const updateTimeframe = useCallback((newTimeframe: '1h' | '24h' | '7d') => {
     setTimeframe(newTimeframe);
   }, []);
 
   const refresh = useCallback(() => {
-    mutate();
-  }, [mutate]);
+    refetch();
+  }, [refetch]);
 
   return {
     gainers: data?.gainers || [],
@@ -328,11 +317,11 @@ export const useTableExport = () => {
     const headers = Object.keys(data[0]);
     const csvContent = [
       headers.join(','),
-      ...data.map(row => 
+      ...data.map(row =>
         headers.map(header => {
           const value = row[header];
-          return typeof value === 'string' && value.includes(',') 
-            ? `"${value}"` 
+          return typeof value === 'string' && value.includes(',')
+            ? `"${value}"`
             : value;
         }).join(',')
       )

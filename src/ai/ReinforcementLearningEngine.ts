@@ -9,7 +9,7 @@
  * - A3C: "Asynchronous Methods for Deep Reinforcement Learning" (Mnih et al., 2016)
  */
 
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-node';
 import { EventEmitter } from 'events';
 
 // Environment and Action Spaces

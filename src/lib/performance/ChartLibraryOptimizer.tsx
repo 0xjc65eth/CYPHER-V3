@@ -9,7 +9,7 @@ import { lazy, ComponentType } from 'react';
 
 interface ChartComponent {
   name: string;
-  library: 'recharts' | 'lightweight-charts' | 'apexcharts' | 'custom';
+  library: 'recharts' | 'lightweight-charts' | 'custom';
   size: number; // Estimated bundle size in KB
   usage: number; // Usage frequency
   lastUsed: number;
@@ -74,11 +74,6 @@ export class ChartLibraryOptimizer {
     // Lightweight Charts (heavier, lazy load)
     this.registerChart('LightweightChart', 'lightweight-charts', 120, () => 
       import('./LightweightChartWrapper').then(m => ({ default: m.default }))
-    );
-
-    // ApexCharts (heaviest, definitely lazy load)
-    this.registerChart('ApexChart', 'apexcharts', 200, () => 
-      import('./ApexChartWrapper').then(m => ({ default: m.default }))
     );
 
     // Custom optimized charts

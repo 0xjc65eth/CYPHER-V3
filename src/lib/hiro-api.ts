@@ -544,8 +544,8 @@ class HiroAPI {
     try {
       const runesData = await this.getRunes(0, 20);
       
-      if (!runesData || !runesData.results) {
-        return { 
+      if (!runesData || !Array.isArray(runesData.results)) {
+        return {
           total_runes: 0,
           total_holders: 0,
           total_transactions: 0,
@@ -867,7 +867,7 @@ class HiroAPI {
       
       const runesData = await this.getRunes(0, 20);
       
-      if (!runesData?.results) {
+      if (!runesData?.results || !Array.isArray(runesData.results)) {
         throw new Error('No runes data available');
       }
 

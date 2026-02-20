@@ -1015,8 +1015,24 @@ function GlobalVolumeCard() {
 // ─── Market Pulse: Sector Performance (improved with real data approximation) ─
 
 function SectorPerformanceCard() {
-  const { data, loading } = useAutoFetch<{ data: MarketCoin[] } | MarketCoin[]>('/api/market/data/', 120000);
-  const coins: MarketCoin[] = Array.isArray(data) ? data : (data as { data: MarketCoin[] })?.data ?? [];
+  const { data, loading } = useAutoFetch<any>('/api/market/data/', 120000);
+  const coins: MarketCoin[] = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    const inner = data?.data;
+    if (Array.isArray(inner)) return inner;
+    if (inner && Array.isArray(inner.tickers)) {
+      return inner.tickers.map((t: any) => ({
+        id: t.id || t.symbol?.toLowerCase() || '',
+        symbol: t.symbol || '',
+        name: t.name || '',
+        current_price: t.price ?? 0,
+        price_change_percentage_24h: t.change24h ?? t.change24hPercent ?? 0,
+        market_cap: t.marketCap ?? 0,
+        total_volume: t.volume24h ?? 0,
+      }));
+    }
+    return [];
+  }, [data]);
 
   // Approximate sector performance from top coins
   const sectors = useMemo(() => {

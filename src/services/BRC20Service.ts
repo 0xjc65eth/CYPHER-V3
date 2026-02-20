@@ -122,7 +122,7 @@ class BRC20Service {
       
       const response = await hiroAPI.getBRC20Tokens({ limit, offset, order_by: 'tx_count' });
       
-      if (!response?.results) {
+      if (!response?.results || !Array.isArray(response.results)) {
         throw new Error('No BRC-20 tokens received');
       }
 

@@ -46,6 +46,14 @@ interface FeeCollectionResponse {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate authentication / CSRF
+    if (!validateAuthentication(request)) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: invalid origin' },
+        { status: 403 }
+      );
+    }
+
     const body: FeeCollectionRequest = await request.json();
 
     // Validar dados de entrada
@@ -250,9 +258,33 @@ function validateRateLimit(userAddress: string): boolean {
 }
 
 /**
- * Middleware para validação de autenticação (futuro)
+ * Validate request authentication via Origin/CSRF check
  */
 function validateAuthentication(request: NextRequest): boolean {
-  // Implementar validação de API key no futuro
-  return true;
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+
+  const allowedOrigins = [
+    'http://localhost:4444',
+    'https://localhost:4444',
+    process.env.NEXTAUTH_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+  ].filter(Boolean) as string[];
+
+  if (origin) {
+    return allowedOrigins.includes(origin);
+  }
+
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      return allowedOrigins.includes(refererOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  // Check Sec-Fetch-Site for modern browsers
+  const fetchSite = request.headers.get('sec-fetch-site');
+  return fetchSite === 'same-origin' || fetchSite === 'none';
 }

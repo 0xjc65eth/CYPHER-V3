@@ -1,9 +1,16 @@
 'use client'
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { WagmiProvider } from 'wagmi'
+import { WagmiProvider, http, createConfig } from 'wagmi'
+import { mainnet } from 'wagmi/chains'
+import { injected } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { wagmiConfig } from '../../config/web3modal.config'
+
+const wagmiConfig = createConfig({
+  chains: [mainnet],
+  transports: { [mainnet.id]: http() },
+  connectors: [injected()],
+})
 
 // Types
 interface ChainData {

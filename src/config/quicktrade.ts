@@ -132,10 +132,10 @@ export const QUICKTRADE_CONFIG = {
   },
 
   API_ENDPOINTS: {
-    ANALYZE: '/api/quicktrade/analyze',
-    PROCESS: '/api/quicktrade/process',
-    MONITOR: '/api/quicktrade/monitor',
-    REVENUE: '/api/quicktrade/revenue'
+    ANALYZE: '/api/quick-trade/quote',
+    PROCESS: '/api/quick-trade/quote',
+    MONITOR: '/api/quick-trade/prices',
+    REVENUE: '/api/quick-trade/tokens'
   },
 
   TRANSACTION_SETTINGS: {

@@ -20,7 +20,7 @@ import { MarketData, MarketPrediction, MarketTrend } from '@/types/market';
 import { MempoolData } from '@/types/mempool';
 
 // TensorFlow.js imports
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-node';
 
 // Temporary type definitions until proper types are created
 type OrdinalData = any;

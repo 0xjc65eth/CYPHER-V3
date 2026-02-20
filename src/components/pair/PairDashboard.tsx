@@ -29,12 +29,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePairDashboard } from '@/hooks/usePairData';
 
-// Dynamic imports for charts with SSR safety
-const ApexChart = dynamic(() => import('react-apexcharts'), { 
+const PairCandlestickChart = dynamic(() => import('./PairCandlestickChart'), {
   ssr: false,
-  loading: () => <div className="h-96 bg-gray-900/50 animate-pulse rounded-lg flex items-center justify-center">
-    <RefreshCw className="h-8 w-8 text-orange-400 animate-spin" />
-  </div>
+  loading: () => (
+    <div className="h-[500px] bg-gray-900/50 animate-pulse rounded-lg flex items-center justify-center">
+      <p className="text-gray-400 text-sm">Loading chart...</p>
+    </div>
+  ),
 });
 
 const InteractiveOrderBook = dynamic(() => import('./InteractiveOrderBook'), { 
@@ -99,155 +100,8 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
     router.push(`/pair/${newPair}`);
   }, [router]);
 
-  // ApexCharts configuration for candlestick with indicators
-  const candlestickOptions = {
-    chart: {
-      id: 'pair-candlestick',
-      type: 'candlestick' as const,
-      height: 500,
-      background: 'transparent',
-      toolbar: {
-        show: true,
-        tools: {
-          download: true,
-          selection: true,
-          zoom: true,
-          zoomin: true,
-          zoomout: true,
-          pan: true,
-          reset: true
-        }
-      },
-      events: {
-        click: handleCandleClick
-      },
-      animations: {
-        enabled: true,
-        easing: 'easeinout',
-        speed: 800
-      }
-    },
-    title: {
-      text: `${base}/${quote} - ${selectedTimeframe.toUpperCase()}`,
-      style: {
-        color: '#fff',
-        fontSize: '18px',
-        fontWeight: 'bold'
-      }
-    },
-    xaxis: {
-      type: 'datetime' as const,
-      labels: {
-        style: { colors: '#9CA3AF' }
-      },
-      axisBorder: { color: '#374151' },
-      axisTicks: { color: '#374151' }
-    },
-    yaxis: {
-      tooltip: { enabled: true },
-      labels: {
-        style: { colors: '#9CA3AF' },
-        formatter: (value: number) => `$${value.toFixed(4)}`
-      },
-      axisBorder: { color: '#374151' }
-    },
-    grid: {
-      borderColor: '#374151',
-      strokeDashArray: 3
-    },
-    tooltip: {
-      theme: 'dark',
-      custom: ({ seriesIndex, dataPointIndex, w }: any) => {
-        const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
-        if (!data) return '';
-        
-        return `
-          <div class="bg-gray-900 border border-gray-700 rounded-lg p-3">
-            <div class="text-white font-bold">${base}/${quote}</div>
-            <div class="text-sm text-gray-400">
-              <div>Open: $${data.y[0]?.toFixed(4)}</div>
-              <div>High: $${data.y[1]?.toFixed(4)}</div>
-              <div>Low: $${data.y[2]?.toFixed(4)}</div>
-              <div>Close: $${data.y[3]?.toFixed(4)}</div>
-              <div>Volume: ${data.volume?.toLocaleString()}</div>
-              <div class="mt-2 text-orange-400">Click for details</div>
-            </div>
-          </div>
-        `;
-      }
-    },
-    plotOptions: {
-      candlestick: {
-        colors: {
-          upward: '#10B981',
-          downward: '#EF4444'
-        },
-        wick: {
-          useFillColor: true
-        }
-      }
-    },
-    responsive: [{
-      breakpoint: 768,
-      options: {
-        chart: { height: 300 }
-      }
-    }]
-  };
-
-  // Generate series data for ApexCharts
-  const candlestickSeries = [{
-    name: 'Price',
-    data: candles[selectedTimeframe]?.map(candle => ({
-      x: candle.timestamp,
-      y: [candle.open, candle.high, candle.low, candle.close],
-      volume: candle.volume
-    })) || []
-  }];
-
-  // RSI Options
-  const rsiOptions = {
-    chart: {
-      id: 'rsi',
-      type: 'line' as const,
-      height: 150,
-      background: 'transparent',
-      toolbar: { show: false }
-    },
-    colors: ['#8B5CF6'],
-    xaxis: {
-      type: 'datetime' as const,
-      labels: { show: false }
-    },
-    yaxis: {
-      min: 0,
-      max: 100,
-      labels: {
-        style: { colors: '#9CA3AF' }
-      },
-      axisBorder: { color: '#374151' }
-    },
-    grid: {
-      borderColor: '#374151',
-      yaxis: { lines: { show: true } }
-    },
-    stroke: { width: 2 },
-    annotations: {
-      yaxis: [
-        { y: 70, borderColor: '#EF4444', label: { text: 'Overbought' } },
-        { y: 30, borderColor: '#10B981', label: { text: 'Oversold' } }
-      ]
-    }
-  };
-
-  const rsiSeries = [{
-    name: 'RSI',
-    data: technical.analysis?.rsi?.value ? 
-      Array.from({ length: 50 }, (_, i) => ({
-        x: Date.now() - (49 - i) * 60000,
-        y: Math.random() * 100 // Mock RSI data
-      })) : []
-  }];
+  // Candle data for lightweight-charts
+  const candleData = candles[selectedTimeframe] || [];
 
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
@@ -490,48 +344,35 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <ApexChart
-                options={candlestickOptions}
-                series={candlestickSeries}
-                type="candlestick"
+              <PairCandlestickChart
+                data={candleData}
                 height={500}
+                chartType={chartType}
+                onCandleClick={(candle: any) => setSelectedCandle({ ...candle, timeframe: selectedTimeframe })}
               />
-              
+
               {/* RSI Indicator */}
-              {selectedIndicators.includes('RSI') && (
-                <div>
+              {selectedIndicators.includes('RSI') && technical.analysis?.rsi && (
+                <div className="bg-gray-900/30 rounded-lg p-3">
                   <div className="text-sm font-bold text-purple-400 mb-2">RSI (14)</div>
-                  <ApexChart
-                    options={rsiOptions}
-                    series={rsiSeries}
-                    type="line"
-                    height={150}
-                  />
-                </div>
-              )}
-              
-              {/* Volume */}
-              <div>
-                <div className="text-sm font-bold text-blue-400 mb-2">Volume</div>
-                <div className="h-20 bg-gray-900/30 rounded-lg p-2">
-                  <div className="flex items-end justify-between h-full gap-1">
-                    {candles[selectedTimeframe]?.slice(-30).map((candle, index) => {
-                      const maxVolume = Math.max(...(candles[selectedTimeframe]?.map(c => c.volume) || []));
-                      const volumeHeight = (candle.volume / maxVolume) * 100;
-                      const isGreen = candle.close > candle.open;
-                      
-                      return (
-                        <div
-                          key={index}
-                          className={`w-2 ${isGreen ? 'bg-green-400/60' : 'bg-red-400/60'} hover:opacity-80 cursor-pointer`}
-                          style={{ height: `${volumeHeight}%` }}
-                          onClick={() => setSelectedCandle(candle)}
-                        />
-                      );
-                    })}
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl font-bold text-white">{technical.analysis.rsi.value?.toFixed(1)}</div>
+                    <div className="flex-1 h-2 bg-gray-700 rounded-full">
+                      <div
+                        className={`h-2 rounded-full transition-all ${
+                          (technical.analysis.rsi.value || 0) > 70 ? 'bg-red-400' :
+                          (technical.analysis.rsi.value || 0) < 30 ? 'bg-green-400' : 'bg-purple-400'
+                        }`}
+                        style={{ width: `${technical.analysis.rsi.value || 0}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {(technical.analysis.rsi.value || 0) > 70 ? 'Overbought' :
+                       (technical.analysis.rsi.value || 0) < 30 ? 'Oversold' : 'Neutral'}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -374,7 +374,7 @@ class RealAnalyticsDataService {
       // Get all runes
       const runesData = await hiroAPI.getRunes(0, 100);
       
-      if (!runesData.results) {
+      if (!runesData.results || !Array.isArray(runesData.results)) {
         throw new Error('No runes data available');
       }
 

@@ -264,22 +264,42 @@ export const createWalletSlice: StateCreator<
     })
     
     try {
-      // Mock wallet connection - replace with actual implementation
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      const mockAddress = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'
-      const mockPublicKey = '0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
-      
+      // Attempt real wallet connection via browser provider
+      let address = ''
+      let publicKey = ''
+
+      if (typeof window !== 'undefined') {
+        // Try Xverse
+        const xverseProvider = (window as any).XverseProviders?.BitcoinProvider
+        // Try UniSat
+        const unisatProvider = (window as any).unisat
+
+        if (xverseProvider) {
+          const response = await xverseProvider.request('getAccounts', null)
+          address = response.result?.[0]?.address || ''
+          publicKey = response.result?.[0]?.publicKey || ''
+        } else if (unisatProvider) {
+          const accounts = await unisatProvider.requestAccounts()
+          address = accounts[0] || ''
+          const pubKey = await unisatProvider.getPublicKey()
+          publicKey = pubKey || ''
+        }
+      }
+
+      if (!address) {
+        throw new Error('No wallet provider found. Install Xverse or UniSat extension.')
+      }
+
       set((state) => {
         state.wallet.connected = true
         state.wallet.connecting = false
-        state.wallet.address = mockAddress
-        state.wallet.publicKey = mockPublicKey
+        state.wallet.address = address
+        state.wallet.publicKey = publicKey
         state.wallet.sessionId = `session_${Date.now()}`
         state.wallet.loading.connection = false
         state.wallet.lastRefresh = Date.now()
       })
-      
+
       // Trigger initial data refresh
       get().refreshWalletData()
       

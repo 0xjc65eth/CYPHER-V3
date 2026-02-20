@@ -3,7 +3,7 @@ import { feeSystem, FeeRecord } from '@/lib/fee-system';
 import { ErrorReporter } from '@/lib/ErrorReporter';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
 
-const FEE_RECIPIENT_ADDRESS = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'; // Cypher Fee Address
+const FEE_RECIPIENT_ADDRESS = process.env.FEE_RECIPIENT_ADDRESS || ''; // Set via environment variable
 
 export async function POST(request: NextRequest) {
   try {

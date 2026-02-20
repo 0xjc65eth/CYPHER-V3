@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import useSWR from 'swr';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { RuneMarketData, RunesAnalytics } from '@/services/runes';
 import { useRunesTerminal } from '@/contexts/RunesTerminalContext';
 
@@ -219,33 +219,43 @@ export function useRunesRealTimeData() {
   const { settings } = state;
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const queryClient = useQueryClient();
 
-  // SWR for initial data load and periodic refresh
+  // React Query for initial data load and periodic refresh
   const {
     data: runesData,
     error: runesError,
-    mutate: mutateRunes,
-    isLoading: runesLoading
-  } = useSWR(
-    'runes-data',
-    fetchRunesData,
-    {
-      refreshInterval: settings.autoRefresh ? settings.refreshInterval : 0,
-      revalidateOnFocus: true,
-      dedupingInterval: 10000,
-      errorRetryCount: 3,
-      onSuccess: () => {
-        updateLastUpdate();
-        setError(null);
-        setConnectionStatus('connected');
-      },
-      onError: (error) => {
-        console.error('SWR Error:', error);
-        setError(error.message);
-        setConnectionStatus('disconnected');
-      }
+    isLoading: runesLoading,
+    refetch: refetchRunes,
+  } = useQuery({
+    queryKey: ['runes-data'],
+    queryFn: fetchRunesData,
+    refetchInterval: settings.autoRefresh ? settings.refreshInterval : false,
+    refetchOnWindowFocus: true,
+    staleTime: 10000,
+    retry: 3,
+  });
+
+  // Track success/error
+  useEffect(() => {
+    if (runesData) {
+      updateLastUpdate();
+      setError(null);
+      setConnectionStatus('connected');
     }
-  );
+  }, [runesData]);
+
+  useEffect(() => {
+    if (runesError) {
+      console.error('Query Error:', runesError);
+      setError(runesError instanceof Error ? runesError.message : 'Unknown error');
+      setConnectionStatus('disconnected');
+    }
+  }, [runesError]);
+
+  const mutateRunes = useCallback(() => {
+    return refetchRunes();
+  }, [refetchRunes]);
 
   // Polling-based real-time updates (replaces WebSocket)
   const startPolling = useCallback(() => {

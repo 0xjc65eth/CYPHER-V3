@@ -64,11 +64,12 @@ export function BRC20DEXActivity({ limit = 50 }: DEXActivityProps) {
         sort_by: 'activity',
         order: 'desc'
       });
-      setTokens(tokensResponse.results);
+      const tokenResults = Array.isArray(tokensResponse.results) ? tokensResponse.results : [];
+      setTokens(tokenResults);
 
       // Fetch recent activities from top tokens
       const allActivities: BRC20Activity[] = [];
-      for (const token of tokensResponse.results.slice(0, 10)) {
+      for (const token of tokenResults.slice(0, 10)) {
         try {
           const activityResponse = await hiroAPI.getActivity(token.ticker, {
             limit: 5,

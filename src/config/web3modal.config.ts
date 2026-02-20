@@ -1,10 +1,10 @@
-import { createWeb3Modal, defaultConfig } from '@web3modal/ethers/react';
+/**
+ * Chain configuration for multi-chain wallet support
+ * Migrated from @web3modal/ethers to @reown/appkit
+ */
 
-// 1. Get projectId from https://cloud.walletconnect.com
-const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id';
-
-// 2. Set chains
-const mainnet = {
+// Chain definitions
+export const mainnet = {
   chainId: 1,
   name: 'Ethereum',
   currency: 'ETH',
@@ -12,7 +12,7 @@ const mainnet = {
   rpcUrl: 'https://cloudflare-eth.com'
 };
 
-const polygon = {
+export const polygon = {
   chainId: 137,
   name: 'Polygon',
   currency: 'MATIC',
@@ -20,7 +20,7 @@ const polygon = {
   rpcUrl: 'https://polygon-rpc.com'
 };
 
-const arbitrum = {
+export const arbitrum = {
   chainId: 42161,
   name: 'Arbitrum',
   currency: 'ETH',
@@ -28,7 +28,7 @@ const arbitrum = {
   rpcUrl: 'https://arb1.arbitrum.io/rpc'
 };
 
-const optimism = {
+export const optimism = {
   chainId: 10,
   name: 'Optimism',
   currency: 'ETH',
@@ -36,7 +36,7 @@ const optimism = {
   rpcUrl: 'https://mainnet.optimism.io'
 };
 
-const base = {
+export const base = {
   chainId: 8453,
   name: 'Base',
   currency: 'ETH',
@@ -44,7 +44,7 @@ const base = {
   rpcUrl: 'https://mainnet.base.org'
 };
 
-const avalanche = {
+export const avalanche = {
   chainId: 43114,
   name: 'Avalanche',
   currency: 'AVAX',
@@ -52,44 +52,13 @@ const avalanche = {
   rpcUrl: 'https://api.avax.network/ext/bc/C/rpc'
 };
 
-const bsc = {
+export const bsc = {
   chainId: 56,
   name: 'BNB Smart Chain',
   currency: 'BNB',
   explorerUrl: 'https://bscscan.com',
   rpcUrl: 'https://bsc-dataseed.binance.org'
 };
-
-// 3. Create modal
-const metadata = {
-  name: 'CYPHER ORDI FUTURE V3',
-  description: 'Professional Bitcoin & Multi-Chain Trading Platform',
-  url: 'https://cypher-ordi-future.com',
-  icons: ['https://cypher-ordi-future.com/logo.png']
-};
-
-export const config = defaultConfig({
-  metadata,
-  enableEIP6963: true,
-  enableInjected: true,
-  enableCoinbase: true,
-  defaultChainId: 1,
-  rpcUrl: '...'
-});
-
-export const web3Modal = createWeb3Modal({
-  ethersConfig: config,
-  chains: [mainnet, polygon, arbitrum, optimism, base, avalanche, bsc],
-  projectId,
-  enableAnalytics: true,
-  themeMode: 'dark',
-  themeVariables: {
-    '--w3m-color-mix': '#f97316',
-    '--w3m-color-mix-strength': 20
-  }
-});
-
-export { mainnet, polygon, arbitrum, optimism, base, avalanche, bsc };
 
 // Export supported chain configurations for components
 export const SUPPORTED_EVM_CHAINS = [

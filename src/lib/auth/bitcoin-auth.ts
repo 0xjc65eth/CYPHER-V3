@@ -2,8 +2,8 @@ import { NextRequest } from 'next/server';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-  console.error('CRITICAL: JWT_SECRET environment variable is not set!');
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error('JWT_SECRET is required and must be at least 32 characters');
 }
 
 export interface BitcoinAuthUser {
@@ -64,19 +64,18 @@ export function createBitcoinAuthSession(address: string, walletType: string): B
 
 // Validate Bitcoin address format
 export function isValidBitcoinAddress(address: string): boolean {
-  // Basic validation for different Bitcoin address formats
-  const patterns = {
-    // P2PKH addresses start with 1
-    p2pkh: /^1[a-km-zA-HJ-NP-Z1-9]{25,34}$/,
-    // P2SH addresses start with 3
-    p2sh: /^3[a-km-zA-HJ-NP-Z1-9]{25,34}$/,
-    // Bech32 addresses start with bc1 (mainnet) or tb1 (testnet)
-    bech32: /^(bc1|tb1)[a-z0-9]{39,59}$/,
-    // Taproot addresses
-    taproot: /^(bc1p|tb1p)[a-z0-9]{58}$/
-  };
+  if (!address || typeof address !== 'string') return false;
 
-  return Object.values(patterns).some(pattern => pattern.test(address));
+  // P2PKH: starts with 1, Base58Check, 25-34 chars
+  const p2pkh = /^1[a-km-zA-HJ-NP-Z1-9]{25,33}$/;
+  // P2SH: starts with 3, Base58Check, 25-34 chars
+  const p2sh = /^3[a-km-zA-HJ-NP-Z1-9]{25,33}$/;
+  // Bech32 (P2WPKH/P2WSH): bc1q for mainnet, tb1q for testnet, 42 or 62 chars
+  const bech32 = /^(bc1q|tb1q)[a-z0-9]{38,58}$/;
+  // Bech32m (Taproot P2TR): bc1p for mainnet, tb1p for testnet, exactly 62 chars
+  const taproot = /^(bc1p|tb1p)[a-z0-9]{58}$/;
+
+  return p2pkh.test(address) || p2sh.test(address) || bech32.test(address) || taproot.test(address);
 }
 
 // Get wallet display name

@@ -4,8 +4,6 @@
  */
 
 import { MarketData } from './AutomatedTradingEngine';
-import * as tf from '@tensorflow/tfjs';
-
 export interface TechnicalSignal {
   action: 'buy' | 'sell' | 'hold';
   strength: number; // 0-1

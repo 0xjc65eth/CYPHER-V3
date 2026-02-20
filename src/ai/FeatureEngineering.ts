@@ -9,7 +9,7 @@
  * - "Market Microstructure Features" (O'Hara, 1995)
  */
 
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-node';
 import { EventEmitter } from 'events';
 
 // Feature Types

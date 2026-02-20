@@ -10,7 +10,7 @@
  */
 
 import { EventEmitter } from 'events';
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-node';
 
 // Backtesting Types
 export interface BacktestConfig {

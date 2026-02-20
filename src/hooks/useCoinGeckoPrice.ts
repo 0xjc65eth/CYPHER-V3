@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { coinGeckoService } from '@/lib/api/coingecko-service';
+import { usePriceData } from './usePriceData';
 
 interface CoinGeckoPrice {
   usd: number;
@@ -15,48 +14,42 @@ interface PriceData {
 }
 
 export function useCoinGeckoPrice() {
-  const [prices, setPrices] = useState<PriceData>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const btc = usePriceData({ asset: 'BTC', source: 'coingecko', refetchInterval: 60000 });
+  const eth = usePriceData({ asset: 'ETH', source: 'coingecko', refetchInterval: 60000 });
+  const sol = usePriceData({ asset: 'SOL', source: 'coingecko', refetchInterval: 60000 });
 
-  useEffect(() => {
-    const fetchPrices = async () => {
-      try {
-        const data = await coinGeckoService.getSimplePrice(
-          ['bitcoin', 'ethereum', 'solana'],
-          ['usd'],
-          {
-            include24hrChange: true,
-            include24hrVol: true,
-            includeMarketCap: true,
-          }
-        );
+  const prices: PriceData = {};
 
-        setPrices(data);
-        setError(null);
-      } catch (err) {
-        console.error('CoinGecko API Error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch prices');
-
-        // Fallback prices
-        setPrices({
-          bitcoin: { usd: 105847, usd_24h_change: 2.85, usd_24h_vol: 34567000000, usd_market_cap: 2075000000000 },
-          ethereum: { usd: 3345, usd_24h_change: 3.42, usd_24h_vol: 18234000000, usd_market_cap: 402000000000 },
-          solana: { usd: 188.5, usd_24h_change: -1.23, usd_24h_vol: 3456000000, usd_market_cap: 84000000000 }
-        });
-      } finally {
-        setLoading(false);
-      }
+  if (btc.price > 0) {
+    prices.bitcoin = {
+      usd: btc.price,
+      usd_24h_change: btc.change24h,
+      usd_24h_vol: btc.volume24h,
+      usd_market_cap: btc.marketCap,
     };
+  }
 
-    // Fetch immediately
-    fetchPrices();
+  if (eth.price > 0) {
+    prices.ethereum = {
+      usd: eth.price,
+      usd_24h_change: eth.change24h,
+      usd_24h_vol: eth.volume24h,
+      usd_market_cap: eth.marketCap,
+    };
+  }
 
-    // Update every minute (service handles rate limiting internally)
-    const interval = setInterval(fetchPrices, 60000);
+  if (sol.price > 0) {
+    prices.solana = {
+      usd: sol.price,
+      usd_24h_change: sol.change24h,
+      usd_24h_vol: sol.volume24h,
+      usd_market_cap: sol.marketCap,
+    };
+  }
 
-    return () => clearInterval(interval);
-  }, []);
-
-  return { prices, loading, error };
+  return {
+    prices,
+    loading: btc.isLoading || eth.isLoading || sol.isLoading,
+    error: btc.error || eth.error || sol.error,
+  };
 }

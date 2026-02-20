@@ -305,7 +305,7 @@ export class HiroAPIExtensions {
       
       const response = await this.makeRequest('/runes/v1/etchings?limit=50');
       
-      if (!response?.results) {
+      if (!response?.results || !Array.isArray(response.results)) {
         throw new Error('No runes data available');
       }
 
