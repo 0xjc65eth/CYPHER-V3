@@ -50,40 +50,44 @@ export function OnChainMetrics({ refreshTrigger = 0 }: OnChainMetricsProps) {
     );
   }
 
+  if (!data) {
+    console.warn('[OnChainMetrics] Using fallback data');
+  }
+
   const metrics = [
     {
       label: 'MVRV Ratio',
-      value: data?.mvrvRatio || 2.34,
+      value: data?.mvrvRatio || 0,
       description: 'Market Value to Realized Value',
-      signal: (data?.mvrvRatio || 2.34) > 3.5 ? 'Overvalued' : (data?.mvrvRatio || 2.34) < 1 ? 'Undervalued' : 'Fair Value',
-      signalColor: (data?.mvrvRatio || 2.34) > 3.5 ? '#FF4757' : (data?.mvrvRatio || 2.34) < 1 ? '#00D4AA' : '#F7931A',
+      signal: (data?.mvrvRatio || 0) > 3.5 ? 'Overvalued' : (data?.mvrvRatio || 0) < 1 ? 'Undervalued' : 'Fair Value',
+      signalColor: (data?.mvrvRatio || 0) > 3.5 ? '#FF4757' : (data?.mvrvRatio || 0) < 1 ? '#00D4AA' : '#F7931A',
       icon: Activity,
       optimal: '1.0 - 3.0'
     },
     {
       label: 'NVT Ratio',
-      value: data?.nvtRatio || 45.2,
+      value: data?.nvtRatio || 0,
       description: 'Network Value to Transactions',
-      signal: (data?.nvtRatio || 45.2) > 90 ? 'Overheated' : (data?.nvtRatio || 45.2) < 30 ? 'Undervalued' : 'Normal',
-      signalColor: (data?.nvtRatio || 45.2) > 90 ? '#FF4757' : (data?.nvtRatio || 45.2) < 30 ? '#00D4AA' : '#F7931A',
+      signal: (data?.nvtRatio || 0) > 90 ? 'Overheated' : (data?.nvtRatio || 0) < 30 ? 'Undervalued' : 'Normal',
+      signalColor: (data?.nvtRatio || 0) > 90 ? '#FF4757' : (data?.nvtRatio || 0) < 30 ? '#00D4AA' : '#F7931A',
       icon: Zap,
       optimal: '30 - 90'
     },
     {
       label: 'SOPR',
-      value: data?.sopr || 1.02,
+      value: data?.sopr || 0,
       description: 'Spent Output Profit Ratio',
-      signal: (data?.sopr || 1.02) > 1 ? 'Profits Realized' : 'Losses Realized',
-      signalColor: (data?.sopr || 1.02) > 1 ? '#00D4AA' : '#FF4757',
+      signal: (data?.sopr || 0) > 1 ? 'Profits Realized' : 'Losses Realized',
+      signalColor: (data?.sopr || 0) > 1 ? '#00D4AA' : '#FF4757',
       icon: TrendingUp,
       optimal: '> 1.0 bullish'
     },
     {
       label: 'Puell Multiple',
-      value: data?.puellMultiple || 1.45,
+      value: data?.puellMultiple || 0,
       description: 'Miner Revenue vs 365D MA',
-      signal: (data?.puellMultiple || 1.45) > 4 ? 'Top Zone' : (data?.puellMultiple || 1.45) < 0.5 ? 'Bottom Zone' : 'Normal',
-      signalColor: (data?.puellMultiple || 1.45) > 4 ? '#FF4757' : (data?.puellMultiple || 1.45) < 0.5 ? '#00D4AA' : '#F7931A',
+      signal: (data?.puellMultiple || 0) > 4 ? 'Top Zone' : (data?.puellMultiple || 0) < 0.5 ? 'Bottom Zone' : 'Normal',
+      signalColor: (data?.puellMultiple || 0) > 4 ? '#FF4757' : (data?.puellMultiple || 0) < 0.5 ? '#00D4AA' : '#F7931A',
       icon: Database,
       optimal: '0.5 - 4.0'
     }
@@ -137,18 +141,18 @@ export function OnChainMetrics({ refreshTrigger = 0 }: OnChainMetricsProps) {
           <div>
             <div className="text-[8px] text-[#e4e4e7]/40 mb-0.5">Actual Price</div>
             <div className="text-sm font-bold text-[#e4e4e7]">
-              ${(data?.stockToFlow.actual || 95000).toLocaleString()}
+              ${(data?.stockToFlow.actual || 0).toLocaleString()}
             </div>
           </div>
           <div>
             <div className="text-[8px] text-[#e4e4e7]/40 mb-0.5">Model Price</div>
             <div className="text-sm font-bold text-[#8B5CF6]">
-              ${(data?.stockToFlow.model || 125000).toLocaleString()}
+              ${(data?.stockToFlow.model || 0).toLocaleString()}
             </div>
           </div>
         </div>
         <div className="mt-2 text-[8px] text-[#e4e4e7]/50">
-          Model suggests {((data?.stockToFlow.model || 125000) / (data?.stockToFlow.actual || 95000) - 1) * 100 > 0 ? 'upside' : 'downside'} potential of {Math.abs(((data?.stockToFlow.model || 125000) / (data?.stockToFlow.actual || 95000) - 1) * 100).toFixed(1)}%
+          Model suggests {((data?.stockToFlow.model || 0) / (data?.stockToFlow.actual || 1) - 1) * 100 > 0 ? 'upside' : 'downside'} potential of {Math.abs(((data?.stockToFlow.model || 0) / (data?.stockToFlow.actual || 1) - 1) * 100).toFixed(1)}%
         </div>
       </div>
 
@@ -160,14 +164,14 @@ export function OnChainMetrics({ refreshTrigger = 0 }: OnChainMetricsProps) {
             <span className="text-[9px] text-[#e4e4e7]/60 font-mono">Exchange Reserves</span>
           </div>
           <div className="text-sm font-bold text-[#e4e4e7]">
-            {(data?.exchangeReserves.btc || 2456789).toLocaleString()} BTC
+            {(data?.exchangeReserves.btc || 0).toLocaleString()} BTC
           </div>
           <div className={`text-[8px] font-mono mt-1 ${
-            (data?.exchangeReserves.change24h || -0.45) < 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'
+            (data?.exchangeReserves.change24h || 0) < 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'
           }`}>
-            {(data?.exchangeReserves.change24h || -0.45) < 0 ? '↓' : '↑'} {Math.abs(data?.exchangeReserves.change24h || -0.45).toFixed(2)}% 24h
+            {(data?.exchangeReserves.change24h || 0) < 0 ? '↓' : '↑'} {Math.abs(data?.exchangeReserves.change24h || 0).toFixed(2)}% 24h
             <span className="text-[#e4e4e7]/40 ml-1">
-              ({(data?.exchangeReserves.change24h || -0.45) < 0 ? 'Bullish' : 'Bearish'})
+              ({(data?.exchangeReserves.change24h || 0) < 0 ? 'Bullish' : 'Bearish'})
             </span>
           </div>
         </div>
@@ -178,35 +182,35 @@ export function OnChainMetrics({ refreshTrigger = 0 }: OnChainMetricsProps) {
             <span className="text-[9px] text-[#e4e4e7]/60 font-mono">Whale Activity</span>
           </div>
           <div className="text-sm font-bold text-[#e4e4e7]">
-            {data?.whaleTransactions.count24h || 342} txs
+            {data?.whaleTransactions.count24h || 0} txs
           </div>
           <div className="text-[8px] text-[#e4e4e7]/50 mt-1">
-            {((data?.whaleTransactions.volume || 45678) / 1000).toFixed(1)}K BTC volume
+            {((data?.whaleTransactions.volume || 0) / 1000).toFixed(1)}K BTC volume
           </div>
         </div>
       </div>
 
       {/* Hash Ribbons Signal */}
       <div className={`border rounded-lg p-3 ${
-        (data?.hashRibbons || 'buy') === 'buy'
+        (data?.hashRibbons || 'neutral') === 'buy'
           ? 'bg-[#00D4AA]/10 border-[#00D4AA]/30'
-          : (data?.hashRibbons || 'buy') === 'sell'
+          : (data?.hashRibbons || 'neutral') === 'sell'
           ? 'bg-[#FF4757]/10 border-[#FF4757]/30'
           : 'bg-[#F7931A]/10 border-[#F7931A]/30'
       }`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className={`w-4 h-4 ${
-              (data?.hashRibbons || 'buy') === 'buy' ? 'text-[#00D4AA]' :
-              (data?.hashRibbons || 'buy') === 'sell' ? 'text-[#FF4757]' : 'text-[#F7931A]'
+              (data?.hashRibbons || 'neutral') === 'buy' ? 'text-[#00D4AA]' :
+              (data?.hashRibbons || 'neutral') === 'sell' ? 'text-[#FF4757]' : 'text-[#F7931A]'
             }`} />
             <div>
               <div className="text-[10px] font-mono text-[#e4e4e7]/80 uppercase">Hash Ribbons</div>
               <div className={`text-xs font-bold ${
-                (data?.hashRibbons || 'buy') === 'buy' ? 'text-[#00D4AA]' :
-                (data?.hashRibbons || 'buy') === 'sell' ? 'text-[#FF4757]' : 'text-[#F7931A]'
+                (data?.hashRibbons || 'neutral') === 'buy' ? 'text-[#00D4AA]' :
+                (data?.hashRibbons || 'neutral') === 'sell' ? 'text-[#FF4757]' : 'text-[#F7931A]'
               }`}>
-                {(data?.hashRibbons || 'buy').toUpperCase()} SIGNAL
+                {(data?.hashRibbons || 'neutral').toUpperCase()} SIGNAL
               </div>
             </div>
           </div>

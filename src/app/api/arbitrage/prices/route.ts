@@ -53,6 +53,7 @@ async function fetchBinance(): Promise<ExchangePrice> {
     fetchWithTimeout('https://api.binance.com/api/v3/ticker/bookTicker?symbol=BTCUSDT'),
     fetchWithTimeout('https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT'),
   ]);
+  if (!tickerRes.ok || !priceRes.ok) throw new Error(`Binance API error: ${tickerRes.status}/${priceRes.status}`);
   const ticker = await tickerRes.json();
   const price = await priceRes.json();
   const bid = parseFloat(ticker.bidPrice);
@@ -74,6 +75,7 @@ async function fetchCoinbase(): Promise<ExchangePrice> {
     fetchWithTimeout('https://api.coinbase.com/v2/exchange-rates?currency=BTC'),
     fetchWithTimeout('https://api.coinbase.com/v2/prices/BTC-USD/spot'),
   ]);
+  if (!ratesRes.ok || !spotRes.ok) throw new Error(`Coinbase API error: ${ratesRes.status}/${spotRes.status}`);
   const ratesData = await ratesRes.json();
   const spotData = await spotRes.json();
   const price = parseFloat(ratesData.data.rates.USD);
@@ -92,6 +94,7 @@ async function fetchCoinbase(): Promise<ExchangePrice> {
 
 async function fetchKraken(): Promise<ExchangePrice> {
   const res = await fetchWithTimeout('https://api.kraken.com/0/public/Ticker?pair=XBTUSD');
+  if (!res.ok) throw new Error(`Kraken API error: ${res.status}`);
   const data = await res.json();
   const ticker = data.result.XXBTZUSD;
   const bid = parseFloat(ticker.b[0]);
@@ -112,6 +115,7 @@ async function fetchKraken(): Promise<ExchangePrice> {
 
 async function fetchBybit(): Promise<ExchangePrice> {
   const res = await fetchWithTimeout('https://api.bybit.com/v5/market/tickers?category=spot&symbol=BTCUSDT');
+  if (!res.ok) throw new Error(`Bybit API error: ${res.status}`);
   const data = await res.json();
   const ticker = data.result.list[0];
   const bid = parseFloat(ticker.bid1Price);
@@ -132,6 +136,7 @@ async function fetchBybit(): Promise<ExchangePrice> {
 
 async function fetchOKX(): Promise<ExchangePrice> {
   const res = await fetchWithTimeout('https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT');
+  if (!res.ok) throw new Error(`OKX API error: ${res.status}`);
   const data = await res.json();
   const ticker = data.data[0];
   const bid = parseFloat(ticker.bidPx);
@@ -152,6 +157,7 @@ async function fetchOKX(): Promise<ExchangePrice> {
 
 async function fetchBitfinex(): Promise<ExchangePrice> {
   const res = await fetchWithTimeout('https://api-pub.bitfinex.com/v2/ticker/tBTCUSD');
+  if (!res.ok) throw new Error(`Bitfinex API error: ${res.status}`);
   const data = await res.json();
   // [BID, BID_SIZE, ASK, ASK_SIZE, DAILY_CHANGE, DAILY_CHANGE_RELATIVE, LAST_PRICE, VOLUME, HIGH, LOW]
   const bid = data[0];
@@ -175,6 +181,7 @@ async function fetchKuCoin(): Promise<ExchangePrice> {
     fetchWithTimeout('https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=BTC-USDT'),
     fetchWithTimeout('https://api.kucoin.com/api/v1/market/stats?symbol=BTC-USDT'),
   ]);
+  if (!obRes.ok || !statsRes.ok) throw new Error(`KuCoin API error: ${obRes.status}/${statsRes.status}`);
   const obData = await obRes.json();
   const statsData = await statsRes.json();
   const bid = parseFloat(obData.data.bestBid);
@@ -195,6 +202,7 @@ async function fetchKuCoin(): Promise<ExchangePrice> {
 
 async function fetchGateio(): Promise<ExchangePrice> {
   const res = await fetchWithTimeout('https://api.gateio.ws/api/v4/spot/tickers?currency_pair=BTC_USDT');
+  if (!res.ok) throw new Error(`Gate.io API error: ${res.status}`);
   const data = await res.json();
   const ticker = data[0];
   const bid = parseFloat(ticker.highest_bid);

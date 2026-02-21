@@ -1,49 +1,105 @@
 import { NextResponse } from 'next/server'
 
-// Analytics data generator
-function generateAnalyticsData() {
-  const now = new Date()
-  const data = []
-  
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
-    
-    data.push({
-      date: date.toISOString().split('T')[0],
-      price: 95000 + Math.random() * 10000,
-      volume: 45000 + Math.random() * 10000,
-      transactions: 300000 + Math.random() * 50000,
-      activeAddresses: 900000 + Math.random() * 100000,
-      hashRate: 500 + Math.random() * 50,
-      difficulty: 70 + Math.random() * 5
-    })
+// Simple in-memory cache with 60s TTL
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 60 * 1000; // 60 seconds
+
+function getCached(key: string): any | null {
+  const entry = cache.get(key);
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL) {
+    return entry.data;
   }
-  
-  return data
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: any): void {
+  cache.set(key, { data, timestamp: Date.now() });
+}
+
+// Fetch real BTC data from CoinGecko with 10s timeout
+async function fetchBTCData(): Promise<{ price: number; change24h: number; volume24h: number; source: string }> {
+  const cached = getCached('btc_data');
+  if (cached) return cached;
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true',
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`CoinGecko API returned ${response.status}`);
+    }
+
+    const json = await response.json();
+    const btc = json.bitcoin;
+
+    const result = {
+      price: btc?.usd || 0,
+      change24h: btc?.usd_24h_change || 0,
+      volume24h: btc?.usd_24h_vol || 0,
+      source: 'coingecko'
+    };
+
+    setCache('btc_data', result);
+    return result;
+  } catch (error) {
+    console.warn('[Analytics API] Failed to fetch BTC data from CoinGecko, returning fallback zeros:', error);
+    return {
+      price: 0,
+      change24h: 0,
+      volume24h: 0,
+      source: 'fallback'
+    };
+  }
 }
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get('timeframe') || '7d'
-    
+
+    const btcData = await fetchBTCData();
+
+    // Build chart data using real price or zeros (no Math.random())
+    const now = new Date();
+    const chartData = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      chartData.push({
+        date: date.toISOString().split('T')[0],
+        price: btcData.price,
+        volume: btcData.volume24h,
+        transactions: 0,
+        activeAddresses: 0,
+        hashRate: 0,
+        difficulty: 0
+      });
+    }
+
     const analyticsData = {
       overview: {
-        marketCap: 2145678901234,
-        dominance: 52.3,
-        volume24h: 45678901234,
-        change24h: 2.5
+        marketCap: btcData.price > 0 ? btcData.price * 19700000 : 0, // approx circulating supply
+        dominance: 0,
+        volume24h: btcData.volume24h,
+        change24h: btcData.change24h
       },
-      chartData: generateAnalyticsData(),
+      chartData,
       metrics: {
-        avgBlockTime: 9.8,
-        mempoolSize: 124567,
-        feeRate: 45,
-        pendingTx: 23456
-      }
+        avgBlockTime: 0,
+        mempoolSize: 0,
+        feeRate: 0,
+        pendingTx: 0
+      },
+      source: btcData.source
     }
-    
+
     return NextResponse.json({
       success: true,
       data: analyticsData,

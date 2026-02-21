@@ -40,7 +40,8 @@ export enum OrdinalsMarketplace {
   MAGIC_EDEN = 'magic_eden',
   OKX = 'okx',
   UNISAT = 'unisat',
-  HIRO = 'hiro'
+  HIRO = 'hiro',
+  BESTINSLOT = 'bestinslot'
 }
 
 // Standardized interfaces for cross-marketplace compatibility
@@ -264,6 +265,29 @@ export class OrdinalsDataConverter {
     };
   }
 
+  static convertBestInSlotCollection(collection: any, marketplace: OrdinalsMarketplace): StandardizedCollection {
+    return {
+      id: collection.slug || collection.id || '',
+      name: collection.name || collection.slug || '',
+      symbol: collection.slug,
+      description: collection.description || '',
+      image: collection.image_url || collection.inscription_icon || '',
+      totalSupply: collection.supply || 0,
+      floorPrice: collection.floor_price ? collection.floor_price / 1e8 : 0,
+      volume24h: collection.volume_24h ? collection.volume_24h / 1e8 : 0,
+      listedCount: collection.listed || 0,
+      holdersCount: collection.owners || 0,
+      listedPercentage: collection.supply ? ((collection.listed || 0) / collection.supply) * 100 : 0,
+      marketplace,
+      verified: true,
+      website: undefined,
+      twitter: undefined,
+      discord: undefined,
+      createdAt: undefined,
+      updatedAt: undefined
+    };
+  }
+
   // Generic converter that detects marketplace and converts accordingly
   static convertCollection(collection: any, marketplace: OrdinalsMarketplace): StandardizedCollection {
     switch (marketplace) {
@@ -275,6 +299,8 @@ export class OrdinalsDataConverter {
         return this.convertUniSatCollection(collection, marketplace);
       case OrdinalsMarketplace.HIRO:
         return this.convertHiroCollection(collection, marketplace);
+      case OrdinalsMarketplace.BESTINSLOT:
+        return this.convertBestInSlotCollection(collection, marketplace);
       default:
         throw new Error(`Unsupported marketplace: ${marketplace}`);
     }
@@ -309,6 +335,7 @@ export class OrdinalsMarketplaceFactory {
       const { magicEdenAPI } = require('./MagicEdenAPI');
       clients[OrdinalsMarketplace.MAGIC_EDEN] = magicEdenAPI;
     } catch (error) {
+      console.warn('[OrdinalsMarketplaceFactory] Failed to load MagicEdenAPI:', error instanceof Error ? error.message : error);
       clients[OrdinalsMarketplace.MAGIC_EDEN] = null;
     }
 
@@ -317,6 +344,7 @@ export class OrdinalsMarketplaceFactory {
       const { okxOrdinalsAPI } = require('./OKXOrdinalsAPI');
       clients[OrdinalsMarketplace.OKX] = okxOrdinalsAPI;
     } catch (error) {
+      console.warn('[OrdinalsMarketplaceFactory] Failed to load OKXOrdinalsAPI:', error instanceof Error ? error.message : error);
       clients[OrdinalsMarketplace.OKX] = null;
     }
 
@@ -325,6 +353,7 @@ export class OrdinalsMarketplaceFactory {
       const { UniSatAPI } = require('./UniSatAPI');
       clients[OrdinalsMarketplace.UNISAT] = new UniSatAPI(config?.uniSatApiKey);
     } catch (error) {
+      console.warn('[OrdinalsMarketplaceFactory] Failed to load UniSatAPI:', error instanceof Error ? error.message : error);
       clients[OrdinalsMarketplace.UNISAT] = null;
     }
 
@@ -333,7 +362,16 @@ export class OrdinalsMarketplaceFactory {
       const { hiroOrdinalsService } = require('../../HiroOrdinalsService');
       clients[OrdinalsMarketplace.HIRO] = hiroOrdinalsService;
     } catch (error) {
+      console.warn('[OrdinalsMarketplaceFactory] Failed to load HiroOrdinalsService:', error instanceof Error ? error.message : error);
       clients[OrdinalsMarketplace.HIRO] = null;
+    }
+
+    try {
+      const { bestInSlotAPI } = require('./BestInSlotAPI');
+      clients[OrdinalsMarketplace.BESTINSLOT] = bestInSlotAPI;
+    } catch (error) {
+      console.warn('[OrdinalsMarketplaceFactory] Failed to load BestInSlotAPI:', error instanceof Error ? error.message : error);
+      clients[OrdinalsMarketplace.BESTINSLOT] = null;
     }
 
     return clients;

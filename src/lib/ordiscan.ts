@@ -9,15 +9,16 @@ export async function fetchOrdiscanData(endpoint: string) {
     cacheKey,
     async () => {
       try {
-        // Durante o desenvolvimento, retornar dados simulados
+        // During development, return fallback data
         if (process.env.NODE_ENV === 'development') {
-          devLogger.log('API', `Using mock data for ${endpoint}`);
-          return getMockData(endpoint);
+          console.warn(`[Ordiscan] Development mode - returning fallback data for ${endpoint}`);
+          return getFallbackData(endpoint);
         }
 
         const apiKey = process.env.ORDISCAN_API_KEY;
         if (!apiKey) {
-          return getMockData(endpoint);
+          console.warn(`[Ordiscan] No API key configured - returning fallback data for ${endpoint}`);
+          return getFallbackData(endpoint);
         }
 
         devLogger.log('API', `Fetching from Ordiscan: ${endpoint}`);
@@ -26,58 +27,56 @@ export async function fetchOrdiscanData(endpoint: string) {
             Authorization: `Bearer ${apiKey}`,
           },
         });
-        
+
         if (!response.ok) {
           console.error(`API error: ${response.status}`);
-          return getMockData(endpoint);
+          console.warn(`[Ordiscan] API error ${response.status} - returning fallback data for ${endpoint}`);
+          return getFallbackData(endpoint);
         }
-        
+
         return await response.json();
       } catch (error) {
         devLogger.error(error as Error, `Error fetching data from Ordiscan API: ${endpoint}`);
-        return getMockData(endpoint);
+        console.warn(`[Ordiscan] API fetch failed - returning fallback data for ${endpoint}`);
+        return getFallbackData(endpoint);
       }
     },
     endpoint.includes('ordinals') ? cacheTTL.ordinals : cacheTTL.default
   );
 }
 
-// Função para retornar dados simulados quando a API não estiver disponível
-function getMockData(endpoint: string) {
-  // Dados simulados para diferentes endpoints
-  const mockData: Record<string, any> = {
+// Return fallback data with isFallback flag when the API is not available
+function getFallbackData(endpoint: string) {
+  const fallbackData: Record<string, any> = {
     '/price': {
-      price: 58000,
-      change_24h: 2.5,
+      price: 0,
+      change_24h: 0,
+      isFallback: true,
     },
     '/mempool': {
-      pending_transactions: 25000,
-      average_fee_rate: 45,
+      pending_transactions: 0,
+      average_fee_rate: 0,
+      isFallback: true,
     },
     '/mining': {
-      hash_rate: 350,
-      difficulty: 72000000000000,
-      block_time: 9.8,
+      hash_rate: 0,
+      difficulty: 0,
+      block_time: 0,
+      isFallback: true,
     },
     '/ordinals': {
-      total_inscriptions: 1500000,
-      volume_24h: 150,
-      floor_price: 0.05,
-      popular_collections: [
-        { name: 'Collection 1', volume: 50 },
-        { name: 'Collection 2', volume: 30 },
-        { name: 'Collection 3', volume: 20 },
-      ],
+      total_inscriptions: 0,
+      volume_24h: 0,
+      floor_price: 0,
+      popular_collections: [],
+      isFallback: true,
     },
     '/runes': {
-      volume_24h: 75,
-      active_runes: [
-        { name: 'Rune 1', volume: 30 },
-        { name: 'Rune 2', volume: 25 },
-        { name: 'Rune 3', volume: 20 },
-      ],
+      volume_24h: 0,
+      active_runes: [],
+      isFallback: true,
     },
   };
 
-  return mockData[endpoint] || {};
-} 
+  return fallbackData[endpoint] || { isFallback: true };
+}

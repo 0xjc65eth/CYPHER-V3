@@ -173,12 +173,13 @@ class EnhancedNeuralService {
           asset,
           overallSentiment,
           sentimentScore,
+          // Sentiment analysis requires external API integration
           sources: {
-            twitter: Math.random() * 2 - 1,
-            reddit: Math.random() * 2 - 1,
-            news: Math.random() * 2 - 1
+            twitter: 0,
+            reddit: 0,
+            news: 0
           },
-          volumeIndicator: volumeIndicators[Math.floor(Math.random() * volumeIndicators.length)],
+          volumeIndicator: 'unavailable' as typeof volumeIndicators[number],
           timestamp: Date.now()
         };
       }

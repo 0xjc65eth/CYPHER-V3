@@ -845,8 +845,9 @@ export class StakingRewardsSystem extends EventEmitter {
       return cached.price;
     }
 
-    // Mock price data
-    const mockPrices: Record<string, number> = {
+    // Stale fallback prices - should be replaced with real price API
+    console.warn('[STAKING] Using stale fallback price for', symbol);
+    const fallbackPrices: Record<string, number> = {
       'ETH': 3000,
       'MATIC': 0.8,
       'SOL': 100,
@@ -855,7 +856,7 @@ export class StakingRewardsSystem extends EventEmitter {
       'ADA': 0.45
     };
 
-    const price = mockPrices[symbol] || 1;
+    const price = fallbackPrices[symbol] || 1;
     this.priceCache.set(symbol, { price, timestamp: Date.now() });
     
     return price;

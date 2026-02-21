@@ -591,29 +591,28 @@ class HyperliquidService {
     try {
       
       // Simulate backtesting (would need historical data in production)
+      console.warn('[HyperliquidService] Backtesting requires historical data — returning zero-value results');
       const totalDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      const totalTrades = Math.floor(totalDays * 0.5); // Simulate ~0.5 trades per day
-      const winRate = 0.65 + Math.random() * 0.2; // 65-85% win rate
-      const avgWin = 0.02 + Math.random() * 0.03; // 2-5% average win
-      const avgLoss = -0.01 - Math.random() * 0.02; // -1 to -3% average loss
-      
-      const totalReturn = (totalTrades * winRate * avgWin) + (totalTrades * (1 - winRate) * avgLoss);
-      const sharpeRatio = totalReturn / (0.15 + Math.random() * 0.1); // Simulated volatility
-      const maxDrawdown = Math.abs(avgLoss) * (1 + Math.random());
-      const volatility = 0.15 + Math.random() * 0.1;
+      const totalTrades = 0;
+      const winRate = 0;
+      const avgWin = 0;
+      const avgLoss = 0;
 
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing time
+      const totalReturn = 0;
+      const sharpeRatio = 0;
+      const maxDrawdown = 0;
+      const volatility = 0;
 
       return {
         strategy: strategyName,
         period: `${startDate.toDateString()} - ${endDate.toDateString()}`,
-        totalReturn: totalReturn * 100,
-        sharpeRatio,
-        maxDrawdown: maxDrawdown * 100,
-        winRate: winRate * 100,
-        totalTrades,
-        avgTradeReturn: (totalReturn / totalTrades) * 100,
-        volatility: volatility * 100
+        totalReturn: 0,
+        sharpeRatio: 0,
+        maxDrawdown: 0,
+        winRate: 0,
+        totalTrades: 0,
+        avgTradeReturn: 0,
+        volatility: 0
       };
     } catch (error: any) {
       throw new Error(`Backtest failed: ${error.message}`);
@@ -747,12 +746,13 @@ class HyperliquidService {
 
   // Mock data methods for demo/fallback
   private getMockPrices(): Record<string, number> {
+    console.warn('[HyperliquidService] Using fallback prices — API unavailable');
     return {
-      'BTC': 98500 + (Math.random() - 0.5) * 1000,
-      'ETH': 3850 + (Math.random() - 0.5) * 100,
-      'SOL': 245 + (Math.random() - 0.5) * 20,
-      'DOGE': 0.42 + (Math.random() - 0.5) * 0.05,
-      'AVAX': 45.30 + (Math.random() - 0.5) * 5
+      'BTC': 0,
+      'ETH': 0,
+      'SOL': 0,
+      'DOGE': 0,
+      'AVAX': 0
     };
   }
 

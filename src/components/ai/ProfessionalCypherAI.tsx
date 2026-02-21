@@ -245,24 +245,25 @@ export function ProfessionalCypherAI() {
     }
   };
 
-  // 🎯 Generate Fallback Response
+  // Generate Fallback Response
   const generateFallbackResponse = (query: string, source: string): AIResponse => {
+    console.warn('[ProfessionalCypherAI] Using fallback data');
     const analysisTemplates = {
       bitcoin: {
-        content: `Based on current market conditions, Bitcoin is showing ${Math.random() > 0.5 ? 'bullish' : 'consolidation'} patterns. Key support levels are holding around $42,000-$44,000 range. Volume analysis suggests ${Math.random() > 0.5 ? 'institutional accumulation' : 'retail interest'} continues.`,
-        confidence: 0.78
+        content: `Based on current market conditions, Bitcoin is showing consolidation patterns. Key support levels are holding around $42,000-$44,000 range. Volume analysis suggests retail interest continues.`,
+        confidence: 0
       },
       ordinals: {
-        content: `Ordinals market analysis: Floor prices for top collections are ${Math.random() > 0.5 ? 'stabilizing' : 'showing volatility'}. Daily inscription volume remains ${Math.random() > 0.5 ? 'strong' : 'moderate'} with growing utility focus. Collections with proven roadmaps showing resilience.`,
-        confidence: 0.82
+        content: `Ordinals market analysis: Floor prices for top collections are showing volatility. Daily inscription volume remains moderate with growing utility focus. Collections with proven roadmaps showing resilience.`,
+        confidence: 0
       },
       runes: {
-        content: `Runes protocol showing ${Math.random() > 0.5 ? 'positive momentum' : 'steady development'}. Etching activity indicates ${Math.random() > 0.5 ? 'growing adoption' : 'selective participation'}. Focus on runes with strong communities and utility cases recommended.`,
-        confidence: 0.75
+        content: `Runes protocol showing steady development. Etching activity indicates selective participation. Focus on runes with strong communities and utility cases recommended.`,
+        confidence: 0
       },
       brc20: {
-        content: `BRC-20 ecosystem analysis: ORDI maintaining market leadership with ${Math.random() > 0.5 ? 'positive price action' : 'consolidation'}. Emerging tokens showing ${Math.random() > 0.5 ? 'innovation' : 'speculative interest'}. Risk management essential in this volatile sector.`,
-        confidence: 0.73
+        content: `BRC-20 ecosystem analysis: ORDI maintaining market leadership with consolidation. Emerging tokens showing speculative interest. Risk management essential in this volatile sector.`,
+        confidence: 0
       }
     };
 

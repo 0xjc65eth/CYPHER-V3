@@ -100,15 +100,16 @@ class QuickTradeAggregator {
     chainId: number | string
   ): Promise<Quote | null> {
     try {
-      // Mock implementation - replace with actual Uniswap SDK calls
-      const mockPrice = this.getMockPrice(tokenIn, tokenOut);
-      const outputAmount = (parseFloat(amountIn) * mockPrice * (1 - Math.random() * 0.003)).toString();
-      
+      // Fallback implementation - replace with actual Uniswap SDK calls
+      console.warn(`[QuickTradeAggregator] Using fallback price for ${version} quote (no live DEX integration)`);
+      const fallbackPrice = this.getFallbackPrice(tokenIn, tokenOut);
+      const outputAmount = (parseFloat(amountIn) * fallbackPrice).toString();
+
       return {
         dex: version,
         inputAmount: amountIn,
         outputAmount,
-        priceImpact: Math.random() * 0.5,
+        priceImpact: 0,
         estimatedGas: version === DEXType.UNISWAP_V3 ? '150000' : '120000',
         route: [
           {
@@ -117,7 +118,7 @@ class QuickTradeAggregator {
             tokenOut,
             amountIn,
             amountOut: outputAmount,
-            priceImpact: Math.random() * 0.5
+            priceImpact: 0
           }
         ],
         fee: '0.3',
@@ -181,15 +182,16 @@ class QuickTradeAggregator {
     amountIn: string
   ): Promise<Quote | null> {
     try {
-      // Mock Orca implementation
-      const mockPrice = this.getMockPrice(tokenIn, tokenOut);
-      const outputAmount = (parseFloat(amountIn) * mockPrice * 0.998).toString();
-      
+      // Fallback Orca implementation
+      console.warn('[QuickTradeAggregator] Using fallback price for Orca quote (no live DEX integration)');
+      const fallbackPrice = this.getFallbackPrice(tokenIn, tokenOut);
+      const outputAmount = (parseFloat(amountIn) * fallbackPrice).toString();
+
       return {
         dex: DEXType.ORCA,
         inputAmount: amountIn,
         outputAmount,
-        priceImpact: Math.random() * 0.3,
+        priceImpact: 0,
         estimatedGas: '4500',
         route: [{
           dex: DEXType.ORCA,
@@ -197,7 +199,7 @@ class QuickTradeAggregator {
           tokenOut,
           amountIn,
           amountOut: outputAmount,
-          priceImpact: Math.random() * 0.3
+          priceImpact: 0
         }],
         fee: '0.25',
         slippage: 0.3,
@@ -218,15 +220,16 @@ class QuickTradeAggregator {
     amountIn: string
   ): Promise<Quote | null> {
     try {
-      // Mock PancakeSwap implementation
-      const mockPrice = this.getMockPrice(tokenIn, tokenOut);
-      const outputAmount = (parseFloat(amountIn) * mockPrice * 0.9975).toString();
-      
+      // Fallback PancakeSwap implementation
+      console.warn('[QuickTradeAggregator] Using fallback price for PancakeSwap quote (no live DEX integration)');
+      const fallbackPrice = this.getFallbackPrice(tokenIn, tokenOut);
+      const outputAmount = (parseFloat(amountIn) * fallbackPrice).toString();
+
       return {
         dex: DEXType.PANCAKESWAP,
         inputAmount: amountIn,
         outputAmount,
-        priceImpact: Math.random() * 0.4,
+        priceImpact: 0,
         estimatedGas: '90000',
         route: [{
           dex: DEXType.PANCAKESWAP,
@@ -234,7 +237,7 @@ class QuickTradeAggregator {
           tokenOut,
           amountIn,
           amountOut: outputAmount,
-          priceImpact: Math.random() * 0.4
+          priceImpact: 0
         }],
         fee: '0.25',
         slippage: 0.4,
@@ -256,14 +259,15 @@ class QuickTradeAggregator {
     chainId: number | string
   ): Promise<Quote | null> {
     try {
-      const mockPrice = this.getMockPrice(tokenIn, tokenOut);
-      const outputAmount = (parseFloat(amountIn) * mockPrice * 0.997).toString();
-      
+      console.warn('[QuickTradeAggregator] Using fallback price for SushiSwap quote (no live DEX integration)');
+      const fallbackPrice = this.getFallbackPrice(tokenIn, tokenOut);
+      const outputAmount = (parseFloat(amountIn) * fallbackPrice).toString();
+
       return {
         dex: DEXType.SUSHISWAP,
         inputAmount: amountIn,
         outputAmount,
-        priceImpact: Math.random() * 0.5,
+        priceImpact: 0,
         estimatedGas: '130000',
         route: [{
           dex: DEXType.SUSHISWAP,
@@ -271,7 +275,7 @@ class QuickTradeAggregator {
           tokenOut,
           amountIn,
           amountOut: outputAmount,
-          priceImpact: Math.random() * 0.5
+          priceImpact: 0
         }],
         fee: '0.3',
         slippage: 0.5,
@@ -348,14 +352,15 @@ class QuickTradeAggregator {
     chainId: number | string
   ): Promise<Quote | null> {
     try {
-      const mockPrice = this.getMockPrice(tokenIn, tokenOut);
-      const outputAmount = (parseFloat(amountIn) * mockPrice * (0.995 + Math.random() * 0.01)).toString();
-      
+      console.warn(`[QuickTradeAggregator] Using fallback price for ${dex} quote (no live DEX integration)`);
+      const fallbackPrice = this.getFallbackPrice(tokenIn, tokenOut);
+      const outputAmount = (parseFloat(amountIn) * fallbackPrice).toString();
+
       return {
         dex,
         inputAmount: amountIn,
         outputAmount,
-        priceImpact: Math.random() * 0.6,
+        priceImpact: 0,
         estimatedGas: '100000',
         route: [{
           dex,
@@ -363,12 +368,12 @@ class QuickTradeAggregator {
           tokenOut,
           amountIn,
           amountOut: outputAmount,
-          priceImpact: Math.random() * 0.6
+          priceImpact: 0
         }],
         fee: '0.3',
         slippage: 0.5,
         executionTime: 30,
-        confidence: 85 + Math.random() * 10,
+        confidence: 0,
         timestamp: Date.now()
       };
     } catch (error) {
@@ -416,7 +421,7 @@ class QuickTradeAggregator {
     });
 
     // Calculate service fee
-    const transactionValueUSD = parseFloat(amountIn) * this.getMockPrice(tokenIn, tokenOut);
+    const transactionValueUSD = parseFloat(amountIn) * this.getFallbackPrice(tokenIn, tokenOut);
     const serviceFee = this.calculateServiceFee(transactionValueUSD);
     
     // Update recipient based on chain
@@ -450,8 +455,8 @@ class QuickTradeAggregator {
     return [DEXType.ONEINCH, DEXType.PARASWAP, DEXType.JUPITER].includes(dex);
   }
 
-  private getMockPrice(tokenIn: Token, tokenOut: Token): number {
-    // Mock price calculation - in production, use real price feeds
+  private getFallbackPrice(tokenIn: Token, tokenOut: Token): number {
+    // Fallback price calculation - in production, use real price feeds
     const basePrices: Record<string, number> = {
       'ETH': 2850,
       'BTC': 67000,

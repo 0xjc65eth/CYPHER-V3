@@ -44,9 +44,11 @@ export async function GET(
       timestamp: brc20Response.timestamp,
       // Additional metadata
       uniqueTokens: Array.from(new Set(processedTokens.map(t => t.ticker))).length,
-      transferrableValue: processedTokens.reduce((sum, token) => 
-        sum + (parseFloat(token.transferrable) / parseFloat(token.balance)) * token.value, 0
-      ),
+      transferrableValue: processedTokens.reduce((sum, token) => {
+        const balance = parseFloat(token.balance);
+        const transferrableRatio = balance > 0 ? parseFloat(token.transferrable) / balance : 0;
+        return sum + transferrableRatio * token.value;
+      }, 0),
       // Raw HIRO data for debugging (only in development)
       ...(process.env.NODE_ENV === 'development' && { 
         rawData: brc20Data.slice(0, 3) // Limit raw data size

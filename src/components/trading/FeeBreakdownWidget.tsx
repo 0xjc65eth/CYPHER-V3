@@ -141,9 +141,9 @@ export const FeeBreakdownWidget: React.FC<FeeBreakdownWidgetProps> = ({
         },
         totalFeesUSD: data.totalFeeUSD,
         totalFeePercentage: data.totalFeePercentage,
-        estimatedSavings: Math.random() * 20, // Mock savings
-        executionTime: 2500 + Math.random() * 1000, // Mock execution time
-        priceImpact: Math.random() * 2 // Mock price impact
+        estimatedSavings: 0,
+        executionTime: 0,
+        priceImpact: 0
       }
 
       setFeeData(formattedFees)

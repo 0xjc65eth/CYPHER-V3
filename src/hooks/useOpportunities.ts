@@ -61,7 +61,7 @@ export function useOpportunities(address: string): UseOpportunitiesResult {
 
       // Process data through neural system for enhanced insights
 
-      // Real opportunities data with neural system enhancements
+      // Opportunities will be populated when real-time arbitrage detection is active
       const mockData: OpportunitiesData = {
         opportunities: [
           {

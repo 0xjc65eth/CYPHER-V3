@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfessionalTerminal } from '@/components/market/advanced';
 import { fmt, fmtCompact, fmtPct, chgColor, heatColor, timeAgo, apiFetch } from '@/components/market/bloomberg-utils';
 import { Skeleton, SectionSkeleton, ErrorState, SectionHeader, MetricCard } from '@/components/market/bloomberg-ui';
+import { PremiumContent } from '@/components/premium-content';
 
 const BloombergGrid = lazy(() => import('@/components/market/BloombergGrid'));
 
@@ -220,7 +221,7 @@ export default function BloombergMarketPage() {
         <div className="border-b border-[#1a1a2e] px-4 overflow-x-auto">
           <TabsList className="bg-transparent border-0 p-0 h-auto">
             <TabsTrigger value="global-markets" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
-              Global Markets
+              Global Markets <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
             </TabsTrigger>
             <TabsTrigger value="overview" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
               BTC Focus
@@ -238,19 +239,32 @@ export default function BloombergMarketPage() {
               Supply &amp; Halving
             </TabsTrigger>
             <TabsTrigger value="whales" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
-              Whale Tracker
+              Whale Tracker <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
             </TabsTrigger>
             <TabsTrigger value="pro-analysis" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
-              Pro Analysis
+              Pro Analysis <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
             </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* ═══ TAB: GLOBAL MARKETS ═══ */}
+        {/* ═══ TAB: GLOBAL MARKETS (YHP Premium) ═══ */}
         <TabsContent value="global-markets" className="px-0">
-          <Suspense fallback={<GridLoading />}>
-            <BloombergGrid />
-          </Suspense>
+          <PremiumContent fallback={
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="w-16 h-16 bg-[#1a1a2e] border border-[#F7931A]/30 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <h3 className="text-lg font-bold text-[#F7931A] mb-2 font-mono">GLOBAL MARKETS — YHP ACCESS</h3>
+              <p className="text-[#e4e4e7]/50 text-sm text-center max-w-md mb-4">
+                Multi-asset global markets data requires Yield Hacker Pass. Connect your ETH wallet to verify YHP ownership.
+              </p>
+              <div className="text-[10px] text-[#e4e4e7]/30 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+            </div>
+          }>
+            <Suspense fallback={<GridLoading />}>
+              <BloombergGrid />
+            </Suspense>
+          </PremiumContent>
         </TabsContent>
 
         {/* ═══ TAB: BTC FOCUS (formerly Overview) ═══ */}
@@ -751,52 +765,78 @@ export default function BloombergMarketPage() {
           </div>
         </TabsContent>
 
-        {/* ═══ TAB: WHALE TRACKER ═══ */}
+        {/* ═══ TAB: WHALE TRACKER (YHP Premium) ═══ */}
         <TabsContent value="whales" className="px-4">
-          <div className="space-y-4 max-w-[1800px] mx-auto py-4">
-            <SectionHeader title="Whale Alerts" updated={whales.data?.timestamp} />
-            {whales.loading ? (
-              <SectionSkeleton rows={5} />
-            ) : whales.error ? (
-              <ErrorState message={whales.error} onRetry={fetchWhales} />
-            ) : whales.data ? (
-              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4 space-y-2 max-h-[600px] overflow-y-auto">
-                {whales.data.transactions.length === 0 ? (
-                  <div className="text-sm text-[#e4e4e7]/30 text-center py-4">No recent whale transactions</div>
-                ) : (
-                  whales.data.transactions.map((tx, i) => {
-                    const amt = tx.outputTotal ?? tx.inputTotal;
-                    const usdVal = amt && price.data?.price ? amt * price.data.price : null;
-                    return (
-                      <div key={tx.hash || i} className="border-b border-[#2a2a3e]/50 pb-2 last:border-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">{'\uD83D\uDC0B'}</span>
-                          <span className="text-sm font-bold text-[#e4e4e7]">
-                            {amt != null ? `${fmt(amt, 2)} BTC` : '—'}
-                          </span>
-                          {usdVal != null && (
-                            <span className="text-[10px] text-[#e4e4e7]/40">({fmtCompact(usdVal)})</span>
-                          )}
-                          <span className="ml-auto text-[10px] text-[#e4e4e7]/30">{timeAgo(tx.time)}</span>
-                        </div>
-                        <div className="text-[10px] text-[#e4e4e7]/30 truncate">
-                          {tx.hash ? `${tx.hash.slice(0, 16)}...${tx.hash.slice(-8)}` : '—'}
-                          {tx.blockId ? ` \u00B7 Block #${tx.blockId.toLocaleString()}` : ''}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+          <PremiumContent fallback={
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="w-16 h-16 bg-[#1a1a2e] border border-[#F7931A]/30 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl">🐋</span>
               </div>
-            ) : null}
-          </div>
+              <h3 className="text-lg font-bold text-[#F7931A] mb-2 font-mono">WHALE TRACKER — YHP ACCESS</h3>
+              <p className="text-[#e4e4e7]/50 text-sm text-center max-w-md mb-4">
+                Real-time whale transaction alerts require Yield Hacker Pass. Connect your ETH wallet to verify YHP ownership.
+              </p>
+              <div className="text-[10px] text-[#e4e4e7]/30 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+            </div>
+          }>
+            <div className="space-y-4 max-w-[1800px] mx-auto py-4">
+              <SectionHeader title="Whale Alerts" updated={whales.data?.timestamp} />
+              {whales.loading ? (
+                <SectionSkeleton rows={5} />
+              ) : whales.error ? (
+                <ErrorState message={whales.error} onRetry={fetchWhales} />
+              ) : whales.data ? (
+                <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4 space-y-2 max-h-[600px] overflow-y-auto">
+                  {whales.data.transactions.length === 0 ? (
+                    <div className="text-sm text-[#e4e4e7]/30 text-center py-4">No recent whale transactions</div>
+                  ) : (
+                    whales.data.transactions.map((tx, i) => {
+                      const amt = tx.outputTotal ?? tx.inputTotal;
+                      const usdVal = amt && price.data?.price ? amt * price.data.price : null;
+                      return (
+                        <div key={tx.hash || i} className="border-b border-[#2a2a3e]/50 pb-2 last:border-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base">{'\uD83D\uDC0B'}</span>
+                            <span className="text-sm font-bold text-[#e4e4e7]">
+                              {amt != null ? `${fmt(amt, 2)} BTC` : '—'}
+                            </span>
+                            {usdVal != null && (
+                              <span className="text-[10px] text-[#e4e4e7]/40">({fmtCompact(usdVal)})</span>
+                            )}
+                            <span className="ml-auto text-[10px] text-[#e4e4e7]/30">{timeAgo(tx.time)}</span>
+                          </div>
+                          <div className="text-[10px] text-[#e4e4e7]/30 truncate">
+                            {tx.hash ? `${tx.hash.slice(0, 16)}...${tx.hash.slice(-8)}` : '—'}
+                            {tx.blockId ? ` \u00B7 Block #${tx.blockId.toLocaleString()}` : ''}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </PremiumContent>
         </TabsContent>
 
-        {/* ═══ TAB: PRO ANALYSIS ═══ */}
+        {/* ═══ TAB: PRO ANALYSIS (YHP Premium) ═══ */}
         <TabsContent value="pro-analysis" className="px-0">
-          <div className="max-w-[1920px] mx-auto">
-            <ProfessionalTerminal />
-          </div>
+          <PremiumContent fallback={
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="w-16 h-16 bg-[#1a1a2e] border border-[#F7931A]/30 rounded-full flex items-center justify-center mb-4">
+                <span className="text-2xl">🔒</span>
+              </div>
+              <h3 className="text-lg font-bold text-[#F7931A] mb-2 font-mono">PRO ANALYSIS — YHP ACCESS</h3>
+              <p className="text-[#e4e4e7]/50 text-sm text-center max-w-md mb-4">
+                Professional analysis terminal requires Yield Hacker Pass. Connect your ETH wallet to verify YHP ownership.
+              </p>
+              <div className="text-[10px] text-[#e4e4e7]/30 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+            </div>
+          }>
+            <div className="max-w-[1920px] mx-auto">
+              <ProfessionalTerminal />
+            </div>
+          </PremiumContent>
         </TabsContent>
       </Tabs>
 

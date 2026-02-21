@@ -349,8 +349,8 @@ export const createWalletSlice: StateCreator<
   updateRunes: (runes: RuneBalance[]) => {
     set((state) => {
       state.wallet.runes = runes
-      // Runes value calculation would need market data
-      state.wallet.pnl.breakdown.runes = runes.length * 1000 // Mock calculation
+      // Placeholder: real runes PnL requires market price data per rune
+      state.wallet.pnl.breakdown.runes = 0
       state.wallet.pnl.total = 
         state.wallet.pnl.breakdown.bitcoin + 
         state.wallet.pnl.breakdown.ordinals + 
@@ -433,11 +433,11 @@ export const createWalletSlice: StateCreator<
         }
       }))
       
-      // Mock data refresh - replace with actual API calls
+      // Placeholder: returns zero balances until real wallet API is connected
       await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Update mock data
-      get().updateWalletBalance(0.00125000)
+
+      // Zero-value fallback — replace with real Mempool/Hiro API calls
+      get().updateWalletBalance(0)
       get().updateOrdinals([])
       get().updateRunes([])
       get().updateTransactions([])

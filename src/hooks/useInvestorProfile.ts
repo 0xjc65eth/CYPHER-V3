@@ -32,27 +32,18 @@ export function useInvestorProfile(address: string): UseInvestorProfileResult {
     setError(null)
 
     try {
-      // In a real implementation, this would fetch data from an API
-      // For demo purposes, we'll use mock data
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1200))
-      
-      // Mock investor profile data
-      const mockData: InvestorProfileData = {
-        profile: 'Moderate',
-        riskTolerance: 65,
-        timeHorizon: 80,
-        diversity: 45,
+      // Default profile - requires wallet connection for personalized data
+      const defaultData: InvestorProfileData = {
+        profile: 'Unknown',
+        riskTolerance: 0,
+        timeHorizon: 0,
+        diversity: 0,
         recommendations: [
-          'Consider increasing your portfolio diversity by adding more Runes',
-          'Your long-term horizon suggests you could benefit from rare ordinals',
-          'Set up automatic BTC purchases to dollar-cost average',
-          'Consider exploring rare sats collections for long-term value'
+          'Connect your wallet to get personalized recommendations'
         ]
       }
-      
-      setData(mockData)
+
+      setData(defaultData)
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch investor profile'))
     } finally {

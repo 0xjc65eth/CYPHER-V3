@@ -64,7 +64,8 @@ export async function GET(request: NextRequest) {
         const interval = intervalMap[timeframe] || '1h';
 
         const binanceRes = await fetch(
-          `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=100`
+          `https://api.binance.com/api/v3/klines?symbol=${binanceSymbol}&interval=${interval}&limit=100`,
+          { signal: AbortSignal.timeout(10000) }
         );
 
         if (!binanceRes.ok) throw new Error('Failed to fetch candlesticks');

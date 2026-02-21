@@ -20,7 +20,7 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['@tremor/react', 'recharts'],
   },
-  serverExternalPackages: ['axios', '@supabase/supabase-js', 'ws', 'ioredis'],
+  serverExternalPackages: ['axios', '@supabase/supabase-js', 'ws', 'ioredis', 'nodemailer'],
   typescript: {
     ignoreBuildErrors: true,
     tsconfigPath: './tsconfig.json',

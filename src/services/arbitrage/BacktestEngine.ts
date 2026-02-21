@@ -151,7 +151,7 @@ export class BacktestEngine {
     const startTime = startDate.getTime();
     const endTime = endDate.getTime();
     const interval = 3600 * 1000; // 1 hour
-    let price = 45000;
+    let price = 0; // No hardcoded price — requires real historical data
     // Simple seeded PRNG for reproducible backtests (not Math.random)
     let seed = startTime % 2147483647;
     const nextSeed = (): number => {

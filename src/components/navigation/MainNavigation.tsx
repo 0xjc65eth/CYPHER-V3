@@ -81,19 +81,24 @@ const navigationItems: NavItem[] = [
     category: 'Features'
   },
   {
-    id: 'brc20',
-    label: 'BRC-20',
-    href: '/brc20',
-    icon: NavigationIcons['/brc20'].icon,
-    description: 'BRC-20 token analytics',
+    id: 'cypher-ai',
+    label: 'CYPHER AI',
+    href: '/cypher-ai',
+    icon: NavigationIcons['/cypher-ai'].icon,
+    description: 'Advanced AI Trading Intelligence',
+    badge: 'PRO',
+    badgeType: 'info',
+    isPro: true,
     category: 'Features'
   },
   {
-    id: 'rare-sats',
-    label: 'Rare Sats',
-    href: '/rare-sats',
-    icon: NavigationIcons['/rare-sats'].icon,
-    description: 'Rare satoshi hunting',
+    id: 'hacker-yields',
+    label: 'Hacker Yields',
+    href: '/hacker-yields',
+    icon: NavigationIcons['/hacker-yields'].icon,
+    description: 'AI Autonomous Trading Agent',
+    badge: 'CYPHER',
+    badgeType: 'info',
     category: 'Features'
   },
   {
@@ -117,120 +122,31 @@ const navigationItems: NavItem[] = [
     category: 'Features'
   },
   {
-    id: 'portfolio',
-    label: 'Portfolio',
-    href: '/portfolio',
-    icon: NavigationIcons['/portfolio'].icon,
-    description: 'Track your investments',
-    badge: 'NEW',
-    badgeType: 'new',
+    id: 'brc20',
+    label: 'BRC-20',
+    href: '/brc20',
+    icon: NavigationIcons['/brc20'].icon,
+    description: 'BRC-20 token analytics',
     category: 'Tools'
   },
   {
-    id: 'alerts',
-    label: 'Alerts',
-    href: '/alerts',
-    icon: NavigationIcons['/portfolio'].icon,
-    description: 'Price alerts & notifications',
-    badge: 'NEW',
-    badgeType: 'new',
+    id: 'rare-sats',
+    label: 'Rare Sats',
+    href: '/rare-sats',
+    icon: NavigationIcons['/rare-sats'].icon,
+    description: 'Rare satoshi hunting',
     category: 'Tools'
   },
   {
-    id: 'tools',
-    label: 'Trading Tools',
-    href: '/tools',
-    icon: NavigationIcons['/trading'].icon,
-    description: 'Position sizing & risk management',
-    badge: 'NEW',
-    badgeType: 'new',
-    category: 'Tools'
-  },
-  {
-    id: 'tax',
-    label: 'Tax Reports',
-    href: '/tax',
-    icon: NavigationIcons['/portfolio'].icon,
-    description: 'Generate tax reports',
-    badge: 'NEW',
-    badgeType: 'new',
-    category: 'Tools'
-  },
-  {
-    id: 'cypher-ai',
-    label: 'CYPHER AI',
-    href: '/cypher-ai',
-    icon: NavigationIcons['/cypher-ai'].icon,
-    description: 'Advanced AI Trading Intelligence',
-    badge: 'PRO',
-    badgeType: 'info',
-    isPro: true,
-    category: 'Tools'
-  },
-  {
-    id: 'trading-agent',
-    label: 'Trading Agent',
-    href: '/trading-agent',
-    icon: NavigationIcons['/cypher-ai'].icon,
-    description: 'AI Autonomous Trading Agent',
-    badge: 'NEW',
-    badgeType: 'new',
-    category: 'Tools'
-  },
-  {
-    id: 'social',
-    label: 'Social',
-    href: '/social',
-    icon: NavigationIcons['/social'].icon,
-    description: 'Community & sentiment',
-    category: 'Tools'
-  },
-  {
-    id: 'neural',
-    label: 'Neural Lab',
-    href: '/neural',
-    icon: NavigationIcons['/neural'].icon,
-    description: 'AI model training & testing',
-    badge: 'BETA',
+    id: 'bug-report',
+    label: 'Report Bug',
+    href: '/bug-report',
+    icon: NavigationIcons['/bug-report'].icon,
+    description: 'Report errors and bugs',
+    badge: 'HELP',
     badgeType: 'warning',
-    category: 'Labs'
+    category: 'Tools'
   },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    href: '/analytics',
-    icon: NavigationIcons['/analytics'].icon,
-    description: 'Glassnode-level On-Chain Data',
-    badge: 'PRO',
-    badgeType: 'info',
-    category: 'Labs'
-  },
-  {
-    id: 'training',
-    label: 'Training',
-    href: '/training',
-    icon: NavigationIcons['/training'].icon,
-    description: 'Learn AI trading strategies',
-    category: 'Labs'
-  },
-  {
-    id: 'integrations',
-    label: 'Integrations',
-    href: '/integrations',
-    icon: NavigationIcons['/integrations'].icon,
-    description: 'Connect exchanges & wallets',
-    category: 'Labs'
-  },
-  {
-    id: 'whitepaper',
-    label: 'Whitepaper',
-    href: '/whitepaper',
-    icon: NavigationIcons['/documentation'].icon,
-    description: 'Protocol & Vision',
-    badge: 'NEW',
-    badgeType: 'new',
-    category: 'Labs'
-  }
 ]
 
 const mobileCategories = [
@@ -319,7 +235,7 @@ export function MainNavigation() {
 
           {/* Desktop Navigation Items - hidden on mobile */}
           <div className="hidden md:flex items-center gap-1 overflow-x-auto scrollbar-hide">
-            {navigationItems.slice(0, 10).map((item) => {
+            {navigationItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
 
@@ -368,58 +284,6 @@ export function MainNavigation() {
               )
             })}
 
-            {/* More Menu */}
-            <div className="relative">
-              <button
-                className="px-3 py-2 rounded-lg hover:bg-white/10 transition-colors group"
-                onMouseEnter={() => setHoveredItem('more')}
-                onMouseLeave={() => setHoveredItem(null)}
-              >
-                <span className="text-sm font-medium text-white/70 group-hover:text-white">More</span>
-              </button>
-
-              {hoveredItem === 'more' && (
-                <div className="absolute top-full right-0 mt-2 w-56 bg-black/95 backdrop-blur-sm border border-white/10 rounded-lg shadow-xl z-50">
-                  {navigationItems.slice(10).map((item) => {
-                    const Icon = item.icon
-                    const isActive = pathname === item.href
-
-                    return (
-                      <Link
-                        key={item.id}
-                        href={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors",
-                          isActive && "bg-white/10"
-                        )}
-                      >
-                        <Icon className={cn(
-                          "w-4 h-4",
-                          isActive ? "text-orange-500" : "text-white/70"
-                        )} />
-                        <span className={cn(
-                          "text-sm font-medium",
-                          isActive ? "text-orange-500" : "text-white/70"
-                        )}>
-                          {item.label}
-                        </span>
-                        {item.badge && (
-                          <span className={cn(
-                            "ml-auto px-1.5 py-0.5 text-[10px] font-bold rounded-md",
-                            item.badgeType === 'success' && "bg-green-500/20 text-green-400",
-                            item.badgeType === 'warning' && "bg-yellow-500/20 text-yellow-400",
-                            item.badgeType === 'info' && "bg-blue-500/20 text-blue-400",
-                            item.badgeType === 'new' && "bg-purple-500/20 text-purple-400"
-                          )}>
-                            {item.badge}
-                          </span>
-                        )}
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
           </div>
 
           {/* Wallet Buttons */}

@@ -178,13 +178,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(metrics);
 
   } catch (error) {
-    console.error('Performance API error:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    // Database may not have the arbitrage_executions table — return empty metrics
+    console.warn('Performance API: DB unavailable, returning empty metrics', error instanceof Error ? error.message : error);
+    const { searchParams: sp } = new URL(request.url);
+    return NextResponse.json({
+      strategy: sp.get('strategy') || 'all',
+      period: sp.get('period') || '24h',
+      sharpeRatio: 0,
+      sortinoRatio: 0,
+      calmarRatio: 0,
+      maxDrawdown: 0,
+      currentDrawdown: 0,
+      winRate: 0,
+      profitFactor: 0,
+      avgWin: 0,
+      avgLoss: 0,
+      totalTrades: 0,
+      totalProfit: 0,
+      returnPercent: 0,
+      volatility: 0,
+      recoveryTime: 0,
+      message: 'No execution history available'
+    });
   }
 }

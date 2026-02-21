@@ -21,10 +21,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { address } = await params;
     const searchParams = request.nextUrl.searchParams;
     
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const sortBy = searchParams.get('sort') || 'number'; // number, timestamp, value
-    const order = searchParams.get('order') || 'desc'; // asc, desc
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20', 10), 1), 100);
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10), 0);
+    const validSorts = ['number', 'timestamp', 'value'];
+    const sortBy = validSorts.includes(searchParams.get('sort') || '') ? searchParams.get('sort')! : 'number';
+    const validOrders = ['asc', 'desc'];
+    const order = validOrders.includes(searchParams.get('order') || '') ? searchParams.get('order')! : 'desc';
     const contentType = searchParams.get('content_type'); // filter by content type
     const rarity = searchParams.get('rarity'); // filter by sat rarity
 
@@ -87,10 +89,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Inscriptions by address API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch inscriptions',
-        message: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to fetch inscriptions'
       },
       { status: 500 }
     );

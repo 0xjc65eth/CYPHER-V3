@@ -53,42 +53,30 @@ interface TradingPair {
   volume: number;
 }
 
-// Mock data for demonstration
-const mockMarketData: MarketData = {
-  btcPrice: 67500,
-  btcChange24h: 1250,
-  btcChangePercent24h: 1.89,
-  marketCap: 1.33e12,
-  volume24h: 28.5e9,
-  dominance: 54.2,
+// Default data - replaced with real data from hooks when available
+// TODO: Replace with real data from useMarketData() hook
+const defaultMarketData: MarketData = {
+  btcPrice: 0,
+  btcChange24h: 0,
+  btcChangePercent24h: 0,
+  marketCap: 0,
+  volume24h: 0,
+  dominance: 0,
 };
 
-const mockPortfolioData: PortfolioData = {
-  totalValue: 125000,
-  todayChange: 3750,
-  todayChangePercent: 3.09,
-  totalProfit: 25000,
-  totalProfitPercent: 25.0,
+const defaultPortfolioData: PortfolioData = {
+  totalValue: 0,
+  todayChange: 0,
+  todayChangePercent: 0,
+  totalProfit: 0,
+  totalProfitPercent: 0,
 };
 
-const mockTickerData: TradingPair[] = [
-  { symbol: 'BTC', price: 67500, change24h: 1250, changePercent24h: 1.89, volume: 28.5e9 },
-  { symbol: 'ETH', price: 3750, change24h: -45, changePercent24h: -1.18, volume: 15.2e9 },
-  { symbol: 'ORDI', price: 42.50, change24h: 2.15, changePercent24h: 5.33, volume: 125e6 },
-  { symbol: 'RUNES', price: 0.85, change24h: 0.12, changePercent24h: 16.47, volume: 45e6 },
-];
+const defaultTickerData: TradingPair[] = [];
 
-const mockTopPerformers = [
-  { symbol: 'RUNES', change: 16.47, price: 0.85 },
-  { symbol: 'ORDI', change: 5.33, price: 42.50 },
-  { symbol: 'BTC', change: 1.89, price: 67500 },
-];
+const defaultTopPerformers: Array<{ symbol: string; change: number; price: number }> = [];
 
-const mockRecentTransactions = [
-  { type: 'Buy', asset: 'BTC', amount: 0.5, price: 67200, time: '2 min ago' },
-  { type: 'Sell', asset: 'ORDI', amount: 100, price: 41.80, time: '15 min ago' },
-  { type: 'Buy', asset: 'RUNES', amount: 1000, price: 0.72, time: '1 hour ago' },
-];
+const defaultRecentTransactions: Array<{ type: string; asset: string; amount: number; price: number; time: string }> = [];
 
 export const FinancialDashboard: React.FC = () => {
   const [marketStatus, setMarketStatus] = useState<'open' | 'closed' | 'pre-market' | 'after-hours'>('open');
@@ -118,7 +106,7 @@ export const FinancialDashboard: React.FC = () => {
   return (
     <div className="ws-theme min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Market Ticker Tape */}
-      <MarketTickerTape items={mockTickerData} />
+      <MarketTickerTape items={defaultTickerData} />
 
       <div className="container mx-auto px-6 py-8">
         {/* Header Section */}
@@ -150,32 +138,32 @@ export const FinancialDashboard: React.FC = () => {
         <ExecutiveSummaryGrid>
           <StockPriceCard
             title="Bitcoin Price"
-            value={mockMarketData.btcPrice}
-            change={mockMarketData.btcChange24h}
-            changePercent={mockMarketData.btcChangePercent24h}
+            value={defaultMarketData.btcPrice}
+            change={defaultMarketData.btcChange24h}
+            changePercent={defaultMarketData.btcChangePercent24h}
             prefix="$"
             icon={<Bitcoin size={24} />}
           />
           
           <StockPriceCard
             title="Portfolio Value"
-            value={mockPortfolioData.totalValue}
-            change={mockPortfolioData.todayChange}
-            changePercent={mockPortfolioData.todayChangePercent}
+            value={defaultPortfolioData.totalValue}
+            change={defaultPortfolioData.todayChange}
+            changePercent={defaultPortfolioData.todayChangePercent}
             prefix="$"
             icon={<Wallet size={24} />}
           />
           
           <StockPriceCard
             title="24h Volume"
-            value={`${(mockMarketData.volume24h / 1e9).toFixed(1)}B`}
+            value={`${(defaultMarketData.volume24h / 1e9).toFixed(1)}B`}
             prefix="$"
             icon={<BarChart3 size={24} />}
           />
           
           <StockPriceCard
             title="BTC Dominance"
-            value={`${mockMarketData.dominance}%`}
+            value={`${defaultMarketData.dominance}%`}
             icon={<PieChart size={24} />}
           />
         </ExecutiveSummaryGrid>
@@ -190,18 +178,18 @@ export const FinancialDashboard: React.FC = () => {
                   <div className="space-y-4">
                     <FinancialMetric
                       label="Total Profit/Loss"
-                      value={mockPortfolioData.totalProfit}
+                      value={defaultPortfolioData.totalProfit}
                       trend="up"
                       prefix="$"
                     />
                     <FinancialMetric
                       label="Total ROI"
-                      value={`${mockPortfolioData.totalProfitPercent}%`}
+                      value={`${defaultPortfolioData.totalProfitPercent}%`}
                       trend="up"
                     />
                     <FinancialMetric
                       label="Today's P&L"
-                      value={mockPortfolioData.todayChange}
+                      value={defaultPortfolioData.todayChange}
                       trend="up"
                       prefix="$"
                     />
@@ -247,7 +235,7 @@ export const FinancialDashboard: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-semibold text-gray-400 mb-3">Top Performers (24h)</h4>
                   <div className="space-y-2">
-                    {mockTopPerformers.map((asset, index) => (
+                    {defaultTopPerformers.map((asset, index) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg">
                         <span className="font-medium">{asset.symbol}</span>
                         <div className="text-right">
@@ -333,7 +321,7 @@ export const FinancialDashboard: React.FC = () => {
           {/* Recent Transactions */}
           <ExecutiveCard title="Recent Activity">
             <div className="space-y-4">
-              {mockRecentTransactions.map((tx, index) => (
+              {defaultRecentTransactions.map((tx, index) => (
                 <div
                   key={index}
                   className="flex justify-between items-center p-4 bg-slate-800/30 rounded-lg border border-slate-700/50 ws-slide-in"

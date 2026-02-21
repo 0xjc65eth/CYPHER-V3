@@ -127,24 +127,21 @@ async function fetchAssetPrices(assets: string[], currency: string) {
   };
 
   for (const asset of assets) {
-    const basePrice = basePrices[asset.toUpperCase()] || Math.random() * 1000;
-    const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-    const currentPrice = basePrice * (1 + variation);
-    
-    const change24h = (Math.random() - 0.5) * 20; // ±10% daily change
-    const volume24h = Math.random() * 1000000; // Random volume
+    const basePrice = basePrices[asset.toUpperCase()] || 0;
+    if (basePrice === 0) continue; // Skip unknown assets
 
     prices[asset] = {
       symbol: asset,
-      price: currentPrice,
+      price: basePrice,
       currency,
-      change24h,
-      change24hPercent: (change24h / basePrice) * 100,
-      volume24h,
-      marketCap: currentPrice * Math.random() * 21000000, // Mock market cap
-      high24h: currentPrice * (1 + Math.random() * 0.1),
-      low24h: currentPrice * (1 - Math.random() * 0.1),
-      lastUpdated: new Date().toISOString()
+      change24h: 0,
+      change24hPercent: 0,
+      volume24h: 0,
+      marketCap: 0,
+      high24h: basePrice,
+      low24h: basePrice,
+      lastUpdated: new Date().toISOString(),
+      isFallback: true
     };
   }
 
@@ -169,11 +166,11 @@ async function fetchDetailedAssetPrices(
       sparkline: options.includeChange ? generateSparklineData() : undefined,
       volumeProfile: options.includeVolume ? generateVolumeProfile() : undefined,
       technicalIndicators: {
-        rsi: Math.random() * 100,
+        rsi: 50,
         macd: {
-          macd: (Math.random() - 0.5) * 100,
-          signal: (Math.random() - 0.5) * 100,
-          histogram: (Math.random() - 0.5) * 50
+          macd: 0,
+          signal: 0,
+          histogram: 0
         },
         bollinger: {
           upper: basicPrice.price * 1.1,
@@ -182,9 +179,9 @@ async function fetchDetailedAssetPrices(
         }
       },
       sentiment: {
-        score: Math.random() * 100,
-        sentiment: Math.random() > 0.5 ? 'bullish' : 'bearish',
-        confidence: Math.random() * 100
+        score: 50,
+        sentiment: 'neutral',
+        confidence: 0
       }
     };
   }
@@ -193,28 +190,24 @@ async function fetchDetailedAssetPrices(
 }
 
 async function fetchSingleAssetPrice(asset: string, currency: string) {
-  // This would integrate with actual price APIs
-  // For now, return mock data with realistic structure
-  
-  const basePrice = Math.random() * 1000 + 100;
-  const change24h = (Math.random() - 0.5) * 20;
-  
+  // Price data unavailable - requires real API integration
   return {
     symbol: asset,
     name: getAssetName(asset),
-    price: basePrice,
+    price: 0,
     currency,
-    change24h,
-    change24hPercent: (change24h / basePrice) * 100,
-    volume24h: Math.random() * 1000000,
-    marketCap: basePrice * Math.random() * 21000000,
-    circulatingSupply: Math.random() * 21000000,
-    totalSupply: Math.random() * 21000000,
-    high24h: basePrice * (1 + Math.random() * 0.1),
-    low24h: basePrice * (1 - Math.random() * 0.1),
-    ath: basePrice * (1 + Math.random() * 2),
-    atl: basePrice * (1 - Math.random() * 0.8),
-    lastUpdated: new Date().toISOString()
+    change24h: 0,
+    change24hPercent: 0,
+    volume24h: 0,
+    marketCap: 0,
+    circulatingSupply: 0,
+    totalSupply: 0,
+    high24h: 0,
+    low24h: 0,
+    ath: 0,
+    atl: 0,
+    lastUpdated: new Date().toISOString(),
+    isFallback: true
   };
 }
 
@@ -239,9 +232,8 @@ function generateSparklineData(): number[] {
   const sparkline: number[] = [];
   let currentPrice = 100;
   
+  // Return flat line - real sparkline requires historical price data
   for (let i = 0; i < points; i++) {
-    const change = (Math.random() - 0.5) * 5; // ±2.5% hourly change
-    currentPrice *= (1 + change / 100);
     sparkline.push(Number(currentPrice.toFixed(2)));
   }
   
@@ -255,7 +247,7 @@ function generateVolumeProfile(): Array<{ price: number; volume: number }> {
   for (let i = 0; i < 20; i++) {
     profile.push({
       price: basePrice * (0.9 + (i / 20) * 0.2), // Price range ±10%
-      volume: Math.random() * 1000000
+      volume: 0
     });
   }
   

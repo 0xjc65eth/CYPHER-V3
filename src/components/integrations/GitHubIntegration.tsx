@@ -20,7 +20,10 @@ export const GitHubIntegration: React.FC<{ className?: string }> = ({ className 
 
   const checkGitHubConnection = async () => {
     try {
-      const token = localStorage.getItem('github_token');
+      // Fetch token from server-side session instead of localStorage (XSS-safe)
+      const tokenRes = await fetch('/api/auth/github/token');
+      if (!tokenRes.ok) return;
+      const { token } = await tokenRes.json();
       if (token) {
         const response = await fetch('https://api.github.com/user', {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -61,8 +64,12 @@ export const GitHubIntegration: React.FC<{ className?: string }> = ({ className 
     }
   };
 
-  const disconnectGitHub = () => {
-    localStorage.removeItem('github_token');
+  const disconnectGitHub = async () => {
+    try {
+      await fetch('/api/auth/github/token', { method: 'DELETE' });
+    } catch (err) {
+      console.error('GitHub disconnect failed:', err);
+    }
     setUser(null);
     setIsConnected(false);
   };  return (

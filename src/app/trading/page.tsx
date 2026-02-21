@@ -138,7 +138,13 @@ export default function TradingPage() {
       if (!res.ok) throw new Error('err')
       const raw = await res.json()
       setRawKlines(raw)
-      if (raw.length > 0) setLastPrice(parseFloat(raw[raw.length - 1][4]))
+      if (raw.length > 0) {
+        const lastCandle = raw[raw.length - 1];
+        if (lastCandle && lastCandle[4] !== undefined) {
+          const price = parseFloat(lastCandle[4]);
+          if (!isNaN(price)) setLastPrice(price);
+        }
+      }
     } catch (e) { console.error('[Trading] klines:', e) }
   }, [market.binance, timeframe.interval])
 

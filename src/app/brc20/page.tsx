@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
+import { PremiumContent } from '@/components/premium-content'
 
 function formatNum(n: number | string | null | undefined): string {
   if (n == null) return '--'
@@ -362,13 +363,13 @@ export default function BRC20Page() {
                 Token List
               </TabsTrigger>
               <TabsTrigger value="mint" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent data-[state=active]:text-[#3b82f6] text-gray-500 px-4 py-2 text-sm font-mono">
-                Mint Tracker
+                Mint Tracker <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent data-[state=active]:text-[#3b82f6] text-gray-500 px-4 py-2 text-sm font-mono">
-                Analytics
+                Analytics <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
               </TabsTrigger>
               <TabsTrigger value="dex" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#3b82f6] data-[state=active]:bg-transparent data-[state=active]:text-[#3b82f6] text-gray-500 px-4 py-2 text-sm font-mono">
-                DEX Activity
+                DEX Activity <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -442,73 +443,112 @@ export default function BRC20Page() {
             </div>
           </TabsContent>
 
-          {/* Mint Tracker Tab */}
+          {/* Mint Tracker Tab (YHP Premium) */}
           <TabsContent value="mint">
-            {renderActivityTable(
-              mintActivity.length > 0 ? mintActivity : activity.filter(a => a.operation === 'mint'),
-              mintLoading || (loading && mintActivity.length === 0),
-              'No minting activity available'
-            )}
+            <PremiumContent fallback={
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-16 h-16 bg-[#1a1a2e] border border-[#3b82f6]/30 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl">🔒</span>
+                </div>
+                <h3 className="text-lg font-bold text-[#3b82f6] mb-2 font-mono">MINT TRACKER — YHP ACCESS</h3>
+                <p className="text-gray-400 text-sm text-center max-w-md mb-4">
+                  Real-time BRC-20 minting activity requires Yield Hacker Pass. Connect your ETH wallet to verify.
+                </p>
+                <div className="text-[10px] text-gray-600 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+              </div>
+            }>
+              {renderActivityTable(
+                mintActivity.length > 0 ? mintActivity : activity.filter(a => a.operation === 'mint'),
+                mintLoading || (loading && mintActivity.length === 0),
+                'No minting activity available'
+              )}
+            </PremiumContent>
           </TabsContent>
 
-          {/* Analytics Tab */}
+          {/* Analytics Tab (YHP Premium) */}
           <TabsContent value="analytics">
-            {analyticsLoading ? (
-              <StatsSkeleton />
-            ) : (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {[
-                    { label: 'Total Tokens', value: formatNum(analytics?.total_tokens ?? totalTokens) },
-                    { label: 'Total Holders', value: formatNum(analytics?.total_holders ?? totalHolders) },
-                    { label: 'Total Transactions', value: formatNum(analytics?.total_transactions) },
-                    { label: 'Total Mints', value: formatNum(analytics?.total_mints) },
-                    { label: 'Total Transfers', value: formatNum(analytics?.total_transfers) },
-                    { label: 'Market Cap (USD)', value: analytics?.market_cap_usd ? `$${formatNum(analytics.market_cap_usd)}` : '--' },
-                    { label: '24h Volume (USD)', value: analytics?.volume_24h_usd ? `$${formatNum(analytics.volume_24h_usd)}` : '--' },
-                    { label: 'Active Tokens', value: formatNum(analytics?.active_tokens) },
-                  ].map(s => (
-                    <div key={s.label} className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
-                      <div className="text-xs text-gray-500 mb-1">{s.label}</div>
-                      <div className="text-lg font-bold text-[#3b82f6]">{s.value}</div>
-                    </div>
-                  ))}
+            <PremiumContent fallback={
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-16 h-16 bg-[#1a1a2e] border border-[#3b82f6]/30 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl">🔒</span>
                 </div>
-
-                {/* Mint completion distribution */}
-                <div>
-                  <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Mint Completion Distribution</h3>
-                  <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
-                    {tokens.length === 0 ? (
-                      <div className="text-center text-gray-500 py-4">No token data available</div>
-                    ) : (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[
-                          { label: '0-25%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p < 25 }).length },
-                          { label: '25-50%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p >= 25 && p < 50 }).length },
-                          { label: '50-75%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p >= 50 && p < 75 }).length },
-                          { label: '75-100%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p >= 75 }).length },
-                        ].map(bucket => (
-                          <div key={bucket.label} className="text-center">
-                            <div className="text-2xl font-bold text-[#3b82f6]">{bucket.count}</div>
-                            <div className="text-xs text-gray-500">{bucket.label} minted</div>
-                          </div>
-                        ))}
+                <h3 className="text-lg font-bold text-[#3b82f6] mb-2 font-mono">ANALYTICS — YHP ACCESS</h3>
+                <p className="text-gray-400 text-sm text-center max-w-md mb-4">
+                  BRC-20 market analytics and insights require Yield Hacker Pass. Connect your ETH wallet to verify.
+                </p>
+                <div className="text-[10px] text-gray-600 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+              </div>
+            }>
+              {analyticsLoading ? (
+                <StatsSkeleton />
+              ) : (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {[
+                      { label: 'Total Tokens', value: formatNum(analytics?.total_tokens ?? totalTokens) },
+                      { label: 'Total Holders', value: formatNum(analytics?.total_holders ?? totalHolders) },
+                      { label: 'Total Transactions', value: formatNum(analytics?.total_transactions) },
+                      { label: 'Total Mints', value: formatNum(analytics?.total_mints) },
+                      { label: 'Total Transfers', value: formatNum(analytics?.total_transfers) },
+                      { label: 'Market Cap (USD)', value: analytics?.market_cap_usd ? `$${formatNum(analytics.market_cap_usd)}` : '--' },
+                      { label: '24h Volume (USD)', value: analytics?.volume_24h_usd ? `$${formatNum(analytics.volume_24h_usd)}` : '--' },
+                      { label: 'Active Tokens', value: formatNum(analytics?.active_tokens) },
+                    ].map(s => (
+                      <div key={s.label} className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
+                        <div className="text-xs text-gray-500 mb-1">{s.label}</div>
+                        <div className="text-lg font-bold text-[#3b82f6]">{s.value}</div>
                       </div>
-                    )}
+                    ))}
+                  </div>
+
+                  {/* Mint completion distribution */}
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-wider">Mint Completion Distribution</h3>
+                    <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
+                      {tokens.length === 0 ? (
+                        <div className="text-center text-gray-500 py-4">No token data available</div>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {[
+                            { label: '0-25%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p < 25 }).length },
+                            { label: '25-50%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p >= 25 && p < 50 }).length },
+                            { label: '50-75%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p >= 50 && p < 75 }).length },
+                            { label: '75-100%', count: tokens.filter(t => { const p = mintProgress(t.total_minted, t.max_supply); return p >= 75 }).length },
+                          ].map(bucket => (
+                            <div key={bucket.label} className="text-center">
+                              <div className="text-2xl font-bold text-[#3b82f6]">{bucket.count}</div>
+                              <div className="text-xs text-gray-500">{bucket.label} minted</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </PremiumContent>
           </TabsContent>
 
-          {/* DEX Activity Tab */}
+          {/* DEX Activity Tab (YHP Premium) */}
           <TabsContent value="dex">
-            {renderActivityTable(
-              dexActivity.length > 0 ? dexActivity : activity.filter(a => a.operation === 'transfer' || a.operation === 'trade'),
-              dexLoading || (loading && dexActivity.length === 0),
-              'No DEX trading activity available'
-            )}
+            <PremiumContent fallback={
+              <div className="flex flex-col items-center justify-center py-20 px-4">
+                <div className="w-16 h-16 bg-[#1a1a2e] border border-[#3b82f6]/30 rounded-full flex items-center justify-center mb-4">
+                  <span className="text-2xl">🔒</span>
+                </div>
+                <h3 className="text-lg font-bold text-[#3b82f6] mb-2 font-mono">DEX ACTIVITY — YHP ACCESS</h3>
+                <p className="text-gray-400 text-sm text-center max-w-md mb-4">
+                  BRC-20 DEX trading activity requires Yield Hacker Pass. Connect your ETH wallet to verify.
+                </p>
+                <div className="text-[10px] text-gray-600 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+              </div>
+            }>
+              {renderActivityTable(
+                dexActivity.length > 0 ? dexActivity : activity.filter(a => a.operation === 'transfer' || a.operation === 'trade'),
+                dexLoading || (loading && dexActivity.length === 0),
+                'No DEX trading activity available'
+              )}
+            </PremiumContent>
           </TabsContent>
         </Tabs>
       </div>

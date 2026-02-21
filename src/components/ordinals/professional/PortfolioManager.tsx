@@ -26,7 +26,7 @@ interface PortfolioManagerProps {
 }
 
 export default function PortfolioManager({ address }: PortfolioManagerProps) {
-  const { connect, connecting } = useLaserEyes()
+  const { connect, connecting, ordinalsAddress } = useLaserEyes()
   const [activeTab, setActiveTab] = useState<'overview' | 'collections' | 'brc20' | 'inscriptions'>('overview')
 
   const {
@@ -38,7 +38,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
     isLoading,
     isError,
     refetchAll,
-  } = usePortfolio(address)
+  } = usePortfolio(address, ordinalsAddress)
 
   const [connectError, setConnectError] = useState<string | null>(null)
 

@@ -28,6 +28,7 @@ import {
   Info
 } from 'lucide-react';
 import Link from 'next/link';
+import { PremiumContent } from '@/components/premium-content';
 import { RunesTerminalProvider } from '@/contexts/RunesTerminalContext';
 import { useArbitrage } from '@/hooks/useArbitrage';
 import ArbitrageHeatmap from '@/components/arbitrage/ArbitrageHeatmap';
@@ -319,6 +320,19 @@ export default function ArbitragePage() {
 
   const bestOpp = arbData?.opportunities?.[0];
 
+  const arbYhpFallback = (tabName: string) => (
+    <div className="flex flex-col items-center justify-center py-20 px-4">
+      <div className="w-16 h-16 bg-[#1a1a2e] border border-[#00ff88]/30 rounded-full flex items-center justify-center mb-4">
+        <span className="text-2xl">🔒</span>
+      </div>
+      <h3 className="text-lg font-bold text-[#00ff88] mb-2 font-mono">{tabName} — YHP ACCESS</h3>
+      <p className="text-gray-400 text-sm text-center max-w-md mb-4">
+        This arbitrage feature requires Yield Hacker Pass. Connect your ETH wallet to verify YHP ownership.
+      </p>
+      <div className="text-[10px] text-gray-600 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+    </div>
+  );
+
   return (
     <RunesTerminalProvider>
       <div className="min-h-screen bg-[#0a0a0f] text-white font-mono">
@@ -368,34 +382,34 @@ export default function ArbitragePage() {
                   Live Scanner
                 </TabsTrigger>
                 <TabsTrigger value="cross-exchange" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Cross-Exchange
+                  Cross-Exchange <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="triangular" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Triangular
+                  Triangular <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="analytics" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Analytics
+                  Analytics <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="smc" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  SMC Analysis
+                  SMC Analysis <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="performance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Performance
+                  Performance <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Risk
+                  Risk <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="charts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Charts
+                  Charts <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="paper-trading" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Paper Trading
+                  Paper Trading <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="backtest" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Backtest
+                  Backtest <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="alerts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Alerts
+                  Alerts <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
                 <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
                   History
@@ -582,8 +596,9 @@ export default function ArbitragePage() {
               </div>
             </TabsContent>
 
-            {/* Cross-Exchange Tab */}
+            {/* Cross-Exchange Tab (YHP Premium) */}
             <TabsContent value="cross-exchange">
+              <PremiumContent fallback={arbYhpFallback('CROSS-EXCHANGE')}>
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
@@ -772,10 +787,12 @@ export default function ArbitragePage() {
                   </Card>
                 </div>
               </div>
+              </PremiumContent>
             </TabsContent>
 
-            {/* Triangular Tab */}
+            {/* Triangular Tab (YHP Premium) */}
             <TabsContent value="triangular">
+              <PremiumContent fallback={arbYhpFallback('TRIANGULAR ARBITRAGE')}>
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-bold text-[#00ff88]">Triangular Arbitrage Paths</h2>
@@ -856,10 +873,12 @@ export default function ArbitragePage() {
                   </div>
                 </div>
               </div>
+              </PremiumContent>
             </TabsContent>
 
-            {/* Analytics Tab */}
+            {/* Analytics Tab (YHP Premium) */}
             <TabsContent value="analytics">
+              <PremiumContent fallback={arbYhpFallback('ANALYTICS')}>
               {(() => {
                 // Compute real analytics from arbData
                 const allOpps = arbData?.opportunities || [];
@@ -953,10 +972,12 @@ export default function ArbitragePage() {
                   </div>
                 );
               })()}
+              </PremiumContent>
             </TabsContent>
 
-            {/* SMC Analysis Tab */}
+            {/* SMC Analysis Tab (YHP Premium) */}
             <TabsContent value="smc">
+              <PremiumContent fallback={arbYhpFallback('SMC ANALYSIS')}>
               <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -1040,61 +1061,71 @@ export default function ArbitragePage() {
                   </div>
                 </div>
               </div>
+              </PremiumContent>
             </TabsContent>
 
-            {/* Performance Tab */}
+            {/* Performance Tab (YHP Premium) */}
             <TabsContent value="performance">
-              <PerformanceAnalytics strategy="all" defaultPeriod="24h" />
+              <PremiumContent fallback={arbYhpFallback('PERFORMANCE')}>
+                <PerformanceAnalytics strategy="all" defaultPeriod="24h" />
+              </PremiumContent>
             </TabsContent>
 
-            {/* Risk Management Tab */}
+            {/* Risk Management Tab (YHP Premium) */}
             <TabsContent value="risk">
-              <RiskManagementPanel
-                capital={10000}
-                currentExposure={0}
-                currentDrawdown={0}
-              />
+              <PremiumContent fallback={arbYhpFallback('RISK MANAGEMENT')}>
+                <RiskManagementPanel
+                  capital={10000}
+                  currentExposure={0}
+                  currentDrawdown={0}
+                />
+              </PremiumContent>
             </TabsContent>
 
-            {/* Charts Tab - Phase 4 */}
+            {/* Charts Tab (YHP Premium) */}
             <TabsContent value="charts">
-              <div className="space-y-6">
-                {/* Professional TradingView-style Charts */}
-                <ProfessionalCharts
-                  symbol="BTC/USDT"
-                  timeframe="1h"
-                  height={500}
-                  showSMC={true}
-                />
-
-                {/* Liquidity Heatmap */}
-                <LiquidityHeatmap
-                  symbol="BTC/USDT"
-                  levels={30}
-                />
-              </div>
+              <PremiumContent fallback={arbYhpFallback('PROFESSIONAL CHARTS')}>
+                <div className="space-y-6">
+                  <ProfessionalCharts
+                    symbol="BTC/USDT"
+                    timeframe="1h"
+                    height={500}
+                    showSMC={true}
+                  />
+                  <LiquidityHeatmap
+                    symbol="BTC/USDT"
+                    levels={30}
+                  />
+                </div>
+              </PremiumContent>
             </TabsContent>
 
-            {/* Paper Trading Tab - Phase 5 */}
+            {/* Paper Trading Tab (YHP Premium) */}
             <TabsContent value="paper-trading">
-              <PaperTradingPanel
-                initialBalance={10000}
-                onTradeExecuted={() => {}}
-              />
+              <PremiumContent fallback={arbYhpFallback('PAPER TRADING')}>
+                <PaperTradingPanel
+                  initialBalance={10000}
+                  onTradeExecuted={() => {}}
+                />
+              </PremiumContent>
             </TabsContent>
 
-            {/* Backtest Tab - Phase 5 */}
+            {/* Backtest Tab (YHP Premium) */}
             <TabsContent value="backtest">
-              <BacktestPanel
-                onBacktestComplete={() => {}}
-              />
+              <PremiumContent fallback={arbYhpFallback('BACKTEST')}>
+                <BacktestPanel
+                  onBacktestComplete={() => {}}
+                />
+              </PremiumContent>
             </TabsContent>
 
-            {/* Alerts Tab - Phase 5 */}
+            {/* Alerts Tab (YHP Premium) */}
             <TabsContent value="alerts">
-              <AlertSystemPanel
-                onAlertTriggered={() => {}}
-              />
+              <PremiumContent fallback={arbYhpFallback('ALERT SYSTEM')}>
+                <AlertSystemPanel
+                  onAlertTriggered={() => {}}
+                />
+              </PremiumContent>
             </TabsContent>
 
             {/* History Tab */}

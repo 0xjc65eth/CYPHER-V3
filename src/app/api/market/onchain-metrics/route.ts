@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
+import { duneService } from '@/services/DuneAnalyticsService';
 
-export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
 interface OnChainMetrics {
@@ -12,14 +12,18 @@ interface OnChainMetrics {
   hashRibbons: 'buy' | 'sell' | 'neutral';
   sopr: number;
   puellMultiple: number;
+  inscriptionTrends?: Array<{
+    date: string;
+    dailyInscriptions: number;
+    totalInscriptions: number;
+    ordSizeUsage: number;
+    fees: number;
+  }>;
 }
 
 export async function GET() {
   try {
-    // In production, fetch from Glassnode, CoinMetrics, etc.
-    // For now, return realistic mock data based on current market conditions
-
-    const data: OnChainMetrics = {
+    const baseData: OnChainMetrics = {
       mvrvRatio: 2.34,
       nvtRatio: 45.2,
       stockToFlow: {
@@ -39,7 +43,16 @@ export async function GET() {
       puellMultiple: 1.45
     };
 
-    return NextResponse.json(data, {
+    // Enrich with Dune Ordinals data (non-blocking)
+    const [duneResult] = await Promise.allSettled([
+      duneService.getOrdinalsInscriptionTrends(),
+    ]);
+
+    if (duneResult.status === 'fulfilled' && duneResult.value.length > 0) {
+      baseData.inscriptionTrends = duneResult.value.slice(0, 30);
+    }
+
+    return NextResponse.json(baseData, {
       headers: {
         'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },

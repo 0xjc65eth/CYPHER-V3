@@ -172,44 +172,11 @@ export default function TradingChart({
     }
   };
 
-  // Gerar dados mock para demonstração
+  // Returns empty data — no mock/random candle generation.
+  // Real data should be fetched from the API and passed in as props.
   const generateMockData = useCallback((): CandleData[] => {
-    const data: CandleData[] = [];
-    const now = new Date();
-    const timeInterval = timeframe === '1m' ? 60000 : 
-                        timeframe === '5m' ? 300000 :
-                        timeframe === '15m' ? 900000 :
-                        timeframe === '1h' ? 3600000 :
-                        timeframe === '4h' ? 14400000 :
-                        timeframe === '1d' ? 86400000 : 604800000;
-
-    let basePrice = 97000; // Preço base do Bitcoin
-    let currentTime = now.getTime() - (100 * timeInterval);
-
-    for (let i = 0; i < 100; i++) {
-      const open = basePrice;
-      const volatility = 0.02; // 2% de volatilidade
-      const change = (Math.random() - 0.5) * volatility * basePrice;
-      const close = Math.max(open + change, 1000); // Mínimo de $1000
-      
-      const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-      const volume = Math.random() * 1000000 + 500000;
-
-      data.push({
-        time: new Date(currentTime).toISOString().split('.')[0] + 'Z',
-        open,
-        high,
-        low,
-        close,
-        volume
-      });
-
-      basePrice = close;
-      currentTime += timeInterval;
-    }
-
-    return data;
+    console.warn('[TradingChart] No real market data available. Chart will display empty state.');
+    return [];
   }, [timeframe]);
 
   // Calcular médias móveis
@@ -313,12 +280,15 @@ export default function TradingChart({
         }
       });
 
-      // Definir preço atual
+      // Set current price from real data if available
       if (mockData.length > 0) {
         const lastCandle = mockData[mockData.length - 1];
         const previousCandle = mockData[mockData.length - 2];
         setCurrentPrice(lastCandle.close);
         setPriceChange(lastCandle.close - previousCandle?.close || 0);
+      } else {
+        setCurrentPrice(null);
+        setPriceChange(0);
       }
 
       setIsLoading(false);
@@ -352,30 +322,11 @@ export default function TradingChart({
     return () => window.removeEventListener('resize', handleResize);
   }, [height, fullscreen]);
 
-  // Simular atualizações em tempo real
+  // Real-time updates disabled — requires real WebSocket/API feed
+  // No fake price simulation with Math.random()
   useEffect(() => {
     if (!candlestickSeriesRef.current || !chartData.length) return;
-
-    const interval = setInterval(() => {
-      const lastCandle = chartData[chartData.length - 1];
-      const variation = (Math.random() - 0.5) * 0.001 * lastCandle.close;
-      const newPrice = Math.max(lastCandle.close + variation, 1000);
-      
-      // Atualizar última vela
-      const updatedCandle = {
-        time: lastCandle.time,
-        open: lastCandle.open,
-        high: Math.max(lastCandle.high, newPrice),
-        low: Math.min(lastCandle.low, newPrice),
-        close: newPrice
-      };
-
-      candlestickSeriesRef.current?.update(updatedCandle);
-      setCurrentPrice(newPrice);
-      setPriceChange(newPrice - lastCandle.open);
-    }, 1000);
-
-    return () => clearInterval(interval);
+    // TODO: Connect to real-time price WebSocket (e.g., Binance WS) for live updates
   }, [chartData]);
 
   const toggleIndicator = (indicator: keyof ChartIndicators) => {
@@ -509,11 +460,22 @@ export default function TradingChart({
           </div>
         )}
         
-        <div 
+        <div
           ref={chartContainerRef}
           className="w-full"
           style={{ height: fullscreen ? 'calc(100vh - 100px)' : height }}
         />
+
+        {/* Empty data overlay */}
+        {!isLoading && chartData.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 z-10">
+            <div className="text-center text-gray-400">
+              <BarChart3 className="h-12 w-12 mx-auto mb-3 opacity-40" />
+              <p className="text-lg font-mono">No data available</p>
+              <p className="text-sm mt-1">Waiting for real market data from API</p>
+            </div>
+          </div>
+        )}
         
         {/* Scan line effect */}
         <div className={styles.scanLine}></div>

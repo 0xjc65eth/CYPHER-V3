@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { JsonRpcProvider, Contract } from 'ethers'
 import { YHP_CONTRACT_ADDRESS, YHP_COLLECTION_NAME } from '@/config/premium-collections'
+import { isVIPEthWallet } from '@/config/vip-wallets'
 
 // Minimal ERC721 ABI — only balanceOf
 const ERC721_ABI = ['function balanceOf(address owner) view returns (uint256)']
@@ -18,6 +19,21 @@ export function useYHPVerification(address: string | null) {
   const verify = useCallback(async (addr: string) => {
     setLoading(true)
     try {
+      // VIP ETH wallets get instant access — no contract call needed
+      if (isVIPEthWallet(addr)) {
+        setBalance(1)
+        setIsHolder(true)
+        window.dispatchEvent(new CustomEvent('walletConnected', {
+          detail: {
+            address: addr,
+            connected: true,
+            isPremium: true,
+            premiumCollection: 'VIP WALLET',
+          }
+        }))
+        return true
+      }
+
       const provider = new JsonRpcProvider(ETH_RPC_URL)
       const contract = new Contract(YHP_CONTRACT_ADDRESS, ERC721_ABI, provider)
       const bal = await contract.balanceOf(addr)

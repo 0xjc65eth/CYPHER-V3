@@ -2,11 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 // WALLET TEMPORARILY DISABLED - import { useWalletContext as useWallet } from '@/contexts/WalletContext';
-// WALLET TEMPORARILY DISABLED - import { mockWalletDataService } from '@/lib/services/EnhancedWalletDataService';
+// WALLET TEMPORARILY DISABLED - import { defaultWalletDataService } from '@/lib/services/EnhancedWalletDataService';
 // WALLET TEMPORARILY DISABLED - import type { PortfolioData, WalletBalance } from '@/contexts/WalletContext';
 // WALLET TEMPORARILY DISABLED - import type { OrdinalsData, RunesData, TransactionData } from '@/lib/services/EnhancedWalletDataService';
 
-// Mock types for mockWallet data
+// Default types for fallback wallet data
 type PortfolioData = any;
 type WalletBalance = any;
 type OrdinalsData = any;
@@ -50,7 +50,7 @@ export interface WalletPortfolioHook {
 }
 
 export function useWalletPortfolio(): WalletPortfolioHook {
-  // WALLET TEMPORARILY DISABLED - const mockWallet = useWallet();
+  // WALLET TEMPORARILY DISABLED - const defaultWallet = useWallet();
   
   // Local state for additional data
   const [ordinals, setOrdinals] = useState<OrdinalsData | null>(null);
@@ -59,54 +59,58 @@ export function useWalletPortfolio(): WalletPortfolioHook {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Mock mockWallet data
-  const mockWallet = {
+  // Fallback wallet data (wallet integration temporarily disabled)
+  const defaultWallet = {
     isConnected: false,
     address: null,
     balance: null,
     portfolioData: null,
     loading: false,
     error: null,
-    refreshBalance: async () => {},
-    refreshPortfolio: async () => {}
+    refreshBalance: async () => {
+      console.warn('[useWalletPortfolio] Using fallback wallet - refreshBalance is a no-op');
+    },
+    refreshPortfolio: async () => {
+      console.warn('[useWalletPortfolio] Using fallback wallet - refreshPortfolio is a no-op');
+    }
   };
 
   // Refresh functions
   const refreshBalance = useCallback(async () => {
-    if (!mockWallet.address || !mockWallet.isConnected) return;
+    if (!defaultWallet.address || !defaultWallet.isConnected) return;
     
     try {
       setIsLoading(true);
-      await mockWallet.refreshBalance();
+      await defaultWallet.refreshBalance();
     } catch (err: any) {
       console.error('Failed to refresh balance:', err);
       setError(err.message || 'Failed to refresh balance');
     } finally {
       setIsLoading(false);
     }
-  }, [mockWallet.address, mockWallet.isConnected, mockWallet.refreshBalance]);
+  }, [defaultWallet.address, defaultWallet.isConnected, defaultWallet.refreshBalance]);
 
   const refreshPortfolio = useCallback(async () => {
-    if (!mockWallet.address || !mockWallet.isConnected) return;
+    if (!defaultWallet.address || !defaultWallet.isConnected) return;
     
     try {
       setIsLoading(true);
-      await mockWallet.refreshPortfolio();
+      await defaultWallet.refreshPortfolio();
     } catch (err: any) {
       console.error('Failed to refresh portfolio:', err);
       setError(err.message || 'Failed to refresh portfolio');
     } finally {
       setIsLoading(false);
     }
-  }, [mockWallet.address, mockWallet.isConnected, mockWallet.refreshPortfolio]);
+  }, [defaultWallet.address, defaultWallet.isConnected, defaultWallet.refreshPortfolio]);
 
   const refreshOrdinals = useCallback(async () => {
-    if (!mockWallet.address || !mockWallet.isConnected) return;
+    if (!defaultWallet.address || !defaultWallet.isConnected) return;
     
     try {
       setIsLoading(true);
       setError(null);
-      // WALLET TEMPORARILY DISABLED - const ordinalsData = await walletDataService.getOrdinals(mockWallet.address);
+      // WALLET TEMPORARILY DISABLED - const ordinalsData = await walletDataService.getOrdinals(defaultWallet.address);
       const ordinalsData = null;
       setOrdinals(ordinalsData);
     } catch (err: any) {
@@ -115,15 +119,15 @@ export function useWalletPortfolio(): WalletPortfolioHook {
     } finally {
       setIsLoading(false);
     }
-  }, [mockWallet.address, mockWallet.isConnected]);
+  }, [defaultWallet.address, defaultWallet.isConnected]);
 
   const refreshRunes = useCallback(async () => {
-    if (!mockWallet.address || !mockWallet.isConnected) return;
+    if (!defaultWallet.address || !defaultWallet.isConnected) return;
     
     try {
       setIsLoading(true);
       setError(null);
-      // WALLET TEMPORARILY DISABLED - const runesData = await walletDataService.getRunes(mockWallet.address);
+      // WALLET TEMPORARILY DISABLED - const runesData = await walletDataService.getRunes(defaultWallet.address);
       const runesData = null;
       setRunes(runesData);
     } catch (err: any) {
@@ -132,15 +136,15 @@ export function useWalletPortfolio(): WalletPortfolioHook {
     } finally {
       setIsLoading(false);
     }
-  }, [mockWallet.address, mockWallet.isConnected]);
+  }, [defaultWallet.address, defaultWallet.isConnected]);
 
   const refreshTransactions = useCallback(async () => {
-    if (!mockWallet.address || !mockWallet.isConnected) return;
+    if (!defaultWallet.address || !defaultWallet.isConnected) return;
     
     try {
       setIsLoading(true);
       setError(null);
-      // WALLET TEMPORARILY DISABLED - const txData = await walletDataService.getTransactionHistory(mockWallet.address, 100);
+      // WALLET TEMPORARILY DISABLED - const txData = await walletDataService.getTransactionHistory(defaultWallet.address, 100);
       const txData: any[] = [];
       setTransactions(txData);
     } catch (err: any) {
@@ -149,10 +153,10 @@ export function useWalletPortfolio(): WalletPortfolioHook {
     } finally {
       setIsLoading(false);
     }
-  }, [mockWallet.address, mockWallet.isConnected]);
+  }, [defaultWallet.address, defaultWallet.isConnected]);
 
   const refreshAll = useCallback(async () => {
-    if (!mockWallet.address || !mockWallet.isConnected) return;
+    if (!defaultWallet.address || !defaultWallet.isConnected) return;
     
     setIsLoading(true);
     setError(null);
@@ -167,7 +171,7 @@ export function useWalletPortfolio(): WalletPortfolioHook {
       ]);
     } catch (err: any) {
       console.error('Failed to refresh all data:', err);
-      setError(err.message || 'Failed to refresh mockWallet data');
+      setError(err.message || 'Failed to refresh wallet data');
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +179,7 @@ export function useWalletPortfolio(): WalletPortfolioHook {
 
   // Calculate advanced portfolio metrics
   const portfolioMetrics = useMemo(() => {
-    if (!mockWallet.portfolioData || !mockWallet.balance) {
+    if (!defaultWallet.portfolioData || !defaultWallet.balance) {
       return {
         totalReturn: 0,
         totalReturnPercentage: 0,
@@ -187,20 +191,21 @@ export function useWalletPortfolio(): WalletPortfolioHook {
       };
     }
 
-    const { portfolioData, balance } = mockWallet;
+    const { portfolioData, balance } = defaultWallet;
     
     // Calculate basic returns
     const totalReturn = portfolioData.totalPNL;
     const totalReturnPercentage = portfolioData.totalPNLPercentage;
-    
-    // Mock day change (would need historical data)
-    const dayChange = balance.usd * 0.03; // 3% mock change
-    const dayChangePercentage = 3;
-    
-    // Calculate risk metrics (simplified)
-    const volatility = 0.65; // Bitcoin's typical volatility
-    const sharpeRatio = totalReturnPercentage > 0 ? totalReturnPercentage / volatility : 0;
-    const maxDrawdown = -15.3; // Mock max drawdown
+
+    // Day change and risk metrics require historical data - zeroed as fallback
+    console.warn('[useWalletPortfolio] Day change and risk metrics use fallback zeroed values (historical data not available)');
+    const dayChange = 0;
+    const dayChangePercentage = 0;
+
+    // Risk metrics zeroed - would need historical price series to compute
+    const volatility = 0;
+    const sharpeRatio = 0;
+    const maxDrawdown = 0;
     
     return {
       totalReturn,
@@ -208,23 +213,23 @@ export function useWalletPortfolio(): WalletPortfolioHook {
       dayChange,
       dayChangePercentage,
       sharpeRatio,
-      volatility: volatility * 100,
+      volatility,
       maxDrawdown,
     };
-  }, [mockWallet.portfolioData, mockWallet.balance]);
+  }, [defaultWallet.portfolioData, defaultWallet.balance]);
 
-  // Auto-refresh data when mockWallet connects
+  // Auto-refresh data when defaultWallet connects
   useEffect(() => {
-    if (mockWallet.isConnected && mockWallet.address) {
+    if (defaultWallet.isConnected && defaultWallet.address) {
       refreshOrdinals();
       refreshRunes();
       refreshTransactions();
     }
-  }, [mockWallet.isConnected, mockWallet.address, refreshOrdinals, refreshRunes, refreshTransactions]);
+  }, [defaultWallet.isConnected, defaultWallet.address, refreshOrdinals, refreshRunes, refreshTransactions]);
 
   // Auto-refresh periodically
   useEffect(() => {
-    if (!mockWallet.isConnected || !mockWallet.address) return;
+    if (!defaultWallet.isConnected || !defaultWallet.address) return;
 
     const interval = setInterval(() => {
       refreshBalance();
@@ -232,18 +237,18 @@ export function useWalletPortfolio(): WalletPortfolioHook {
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, [mockWallet.isConnected, mockWallet.address, refreshBalance, refreshPortfolio]);
+  }, [defaultWallet.isConnected, defaultWallet.address, refreshBalance, refreshPortfolio]);
 
   return {
     // Connection state
-    isConnected: mockWallet.isConnected,
-    isLoading: isLoading || mockWallet.loading,
-    error: error || mockWallet.error,
-    address: mockWallet.address,
+    isConnected: defaultWallet.isConnected,
+    isLoading: isLoading || defaultWallet.loading,
+    error: error || defaultWallet.error,
+    address: defaultWallet.address,
     
     // Portfolio data
-    portfolioData: mockWallet.portfolioData,
-    balance: mockWallet.balance,
+    portfolioData: defaultWallet.portfolioData,
+    balance: defaultWallet.balance,
     
     // Specific data
     ordinals,
@@ -268,8 +273,8 @@ export function useBitcoinWallet() {
   // WALLET TEMPORARILY DISABLED - const wallet = useWallet();
   const portfolio = useWalletPortfolio();
   
-  // Mock wallet data
-  const mockWallet = {
+  // Fallback wallet data (wallet integration temporarily disabled)
+  const defaultWallet = {
     balance: null,
     portfolioData: null,
     isConnected: false,
@@ -277,31 +282,31 @@ export function useBitcoinWallet() {
   };
   
   const bitcoinData = useMemo(() => {
-    if (!mockWallet.balance || !mockWallet.portfolioData) {
+    if (!defaultWallet.balance || !defaultWallet.portfolioData) {
       return {
         balance: 0,
         usdValue: 0,
         averageBuyPrice: 0,
-        currentPrice: 42000,
+        currentPrice: 0,
         totalPNL: 0,
         totalPNLPercentage: 0,
       };
     }
 
     return {
-      balance: mockWallet.balance.bitcoin,
-      usdValue: mockWallet.balance.usd,
-      averageBuyPrice: mockWallet.portfolioData.bitcoin.averageBuyPrice,
-      currentPrice: mockWallet.balance.usd / mockWallet.balance.bitcoin,
-      totalPNL: mockWallet.portfolioData.bitcoin.realizedPNL + mockWallet.portfolioData.bitcoin.unrealizedPNL,
-      totalPNLPercentage: ((mockWallet.balance.usd - (mockWallet.balance.bitcoin * mockWallet.portfolioData.bitcoin.averageBuyPrice)) / (mockWallet.balance.bitcoin * mockWallet.portfolioData.bitcoin.averageBuyPrice)) * 100,
+      balance: defaultWallet.balance.bitcoin,
+      usdValue: defaultWallet.balance.usd,
+      averageBuyPrice: defaultWallet.portfolioData.bitcoin.averageBuyPrice,
+      currentPrice: defaultWallet.balance.usd / defaultWallet.balance.bitcoin,
+      totalPNL: defaultWallet.portfolioData.bitcoin.realizedPNL + defaultWallet.portfolioData.bitcoin.unrealizedPNL,
+      totalPNLPercentage: ((defaultWallet.balance.usd - (defaultWallet.balance.bitcoin * defaultWallet.portfolioData.bitcoin.averageBuyPrice)) / (defaultWallet.balance.bitcoin * defaultWallet.portfolioData.bitcoin.averageBuyPrice)) * 100,
     };
-  }, [mockWallet.balance, mockWallet.portfolioData]);
+  }, [defaultWallet.balance, defaultWallet.portfolioData]);
 
   return {
     ...bitcoinData,
-    isConnected: mockWallet.isConnected,
-    address: mockWallet.address,
+    isConnected: defaultWallet.isConnected,
+    address: defaultWallet.address,
     refreshData: portfolio.refreshAll,
   };
 }

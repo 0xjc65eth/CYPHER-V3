@@ -577,7 +577,10 @@ class WalletConnector {
 
   private async fetchBalanceFromBlockchain(address: string): Promise<{confirmed: number, unconfirmed: number, total: number}> {
     try {
-      const response = await fetch(`https://mempool.space/api/address/${address}`);
+      const response = await fetch(`https://mempool.space/api/address/${address}`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!response.ok) throw new Error(`Mempool API error: ${response.status}`);
       const data = await response.json();
       
       const confirmed = data.chain_stats.funded_txo_sum - data.chain_stats.spent_txo_sum;

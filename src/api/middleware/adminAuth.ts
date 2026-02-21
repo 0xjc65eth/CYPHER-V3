@@ -475,34 +475,30 @@ export const adminLogin = async (req: Request, res: Response) => {
 // ============================================================================
 
 async function verifyAdminPassword(password: string, storedHash: string): Promise<boolean> {
-  // If no hash stored (dev mode), fall back to env var comparison
-  if (!storedHash) {
-    const envHash = process.env.ADMIN_PASSWORD_HASH;
-    if (!envHash) return false;
-    const inputHash = crypto.createHash('sha256').update(password).digest('hex');
-    return crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(envHash));
-  }
-
-  // For bcrypt hashes from pgcrypto, we need to verify server-side
-  // Since we're using Supabase, we can use a stored procedure or check the hash
-  // For now, use SHA-256 comparison as a fallback
-  const inputHash = crypto.createHash('sha256').update(password).digest('hex');
+  if (!password || !storedHash) return false;
   try {
-    return crypto.timingSafeEqual(
-      Buffer.from(inputHash, 'hex'),
-      Buffer.from(storedHash.replace('$2a$12$', '').substring(0, 64), 'hex')
-    );
-  } catch {
-    // If the hash format doesn't match, try direct comparison
-    // This handles the transition period from plain text to hashed passwords
-    return password === storedHash;
+    const bcrypt = require('bcryptjs');
+    return await bcrypt.compare(password, storedHash);
+  } catch (error) {
+    console.error('[AUTH] Password verification failed');
+    return false;
   }
 }
 
-async function verifyMFA(_secret: string, code: string): Promise<boolean> {
-  // TODO: Implement TOTP verification using otplib
-  // For now, accept any 6-digit code in dev mode
-  return /^\d{6}$/.test(code);
+async function verifyMFA(secret: string, code: string): Promise<boolean> {
+  if (!secret || !code) return false;
+  try {
+    const speakeasy = require('speakeasy');
+    return speakeasy.totp.verify({
+      secret,
+      encoding: 'base32',
+      token: code,
+      window: 1,
+    });
+  } catch (error) {
+    console.error('[AUTH] MFA verification failed');
+    return false;
+  }
 }
 
 // ============================================================================

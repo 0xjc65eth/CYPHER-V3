@@ -122,49 +122,68 @@ export class RunesArbitrageService {
   }
 
   /**
-   * Busca preços reais de runas via API interna (agrega UniSat + OKX)
+   * Fetch rune prices directly from external APIs (not internal API routes).
+   * Server-side services cannot call their own /api routes.
    */
   private async fetchAlternativePrices(runeName: string): Promise<ExchangePrice[]> {
     const prices: ExchangePrice[] = [];
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
-    // Busca preço via API interna que agrega dados de UniSat
+    // UniSat direct API — preserve bullet character in encoding
     try {
-      const response = await fetch(`/api/runes/${encodeURIComponent(runeName)}/`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data?.market?.floorPrice || data?.floorUnitPrice) {
-          const floorSats = data.market?.floorPrice || data.floorUnitPrice?.value || 0;
-          if (floorSats > 0) {
-            prices.push({
-              exchange: RUNE_EXCHANGES.find(e => e.source === 'unisat')!,
-              floorPriceSats: floorSats,
-              volume24h: data.market?.volume24h || data.volume24h || 0,
-              listedCount: data.market?.listedCount || data.listedCount || 0,
-            });
-          }
+      const encodedName = encodeURIComponent(runeName);
+      const response = await fetch(
+        `https://open-api.unisat.io/v1/indexer/runes/${encodedName}/info`,
+        {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json',
+            ...(process.env.UNISAT_API_KEY
+              ? { 'Authorization': `Bearer ${process.env.UNISAT_API_KEY}` }
+              : {}),
+          },
         }
-      }
-    } catch (error) {
-    }
-
-    // OKX via API route
-    try {
-      const response = await fetch(`/api/okx/runes/${encodeURIComponent(runeName)}/`);
+      );
       if (response.ok) {
         const data = await response.json();
-        if (data?.floorPrice && data.floorPrice > 0) {
+        const info = data?.data;
+        if (info?.floorPrice && info.floorPrice > 0) {
           prices.push({
-            exchange: RUNE_EXCHANGES.find(e => e.source === 'okx')!,
-            floorPriceSats: data.floorPrice,
-            volume24h: data.volume24h || 0,
-            listedCount: data.listedCount || 0,
+            exchange: RUNE_EXCHANGES.find(e => e.source === 'unisat')!,
+            floorPriceSats: info.floorPrice,
+            volume24h: info.volume24h || 0,
+            listedCount: info.listedCount || 0,
           });
         }
       }
-    } catch (error) {
-      // OKX API may not be available - silently ignore
+    } catch (err) {
+      console.warn(`[RunesArbitrage] UniSat API failed for ${runeName}:`, err instanceof Error ? err.message : err);
     }
 
+    // OKX Web3 Marketplace API
+    try {
+      const response = await fetch(
+        `https://www.okx.com/api/v5/mktplace/nft/ordinals/runes/rune-detail?runeName=${encodeURIComponent(runeName)}`,
+        { signal: controller.signal }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const runeData = data?.data?.[0];
+        if (runeData?.floorPrice && parseFloat(runeData.floorPrice) > 0) {
+          prices.push({
+            exchange: RUNE_EXCHANGES.find(e => e.source === 'okx')!,
+            floorPriceSats: parseFloat(runeData.floorPrice),
+            volume24h: parseFloat(runeData.volume24h || '0'),
+            listedCount: parseInt(runeData.listedCount || '0', 10),
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`[RunesArbitrage] OKX API failed for ${runeName}:`, err instanceof Error ? err.message : err);
+    }
+
+    clearTimeout(timeout);
     return prices;
   }
 
@@ -217,7 +236,10 @@ export class RunesArbitrageService {
         allPrices.push(...altPrices);
 
         // Precisamos de pelo menos 2 exchanges com preços válidos
-        if (allPrices.length < 2) continue;
+        if (allPrices.length < 2) {
+          console.warn(`[RunesArbitrage] ${runeName}: only ${allPrices.length} exchange(s) returned prices, need ≥2`);
+          continue;
+        }
 
         // Ordenar por preço (menor para maior)
         allPrices.sort((a, b) => a.floorPriceSats - b.floorPriceSats);

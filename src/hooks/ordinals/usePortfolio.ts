@@ -8,8 +8,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMemo } from 'react'
 
-export function usePortfolio(address: string | null) {
+export function usePortfolio(address: string | null, ordinalsAddress?: string | null) {
   const enabled = !!address
+  // Ordinals/inscriptions/BRC-20/runes live on the Taproot address (bc1p...)
+  // Use ordinalsAddress for those queries, fall back to payment address
+  const ordAddr = ordinalsAddress || address
+  const ordEnabled = !!ordAddr
 
   // ──────────────────────────────────────────────────────────────────────────
   // UNISAT DATA (via proxy)
@@ -27,36 +31,36 @@ export function usePortfolio(address: string | null) {
   })
 
   const collections = useQuery({
-    queryKey: ['portfolio', 'collections', address],
+    queryKey: ['portfolio', 'collections', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/portfolio/?address=${address}`)
+      const response = await fetch(`/api/portfolio/?address=${ordAddr}`)
       if (!response.ok) throw new Error('Failed to fetch collections')
       return response.json()
     },
-    enabled,
+    enabled: ordEnabled,
   })
 
   // collectionSummary merged into collections - same endpoint, same data
   const collectionSummary = collections
 
   const inscriptions = useQuery({
-    queryKey: ['portfolio', 'inscriptions', address],
+    queryKey: ['portfolio', 'inscriptions', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/unisat/address/${address}/inscriptions/`)
+      const response = await fetch(`/api/unisat/address/${ordAddr}/inscriptions/`)
       if (!response.ok) throw new Error('Failed to fetch inscriptions')
       return response.json()
     },
-    enabled,
+    enabled: ordEnabled,
   })
 
   const brc20Summary = useQuery({
-    queryKey: ['portfolio', 'brc20', address],
+    queryKey: ['portfolio', 'brc20', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/brc20/balances/${address}/`)
+      const response = await fetch(`/api/brc20/balances/${ordAddr}/`)
       if (!response.ok) throw new Error('Failed to fetch BRC20 summary')
       return response.json()
     },
-    enabled,
+    enabled: ordEnabled,
   })
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -64,23 +68,23 @@ export function usePortfolio(address: string | null) {
   // ──────────────────────────────────────────────────────────────────────────
 
   const magicEdenTokens = useQuery({
-    queryKey: ['portfolio', 'magic-eden-tokens', address],
+    queryKey: ['portfolio', 'magic-eden-tokens', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/magiceden/tokens/?ownerAddress=${address}`)
+      const response = await fetch(`/api/magiceden/tokens/?ownerAddress=${ordAddr}`)
       if (!response.ok) throw new Error('Failed to fetch Magic Eden tokens')
       return response.json()
     },
-    enabled,
+    enabled: ordEnabled,
   })
 
   const rareSats = useQuery({
-    queryKey: ['portfolio', 'rare-sats', address],
+    queryKey: ['portfolio', 'rare-sats', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/magiceden/raresats/wallet/${address}/`)
+      const response = await fetch(`/api/magiceden/raresats/wallet/${ordAddr}/`)
       if (!response.ok) throw new Error('Failed to fetch rare sats')
       return response.json()
     },
-    enabled,
+    enabled: ordEnabled,
   })
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -122,13 +126,13 @@ export function usePortfolio(address: string | null) {
   // ──────────────────────────────────────────────────────────────────────────
 
   const hiroInscriptions = useQuery({
-    queryKey: ['portfolio', 'hiro-inscriptions', address],
+    queryKey: ['portfolio', 'hiro-inscriptions', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/hiro-ordinals/?address=${address}&limit=50&order=desc`)
+      const response = await fetch(`/api/hiro-ordinals/?address=${ordAddr}&limit=50&order=desc`)
       if (!response.ok) throw new Error('Failed to fetch Hiro inscriptions')
       return response.json()
     },
-    enabled,
+    enabled: ordEnabled,
     staleTime: 60000,
   })
 

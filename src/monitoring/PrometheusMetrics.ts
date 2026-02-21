@@ -377,8 +377,8 @@ export class PrometheusMetrics extends EventEmitter {
     this.setGauge('cypher_system_memory_usage_bytes', memUsage.heapTotal, { type: 'heap_total' });
     this.setGauge('cypher_system_memory_usage_bytes', memUsage.rss, { type: 'rss' });
 
-    // CPU usage (mock)
-    this.setGauge('cypher_system_cpu_usage_percent', Math.random() * 100);
+    // TODO: Connect to real system metrics (os.cpus(), process.memoryUsage())
+    this.setGauge('cypher_system_cpu_usage_percent', 0);
   }
 
   /**

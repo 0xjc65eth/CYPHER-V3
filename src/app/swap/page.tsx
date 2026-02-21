@@ -28,6 +28,12 @@ import {
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+function toSmallestUnit(amount: string, decimals: number): bigint {
+  const [whole, fraction = ''] = amount.split('.');
+  const paddedFraction = fraction.padEnd(decimals, '0').slice(0, decimals);
+  return BigInt(whole + paddedFraction);
+}
+
 // ============================================================================
 // Network / Chain Configuration
 // ============================================================================
@@ -449,7 +455,7 @@ export default function SwapPage() {
           setStatus('error');
           return;
         }
-        const amountInSmallest = Math.floor(parseFloat(amount) * Math.pow(10, fromAsset.decimals || 9));
+        const amountInSmallest = Number(toSmallestUnit(amount, fromAsset.decimals || 9));
         const params = new URLSearchParams({
           inputMint: fromAsset.mint,
           outputMint: toAsset.mint,
@@ -465,7 +471,7 @@ export default function SwapPage() {
         const nativeToken = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
         const fromAddr = fromAsset.address || nativeToken;
         const toAddr = toAsset.address || nativeToken;
-        const amountInWei = BigInt(Math.floor(parseFloat(amount) * Math.pow(10, fromAsset.decimals || 18)));
+        const amountInWei = toSmallestUnit(amount, fromAsset.decimals || 18);
 
         const params = new URLSearchParams({
           chainId: evmChainId.toString(),

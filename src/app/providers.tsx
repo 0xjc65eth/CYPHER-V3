@@ -12,6 +12,8 @@ import { WalletProvider } from '@/contexts/WalletContext'
 import { LaserEyesProvider as LaserEyesWalletProvider } from '@/providers/SimpleLaserEyesProvider'
 import { ServiceWorkerRegistration } from '@/components/pwa/ServiceWorkerRegistration'
 import { PremiumProvider } from '@/contexts/PremiumContext'
+import { WhitepaperProvider } from '@/contexts/WhitepaperContext'
+import { WhitepaperGate } from '@/components/WhitepaperGate'
 // Wagmi for EVM wallet support (MetaMask, etc.) - required by unified-navbar
 import { http, createConfig, WagmiProvider } from 'wagmi'
 import { mainnet } from 'wagmi/chains'
@@ -156,19 +158,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
       onError={(error) => console.error('Root Provider Error:', error)}
     >
       <Suspense fallback={<LoadingFallback />}>
-        <SafeQueryProvider>
-          <SafeAuthProvider>
-            <SafeWalletProvider>
-              <SafePremiumProvider>
-                <SafeNotificationProvider>
-                  <ServiceWorkerRegistration />
-                  {children}
-                  <NotificationContainer />
-                </SafeNotificationProvider>
-              </SafePremiumProvider>
-            </SafeWalletProvider>
-          </SafeAuthProvider>
-        </SafeQueryProvider>
+        <WhitepaperProvider>
+          <WhitepaperGate>
+            <SafeQueryProvider>
+              <SafeAuthProvider>
+                <SafeWalletProvider>
+                  <SafePremiumProvider>
+                    <SafeNotificationProvider>
+                      <ServiceWorkerRegistration />
+                      {children}
+                      <NotificationContainer />
+                    </SafeNotificationProvider>
+                  </SafePremiumProvider>
+                </SafeWalletProvider>
+              </SafeAuthProvider>
+            </SafeQueryProvider>
+          </WhitepaperGate>
+        </WhitepaperProvider>
       </Suspense>
     </ErrorBoundary>
   )

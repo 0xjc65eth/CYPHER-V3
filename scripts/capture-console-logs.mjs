@@ -22,7 +22,7 @@ const PAGES = [
   { name: 'Swap', path: '/swap' },
   { name: 'Simple', path: '/simple' },
   { name: 'Rare Sats', path: '/rare-sats' },
-  { name: 'Trading Agent', path: '/trading-agent' },
+  { name: 'Hacker Yields', path: '/hacker-yields' },
   { name: 'Tax', path: '/tax' },
   { name: 'Alerts', path: '/alerts' },
   { name: 'Admin Fees', path: '/admin/fees' },

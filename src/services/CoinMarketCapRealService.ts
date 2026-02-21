@@ -305,6 +305,7 @@ class CoinMarketCapRealService {
    * Fallback prices when API is unavailable
    */
   private getFallbackPrices(symbols: string[]): CoinPrice[] {
+    console.warn('[CMC] Using stale fallback prices');
     const fallbackData: Record<string, Partial<CoinPrice>> = {
       'BTC': { symbol: 'BTC', name: 'Bitcoin', price: 98500, change24h: 2.5 },
       'ETH': { symbol: 'ETH', name: 'Ethereum', price: 3800, change24h: 1.8 },

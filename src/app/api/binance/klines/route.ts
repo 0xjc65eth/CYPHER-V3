@@ -30,36 +30,17 @@ export async function GET(request: NextRequest) {
     } catch (error) {
     }
 
-    // Se a API falhou, gerar dados simulados realistas
+    // If the Binance API failed, return empty data instead of fake candles
     if (klineData.length === 0) {
-      const basePrice = 110500; // Preço base do Bitcoin
-      const now = Date.now();
-      const intervalMs = interval === '1h' ? 3600000 : 
-                        interval === '1d' ? 86400000 : 
-                        interval === '1m' ? 60000 : 3600000;
-
-      klineData = Array.from({ length: limit }, (_, i) => {
-        const timestamp = now - (limit - 1 - i) * intervalMs;
-        const randomChange = (Math.random() - 0.5) * 0.05; // ±2.5% variation
-        const price = basePrice * (1 + randomChange + (Math.sin(i * 0.1) * 0.02));
-        const volatility = 0.015; // 1.5% volatility
-        
-        const open = price * (1 + (Math.random() - 0.5) * volatility);
-        const close = price * (1 + (Math.random() - 0.5) * volatility);
-        const high = Math.max(open, close) * (1 + Math.random() * volatility);
-        const low = Math.min(open, close) * (1 - Math.random() * volatility);
-        const volume = 15000 + Math.random() * 50000; // Volume simulado
-
-        return {
-          openTime: timestamp,
-          open: parseFloat(open.toFixed(2)),
-          high: parseFloat(high.toFixed(2)),
-          low: parseFloat(low.toFixed(2)),
-          close: parseFloat(close.toFixed(2)),
-          volume: parseFloat(volume.toFixed(2)),
-          closeTime: timestamp + intervalMs - 1,
-          timestamp: new Date(timestamp).toISOString()
-        };
+      console.warn('[binance/klines] API failed, returning empty data');
+      return NextResponse.json({
+        success: false,
+        data: [],
+        symbol,
+        interval,
+        count: 0,
+        source: 'fallback',
+        error: 'Binance API unavailable'
       });
     }
 
@@ -69,7 +50,7 @@ export async function GET(request: NextRequest) {
       symbol,
       interval,
       count: klineData.length,
-      source: klineData.length > 0 && klineData[0].openTime > Date.now() - 86400000 ? 'binance' : 'simulated'
+      source: 'binance'
     });
 
   } catch (error) {

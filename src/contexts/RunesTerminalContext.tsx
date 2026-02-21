@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
 
 // Types
 export interface GlobalFilters {
@@ -214,15 +214,17 @@ export function RunesTerminalProvider({ children }: { children: React.ReactNode 
     }
   }, []);
 
-  // Save state to localStorage when it changes
+  // Save state to localStorage when it changes (debounced)
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+    const timeout = setTimeout(() => {
       try {
         localStorage.setItem('runes-terminal-filters', JSON.stringify(state.filters));
         localStorage.setItem('runes-terminal-settings', JSON.stringify(state.settings));
       } catch (error) {
       }
-    }
+    }, 500);
+    return () => clearTimeout(timeout);
   }, [state.filters, state.settings]);
 
   // Action creators
@@ -273,7 +275,7 @@ export function RunesTerminalProvider({ children }: { children: React.ReactNode 
     state.filters.timeframe !== '24h'
   );
 
-  const contextValue: RunesTerminalContextType = {
+  const contextValue = useMemo<RunesTerminalContextType>(() => ({
     state,
     setFilters,
     setSettings,
@@ -287,7 +289,9 @@ export function RunesTerminalProvider({ children }: { children: React.ReactNode 
     filteredFavorites,
     isConnected,
     hasFiltersApplied
-  };
+  }), [state, filteredFavorites, isConnected, hasFiltersApplied,
+    setFilters, setSettings, setLoading, setError, setConnectionStatus,
+    updateLastUpdate, toggleFavorite, resetFilters, resetSettings]);
 
   return (
     <RunesTerminalContext.Provider value={contextValue}>

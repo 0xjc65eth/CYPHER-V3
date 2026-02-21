@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
         headers: meHeaders,
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) throw new Error(`MagicEden API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, collections: data });
     }
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
         headers: meHeaders,
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) throw new Error(`MagicEden API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, listings: data });
     }
@@ -49,6 +51,7 @@ export async function GET(request: NextRequest) {
         headers: meHeaders,
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) throw new Error(`MagicEden API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, orders: data });
     }
@@ -59,6 +62,7 @@ export async function GET(request: NextRequest) {
         headers: meHeaders,
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) throw new Error(`MagicEden API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, tokens: data });
     }
@@ -89,6 +93,7 @@ export async function POST(request: NextRequest) {
         }),
         signal: AbortSignal.timeout(15000),
       });
+      if (!res.ok) throw new Error(`MagicEden API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, ...data });
     }

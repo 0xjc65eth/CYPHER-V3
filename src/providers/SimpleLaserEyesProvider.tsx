@@ -12,6 +12,7 @@ interface LaserEyesContextType {
   connected: boolean
   connecting: boolean
   address: string | null
+  ordinalsAddress: string | null
   balance: { confirmed: number; unconfirmed: number; total: number } | null
   provider: string | null
   signature: string | null
@@ -71,6 +72,7 @@ export function LaserEyesProvider({ children }: { children: ReactNode }) {
     connected: walletInfo.connected,
     connecting: localConnecting || isConnecting,
     address: walletInfo.paymentAddress?.address ?? null,
+    ordinalsAddress: walletInfo.ordinalsAddress?.address ?? null,
     balance: walletInfo.balance,
     provider: walletInfo.walletType,
     signature: walletInfo.signature,

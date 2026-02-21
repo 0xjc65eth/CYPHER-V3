@@ -100,29 +100,32 @@ export const FeeSystemDashboard: React.FC = () => {
       const response = await fetch('/api/fees/stats/?period=30d')
       const data = await response.json()
       
-      // Mock comprehensive stats
-      const mockStats: FeeSystemStats = {
-        totalFeesCollected: 15847.32,
-        totalTrades: 2341,
-        totalVolume: 4527237.45,
+      // Default stats used when API returns no data
+      const defaultStats: FeeSystemStats = {
+        totalFeesCollected: 0,
+        totalTrades: 0,
+        totalVolume: 0,
         averageFeePercentage: 0.35,
         hyperliquidIntegration: {
-          totalRedirects: 156,
-          totalVolume: 892341.23,
-          feesShared: 892.34,
-          activeReferrals: 89
+          totalRedirects: 0,
+          totalVolume: 0,
+          feesShared: 0,
+          activeReferrals: 0
         },
         networkBreakdown: [
-          { network: 'Ethereum', fees: 8934.12, percentage: 56.4, color: '#627EEA' },
-          { network: 'Arbitrum', fees: 3245.67, percentage: 20.5, color: '#28A0F0' },
-          { network: 'Optimism', fees: 2156.89, percentage: 13.6, color: '#FF0420' },
-          { network: 'Polygon', fees: 1510.64, percentage: 9.5, color: '#8247E5' }
+          { network: 'Ethereum', fees: 0, percentage: 0, color: '#627EEA' },
+          { network: 'Arbitrum', fees: 0, percentage: 0, color: '#28A0F0' },
+          { network: 'Optimism', fees: 0, percentage: 0, color: '#FF0420' },
+          { network: 'Polygon', fees: 0, percentage: 0, color: '#8247E5' }
         ],
-        revenueGrowth: 23.5,
-        feeEfficiency: 96.8
+        revenueGrowth: 0,
+        feeEfficiency: 0
       }
-      
-      setStats(mockStats)
+
+      if (!data || !data.totalFeesCollected) {
+        console.warn('[FeeSystemDashboard] Using fallback data');
+      }
+      setStats(data?.totalFeesCollected ? data : defaultStats)
     } catch (error) {
       console.error('Failed to load fee stats:', error)
     } finally {

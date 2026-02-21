@@ -23,6 +23,8 @@ export class WebSocketManager extends EventEmitter {
   private subscriptions: Map<string, Set<string>> = new Map()
   private isDestroyed = false
   private abortController: AbortController | null = null
+  private handleBeforeUnload: (() => void) | null = null
+  private handleVisibilityChange: (() => void) | null = null
   
   constructor() {
     super()
@@ -263,7 +265,19 @@ export class WebSocketManager extends EventEmitter {
   
   disconnect() {
     this.isDestroyed = true;
-    
+
+    // Remove cleanup event listeners
+    if (typeof window !== 'undefined') {
+      if (this.handleBeforeUnload) {
+        window.removeEventListener('beforeunload', this.handleBeforeUnload);
+        this.handleBeforeUnload = null;
+      }
+      if (this.handleVisibilityChange) {
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+        this.handleVisibilityChange = null;
+      }
+    }
+
     // Abortar operações pendentes
     if (this.abortController) {
       this.abortController.abort();
@@ -291,25 +305,23 @@ export class WebSocketManager extends EventEmitter {
   
   private setupCleanupHandlers() {
     if (typeof window === 'undefined') return;
-    
+
     // Cleanup quando a página é fechada
-    const handleBeforeUnload = () => {
+    this.handleBeforeUnload = () => {
       this.disconnect();
     };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
+    window.addEventListener('beforeunload', this.handleBeforeUnload);
+
     // Cleanup quando a página perde o foco
-    const handleVisibilityChange = () => {
+    this.handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        // Pausar conexões quando a página não está visível
         this.sockets.forEach(socket => {
           if (socket.connected) {
             socket.disconnect();
           }
         });
       } else if (document.visibilityState === 'visible' && !this.isDestroyed) {
-        // Reconectar quando a página volta a ficar visível
         setTimeout(() => {
           if (!this.isDestroyed) {
             this.initializeConnections();
@@ -317,8 +329,8 @@ export class WebSocketManager extends EventEmitter {
         }, 1000);
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 }
 

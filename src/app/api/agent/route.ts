@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Secure in-memory credential storage (never pollute process.env with user secrets)
+const secureCredentials = new Map<string, Record<string, string>>();
+
 // Lazy require to avoid webpack async chunk splitting issues
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 function getOrchestratorModule() {
@@ -80,17 +83,19 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'start': {
-        // Apply credentials as env vars for connectors (runtime override)
+        // Store credentials securely in memory (never in process.env)
         if (credentials?.hyperliquid) {
-          process.env.HYPERLIQUID_AGENT_KEY = credentials.hyperliquid.agentKey;
-          process.env.HYPERLIQUID_AGENT_SECRET = credentials.hyperliquid.agentSecret;
-          process.env.HYPERLIQUID_TESTNET = credentials.hyperliquid.testnet ? 'true' : 'false';
+          secureCredentials.set('hyperliquid', {
+            agentKey: credentials.hyperliquid.agentKey,
+            agentSecret: credentials.hyperliquid.agentSecret,
+            testnet: credentials.hyperliquid.testnet ? 'true' : 'false',
+          });
         }
         if (credentials?.solanaRpc) {
-          process.env.SOLANA_RPC_URL = credentials.solanaRpc;
+          secureCredentials.set('solana', { rpcUrl: credentials.solanaRpc });
         }
         if (credentials?.ethRpc) {
-          process.env.ETH_RPC_URL = credentials.ethRpc;
+          secureCredentials.set('ethereum', { rpcUrl: credentials.ethRpc });
         }
 
         if (config) {

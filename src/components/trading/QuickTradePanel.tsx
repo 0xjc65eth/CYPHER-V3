@@ -66,100 +66,100 @@ interface QuickTradeAnalysis {
 // Tokens suportados por rede - LISTA COMPLETA
 const SUPPORTED_TOKENS = {
   ethereum: [
-    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 2850, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', price: 1, decimals: 6 },
-    { symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', price: 1, decimals: 6 },
-    { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260FAC5E5542a760698606B8eE2121c351', price: 110000, decimals: 8 },
-    { symbol: 'DAI', name: 'Dai Stablecoin', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', price: 1, decimals: 18 },
-    { symbol: 'UNI', name: 'Uniswap', address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', price: 7.5, decimals: 18 },
-    { symbol: 'LINK', name: 'Chainlink', address: '0x514910771AF9Ca656af840dff83E8264EcF986CA', price: 15, decimals: 18 },
-    { symbol: 'AAVE', name: 'Aave', address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', price: 95, decimals: 18 },
-    { symbol: 'CRV', name: 'Curve', address: '0xD533a949740bb3306d119CC777fa900bA034cd52', price: 0.6, decimals: 18 },
-    { symbol: 'SUSHI', name: 'SushiSwap', address: '0x6B3595068778DD592e39A122f4f5a5cF09C90fE2', price: 1.2, decimals: 18 }
+    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', price: 0, decimals: 6 },
+    { symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7', price: 0, decimals: 6 },
+    { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260FAC5E5542a760698606B8eE2121c351', price: 0, decimals: 8 },
+    { symbol: 'DAI', name: 'Dai Stablecoin', address: '0x6B175474E89094C44Da98b954EedeAC495271d0F', price: 0, decimals: 18 },
+    { symbol: 'UNI', name: 'Uniswap', address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', price: 0, decimals: 18 },
+    { symbol: 'LINK', name: 'Chainlink', address: '0x514910771AF9Ca656af840dff83E8264EcF986CA', price: 0, decimals: 18 },
+    { symbol: 'AAVE', name: 'Aave', address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', price: 0, decimals: 18 },
+    { symbol: 'CRV', name: 'Curve', address: '0xD533a949740bb3306d119CC777fa900bA034cd52', price: 0, decimals: 18 },
+    { symbol: 'SUSHI', name: 'SushiSwap', address: '0x6B3595068778DD592e39A122f4f5a5cF09C90fE2', price: 0, decimals: 18 }
   ],
   arbitrum: [
-    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 2850, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0xFF970A61A04b1496CfD6E66A7F2e0428A7B', price: 1, decimals: 6 },
-    { symbol: 'USDT', name: 'Tether USD', address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', price: 1, decimals: 6 },
-    { symbol: 'ARB', name: 'Arbitrum', address: '0x912CE59144191C1e0d023ec7E279e0F5E57e8E79', price: 1.2, decimals: 18 },
-    { symbol: 'GMX', name: 'GMX', address: '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a', price: 45, decimals: 18 },
-    { symbol: 'RDNT', name: 'Radiant', address: '0x3082CC23568eA640225c2467653dB90e9250AaA0', price: 0.08, decimals: 18 },
-    { symbol: 'MAGIC', name: 'Magic', address: '0x539bdE0d7Dbd336b79148AA742883198BBF60342', price: 0.95, decimals: 18 },
-    { symbol: 'DPX', name: 'Dopex', address: '0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55', price: 250, decimals: 18 },
-    { symbol: 'VELA', name: 'Vela', address: '0x088cd8f5eF3652623c22D48b1605DCfE860Cd704', price: 2.5, decimals: 18 },
-    { symbol: 'GRAIL', name: 'Grail', address: '0x3d9907F9a368ad0a51Be60f7Da3b97cf940982D8', price: 1200, decimals: 18 }
+    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0xFF970A61A04b1496CfD6E66A7F2e0428A7B', price: 0, decimals: 6 },
+    { symbol: 'USDT', name: 'Tether USD', address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9', price: 0, decimals: 6 },
+    { symbol: 'ARB', name: 'Arbitrum', address: '0x912CE59144191C1e0d023ec7E279e0F5E57e8E79', price: 0, decimals: 18 },
+    { symbol: 'GMX', name: 'GMX', address: '0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a', price: 0, decimals: 18 },
+    { symbol: 'RDNT', name: 'Radiant', address: '0x3082CC23568eA640225c2467653dB90e9250AaA0', price: 0, decimals: 18 },
+    { symbol: 'MAGIC', name: 'Magic', address: '0x539bdE0d7Dbd336b79148AA742883198BBF60342', price: 0, decimals: 18 },
+    { symbol: 'DPX', name: 'Dopex', address: '0x6C2C06790b3E3E3c38e12Ee22F8183b37a13EE55', price: 0, decimals: 18 },
+    { symbol: 'VELA', name: 'Vela', address: '0x088cd8f5eF3652623c22D48b1605DCfE860Cd704', price: 0, decimals: 18 },
+    { symbol: 'GRAIL', name: 'Grail', address: '0x3d9907F9a368ad0a51Be60f7Da3b97cf940982D8', price: 0, decimals: 18 }
   ],
   optimism: [
-    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 2850, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0x7F5c764cBc14f9e7F2C5D3371B5c7005e9266DA72', price: 1, decimals: 6 },
-    { symbol: 'USDT', name: 'Tether USD', address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', price: 1, decimals: 6 },
-    { symbol: 'OP', name: 'Optimism', address: '0x4200000000000000000000000000000000000042', price: 2.3, decimals: 18 },
-    { symbol: 'VELO', name: 'Velodrome', address: '0x3c8B650257cFb5F1679b6d3EccbBBE718bd72421', price: 0.15, decimals: 18 },
-    { symbol: 'SNX', name: 'Synthetix', address: '0x8700dAec35aF8Ff88c16BdF0418774CB3D7599B4', price: 3.2, decimals: 18 },
-    { symbol: 'PERP', name: 'Perpetual', address: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0', price: 0.85, decimals: 18 },
-    { symbol: 'LYRA', name: 'Lyra', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', price: 0.05, decimals: 18 },
-    { symbol: 'THALES', name: 'Thales', address: '0x217D47011b23BB961eB6D93cA9945B7501a5BB11', price: 0.12, decimals: 18 },
-    { symbol: 'KWENTA', name: 'Kwenta', address: '0x920Cf626a271321C151D027030D5d08aF699456b', price: 45, decimals: 18 }
+    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0x7F5c764cBc14f9e7F2C5D3371B5c7005e9266DA72', price: 0, decimals: 6 },
+    { symbol: 'USDT', name: 'Tether USD', address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58', price: 0, decimals: 6 },
+    { symbol: 'OP', name: 'Optimism', address: '0x4200000000000000000000000000000000000042', price: 0, decimals: 18 },
+    { symbol: 'VELO', name: 'Velodrome', address: '0x3c8B650257cFb5F1679b6d3EccbBBE718bd72421', price: 0, decimals: 18 },
+    { symbol: 'SNX', name: 'Synthetix', address: '0x8700dAec35aF8Ff88c16BdF0418774CB3D7599B4', price: 0, decimals: 18 },
+    { symbol: 'PERP', name: 'Perpetual', address: '0x9e1028F5F1D5eDE59748FFceE5532509976840E0', price: 0, decimals: 18 },
+    { symbol: 'LYRA', name: 'Lyra', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', price: 0, decimals: 18 },
+    { symbol: 'THALES', name: 'Thales', address: '0x217D47011b23BB961eB6D93cA9945B7501a5BB11', price: 0, decimals: 18 },
+    { symbol: 'KWENTA', name: 'Kwenta', address: '0x920Cf626a271321C151D027030D5d08aF699456b', price: 0, decimals: 18 }
   ],
   polygon: [
-    { symbol: 'MATIC', name: 'Polygon', address: 'native', price: 0.8, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', price: 1, decimals: 6 },
-    { symbol: 'USDT', name: 'Tether USD', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', price: 1, decimals: 6 },
-    { symbol: 'WETH', name: 'Wrapped ETH', address: '0x7ceB23fD6bC0AdD59E62ac25578270cFf1b9f619', price: 2850, decimals: 18 },
-    { symbol: 'WBTC', name: 'Wrapped BTC', address: '0x1bFD67037B42Cf73acF2047067bd4F2C47D9BfD6', price: 110000, decimals: 8 },
-    { symbol: 'QUICK', name: 'QuickSwap', address: '0x831753DD7087CaCE078C0636d576B6A542', price: 0.045, decimals: 18 },
-    { symbol: 'SAND', name: 'Sandbox', address: '0xBbba073C31bF03b8ACf7c28EF0738DeCF3695683', price: 0.65, decimals: 18 },
-    { symbol: 'MANA', name: 'Decentraland', address: '0xA1c57f48F0Deb89f569dFbE6E2B7f46D33606fD4', price: 0.55, decimals: 18 },
-    { symbol: 'AXS', name: 'Axie Infinity', address: '0x61BDD9C7d4dF4Bf47A4508c0c8245505F2Af5b7b', price: 8.5, decimals: 18 },
-    { symbol: 'GHST', name: 'Aavegotchi', address: '0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7', price: 1.1, decimals: 18 }
+    { symbol: 'MATIC', name: 'Polygon', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', price: 0, decimals: 6 },
+    { symbol: 'USDT', name: 'Tether USD', address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F', price: 0, decimals: 6 },
+    { symbol: 'WETH', name: 'Wrapped ETH', address: '0x7ceB23fD6bC0AdD59E62ac25578270cFf1b9f619', price: 0, decimals: 18 },
+    { symbol: 'WBTC', name: 'Wrapped BTC', address: '0x1bFD67037B42Cf73acF2047067bd4F2C47D9BfD6', price: 0, decimals: 8 },
+    { symbol: 'QUICK', name: 'QuickSwap', address: '0x831753DD7087CaCE078C0636d576B6A542', price: 0, decimals: 18 },
+    { symbol: 'SAND', name: 'Sandbox', address: '0xBbba073C31bF03b8ACf7c28EF0738DeCF3695683', price: 0, decimals: 18 },
+    { symbol: 'MANA', name: 'Decentraland', address: '0xA1c57f48F0Deb89f569dFbE6E2B7f46D33606fD4', price: 0, decimals: 18 },
+    { symbol: 'AXS', name: 'Axie Infinity', address: '0x61BDD9C7d4dF4Bf47A4508c0c8245505F2Af5b7b', price: 0, decimals: 18 },
+    { symbol: 'GHST', name: 'Aavegotchi', address: '0x385Eeac5cB85A38A9a07A70c73e0a3271CfB54A7', price: 0, decimals: 18 }
   ],
   base: [
-    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 2850, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', price: 1, decimals: 6 },
-    { symbol: 'USDbC', name: 'Bridged USDC', address: '0xd9aAEc86B65D86c3d66D8ce0C6e33', price: 1, decimals: 6 },
-    { symbol: 'DAI', name: 'Dai', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', price: 1, decimals: 18 },
-    { symbol: 'AERO', name: 'Aerodrome', address: '0x940181a94A35A4169056f0a7F41A0', price: 0.85, decimals: 18 },
-    { symbol: 'BRETT', name: 'Brett', address: '0x532f27101965dd16442E59d40670FaF525F0', price: 0.02, decimals: 18 },
-    { symbol: 'DEGEN', name: 'Degen', address: '0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed', price: 0.008, decimals: 18 },
-    { symbol: 'TOSHI', name: 'Toshi', address: '0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4', price: 0.001, decimals: 18 },
-    { symbol: 'BSWAP', name: 'BaseSwap', address: '0x78a087d713Be963Bf307b18F2Ff8122EF9A63ae9', price: 0.35, decimals: 18 },
-    { symbol: 'BLUE', name: 'BlueSwap', address: '0x4158734D47Fc9692176B5085E0F52ee04E2', price: 0.15, decimals: 18 }
+    { symbol: 'ETH', name: 'Ethereum', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', price: 0, decimals: 6 },
+    { symbol: 'USDbC', name: 'Bridged USDC', address: '0xd9aAEc86B65D86c3d66D8ce0C6e33', price: 0, decimals: 6 },
+    { symbol: 'DAI', name: 'Dai', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', price: 0, decimals: 18 },
+    { symbol: 'AERO', name: 'Aerodrome', address: '0x940181a94A35A4169056f0a7F41A0', price: 0, decimals: 18 },
+    { symbol: 'BRETT', name: 'Brett', address: '0x532f27101965dd16442E59d40670FaF525F0', price: 0, decimals: 18 },
+    { symbol: 'DEGEN', name: 'Degen', address: '0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed', price: 0, decimals: 18 },
+    { symbol: 'TOSHI', name: 'Toshi', address: '0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4', price: 0, decimals: 18 },
+    { symbol: 'BSWAP', name: 'BaseSwap', address: '0x78a087d713Be963Bf307b18F2Ff8122EF9A63ae9', price: 0, decimals: 18 },
+    { symbol: 'BLUE', name: 'BlueSwap', address: '0x4158734D47Fc9692176B5085E0F52ee04E2', price: 0, decimals: 18 }
   ],
   avalanche: [
-    { symbol: 'AVAX', name: 'Avalanche', address: 'native', price: 25, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0xB97EF9Ef8734C71904C8002488e682b522', price: 1, decimals: 6 },
-    { symbol: 'USDT', name: 'Tether USD', address: '0x9702230A8Ea53601f5cd2DE3715b200C6e', price: 1, decimals: 6 },
-    { symbol: 'WBTC', name: 'Wrapped BTC', address: '0x50b7545627a5162F82A992c33b87aDc75187B218', price: 110000, decimals: 8 },
-    { symbol: 'WETH', name: 'Wrapped ETH', address: '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB', price: 2850, decimals: 18 },
-    { symbol: 'JOE', name: 'TraderJoe', address: '0x6e84a6216eA6daCC71B8E3Cdeb8b4Fbf4B', price: 0.35, decimals: 18 },
-    { symbol: 'PNG', name: 'Pangolin', address: '0x60781C2586D68229fde47564546784ab3fACA982', price: 0.12, decimals: 18 },
-    { symbol: 'QI', name: 'Benqi', address: '0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5', price: 0.02, decimals: 18 },
-    { symbol: 'XAVA', name: 'Avalaunch', address: '0xd1c3f94DE7e5B45fa4eDBBA472491a9f4B166FC4', price: 0.85, decimals: 18 },
-    { symbol: 'GMX', name: 'GMX', address: '0x62edc0692BD897D2295872a9FFCac5425011c661', price: 45, decimals: 18 }
+    { symbol: 'AVAX', name: 'Avalanche', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0xB97EF9Ef8734C71904C8002488e682b522', price: 0, decimals: 6 },
+    { symbol: 'USDT', name: 'Tether USD', address: '0x9702230A8Ea53601f5cd2DE3715b200C6e', price: 0, decimals: 6 },
+    { symbol: 'WBTC', name: 'Wrapped BTC', address: '0x50b7545627a5162F82A992c33b87aDc75187B218', price: 0, decimals: 8 },
+    { symbol: 'WETH', name: 'Wrapped ETH', address: '0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB', price: 0, decimals: 18 },
+    { symbol: 'JOE', name: 'TraderJoe', address: '0x6e84a6216eA6daCC71B8E3Cdeb8b4Fbf4B', price: 0, decimals: 18 },
+    { symbol: 'PNG', name: 'Pangolin', address: '0x60781C2586D68229fde47564546784ab3fACA982', price: 0, decimals: 18 },
+    { symbol: 'QI', name: 'Benqi', address: '0x8729438EB15e2C8B576fCc6AeCdA6A148776C0F5', price: 0, decimals: 18 },
+    { symbol: 'XAVA', name: 'Avalaunch', address: '0xd1c3f94DE7e5B45fa4eDBBA472491a9f4B166FC4', price: 0, decimals: 18 },
+    { symbol: 'GMX', name: 'GMX', address: '0x62edc0692BD897D2295872a9FFCac5425011c661', price: 0, decimals: 18 }
   ],
   bsc: [
-    { symbol: 'BNB', name: 'BNB', address: 'native', price: 320, decimals: 18 },
-    { symbol: 'USDC', name: 'USD Coin', address: '0x8AC76a51cc950d9846D10dF9Df5F2F5', price: 1, decimals: 18 },
-    { symbol: 'USDT', name: 'Tether USD', address: '0x55d398326f99059fF775485246999027B3197955', price: 1, decimals: 18 },
-    { symbol: 'BUSD', name: 'Binance USD', address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', price: 1, decimals: 18 },
-    { symbol: 'WETH', name: 'Wrapped ETH', address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', price: 2850, decimals: 18 },
-    { symbol: 'CAKE', name: 'PancakeSwap', address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e8', price: 2.1, decimals: 18 },
-    { symbol: 'BSW', name: 'Biswap', address: '0x965F527D9159dCE6288a2219DB51fc6Ff', price: 0.08, decimals: 18 },
-    { symbol: 'XVS', name: 'Venus', address: '0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63', price: 7.5, decimals: 18 },
-    { symbol: 'ALPACA', name: 'Alpaca', address: '0x8F0528cE5eF7B51152A59745bEfDD91D97091d2F', price: 0.18, decimals: 18 },
-    { symbol: 'BAKE', name: 'BakerySwap', address: '0xE02dF9e3e622DeBdD69fb838bB799E3F168902c5', price: 0.15, decimals: 18 }
+    { symbol: 'BNB', name: 'BNB', address: 'native', price: 0, decimals: 18 },
+    { symbol: 'USDC', name: 'USD Coin', address: '0x8AC76a51cc950d9846D10dF9Df5F2F5', price: 0, decimals: 18 },
+    { symbol: 'USDT', name: 'Tether USD', address: '0x55d398326f99059fF775485246999027B3197955', price: 0, decimals: 18 },
+    { symbol: 'BUSD', name: 'Binance USD', address: '0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56', price: 0, decimals: 18 },
+    { symbol: 'WETH', name: 'Wrapped ETH', address: '0x2170Ed0880ac9A755fd29B2688956BD959F933F8', price: 0, decimals: 18 },
+    { symbol: 'CAKE', name: 'PancakeSwap', address: '0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e8', price: 0, decimals: 18 },
+    { symbol: 'BSW', name: 'Biswap', address: '0x965F527D9159dCE6288a2219DB51fc6Ff', price: 0, decimals: 18 },
+    { symbol: 'XVS', name: 'Venus', address: '0xcF6BB5389c92Bdda8a3747Ddb454cB7a64626C63', price: 0, decimals: 18 },
+    { symbol: 'ALPACA', name: 'Alpaca', address: '0x8F0528cE5eF7B51152A59745bEfDD91D97091d2F', price: 0, decimals: 18 },
+    { symbol: 'BAKE', name: 'BakerySwap', address: '0xE02dF9e3e622DeBdD69fb838bB799E3F168902c5', price: 0, decimals: 18 }
   ],
   solana: [
-    { symbol: 'SOL', name: 'Solana', address: 'native', price: 95, decimals: 9 },
-    { symbol: 'USDC', name: 'USD Coin', address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', price: 1, decimals: 6 },
-    { symbol: 'USDT', name: 'Tether USD', address: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', price: 1, decimals: 6 },
-    { symbol: 'RAY', name: 'Raydium', address: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', price: 2.1, decimals: 6 },
-    { symbol: 'ORCA', name: 'Orca', address: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE', price: 1.8, decimals: 6 },
-    { symbol: 'SRM', name: 'Serum', address: 'SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt', price: 0.08, decimals: 6 },
-    { symbol: 'MNGO', name: 'Mango', address: 'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac', price: 0.02, decimals: 6 },
-    { symbol: 'STEP', name: 'Step', address: 'StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT', price: 0.03, decimals: 9 },
-    { symbol: 'COPE', name: 'Cope', address: '8HGyAAB1yoM1ttS7pXjHMa3dukTFGQggnFFH3hJZgzQh', price: 0.15, decimals: 6 },
-    { symbol: 'LIKE', name: 'Only1', address: '3bRTivrVsitbmCTGtqwp7hxXPsybkjn4XLNtPsHqa3zR', price: 0.008, decimals: 9 }
+    { symbol: 'SOL', name: 'Solana', address: 'native', price: 0, decimals: 9 },
+    { symbol: 'USDC', name: 'USD Coin', address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', price: 0, decimals: 6 },
+    { symbol: 'USDT', name: 'Tether USD', address: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB', price: 0, decimals: 6 },
+    { symbol: 'RAY', name: 'Raydium', address: '4k3Dyjzvzp8eMZWUXbBCjEvwSkkk59S5iCNLY3QrkX6R', price: 0, decimals: 6 },
+    { symbol: 'ORCA', name: 'Orca', address: 'orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE', price: 0, decimals: 6 },
+    { symbol: 'SRM', name: 'Serum', address: 'SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt', price: 0, decimals: 6 },
+    { symbol: 'MNGO', name: 'Mango', address: 'MangoCzJ36AjZyKwVj3VnYU4GTonjfVEnJmvvWaxLac', price: 0, decimals: 6 },
+    { symbol: 'STEP', name: 'Step', address: 'StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT', price: 0, decimals: 9 },
+    { symbol: 'COPE', name: 'Cope', address: '8HGyAAB1yoM1ttS7pXjHMa3dukTFGQggnFFH3hJZgzQh', price: 0, decimals: 6 },
+    { symbol: 'LIKE', name: 'Only1', address: '3bRTivrVsitbmCTGtqwp7hxXPsybkjn4XLNtPsHqa3zR', price: 0, decimals: 9 }
   ]
 };
 
@@ -196,33 +196,35 @@ const networkColors = {
 
 // Function to get token balance
 function getTokenBalance(tokenSymbol: string, network: string, userAddress: string): string {
-  // For demonstration, return placeholder values
+  // Returns zero balances until real wallet data is available
   // In production, this would fetch real balances from blockchain APIs
-  
+
   if (!userAddress) return '0.00';
-  
-  // Mock balances based on token and network
-  const mockBalances: Record<string, Record<string, number>> = {
+
+  console.warn('[QuickTradePanel] Using fallback data');
+
+  // Fallback balances - zeroed out until real wallet connection
+  const fallbackBalances: Record<string, Record<string, number>> = {
     ethereum: {
-      'ETH': 2.5,
-      'USDC': 18772.9759,
-      'USDT': 5000.00,
-      'WBTC': 0.15,
-      'DAI': 10000.00
+      'ETH': 0,
+      'USDC': 0,
+      'USDT': 0,
+      'WBTC': 0,
+      'DAI': 0
     },
     arbitrum: {
-      'ETH': 1.8,
-      'USDC': 25000.00,
-      'ARB': 1500.00
+      'ETH': 0,
+      'USDC': 0,
+      'ARB': 0
     },
     solana: {
-      'SOL': 45.2,
-      'USDC': 12000.00,
-      'RAY': 850.00
+      'SOL': 0,
+      'USDC': 0,
+      'RAY': 0
     }
   };
-  
-  const balance = mockBalances[network]?.[tokenSymbol] || 0;
+
+  const balance = fallbackBalances[network]?.[tokenSymbol] || 0;
   
   // Format balance based on token type
   if (tokenSymbol === 'USDC' || tokenSymbol === 'USDT' || tokenSymbol === 'DAI') {

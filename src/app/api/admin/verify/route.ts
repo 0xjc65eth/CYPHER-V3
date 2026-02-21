@@ -16,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     const adminPasswordHash = process.env.ADMIN_PASSWORD_HASH;
     if (!adminPasswordHash) {
-      console.error('ADMIN_PASSWORD_HASH environment variable is not set');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+      console.error('[AUTH] Required admin configuration is missing');
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 401 });
     }
 
     // Compare password using bcrypt

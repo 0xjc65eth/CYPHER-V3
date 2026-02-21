@@ -51,19 +51,23 @@ export function MacroIndicators({ refreshTrigger = 0 }: MacroIndicatorsProps) {
     );
   }
 
+  if (!data) {
+    console.warn('[MacroIndicators] Using fallback data');
+  }
+
   const indicators = [
     {
       label: 'DXY (US Dollar)',
-      value: data?.dxy.value || 104.25,
-      change: data?.dxy.change || -0.18,
+      value: data?.dxy.value || 0,
+      change: data?.dxy.change || 0,
       icon: DollarSign,
       impact: 'Inverse correlation with BTC',
       color: '#3B82F6'
     },
     {
       label: '10Y Treasury Yield',
-      value: data?.treasury10y.value || 4.35,
-      change: data?.treasury10y.change || 0.05,
+      value: data?.treasury10y.value || 0,
+      change: data?.treasury10y.change || 0,
       icon: Percent,
       impact: 'Higher yields = lower risk appetite',
       suffix: '%',
@@ -71,16 +75,16 @@ export function MacroIndicators({ refreshTrigger = 0 }: MacroIndicatorsProps) {
     },
     {
       label: 'VIX (Fear Index)',
-      value: data?.vix.value || 15.8,
-      change: data?.vix.change || -2.1,
+      value: data?.vix.value || 0,
+      change: data?.vix.change || 0,
       icon: AlertTriangle,
       impact: 'Market volatility indicator',
       color: '#EF4444'
     },
     {
       label: 'S&P 500',
-      value: data?.sp500.value || 5847.23,
-      change: data?.sp500.change || 0.45,
+      value: data?.sp500.value || 0,
+      change: data?.sp500.change || 0,
       icon: TrendingUp,
       impact: 'Risk-on sentiment proxy',
       prefix: '$',
@@ -88,8 +92,8 @@ export function MacroIndicators({ refreshTrigger = 0 }: MacroIndicatorsProps) {
     },
     {
       label: 'NASDAQ',
-      value: data?.nasdaq.value || 18402.56,
-      change: data?.nasdaq.change || 0.58,
+      value: data?.nasdaq.value || 0,
+      change: data?.nasdaq.change || 0,
       icon: BarChart2,
       impact: 'Tech stocks correlation',
       prefix: '$',
@@ -97,8 +101,8 @@ export function MacroIndicators({ refreshTrigger = 0 }: MacroIndicatorsProps) {
     },
     {
       label: 'Gold (XAU/USD)',
-      value: data?.gold.value || 2634.50,
-      change: data?.gold.change || 0.32,
+      value: data?.gold.value || 0,
+      change: data?.gold.change || 0,
       icon: TrendingUp,
       impact: 'Store of value competition',
       prefix: '$',
@@ -112,16 +116,16 @@ export function MacroIndicators({ refreshTrigger = 0 }: MacroIndicatorsProps) {
       <div className="grid grid-cols-2 gap-2 mb-3">
         <div className="bg-[#0d0d14] border border-[#1a1a2e] rounded-lg p-3">
           <div className="text-[9px] text-[#e4e4e7]/35 font-mono uppercase mb-1">Fed Funds Rate</div>
-          <div className="text-lg font-bold text-[#F7931A]">{data?.fedRate.value || 5.50}%</div>
+          <div className="text-lg font-bold text-[#F7931A]">{data?.fedRate.value || 0}%</div>
           <div className="text-[8px] text-[#e4e4e7]/50 mt-1">
-            Next FOMC: {data?.fedRate.nextMeeting || 'Mar 20, 2026'}
+            Next FOMC: {data?.fedRate.nextMeeting || '--'}
           </div>
         </div>
         <div className="bg-[#0d0d14] border border-[#1a1a2e] rounded-lg p-3">
           <div className="text-[9px] text-[#e4e4e7]/35 font-mono uppercase mb-1">CPI (Inflation)</div>
-          <div className="text-lg font-bold text-[#FF4757]">{data?.cpi.value || 3.2}%</div>
+          <div className="text-lg font-bold text-[#FF4757]">{data?.cpi.value || 0}%</div>
           <div className="text-[8px] text-[#e4e4e7]/50 mt-1">
-            Last: {data?.cpi.date || 'Jan 2026'}
+            Last: {data?.cpi.date || '--'}
           </div>
         </div>
       </div>

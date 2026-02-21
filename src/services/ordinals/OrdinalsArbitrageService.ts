@@ -677,7 +677,8 @@ export class OrdinalsArbitrageService {
           unisat: 0,
           okx: 0,
           hiro: 0,
-          gamma: 0
+          gamma: 0,
+          bestinslot: 0
         },
         riskDistribution: {
           low: 0,
@@ -698,7 +699,8 @@ export class OrdinalsArbitrageService {
       unisat: 0,
       okx: 0,
       hiro: 0,
-      gamma: 0
+      gamma: 0,
+      bestinslot: 0
     };
 
     const riskDistribution: Record<RiskScore, number> = {

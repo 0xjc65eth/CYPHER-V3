@@ -15,7 +15,8 @@ export function ConditionalNavigation({ children }: ConditionalNavigationProps) 
     '/login',
     '/signup',
     '/404',
-    '/500'
+    '/500',
+    '/whitepaper'
   ];
 
   

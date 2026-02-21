@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       body: JSON.stringify({ tick, sort, start: Number(start), limit: Number(limit) }),
       signal: AbortSignal.timeout(10000),
     });
+    if (!res.ok) throw new Error(`UniSat API error: ${res.status}`);
 
     const data = await res.json();
     return NextResponse.json({ success: true, ...data });
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({ start: body.start || 0, limit: body.limit || 50 }),
         signal: AbortSignal.timeout(10000),
       });
+      if (!res.ok) throw new Error(`UniSat API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, ...data });
     }
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
         }),
         signal: AbortSignal.timeout(15000),
       });
+      if (!res.ok) throw new Error(`UniSat API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, ...data });
     }
@@ -92,6 +95,7 @@ export async function POST(request: NextRequest) {
         }),
         signal: AbortSignal.timeout(15000),
       });
+      if (!res.ok) throw new Error(`UniSat API error: ${res.status}`);
       const data = await res.json();
       return NextResponse.json({ success: true, ...data });
     }

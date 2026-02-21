@@ -752,8 +752,9 @@ export class YieldFarmingEngine extends EventEmitter {
       return cached.price;
     }
 
-    // Mock price - in production would fetch from price API
-    const mockPrices: Record<string, number> = {
+    // Stale fallback prices - should be replaced with real price API
+    console.warn('[YIELD] Using stale fallback price for', symbol);
+    const fallbackPrices: Record<string, number> = {
       'BTC': 45000,
       'ETH': 3000,
       'UNISWAP': 25,
@@ -763,7 +764,7 @@ export class YieldFarmingEngine extends EventEmitter {
       'COMPOUND': 45
     };
 
-    const price = mockPrices[symbol] || 1;
+    const price = fallbackPrices[symbol] || 1;
     this.priceCache.set(symbol, { price, timestamp: Date.now() });
     
     return price;

@@ -211,24 +211,16 @@ router.get('/config', async (req, res) => {
 router.get('/logs', async (req, res) => {
   try {
     const { level = 'info', limit = 100 } = req.query;
-    
-    // Mock logs - would integrate with actual logging system
-    const logs = Array.from({ length: parseInt(limit as string) }, (_, i) => ({
-      timestamp: Date.now() - (i * 60000),
-      level: ['info', 'warn', 'error'][Math.floor(Math.random() * 3)],
-      service: ['ml', 'orderbook', 'system'][Math.floor(Math.random() * 3)],
-      message: `Sample log message ${i + 1}`,
-      metadata: {
-        userId: `user_${Math.floor(Math.random() * 1000)}`,
-        requestId: `req_${Math.random().toString(36).substring(7)}`
-      }
-    }));
+
+    // TODO: Integrate with actual logging system (e.g., read from log files or database)
+    console.warn('[SystemRoutes] /logs endpoint has no real log source connected — returning empty array');
+    const logs: any[] = [];
 
     res.json({
       success: true,
       data: {
-        logs: logs.filter(log => level === 'all' || log.level === level),
-        total: logs.length,
+        logs,
+        total: 0,
         level
       },
       timestamp: Date.now()

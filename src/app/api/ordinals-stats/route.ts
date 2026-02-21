@@ -1,6 +1,29 @@
 import { NextResponse } from 'next/server'
 import { apiService } from '@/lib/api-service'
 
+/** Shape of collection data as returned by the API and used in aggregation */
+interface CollectionEntry {
+  name: string;
+  slug?: string;
+  supply?: number;
+  floor_price?: number;
+  floorPrice?: number;
+  volume_24h?: number;
+  volume_change_24h?: number;
+  price_change_24h?: number;
+  unique_holders?: number;
+  holders?: number;
+  image?: string;
+  verified?: boolean;
+  category?: string;
+}
+
+/** Shape of the inscriptions response when it includes a total count */
+interface InscriptionsResponseData {
+  total?: number;
+  results?: unknown[];
+}
+
 export async function GET() {
   try {
 
@@ -10,40 +33,40 @@ export async function GET() {
       apiService.getOrdinalsData({ limit: 1 }) // Just to get general stats
     ])
 
-    let collectionsData = []
+    let collectionsData: CollectionEntry[] = []
     let totalInscriptions = 35000000
     let totalHolders = 240000
 
     // Process collections data
     if (collectionsResponse.status === 'fulfilled' && collectionsResponse.value.success) {
-      collectionsData = collectionsResponse.value.data
+      collectionsData = collectionsResponse.value.data as CollectionEntry[]
     } else {
-      collectionsData = collectionsResponse.status === 'fulfilled' ? 
-        collectionsResponse.value.data || [] : []
+      collectionsData = collectionsResponse.status === 'fulfilled' ?
+        (collectionsResponse.value.data as CollectionEntry[]) || [] : []
     }
 
     // Process inscriptions data for general stats
     if (inscriptionsResponse.status === 'fulfilled' && inscriptionsResponse.value.success) {
-      const inscriptionsData = inscriptionsResponse.value.data as unknown as { total?: number; results?: unknown[] }
+      const inscriptionsData = inscriptionsResponse.value.data as InscriptionsResponseData
       if (inscriptionsData && typeof inscriptionsData === 'object' && 'total' in inscriptionsData && inscriptionsData.total) {
         totalInscriptions = inscriptionsData.total
       }
     }
 
     // Calculate total volume from top 20 collections
-    const volume24h = collectionsData.reduce((total: number, collection: any) => {
+    const volume24h = collectionsData.reduce((total: number, collection: CollectionEntry) => {
       return total + (collection.volume_24h || 0)
     }, 0)
 
     // Calculate total market cap from top 20 collections
-    const marketCap = collectionsData.reduce((total: number, collection: any) => {
+    const marketCap = collectionsData.reduce((total: number, collection: CollectionEntry) => {
       const floorPrice = collection.floor_price || collection.floorPrice || 0
       const supply = collection.supply || 1000
       return total + (floorPrice * supply)
     }, 0)
 
     // Estimate unique holders (with some overlap consideration)
-    const uniqueHolders = collectionsData.reduce((total: number, collection: any) => {
+    const uniqueHolders = collectionsData.reduce((total: number, collection: CollectionEntry) => {
       return total + (collection.unique_holders || collection.holders || 0)
     }, totalHolders)
 
@@ -69,7 +92,7 @@ export async function GET() {
     let totalPriceChange = 0;
     let collectionsWithData = 0;
 
-    collectionsData.forEach((collection: any) => {
+    collectionsData.forEach((collection: CollectionEntry) => {
       if (collection.volume_change_24h !== undefined) {
         totalVolumeChange += collection.volume_change_24h;
         collectionsWithData++;
@@ -92,7 +115,7 @@ export async function GET() {
       available_supply: totalInscriptions,
       inscription_rate: inscriptionRate || 5000,
       total_collections: collectionsData.length || 1500,
-      popular_collections: collectionsData.slice(0, 10).map((collection: any) => {
+      popular_collections: collectionsData.slice(0, 10).map((collection: CollectionEntry) => {
         const collectionName = collection.name;
         const marketplaces = COLLECTION_MARKETPLACES[collectionName as keyof typeof COLLECTION_MARKETPLACES] || ['magiceden.io', 'gamma.io'];
         const slug = (collection.slug || collectionName.toLowerCase().replace(/\s+/g, '-'));

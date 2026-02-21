@@ -50,7 +50,7 @@ pages_to_audit:
     path: /rare-sats
     priority: medium
   - name: Trading Agent
-    path: /trading-agent
+    path: /hacker-yields
     priority: high
   - name: Tax
     path: /tax

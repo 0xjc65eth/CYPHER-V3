@@ -515,6 +515,10 @@ export class OrdinalsDataAggregator extends EventEmitter {
             case OrdinalsMarketplace.HIRO:
               collections = await client.getCollections() || [];
               break;
+            case OrdinalsMarketplace.BESTINSLOT:
+              const bisRankings = await client.getCollectionRankings('volume', 'all', 0, limit);
+              collections = bisRankings || [];
+              break;
           }
 
           // Convert to standardized format
@@ -635,6 +639,22 @@ export class OrdinalsDataAggregator extends EventEmitter {
                 timeoutPromise
               ]);
               break;
+            case OrdinalsMarketplace.BESTINSLOT:
+              try {
+                const [bisInfo, bisStats] = await Promise.race([
+                  Promise.all([
+                    client.getCollectionInfo(collectionId),
+                    client.getCollectionStats(collectionId)
+                  ]),
+                  timeoutPromise as Promise<never>
+                ]);
+                if (bisInfo && bisStats) {
+                  collection = { ...bisInfo, ...bisStats };
+                }
+              } catch {
+                collection = null;
+              }
+              break;
           }
 
           const responseTime = Date.now() - startTime;
@@ -748,6 +768,9 @@ export class OrdinalsDataAggregator extends EventEmitter {
             break;
           case OrdinalsMarketplace.HIRO:
             inscription = await client.getInscriptionDetails(inscriptionId);
+            break;
+          case OrdinalsMarketplace.BESTINSLOT:
+            inscription = await client.getInscription(inscriptionId);
             break;
         }
 
@@ -868,6 +891,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
 
     // Need at least 2 marketplaces for arbitrage
     if (availableData.length < 2) {
+      console.warn(`[OrdinalsArbitrage] Only ${availableData.length} marketplace(s) with valid prices: ${availableData.map(([m]) => m).join(', ')}. Need ≥2 for arbitrage.`);
       return {
         bestFloorPrice: availableData[0][1].floorPrice,
         bestFloorMarketplace: availableData[0][0] as OrdinalsMarketplace,
@@ -1168,6 +1192,10 @@ export class OrdinalsDataAggregator extends EventEmitter {
   }
 
   private startPeriodicUpdates(): void {
+    // Clear any existing intervals to prevent duplicates
+    this.updateIntervals.forEach((interval) => clearInterval(interval));
+    this.updateIntervals.clear();
+
     // Update market overview
     const overviewInterval = setInterval(async () => {
       if (this.isRunning) {

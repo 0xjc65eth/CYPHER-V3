@@ -72,11 +72,12 @@ class AssetPriceService {
       }
     } catch (error) {
       console.error(`Error fetching price for ${symbol}:`, error)
-      // Return mock data for development
-      return this.getMockPriceData(symbol)
+      // Return fallback data when API is unavailable
+      console.warn(`[AssetPriceService] API unavailable for ${symbol}, returning fallback data with zeroed values`)
+      return this.getFallbackPriceData(symbol)
     }
   }
-  
+
   static async fetchMultipleAssetPrices(symbols: string[]): Promise<Record<string, {
     price: number
     priceChange24h: number
@@ -94,18 +95,18 @@ class AssetPriceService {
         'AVAX': 'avalanche-2',
         'MATIC': 'matic-network'
       }
-      
+
       const coinIds = symbols.map(symbol => symbolToId[symbol.toUpperCase()] || symbol.toLowerCase()).join(',')
-      
+
       const data = await rateLimitedFetch(
         `${this.BASE_URL}/simple/price?ids=${coinIds}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
       )
       const result: Record<string, any> = {}
-      
+
       symbols.forEach(symbol => {
         const coinId = symbolToId[symbol.toUpperCase()] || symbol.toLowerCase()
         const coinData = data[coinId]
-        
+
         if (coinData) {
           result[symbol.toUpperCase()] = {
             price: coinData.usd || 0,
@@ -115,29 +116,30 @@ class AssetPriceService {
           }
         }
       })
-      
+
       return result
     } catch (error) {
       console.error('Error fetching multiple prices:', error)
-      // Return mock data for development
+      // Return fallback data when API is unavailable
+      console.warn(`[AssetPriceService] API unavailable for multiple assets, returning fallback data with zeroed values`)
       const result: Record<string, any> = {}
       symbols.forEach(symbol => {
-        result[symbol.toUpperCase()] = this.getMockPriceData(symbol)
+        result[symbol.toUpperCase()] = this.getFallbackPriceData(symbol)
       })
       return result
     }
   }
-  
-  private static getMockPriceData(symbol: string) {
-    const mockPrices: Record<string, any> = {
-      BTC: { price: 104390.25, priceChange24h: 2.45, volume24h: 15200000000, marketCap: 2100000000000 },
-      ETH: { price: 2285.50, priceChange24h: 1.23, volume24h: 8500000000, marketCap: 275000000000 },
-      SOL: { price: 98.75, priceChange24h: 4.21, volume24h: 1200000000, marketCap: 45000000000 },
-      USDC: { price: 1.00, priceChange24h: 0.01, volume24h: 2400000000, marketCap: 32000000000 },
-      USDT: { price: 1.00, priceChange24h: -0.02, volume24h: 25000000000, marketCap: 96000000000 }
+
+  private static getFallbackPriceData(symbol: string) {
+    const fallbackPrices: Record<string, any> = {
+      BTC: { price: 0, priceChange24h: 0, volume24h: 0, marketCap: 0 },
+      ETH: { price: 0, priceChange24h: 0, volume24h: 0, marketCap: 0 },
+      SOL: { price: 0, priceChange24h: 0, volume24h: 0, marketCap: 0 },
+      USDC: { price: 0, priceChange24h: 0, volume24h: 0, marketCap: 0 },
+      USDT: { price: 0, priceChange24h: 0, volume24h: 0, marketCap: 0 }
     }
-    
-    return mockPrices[symbol.toUpperCase()] || { price: 1, priceChange24h: 0, volume24h: 0, marketCap: 0 }
+
+    return fallbackPrices[symbol.toUpperCase()] || { price: 0, priceChange24h: 0, volume24h: 0, marketCap: 0 }
   }
 }
 

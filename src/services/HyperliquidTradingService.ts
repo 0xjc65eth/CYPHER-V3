@@ -366,21 +366,13 @@ export class HyperliquidTradingService {
     } catch (error) {
       console.error(`❌ Erro ao buscar dados de mercado para ${symbol}:`, error);
       
-      // Retornar dados simulados se a API falhar
-      const mockData: MarketData = {
-        symbol,
-        price: 100000 + Math.random() * 10000,
-        volume24h: 1000000000 + Math.random() * 500000000,
-        change24h: (Math.random() - 0.5) * 10,
-        high24h: 110000,
-        low24h: 95000,
-        fundingRate: 0.0001,
-        openInterest: 50000000,
-        timestamp: Date.now()
-      };
-
-      this.marketDataCache.set(symbol, mockData);
-      return mockData;
+      // Return cached data if available, otherwise throw
+      const cached = this.marketDataCache.get(symbol);
+      if (cached) {
+        console.warn(`[HYPERLIQUID] Using cached market data for ${symbol}`);
+        return cached;
+      }
+      throw new Error(`Market data unavailable for ${symbol}`);
     }
   }
 

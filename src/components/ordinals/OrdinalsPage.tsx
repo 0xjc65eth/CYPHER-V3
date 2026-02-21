@@ -69,6 +69,7 @@ import type {
   PriceAlert,
   SortField,
 } from '@/types/ordinals';
+import { PremiumContent } from '@/components/premium-content';
 
 // ============================================================================
 // TAB DEFINITIONS
@@ -533,14 +534,35 @@ export default function OrdinalsPage() {
     </div>
   );
 
+  const yhpFallback = (
+    <div className="flex flex-col items-center justify-center py-20 px-4">
+      <div className="w-16 h-16 bg-[#1a1a2e] border border-[#f59e0b]/30 rounded-full flex items-center justify-center mb-4">
+        <span className="text-2xl">🔒</span>
+      </div>
+      <h3 className="text-lg font-bold text-[#f59e0b] mb-2 font-mono">PREMIUM FEATURE — YHP ACCESS</h3>
+      <p className="text-[#e4e4e7]/50 text-sm text-center max-w-md mb-4">
+        This feature requires Yield Hacker Pass. Connect your ETH wallet to verify YHP ownership.
+      </p>
+      <div className="text-[10px] text-[#e4e4e7]/30 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'collections':
-        return renderCollectionsTab();
+        return (
+          <PremiumContent fallback={yhpFallback}>
+            {renderCollectionsTab()}
+          </PremiumContent>
+        );
       case 'inscriptions':
         return <InscriptionsTab />;
       case 'marketplace':
-        return <MarketplaceTab />;
+        return (
+          <PremiumContent fallback={yhpFallback}>
+            <MarketplaceTab />
+          </PremiumContent>
+        );
       case 'portfolio':
         return (
           <Suspense fallback={<TabLoadingSkeleton />}>

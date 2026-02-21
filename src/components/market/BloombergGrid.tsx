@@ -16,12 +16,15 @@ import { EconomicDataPanel } from './panels/EconomicDataPanel';
 import { FedIndicatorsPanel } from './panels/FedIndicatorsPanel';
 import { CorrelationMatrix } from './panels/CorrelationMatrix';
 import { MarketBreadth } from './panels/MarketBreadth';
+import { DEXVolumePanel } from './panels/DEXVolumePanel';
+import { useDuneDEXVolume } from '@/hooks/useDuneAnalytics';
 
-export default function BloombergGrid() {
+function BloombergGrid() {
   const multiAsset = useMultiAssetData(120000);
   const economic = useEconomicData(1800000);
   const news = useFinancialNews(900000);
   const fed = useFedIndicators(1800000);
+  const dexVolume = useDuneDEXVolume(300000);
 
   return (
     <div className="space-y-1">
@@ -92,6 +95,13 @@ export default function BloombergGrid() {
             loading={fed.loading}
             error={fed.error}
           />
+
+          {/* DEX Volume Rankings (Dune Analytics) */}
+          <DEXVolumePanel
+            data={dexVolume.data}
+            loading={dexVolume.loading}
+            error={dexVolume.error}
+          />
         </div>
       </div>
 
@@ -108,3 +118,5 @@ export default function BloombergGrid() {
     </div>
   );
 }
+
+export default React.memo(BloombergGrid);

@@ -80,7 +80,7 @@ export default function NeuralSystemStatus() {
             metrics: models.map(model => ({
               name: model.name,
               value: model.accuracy * 100,
-              change: 1 + Math.random(),
+              change: 0,
               description: `Accuracy of ${model.name.toLowerCase()} based on ${model.dataPoints} data points`
             })),
             recentInsights: insights.map(insight => insight.explanation),
@@ -93,73 +93,55 @@ export default function NeuralSystemStatus() {
       }
 
       if (!realData) {
-        // Generate realistic mock data if real data is not available
+        // Fallback data when neural service is unavailable
+        console.warn('[NEURAL] Using fallback data - neural service unavailable')
         const now = new Date()
-        const lastTrainingTime = new Date(now.getTime() - Math.floor(Math.random() * 3600000)) // 0-60 minutes ago
 
-        // Determine current learning stage
-        const stages: Array<LearningProgress['stage']> = [
-          'data_collection', 'preprocessing', 'training', 'validation', 'insight_generation', 'correction'
-        ]
-        const currentStage = stages[Math.floor(Math.random() * stages.length)]
-        const stageProgress = Math.floor(Math.random() * 100)
-
-        // Generate mock learning progress
-        const mockLearningProgress: LearningProgress = {
-          stage: currentStage,
-          progress: stageProgress,
-          startTime: new Date(now.getTime() - 600000).toISOString(), // 10 minutes ago
-          estimatedEndTime: new Date(now.getTime() + 600000).toISOString(), // 10 minutes from now
-          currentTask: getTaskDescription(currentStage),
-          completedTasks: Math.floor(Math.random() * 10) + 5,
-          totalTasks: 20
-        }
-
-        // Generate mock auto-corrections
-        const mockCorrections = generateMockCorrections(5)
-
-        const mockData: NeuralSystemData = {
-          status: Math.random() > 0.7 ? 'training' : Math.random() > 0.5 ? 'analyzing' : 'correcting',
-          lastUpdated: lastTrainingTime.toISOString(),
-          accuracy: 92.7 + (Math.random() * 4 - 2), // 90.7-94.7%
-          dataPoints: 1287500 + Math.floor(Math.random() * 10000),
+        realData = {
+          status: 'idle' as const,
+          lastUpdated: now.toISOString(),
+          accuracy: 0,
+          dataPoints: 0,
           metrics: [
             {
               name: 'Ordinals Price Prediction',
-              value: 94.3 + (Math.random() * 2 - 1),
-              change: 0.8 + (Math.random() * 0.4 - 0.2),
+              value: 0,
+              change: 0,
               description: 'Accuracy of 24-hour price movement predictions for top Ordinals collections'
             },
             {
               name: 'Runes Market Analysis',
-              value: 91.5 + (Math.random() * 2 - 1),
-              change: 1.2 + (Math.random() * 0.4 - 0.2),
+              value: 0,
+              change: 0,
               description: 'Precision of Runes market trend analysis and liquidity predictions'
             },
             {
               name: 'Arbitrage Opportunity Detection',
-              value: 96.8 + (Math.random() * 2 - 1),
-              change: 0.5 + (Math.random() * 0.4 - 0.2),
+              value: 0,
+              change: 0,
               description: 'Success rate of identified arbitrage opportunities across marketplaces'
             },
             {
               name: 'Sentiment Analysis',
-              value: 88.2 + (Math.random() * 2 - 1),
-              change: 2.1 + (Math.random() * 0.4 - 0.2),
+              value: 0,
+              change: 0,
               description: 'Correlation between social sentiment analysis and actual market movements'
             }
           ],
           recentInsights: [
-            `Detected increasing correlation (${(0.72 + Math.random() * 0.1).toFixed(2)}) between Bitcoin ETF inflows and Ordinals floor prices`,
-            `Identified pattern of Rune price movements preceding BTC volatility with ${(0.68 + Math.random() * 0.1).toFixed(2)} confidence`,
-            `Optimized arbitrage detection algorithm, reducing false positives by ${(18 + Math.random() * 5).toFixed(1)}%`,
-            `Improved rare sat valuation model with new on-chain data, increasing accuracy by ${(7 + Math.random() * 3).toFixed(1)}%`
+            'Neural system initializing - connect to data sources for real-time insights'
           ],
-          learningProgress: mockLearningProgress,
-          autoCorrections: mockCorrections
+          learningProgress: {
+            stage: 'data_collection' as const,
+            progress: 0,
+            startTime: now.toISOString(),
+            estimatedEndTime: now.toISOString(),
+            currentTask: 'Waiting for data sources',
+            completedTasks: 0,
+            totalTasks: 0
+          },
+          autoCorrections: []
         }
-
-        realData = mockData
       }
 
       setData(realData)
@@ -191,46 +173,9 @@ export default function NeuralSystemStatus() {
     }
   }
 
-  // Helper function to generate mock auto-corrections
-  const generateMockCorrections = (count: number): AutoCorrection[] => {
-    const dataTypes = ['Ordinals', 'Runes', 'Market', 'Arbitrage', 'SMC']
-    const fields = ['price', 'volume', 'holders', 'marketCap', 'inscriptionRate', 'mintRate', 'correlation']
-    const sources = ['API', 'Historical Analysis', 'Cross-Validation', 'Pattern Recognition', 'Anomaly Detection']
-
-    return Array.from({ length: count }).map((_, index) => {
-      const dataType = dataTypes[Math.floor(Math.random() * dataTypes.length)]
-      const field = fields[Math.floor(Math.random() * fields.length)]
-      const oldValue = field.includes('Rate') ?
-        Math.floor(Math.random() * 5000) :
-        field === 'price' ?
-          (Math.random() * 2).toFixed(6) :
-          Math.floor(Math.random() * 1000000)
-
-      // Calculate new value (5-20% difference)
-      const changePercent = 0.05 + Math.random() * 0.15
-      const direction = Math.random() > 0.5 ? 1 : -1
-      const newValue = typeof oldValue === 'string' ?
-        parseFloat(oldValue) * (1 + direction * changePercent) :
-        oldValue * (1 + direction * changePercent)
-
-      const formattedNewValue = typeof newValue === 'number' && field === 'price' ?
-        newValue.toFixed(6) :
-        typeof newValue === 'number' ?
-          Math.floor(newValue) :
-          newValue
-
-      return {
-        id: `correction-${Date.now()}-${index}`,
-        timestamp: new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString(),
-        dataType,
-        field,
-        oldValue,
-        newValue: formattedNewValue,
-        confidence: 75 + Math.floor(Math.random() * 20),
-        source: sources[Math.floor(Math.random() * sources.length)],
-        explanation: `Detected inconsistency in ${dataType} ${field} data. Value corrected from ${oldValue} to ${formattedNewValue} based on ${sources[Math.floor(Math.random() * sources.length)]}.`
-      }
-    })
+  // Returns empty corrections when service is unavailable
+  const generateMockCorrections = (_count: number): AutoCorrection[] => {
+    return []
   }
 
   // Helper function to get current learning progress
@@ -244,22 +189,16 @@ export default function NeuralSystemStatus() {
     } catch (error) {
     }
 
-    // Fall back to mock data
+    // Fallback: idle state
     const now = new Date()
-    const stages: Array<LearningProgress['stage']> = [
-      'data_collection', 'preprocessing', 'training', 'validation', 'insight_generation', 'correction'
-    ]
-    const currentStage = stages[Math.floor(Math.random() * stages.length)]
-    const stageProgress = Math.floor(Math.random() * 100)
-
     return {
-      stage: currentStage,
-      progress: stageProgress,
-      startTime: new Date(now.getTime() - 600000).toISOString(), // 10 minutes ago
-      estimatedEndTime: new Date(now.getTime() + 600000).toISOString(), // 10 minutes from now
-      currentTask: getTaskDescription(currentStage),
-      completedTasks: Math.floor(Math.random() * 10) + 5,
-      totalTasks: 20
+      stage: 'data_collection' as const,
+      progress: 0,
+      startTime: now.toISOString(),
+      estimatedEndTime: now.toISOString(),
+      currentTask: 'Waiting for data sources',
+      completedTasks: 0,
+      totalTasks: 0
     }
   }
 

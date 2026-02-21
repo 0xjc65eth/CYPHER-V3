@@ -45,14 +45,22 @@ export const getWizzNetwork = (network: string) => {
   return WizzNetwork.MAINNET
 }
 
+// OrangeNetwork enum values ('Mainnet', 'Testnet') are structurally compatible
+// with BitcoinNetworkType string values at runtime. This mapping provides
+// type-safe conversion without double-casting through `unknown`.
+const orangeNetworkMap: Record<string, BitcoinNetworkType> = {
+  [BaseNetwork.MAINNET]: OrangeNetwork.MAINNET as BitcoinNetworkType,
+  [BaseNetwork.TESTNET]: OrangeNetwork.TESTNET as BitcoinNetworkType,
+  [BaseNetwork.TESTNET4]: OrangeNetwork.TESTNET as BitcoinNetworkType,
+  [BaseNetwork.SIGNET]: OrangeNetwork.TESTNET as BitcoinNetworkType,
+  [BaseNetwork.FRACTAL_MAINNET]: OrangeNetwork.MAINNET as BitcoinNetworkType,
+  [BaseNetwork.FRACTAL_TESTNET]: OrangeNetwork.MAINNET as BitcoinNetworkType,
+}
+
+const ORANGE_DEFAULT: BitcoinNetworkType = OrangeNetwork.MAINNET as BitcoinNetworkType
+
 export const getOrangeNetwork = (network: string): BitcoinNetworkType => {
-  if (network === BaseNetwork.MAINNET) return OrangeNetwork.MAINNET as unknown as BitcoinNetworkType
-  if (network === BaseNetwork.TESTNET) return OrangeNetwork.TESTNET as unknown as BitcoinNetworkType
-  if (network === BaseNetwork.TESTNET4) return OrangeNetwork.TESTNET as unknown as BitcoinNetworkType
-  if (network === BaseNetwork.SIGNET) return OrangeNetwork.TESTNET as unknown as BitcoinNetworkType
-  if (network === BaseNetwork.FRACTAL_MAINNET) return OrangeNetwork.MAINNET as unknown as BitcoinNetworkType
-  if (network === BaseNetwork.FRACTAL_TESTNET) return OrangeNetwork.MAINNET as unknown as BitcoinNetworkType
-  return OrangeNetwork.MAINNET as unknown as BitcoinNetworkType
+  return orangeNetworkMap[network] ?? ORANGE_DEFAULT
 }
 
 export const getCmDruidNetwork = (network: string) => {

@@ -27,7 +27,7 @@ async function deduplicatedFetch<T>(key: string, fetcher: () => Promise<T>): Pro
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 100);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 100);
     const cacheKey = `market-overview:${limit}`;
 
     // Check cache

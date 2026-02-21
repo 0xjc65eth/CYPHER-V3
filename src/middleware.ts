@@ -16,11 +16,13 @@ export function middleware(request: NextRequest) {
     const allowedOrigins = [
       'http://localhost:4444',
       'https://localhost:4444',
+      'http://127.0.0.1:4444',
       process.env.NEXTAUTH_URL,
     ].filter(Boolean);
 
     if (origin && allowedOrigins.includes(origin)) {
       response.headers.set('Access-Control-Allow-Origin', origin);
+      response.headers.set('Access-Control-Allow-Credentials', 'true');
     } else if (!origin) {
       // No Origin header — allow same-origin navigations and server-to-server
       const fetchSite = request.headers.get('sec-fetch-site');
@@ -35,8 +37,6 @@ export function middleware(request: NextRequest) {
         return new Response('Forbidden', { status: 403 });
       }
     }
-
-    response.headers.set('Access-Control-Allow-Credentials', 'true');
     response.headers.set(
       'Access-Control-Allow-Methods',
       'GET, POST, PUT, DELETE, OPTIONS'
@@ -65,8 +65,8 @@ export function middleware(request: NextRequest) {
       "default-src 'self'",
       `script-src 'self' 'nonce-${nonce}' https://s3.tradingview.com`,
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
-      "connect-src 'self' https: wss:",
+      "img-src 'self' data: blob: https://api.coingecko.com https://assets.coingecko.com https://ordinals.com https://bis-ord-content.fra1.cdn.digitaloceanspaces.com",
+      "connect-src 'self' https://api.coingecko.com https://pro-api.coingecko.com https://mempool.space https://api.hiro.so https://api-mainnet.magiceden.dev https://open-api.unisat.io https://api.bestinslot.xyz https://api.hyperliquid.xyz https://api.binance.com https://api.coinbase.com https://api.kraken.com https://api.bybit.com https://www.okx.com https://api-pub.bitfinex.com https://api.kucoin.com https://api.gateio.ws wss://stream.binance.com wss://ws-feed.exchange.coinbase.com",
       "font-src 'self' data:",
       "object-src 'none'",
       "base-uri 'self'",
