@@ -1,88 +1,117 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
+
+let oppCache: any = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 120000; // 2 minutes
+
+async function fetchWithTimeout(url: string, timeoutMs = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export async function GET(request: Request) {
   try {
-    // Get the wallet address from the URL
-    const { searchParams } = new URL(request.url)
-    const address = searchParams.get('address')
+    const { searchParams } = new URL(request.url);
+    const address = searchParams.get('address');
 
     if (!address) {
-      return NextResponse.json(
-        { error: 'Wallet address is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Wallet address is required' }, { status: 400 });
     }
 
-    // In a real implementation, this would fetch data from a database or external API
-    // For demo purposes, we'll use mock data
-    
-    // Mock opportunities data
-    const opportunitiesData = {
-      opportunities: [
-        {
-          id: 'opp-1',
-          title: 'ORDI Arbitrage Opportunity',
-          description: 'Price difference for ORDI between Magic Eden and Unisat',
-          type: 'Arbitrage',
-          successProbability: 85,
-          potentialReturn: 12.5,
-          riskLevel: 'Low',
-          timeFrame: 'Immediate',
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'opp-2',
-          title: 'PEPE Rune Accumulation',
-          description: 'PEPE rune is undervalued based on market metrics and social sentiment',
-          type: 'Trade',
-          successProbability: 72,
-          potentialReturn: 35.8,
-          riskLevel: 'Medium',
-          timeFrame: 'Medium-term',
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'opp-3',
-          title: 'Upcoming Ordinals Collection Mint',
-          description: 'High-potential new ordinals collection launching in 2 days',
-          type: 'Mint',
-          successProbability: 68,
-          potentialReturn: 150.0,
-          riskLevel: 'High',
-          timeFrame: 'Short-term',
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'opp-4',
-          title: 'Rare Sat Hunting Opportunity',
-          description: 'Block 840000 approaching with potential for valuable rare sats',
-          type: 'Mint',
-          successProbability: 45,
-          potentialReturn: 300.0,
-          riskLevel: 'Very High',
-          timeFrame: 'Short-term',
-          updatedAt: new Date().toISOString()
-        },
-        {
-          id: 'opp-5',
-          title: 'BTC Accumulation Strategy',
-          description: 'Technical indicators suggest optimal entry point for BTC',
-          type: 'Trade',
-          successProbability: 78,
-          potentialReturn: 25.0,
-          riskLevel: 'Medium',
-          timeFrame: 'Long-term',
-          updatedAt: new Date().toISOString()
-        }
-      ]
+    if (oppCache && Date.now() - cacheTimestamp < CACHE_TTL) {
+      return NextResponse.json({ success: true, ...oppCache, source: 'cache' });
     }
 
-    return NextResponse.json(opportunitiesData)
+    const opportunities: any[] = [];
+
+    // Fetch real data in parallel
+    const [trendingRes, fgRes] = await Promise.allSettled([
+      fetchWithTimeout('https://api.coingecko.com/api/v3/search/trending'),
+      fetchWithTimeout('https://api.alternative.me/fng/?limit=1'),
+    ]);
+
+    // Trending coins as trade opportunities
+    if (trendingRes.status === 'fulfilled' && trendingRes.value.ok) {
+      const data = await trendingRes.value.json();
+      const coins = data.coins?.slice(0, 3) || [];
+      for (const entry of coins) {
+        const coin = entry.item;
+        opportunities.push({
+          id: `trending-${coin.id}`,
+          title: `${coin.name} Trending`,
+          description: `${coin.name} (${coin.symbol}) is trending on CoinGecko (rank #${coin.market_cap_rank || 'N/A'})`,
+          type: 'Trade',
+          successProbability: 65,
+          potentialReturn: coin.data?.price_change_percentage_24h?.usd || 0,
+          riskLevel: 'Medium',
+          timeFrame: 'Short-term',
+          source: 'coingecko-trending',
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // DCA opportunity based on Fear & Greed
+    let fearGreed = 50;
+    if (fgRes.status === 'fulfilled' && fgRes.value.ok) {
+      const fgData = await fgRes.value.json();
+      fearGreed = parseInt(fgData.data?.[0]?.value || '50');
+    }
+
+    if (fearGreed < 30) {
+      opportunities.push({
+        id: 'dca-btc-fear',
+        title: 'BTC DCA - Extreme Fear',
+        description: `Fear & Greed at ${fearGreed} (Extreme Fear). Historically, buying during fear leads to above-average returns.`,
+        type: 'Trade',
+        successProbability: 80,
+        potentialReturn: 25,
+        riskLevel: 'Low',
+        timeFrame: 'Long-term',
+        source: 'fear-greed-analysis',
+        updatedAt: new Date().toISOString(),
+      });
+    } else if (fearGreed > 75) {
+      opportunities.push({
+        id: 'take-profit-greed',
+        title: 'Take Profits - Extreme Greed',
+        description: `Fear & Greed at ${fearGreed} (Extreme Greed). Consider taking partial profits.`,
+        type: 'Trade',
+        successProbability: 70,
+        potentialReturn: 0,
+        riskLevel: 'Low',
+        timeFrame: 'Immediate',
+        source: 'fear-greed-analysis',
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    // Always add a general BTC strategy
+    opportunities.push({
+      id: 'btc-accumulation',
+      title: 'BTC Accumulation Strategy',
+      description: `Systematic BTC accumulation. Current F&G: ${fearGreed}.`,
+      type: 'Trade',
+      successProbability: 75,
+      potentialReturn: 20,
+      riskLevel: 'Medium',
+      timeFrame: 'Long-term',
+      source: 'market-analysis',
+      updatedAt: new Date().toISOString(),
+    });
+
+    const result = { opportunities };
+    oppCache = result;
+    cacheTimestamp = Date.now();
+
+    return NextResponse.json({ success: true, ...result, source: 'real-apis', timestamp: Date.now() });
   } catch (error) {
-    console.error('Error fetching opportunities:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch opportunities' },
-      { status: 500 }
-    )
+    console.error('[Opportunities] Error:', error);
+    return NextResponse.json({ error: 'Failed to fetch opportunities' }, { status: 500 });
   }
 }

@@ -9,6 +9,8 @@ import type { OverlayConfig } from '@/components/charts/SmcOverlayControls'
 import { useSmcAnalysis } from '@/hooks/useSmcAnalysis'
 import { useDerivativesData } from '@/hooks/useDerivativesData'
 import type { Candle } from '@/lib/smc/types'
+import { PremiumContent } from '@/components/premium-content'
+import { Crown } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -307,7 +309,21 @@ export default function TradingPage() {
 
   const tabClass = "rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono"
 
+  const yhpFallback = (
+    <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center px-4">
+      <div className="w-16 h-16 bg-[#1a1a2e] border border-orange-500/30 rounded-full flex items-center justify-center mb-4">
+        <Crown className="w-8 h-8 text-orange-500" />
+      </div>
+      <h3 className="text-lg font-bold text-orange-500 mb-2 font-mono">INSTITUTIONAL TERMINAL — YHP ACCESS</h3>
+      <p className="text-gray-400 text-sm text-center max-w-md mb-4">
+        The Cypher Institutional Trading Terminal requires Yield Hacker Pass. Connect your ETH wallet to verify YHP ownership or use a VIP wallet.
+      </p>
+      <div className="text-[10px] text-gray-600 font-mono">REQUIRED: YIELD HACKER PASS NFT / VIP WALLET</div>
+    </div>
+  )
+
   return (
+    <PremiumContent fallback={yhpFallback}>
     <div className="min-h-screen bg-[#0a0a0f] text-white font-mono">
       <div className="max-w-[1800px] mx-auto px-4 py-4">
         {/* ═══ TOP BAR ═══ */}
@@ -978,5 +994,6 @@ export default function TradingPage() {
         </Tabs>
       </div>
     </div>
+    </PremiumContent>
   )
 }

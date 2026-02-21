@@ -193,12 +193,18 @@ function toDBRecord(record: FeeRecord): DBFeeRecord {
 export async function recordFee(record: FeeRecord): Promise<void> {
   // Persist to Supabase (or in-memory fallback)
   await dbService.insertFeeRecord(toDBRecord(record));
+}
 
-  // Log for audit trail
+/**
+ * Get all fee records (delegates to dbService)
+ */
+export async function getAllFeeRecords(limit: number = 20): Promise<DBFeeRecord[]> {
+  return dbService.getAllFeeRecords(limit);
+}
 
-  return {
-    feeAddress: CYPHER_FEE_WALLETS.bitcoin,
-    feeSats,
-    feeBps,
-  };
+/**
+ * Get fee stats (delegates to dbService)
+ */
+export async function getFeeStats(): Promise<{ totalCollected: number; totalPending: number; byProtocol: Record<string, number> }> {
+  return dbService.getFeeStats();
 }

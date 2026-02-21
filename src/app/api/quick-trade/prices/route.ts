@@ -1,112 +1,239 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
 
-// Mock price data that simulates real-time updates
-const PRICE_CACHE = new Map<string, any>()
-const LAST_UPDATE = new Map<string, number>()
-const UPDATE_INTERVAL = 30000 // 30 seconds
+// In-memory cache for prices
+const priceCache = new Map<string, { data: any; timestamp: number }>();
+const PRICE_CACHE_TTL = 15000; // 15 seconds
 
-// Real-time price simulation
-const simulatePriceMovement = (basePrice: number, volatility: number = 0.02): number => {
-  const randomFactor = (Math.random() - 0.5) * 2 * volatility
-  return basePrice * (1 + randomFactor)
+// Common token addresses mapped to CoinGecko IDs
+const TOKEN_COINGECKO_MAP: Record<string, string> = {
+  // Ethereum
+  '0x0000000000000000000000000000000000000000': 'ethereum',
+  '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2': 'ethereum', // WETH
+  '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48': 'usd-coin', // USDC
+  '0xdAC17F958D2ee523a2206206994597C13D831ec7': 'tether', // USDT
+  // Solana
+  'So11111111111111111111111111111111111111112': 'solana', // SOL
+  'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': 'usd-coin', // USDC on Solana
+};
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function getTokenPrices(tokenAddresses: string[]): Promise<Record<string, any>> {
+  const prices: Record<string, any> = {};
+
+  // Collect unique CoinGecko IDs
+  const cgIds = new Set<string>();
+  const addressToId: Record<string, string> = {};
+
+  for (const addr of tokenAddresses) {
+    const id = TOKEN_COINGECKO_MAP[addr];
+    if (id) {
+      cgIds.add(id);
+      addressToId[addr] = id;
+    }
+  }
+
+  if (cgIds.size === 0) return prices;
+
+  // Check cache first
+  const cacheKey = Array.from(cgIds).sort().join(',');
+  const cached = priceCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < PRICE_CACHE_TTL) {
+    for (const addr of tokenAddresses) {
+      const id = addressToId[addr];
+      if (id && cached.data[id]) {
+        prices[addr] = cached.data[id];
+      }
+    }
+    return prices;
+  }
+
+  try {
+    const idsStr = Array.from(cgIds).join(',');
+    const res = await fetchWithTimeout(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${idsStr}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`
+    );
+
+    if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
+    const data = await res.json();
+
+    // Build formatted results
+    const formattedData: Record<string, any> = {};
+    for (const [id, info] of Object.entries(data) as [string, any][]) {
+      formattedData[id] = {
+        price: info.usd || 0,
+        priceChange24h: info.usd_24h_change || 0,
+        volume24h: info.usd_24h_vol || 0,
+        marketCap: info.usd_market_cap || 0,
+        high24h: (info.usd || 0) * 1.02,
+        low24h: (info.usd || 0) * 0.98,
+        lastUpdated: Date.now(),
+      };
+    }
+
+    // Update cache
+    priceCache.set(cacheKey, { data: formattedData, timestamp: Date.now() });
+
+    // Map back to addresses
+    for (const addr of tokenAddresses) {
+      const id = addressToId[addr];
+      if (id && formattedData[id]) {
+        prices[addr] = formattedData[id];
+      }
+    }
+  } catch (err) {
+    console.error('[QuickTrade] Price fetch failed:', err);
+  }
+
+  return prices;
 }
 
 // GET /api/quick-trade/prices - Get real-time prices
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams
-    const tokens = searchParams.get('tokens')?.split(',') || []
-    const chainId = searchParams.get('chainId')
-    const currency = searchParams.get('currency') || 'usd'
+    const searchParams = request.nextUrl.searchParams;
+    const tokens = searchParams.get('tokens')?.split(',') || [];
+    const currency = searchParams.get('currency') || 'usd';
 
     if (tokens.length === 0) {
-      return NextResponse.json({ 
-        error: 'tokens parameter is required' 
-      }, { status: 400 })
+      return NextResponse.json({ error: 'tokens parameter is required' }, { status: 400 });
     }
 
-    const now = Date.now()
-    const prices: Record<string, any> = {}
-
-    for (const tokenAddress of tokens) {
-      const cacheKey = `${chainId}-${tokenAddress}`
-      const lastUpdate = LAST_UPDATE.get(cacheKey) || 0
-
-      // Update price if cache is stale
-      if (now - lastUpdate > UPDATE_INTERVAL) {
-        const newPrice = generateTokenPrice(tokenAddress, chainId)
-        PRICE_CACHE.set(cacheKey, newPrice)
-        LAST_UPDATE.set(cacheKey, now)
-      }
-
-      prices[tokenAddress] = PRICE_CACHE.get(cacheKey)
-    }
+    const prices = await getTokenPrices(tokens);
 
     return NextResponse.json({
       success: true,
       data: {
         prices,
         currency,
-        timestamp: now,
-        updateInterval: UPDATE_INTERVAL
-      }
-    })
-
+        timestamp: Date.now(),
+        source: 'coingecko',
+      },
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=15, stale-while-revalidate=30' },
+    });
   } catch (error) {
-    console.error('Price API error:', error)
-    return NextResponse.json({ 
+    console.error('[QuickTrade] Price API error:', error);
+    return NextResponse.json({
       error: 'Failed to fetch prices',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500 });
   }
 }
 
-// POST /api/quick-trade/prices/quote - Get detailed quote for token pair
+// POST /api/quick-trade/prices - Get quote for token pair
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { 
-      tokenIn, 
-      tokenOut, 
-      amountIn, 
-      chainId, 
-      slippageTolerance = 1.0,
-      dexPreferences = []
-    } = body
+    const body = await request.json();
+    const { tokenIn, tokenOut, amountIn, chainId, slippageTolerance = 1.0 } = body;
 
     if (!tokenIn || !tokenOut || !amountIn) {
-      return NextResponse.json({ 
-        error: 'tokenIn, tokenOut, and amountIn are required' 
-      }, { status: 400 })
+      return NextResponse.json({ error: 'tokenIn, tokenOut, and amountIn are required' }, { status: 400 });
     }
 
-    // Generate mock quotes from different DEXs
-    const quotes = await generateQuotes({
-      tokenIn,
-      tokenOut,
-      amountIn,
-      chainId,
-      slippageTolerance,
-      dexPreferences
-    })
+    let quotes: any[] = [];
 
-    // Calculate best quote and price impact
-    const bestQuote = quotes.reduce((best, current) => 
-      parseFloat(current.outputAmount) > parseFloat(best.outputAmount) ? current : best
-    )
+    // Try Jupiter for Solana (chainId 101)
+    if (chainId === 101) {
+      try {
+        const jupRes = await fetchWithTimeout(
+          `https://quote-api.jup.ag/v6/quote?inputMint=${tokenIn}&outputMint=${tokenOut}&amount=${Math.round(parseFloat(amountIn) * 1e9)}&slippageBps=${Math.round(slippageTolerance * 100)}`
+        );
+        if (jupRes.ok) {
+          const jupData = await jupRes.json();
+          quotes.push({
+            dex: 'jupiter',
+            inputAmount: amountIn,
+            outputAmount: (parseInt(jupData.outAmount || '0') / 1e6).toString(),
+            priceImpact: parseFloat(jupData.priceImpactPct || '0'),
+            estimatedGas: '5000', // Solana tx fee in lamports
+            route: jupData.routePlan?.map((r: any) => ({
+              dex: r.swapInfo?.label || 'jupiter',
+              tokenIn,
+              tokenOut,
+              amountIn,
+              amountOut: (parseInt(jupData.outAmount || '0') / 1e6).toString(),
+              fee: 0,
+              priceImpact: parseFloat(jupData.priceImpactPct || '0'),
+            })) || [],
+            fee: '0',
+            slippage: slippageTolerance,
+            executionTime: 3,
+            confidence: 95,
+            timestamp: Date.now(),
+            source: 'jupiter',
+          });
+        }
+      } catch (err) {
+        console.warn('[QuickTrade] Jupiter quote failed:', err);
+      }
+    }
 
-    const priceImpact = calculatePriceImpact(amountIn, bestQuote.outputAmount, tokenIn, tokenOut)
-    
-    // Calculate savings compared to worst quote
-    const worstQuote = quotes.reduce((worst, current) => 
-      parseFloat(current.outputAmount) < parseFloat(worst.outputAmount) ? current : worst
-    )
+    // Binance price-based estimation fallback
+    try {
+      const prices = await getTokenPrices([tokenIn, tokenOut]);
+      const inPrice = prices[tokenIn]?.price || 0;
+      const outPrice = prices[tokenOut]?.price || 0;
 
-    const savings = {
+      if (inPrice > 0 && outPrice > 0) {
+        const rate = inPrice / outPrice;
+        const outputAmount = (parseFloat(amountIn) * rate * 0.997).toString(); // 0.3% fee
+        quotes.push({
+          dex: 'market_rate',
+          inputAmount: amountIn,
+          outputAmount,
+          priceImpact: 0.1,
+          estimatedGas: '150000',
+          route: [{
+            dex: 'market_rate',
+            tokenIn,
+            tokenOut,
+            amountIn,
+            amountOut: outputAmount,
+            fee: 30, // 0.3% in bps
+            priceImpact: 0.1,
+          }],
+          fee: '30',
+          slippage: slippageTolerance,
+          executionTime: 15,
+          confidence: 85,
+          timestamp: Date.now(),
+          source: 'coingecko_estimate',
+        });
+      }
+    } catch (err) {
+      console.warn('[QuickTrade] Binance estimation failed:', err);
+    }
+
+    if (quotes.length === 0) {
+      return NextResponse.json({ error: 'No quotes available for this pair' }, { status: 404 });
+    }
+
+    // Sort by output amount
+    quotes.sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount));
+
+    const bestQuote = quotes[0];
+    const worstQuote = quotes[quotes.length - 1];
+
+    const savings = quotes.length > 1 ? {
       amount: (parseFloat(bestQuote.outputAmount) - parseFloat(worstQuote.outputAmount)).toString(),
       percentage: ((parseFloat(bestQuote.outputAmount) - parseFloat(worstQuote.outputAmount)) / parseFloat(worstQuote.outputAmount)) * 100,
-      vsWorstQuote: true
-    }
+      vsWorstQuote: true,
+    } : { amount: '0', percentage: 0, vsWorstQuote: false };
+
+    const priceImpact = bestQuote.priceImpact;
+    let riskLevel: 'low' | 'medium' | 'high' = 'low';
+    let reason = 'Good execution conditions';
+    if (priceImpact > 2) { riskLevel = 'high'; reason = 'High price impact. Consider reducing trade size.'; }
+    else if (priceImpact > 1) { riskLevel = 'medium'; reason = 'Moderate price impact.'; }
 
     return NextResponse.json({
       success: true,
@@ -115,202 +242,16 @@ export async function POST(request: NextRequest) {
         bestQuote,
         priceImpact,
         savings,
-        recommendation: generateRecommendation(quotes, priceImpact),
+        recommendation: { dex: bestQuote.dex, reason, riskLevel },
         timestamp: Date.now(),
-        validUntil: Date.now() + 30000 // 30 seconds
-      }
-    })
-
+        validUntil: Date.now() + 30000,
+      },
+    });
   } catch (error) {
-    console.error('Quote API error:', error)
-    return NextResponse.json({ 
+    console.error('[QuickTrade] Quote API error:', error);
+    return NextResponse.json({
       error: 'Failed to generate quote',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 })
-  }
-}
-
-// Generate token price with realistic movements
-function generateTokenPrice(tokenAddress: string, chainId?: string): any {
-  const basePrice = getBasePriceForToken(tokenAddress, chainId)
-  const currentPrice = simulatePriceMovement(basePrice.price, basePrice.volatility)
-  
-  // Calculate 24h change
-  const change24h = ((currentPrice - basePrice.price) / basePrice.price) * 100
-
-  return {
-    price: currentPrice,
-    priceChange24h: change24h,
-    volume24h: simulatePriceMovement(basePrice.volume || 1000000, 0.15),
-    marketCap: currentPrice * (basePrice.supply || 1000000),
-    high24h: currentPrice * 1.05,
-    low24h: currentPrice * 0.95,
-    lastUpdated: Date.now()
-  }
-}
-
-// Get base price for different tokens
-function getBasePriceForToken(address: string, chainId?: string): any {
-  const priceDatabase: Record<string, any> = {
-    // Ethereum
-    '0x0000000000000000000000000000000000000000': { 
-      price: 2350, volatility: 0.03, volume: 8500000000, supply: 120000000 
-    },
-    '0xA0b86a33E6F8b16dcE3d16b0e4f3b8De1A9e1C6C': { 
-      price: 1.0, volatility: 0.001, volume: 2400000000, supply: 25000000000 
-    },
-    '0xdAC17F958D2ee523a2206206994597C13D831ec7': { 
-      price: 1.0, volatility: 0.001, volume: 1800000000, supply: 96000000000 
-    },
-    
-    // Solana
-    'So11111111111111111111111111111111111111112': { 
-      price: 98.76, volatility: 0.05, volume: 1200000000, supply: 400000000 
-    },
-    'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': { 
-      price: 1.0, volatility: 0.001, volume: 580000000, supply: 15000000000 
-    },
-    
-    // Bitcoin Runes
-    'UNCOMMON•GOODS': { 
-      price: 0.0024, volatility: 0.15, volume: 45000, supply: 21000000 
-    },
-    'DOG•GO•TO•THE•MOON': { 
-      price: 0.0018, volatility: 0.20, volume: 32000, supply: 100000000 
-    }
-  }
-
-  return priceDatabase[address] || { 
-    price: Math.random() * 100, 
-    volatility: 0.05, 
-    volume: Math.random() * 1000000,
-    supply: Math.random() * 1000000000
-  }
-}
-
-// Generate quotes from different DEXs
-async function generateQuotes(params: any): Promise<any[]> {
-  const { tokenIn, tokenOut, amountIn, chainId } = params
-  
-  const dexConfigs = getDEXConfigsForChain(chainId)
-  const quotes = []
-
-  for (const dex of dexConfigs) {
-    try {
-      const quote = await generateDEXQuote(dex, params)
-      quotes.push(quote)
-    } catch (error) {
-      console.error(`Failed to generate quote for ${dex.name}:`, error)
-    }
-  }
-
-  return quotes.sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount))
-}
-
-// Generate quote for specific DEX
-async function generateDEXQuote(dex: any, params: any): Promise<any> {
-  const { amountIn, slippageTolerance } = params
-  
-  // Simulate different DEX characteristics
-  const baseOutput = parseFloat(amountIn) * 0.998 // Base conversion rate
-  const dexMultiplier = dex.efficiency || 1.0
-  const randomFactor = 0.995 + (Math.random() * 0.01) // ±0.5% randomness
-  
-  const outputAmount = (baseOutput * dexMultiplier * randomFactor).toString()
-  const priceImpact = Math.random() * 0.5 // 0-0.5% impact
-  const estimatedGas = Math.floor(120000 + (Math.random() * 80000)) // 120k-200k gas
-  
-  return {
-    dex: dex.type,
-    inputAmount: amountIn,
-    outputAmount,
-    priceImpact,
-    estimatedGas: estimatedGas.toString(),
-    route: [{
-      dex: dex.type,
-      tokenIn: params.tokenIn,
-      tokenOut: params.tokenOut,
-      amountIn: amountIn,
-      amountOut: outputAmount,
-      fee: dex.fee || 300,
-      priceImpact
-    }],
-    fee: (dex.fee || 300).toString(),
-    slippage: slippageTolerance * (0.8 + Math.random() * 0.4), // ±20% of tolerance
-    executionTime: dex.speed || 15,
-    confidence: Math.floor(85 + Math.random() * 15), // 85-100% confidence
-    timestamp: Date.now()
-  }
-}
-
-// Get DEX configurations for specific chain
-function getDEXConfigsForChain(chainId: number): any[] {
-  const allDEXs = [
-    { type: 'uniswap_v3', name: 'Uniswap V3', fee: 500, efficiency: 1.0, speed: 15, chains: [1, 42161, 10, 137] },
-    { type: 'uniswap_v2', name: 'Uniswap V2', fee: 300, efficiency: 0.98, speed: 18, chains: [1, 42161] },
-    { type: 'sushiswap', name: 'SushiSwap', fee: 250, efficiency: 0.97, speed: 20, chains: [1, 42161, 137] },
-    { type: 'jupiter', name: 'Jupiter', fee: 0, efficiency: 1.02, speed: 3, chains: [101] },
-    { type: 'orca', name: 'Orca', fee: 300, efficiency: 0.99, speed: 4, chains: [101] },
-    { type: 'lhma_swap', name: 'LHMA Swap', fee: 200, efficiency: 1.01, speed: 8, chains: [42161] },
-    { type: 'runesdex', name: 'RunesDEX', fee: 500, efficiency: 0.95, speed: 300, chains: [0] },
-    { type: '1inch', name: '1inch', fee: 0, efficiency: 1.03, speed: 25, chains: [1, 42161, 137] }
-  ]
-
-  return allDEXs.filter(dex => dex.chains.includes(chainId))
-}
-
-// Calculate price impact
-function calculatePriceImpact(amountIn: string, amountOut: string, tokenIn: any, tokenOut: any): number {
-  // Simplified price impact calculation
-  const inputValue = parseFloat(amountIn)
-  const outputValue = parseFloat(amountOut)
-  
-  // Assume 1:1 ratio for stablecoins, otherwise use mock rates
-  const expectedRate = getExpectedRate(tokenIn, tokenOut)
-  const actualRate = outputValue / inputValue
-  
-  return Math.abs((expectedRate - actualRate) / expectedRate) * 100
-}
-
-// Get expected conversion rate
-function getExpectedRate(tokenIn: any, tokenOut: any): number {
-  // Mock conversion rates
-  const rates: Record<string, number> = {
-    'ETH-USDC': 2350,
-    'USDC-ETH': 1/2350,
-    'SOL-USDC': 98.76,
-    'USDC-SOL': 1/98.76,
-    'ETH-SOL': 23.8,
-    'SOL-ETH': 1/23.8
-  }
-  
-  const pair = `${tokenIn.symbol}-${tokenOut.symbol}`
-  return rates[pair] || 1.0
-}
-
-// Generate trading recommendation
-function generateRecommendation(quotes: any[], priceImpact: number): any {
-  const bestQuote = quotes[0]
-  
-  let riskLevel: 'low' | 'medium' | 'high' = 'low'
-  let reason = 'Good execution conditions with minimal price impact'
-  
-  if (priceImpact > 2) {
-    riskLevel = 'high'
-    reason = 'High price impact detected. Consider reducing trade size.'
-  } else if (priceImpact > 1) {
-    riskLevel = 'medium'
-    reason = 'Moderate price impact. Monitor market conditions.'
-  }
-  
-  if (bestQuote.confidence < 90) {
-    riskLevel = 'medium'
-    reason = 'Lower confidence in execution. Market may be volatile.'
-  }
-  
-  return {
-    dex: bestQuote.dex,
-    reason,
-    riskLevel
+      details: error instanceof Error ? error.message : 'Unknown error',
+    }, { status: 500 });
   }
 }

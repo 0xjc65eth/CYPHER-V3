@@ -1,3 +1,5 @@
+'use client'
+
 import WhitepaperContent from './WhitepaperContent'
 
 export default function WhitepaperPage() {

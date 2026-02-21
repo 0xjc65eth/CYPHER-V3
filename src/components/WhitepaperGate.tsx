@@ -1,9 +1,10 @@
 'use client'
 
 import { useWhitepaper } from '@/contexts/WhitepaperContext'
+import { usePathname } from 'next/navigation'
 import dynamic from 'next/dynamic'
 
-const WhitepaperContent = dynamic(() => import('@/app/whitepaper/WhitepaperContent'), {
+const WhitepaperPage = dynamic(() => import('@/app/whitepaper/WhitepaperContent'), {
   loading: () => (
     <div className="min-h-screen bg-black flex items-center justify-center">
       <div className="text-center font-mono">
@@ -17,6 +18,9 @@ const WhitepaperContent = dynamic(() => import('@/app/whitepaper/WhitepaperConte
 
 export function WhitepaperGate({ children }: { children: React.ReactNode }) {
   const { hasAccepted, isLoading } = useWhitepaper()
+  const pathname = usePathname()
+
+  const isWhitepaperPage = pathname === '/whitepaper' || pathname === '/whitepaper/'
 
   if (isLoading) {
     return (
@@ -30,9 +34,11 @@ export function WhitepaperGate({ children }: { children: React.ReactNode }) {
     )
   }
 
+  // If already accepted, show children
   if (hasAccepted) {
     return <>{children}</>
   }
 
-  return <WhitepaperContent />
+  // Not accepted: show whitepaper content inline
+  return <WhitepaperPage />
 }
