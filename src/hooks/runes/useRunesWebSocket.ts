@@ -77,7 +77,9 @@ export function useRunesWebSocket({
 
   useEffect(() => { onEventsRef.current = onEvents; }, [onEvents]);
 
-  const wsUrl = url || `${typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8080/ws`;
+  // Only use custom WebSocket URL if explicitly provided; skip WS in production (no WS server on Vercel)
+  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+  const wsUrl = url || (isProduction ? '' : `ws://localhost:8080/ws`);
 
   // ---- Polling logic ----
 
@@ -130,7 +132,14 @@ export function useRunesWebSocket({
   // ---- WebSocket logic ----
 
   const connect = useCallback(() => {
-    if (paused || typeof window === 'undefined') return;
+    if (paused || typeof window === 'undefined' || !wsUrl) {
+      // No WS URL available (production), start polling directly
+      if (!paused && !wsUrl) {
+        setMode('polling');
+        startPolling();
+      }
+      return;
+    }
 
     try {
       const ws = new WebSocket(wsUrl);

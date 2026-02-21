@@ -153,13 +153,13 @@ function SafePremiumProvider({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <ErrorBoundary
-      FallbackComponent={ErrorFallback}
-      onError={(error) => console.error('Root Provider Error:', error)}
-    >
-      <Suspense fallback={<LoadingFallback />}>
-        <WhitepaperProvider>
-          <WhitepaperGate>
+    <WhitepaperProvider>
+      <WhitepaperGate>
+        <ErrorBoundary
+          FallbackComponent={ErrorFallback}
+          onError={(error) => console.error('Root Provider Error:', error)}
+        >
+          <Suspense fallback={<LoadingFallback />}>
             <SafeQueryProvider>
               <SafeAuthProvider>
                 <SafeWalletProvider>
@@ -173,9 +173,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
                 </SafeWalletProvider>
               </SafeAuthProvider>
             </SafeQueryProvider>
-          </WhitepaperGate>
-        </WhitepaperProvider>
-      </Suspense>
-    </ErrorBoundary>
+          </Suspense>
+        </ErrorBoundary>
+      </WhitepaperGate>
+    </WhitepaperProvider>
   )
 }

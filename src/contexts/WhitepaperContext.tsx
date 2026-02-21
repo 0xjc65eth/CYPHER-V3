@@ -18,18 +18,24 @@ const STORAGE_KEY = 'cypher_whitepaper_accepted'
 const WHITEPAPER_VERSION = '2.0'
 
 export function WhitepaperProvider({ children }: { children: React.ReactNode }) {
-  const [hasAccepted, setHasAccepted] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [hasAccepted, setHasAccepted] = useState(() => {
+    // Initialize synchronously from localStorage to avoid flash
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem(STORAGE_KEY) === WHITEPAPER_VERSION
+      } catch {
+        return false
+      }
+    }
+    return false
+  })
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we're on the client, we can resolve immediately
+    return typeof window === 'undefined'
+  })
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored === WHITEPAPER_VERSION) {
-        setHasAccepted(true)
-      }
-    } catch {
-      // localStorage unavailable
-    }
+    // Ensure loading resolves on client mount
     setIsLoading(false)
   }, [])
 

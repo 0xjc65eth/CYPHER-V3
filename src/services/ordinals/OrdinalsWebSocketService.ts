@@ -34,7 +34,13 @@ export class OrdinalsWebSocketService {
   /**
    * Connect to WebSocket server
    */
-  connect(url: string = 'ws://localhost:8080'): void {
+  connect(url?: string): void {
+    // Skip WebSocket connection in production (no WS server on Vercel)
+    if (!url && typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      return;
+    }
+
+    const wsUrl = url || 'ws://localhost:8080';
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
       return;
     }
@@ -42,7 +48,7 @@ export class OrdinalsWebSocketService {
     this.isConnecting = true;
 
     try {
-      this.ws = new WebSocket(url);
+      this.ws = new WebSocket(wsUrl);
 
       this.ws.onopen = () => {
         this.isConnecting = false;

@@ -157,45 +157,10 @@ export default function MarketOverviewOrganized() {
   useEffect(() => {
     loadMarketData();
 
-    let ws: WebSocket | null = null;
-    
-    if (isLive && typeof window !== 'undefined') {
-      const wsUrl = 'ws://localhost:8080';
-      
-      try {
-        ws = new WebSocket(wsUrl);
-        
-        ws.onopen = () => {
-        };
-        
-        ws.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            
-            if (message.type === 'price_update' && message.payload) {
-              updatePricesFromWebSocket(message.payload);
-            } else if (message.type === 'market_stats' && message.payload) {
-              updateMarketStats(message.payload);
-            } else if (message.type === 'trading_signal' && message.payload) {
-              addNewSignal(message.payload);
-            }
-          } catch (error) {
-            console.error('Erro ao processar mensagem WebSocket:', error);
-          }
-        };
-        
-        ws.onerror = (error) => {
-          console.error('Erro WebSocket:', error);
-        };
-      } catch (error) {
-        console.error('Erro ao conectar WebSocket:', error);
-      }
-    }
-
-    const interval = isLive && !ws ? setInterval(loadMarketData, 30000) : null;
+    // Use polling for market data updates (WebSocket server not available on Vercel)
+    const interval = isLive ? setInterval(loadMarketData, 30000) : null;
 
     return () => {
-      if (ws) ws.close();
       if (interval) clearInterval(interval);
     };
   }, [isLive]);
