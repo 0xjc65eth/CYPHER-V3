@@ -55,15 +55,12 @@ export function middleware(request: NextRequest) {
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-  // Content Security Policy with nonce for script-src
-  const nonce = crypto.randomUUID();
-  response.headers.set('X-Nonce', nonce);
-
+  // Content Security Policy - Next.js requires 'unsafe-inline' for hydration scripts
   response.headers.set(
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      `script-src 'self' 'nonce-${nonce}' https://s3.tradingview.com`,
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://api.coingecko.com https://assets.coingecko.com https://ordinals.com https://bis-ord-content.fra1.cdn.digitaloceanspaces.com",
       "connect-src 'self' https://api.coingecko.com https://pro-api.coingecko.com https://mempool.space https://api.hiro.so https://api-mainnet.magiceden.dev https://open-api.unisat.io https://api.bestinslot.xyz https://api.hyperliquid.xyz https://api.binance.com https://api.coinbase.com https://api.kraken.com https://api.bybit.com https://www.okx.com https://api-pub.bitfinex.com https://api.kucoin.com https://api.gateio.ws wss://stream.binance.com wss://ws-feed.exchange.coinbase.com",
