@@ -71,9 +71,11 @@ export function activityToEvent(activity: any, rune: string): FeedEvent | null {
   const price = Number(activity.unitPrice?.value || activity.price || activity.totalPrice?.value || 0);
   const from = activity.from || activity.oldOwner || activity.seller || 'Unknown';
   const to = activity.to || activity.newOwner || activity.buyer || 'Unknown';
-  const ts = activity.timestamp ? new Date(activity.timestamp).getTime()
+  const rawTs = activity.timestamp ? new Date(activity.timestamp).getTime()
     : activity.createdAt ? new Date(activity.createdAt).getTime()
     : Date.now();
+  // If timestamp is in seconds (< year 2100 in ms), convert to milliseconds
+  const ts = rawTs < 1e12 ? rawTs * 1000 : rawTs;
 
   const isWhale = amount > 1_000_000 && price > 0;
   const finalType: EventType = isWhale ? 'WHALE' : type;
@@ -116,7 +118,8 @@ async function fetchHiroActivities(runeName: string): Promise<FeedEvent[]> {
         const amount = Number(a.amount || 0);
         const from = a.from_address || a.sender || 'Unknown';
         const to = a.to_address || a.receiver || 'Unknown';
-        const ts = a.timestamp ? new Date(a.timestamp).getTime() : Date.now();
+        const rawTs = a.timestamp ? new Date(a.timestamp).getTime() : Date.now();
+        const ts = rawTs < 1e12 ? rawTs * 1000 : rawTs;
         const description = `${getOperationLabel(type)} ${formatNumber(amount)} ${runeName}`;
 
         return {

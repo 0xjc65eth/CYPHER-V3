@@ -91,7 +91,7 @@ export default function RunesMarketplace() {
             limit: 20
           });
 
-          const meListings = orders.orders.map((order: any, orderIdx: number) => ({
+          const meListings = (orders?.orders || []).map((order: any, orderIdx: number) => ({
             id: order.id || `me-${Date.now()}-${orderIdx}`,
             rune: rune.rune,
             runeName: rune.spacedRune,

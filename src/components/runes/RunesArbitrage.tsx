@@ -75,12 +75,21 @@ export default function RunesArbitrage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch('/api/runes/popular/?limit=60&offset=0');
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const json = await res.json();
-      if (!json.success || !json.data) throw new Error('Invalid API response');
-      const opps = await generateOpportunities(json.data);
-      setOpportunities(opps);
+
+      // Race the entire pipeline against a 30s deadline
+      const result = await Promise.race([
+        (async () => {
+          const res = await fetch('/api/runes/popular/?limit=60&offset=0');
+          if (!res.ok) throw new Error(`API error: ${res.status}`);
+          const json = await res.json();
+          if (!json.success || !json.data) throw new Error('Invalid API response');
+          return generateOpportunities(json.data);
+        })(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout: scan took too long')), 30000)
+        ),
+      ]);
+      setOpportunities(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data');
     } finally {

@@ -37,18 +37,27 @@ export async function GET(request: NextRequest) {
 
     // Check cache first
     const cacheKey = `smc:${asset}:${timeframe}:${signalType || 'all'}:${activeOnly}`;
-    const cached = await cache.get(cacheKey);
-
-    if (cached) {
-      try {
-        return NextResponse.json(JSON.parse(cached));
-      } catch (e) {
-        // Invalid cache, continue to DB
+    try {
+      const cached = await cache.get(cacheKey);
+      if (cached) {
+        try {
+          return NextResponse.json(JSON.parse(cached));
+        } catch (e) {
+          // Invalid cache, continue to DB
+        }
       }
+    } catch {
+      // Cache unavailable, continue without cache
     }
 
-    // Query database
-    let result = await dbService.query(query, params);
+    // Query database (gracefully handle missing table)
+    let result: { rows: any[] } = { rows: [] };
+    try {
+      result = await dbService.query(query, params);
+    } catch (dbError) {
+      // Table might not exist - fall through to real-time detection
+      console.warn('SMC signals DB query failed (table may not exist):', dbError instanceof Error ? dbError.message : dbError);
+    }
 
     // If no results, fetch candles and detect signals in real-time
     if (result.rows.length === 0) {
@@ -93,41 +102,41 @@ export async function GET(request: NextRequest) {
           asset,
           timeframe,
           signals: {
-            order_block: orderBlocks.map((ob: any) => ({
+            order_block: (orderBlocks || []).map((ob: any) => ({
               id: ob.id,
               asset: ob.asset,
               timeframe: ob.timeframe,
               type: 'order_block',
               direction: ob.type,
-              price: ob.price,
-              high: ob.high,
-              low: ob.low,
-              strength: ob.strength,
-              volume: ob.volume,
-              fillProbability: ob.fillProbability,
-              distancePercent: ob.distancePercent,
+              price: ob.price ?? 0,
+              high: ob.high ?? 0,
+              low: ob.low ?? 0,
+              strength: ob.strength ?? 0,
+              volume: ob.volume ?? 0,
+              fillProbability: ob.fillProbability ?? 0,
+              distancePercent: ob.distancePercent ?? 0,
               isActive: true,
-              createdAt: new Date(ob.timestamp).toISOString(),
-              expiresAt: new Date(ob.expiresAt).toISOString(),
+              createdAt: ob.timestamp ? new Date(ob.timestamp).toISOString() : new Date().toISOString(),
+              expiresAt: ob.expiresAt ? new Date(ob.expiresAt).toISOString() : null,
               metadata: null
             })),
-            fair_value_gap: fairValueGaps.map((fvg: any) => ({
+            fair_value_gap: (fairValueGaps || []).map((fvg: any) => ({
               id: fvg.id,
               asset: fvg.asset,
               timeframe: fvg.timeframe,
               type: 'fair_value_gap',
               direction: fvg.type,
-              price: (fvg.high + fvg.low) / 2,
-              high: fvg.high,
-              low: fvg.low,
+              price: ((fvg.high ?? 0) + (fvg.low ?? 0)) / 2,
+              high: fvg.high ?? 0,
+              low: fvg.low ?? 0,
               strength: null,
               volume: null,
-              fillProbability: fvg.fillProbability,
+              fillProbability: fvg.fillProbability ?? 0,
               distancePercent: null,
               isActive: true,
-              createdAt: new Date(fvg.timestamp).toISOString(),
+              createdAt: fvg.timestamp ? new Date(fvg.timestamp).toISOString() : new Date().toISOString(),
               expiresAt: null,
-              metadata: { gapSize: fvg.gapSize, fillPercentage: fvg.fillPercentage }
+              metadata: { gapSize: fvg.gapSize ?? 0, fillPercentage: fvg.fillPercentage ?? 0 }
             }))
           },
           orderBlocks: orderBlocks.map((ob: any) => ({
@@ -142,20 +151,20 @@ export async function GET(request: NextRequest) {
             volume: ob.volume,
             fillProbability: ob.fillProbability,
             distancePercent: ob.distancePercent,
-            createdAt: new Date(ob.timestamp).toISOString(),
-            expiresAt: new Date(ob.expiresAt).toISOString()
+            createdAt: ob.timestamp ? new Date(ob.timestamp).toISOString() : new Date().toISOString(),
+            expiresAt: ob.expiresAt ? new Date(ob.expiresAt).toISOString() : null
           })),
-          fairValueGaps: fairValueGaps,
+          fairValueGaps: fairValueGaps || [],
           liquidityZones: [],
           marketStructure: [],
           breakerBlocks: [],
-          totalSignals: orderBlocks.length + fairValueGaps.length,
+          totalSignals: (orderBlocks?.length || 0) + (fairValueGaps?.length || 0),
           timestamp: Date.now(),
           source: 'real-time-detection'
         };
 
-        // Cache for 60 seconds
-        await cache.setex(cacheKey, 60, JSON.stringify(response));
+        // Cache for 60 seconds (non-blocking)
+        cache.setex(cacheKey, 60, JSON.stringify(response)).catch(() => {});
 
         return NextResponse.json(response);
       } catch (detectionError) {
@@ -202,8 +211,8 @@ export async function GET(request: NextRequest) {
       timestamp: Date.now()
     };
 
-    // Cache for 60 seconds
-    await cache.setex(cacheKey, 60, JSON.stringify(response));
+    // Cache for 60 seconds (non-blocking)
+    cache.setex(cacheKey, 60, JSON.stringify(response)).catch(() => {});
 
     return NextResponse.json(response);
 

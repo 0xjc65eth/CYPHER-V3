@@ -6,9 +6,17 @@ interface MarketPrice {
   source: string;
 }
 
+const FETCH_TIMEOUT = 8000; // 8s per request
+
+function fetchWithTimeout(url: string, ms = FETCH_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 async function fetchMagicEdenPrice(rune: string): Promise<MarketPrice> {
   try {
-    const res = await fetch(`/api/magiceden/runes/market/${encodeURIComponent(rune)}/`);
+    const res = await fetchWithTimeout(`/api/magiceden/runes/market/${encodeURIComponent(rune)}/`);
     if (!res.ok) return { price: 0, liquidity: 0, source: 'magiceden' };
     const data = await res.json();
 
@@ -25,7 +33,7 @@ async function fetchMagicEdenPrice(rune: string): Promise<MarketPrice> {
 
 async function fetchUniSatPrice(runeid: string): Promise<MarketPrice> {
   try {
-    const res = await fetch(`/api/unisat/runes/${encodeURIComponent(runeid)}/info/`);
+    const res = await fetchWithTimeout(`/api/unisat/runes/${encodeURIComponent(runeid)}/info/`);
     if (!res.ok) return { price: 0, liquidity: 0, source: 'unisat' };
     const data = await res.json();
 
@@ -48,16 +56,18 @@ async function fetchUniSatPrice(runeid: string): Promise<MarketPrice> {
 }
 
 export async function generateOpportunities(
-  runeNames: { name: string; spaced_name: string; runeid?: string }[]
+  runeNames: { name: string; spaced_name: string; id?: string; runeid?: string }[]
 ): Promise<ArbitrageOpportunity[]> {
   const topRunes = runeNames.slice(0, 20);
 
   const opportunities = await Promise.all(
     topRunes.map(async (rune) => {
       try {
+        // Use id or runeid for UniSat, fallback to spaced_name
+        const uniSatKey = rune.runeid || rune.id || rune.spaced_name || rune.name;
         const [magicEdenData, uniSatData] = await Promise.all([
           fetchMagicEdenPrice(rune.spaced_name || rune.name),
-          fetchUniSatPrice(rune.runeid || rune.name),
+          fetchUniSatPrice(uniSatKey),
         ]);
 
         if (magicEdenData.price === 0 && uniSatData.price === 0) return null;

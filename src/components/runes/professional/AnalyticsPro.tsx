@@ -189,13 +189,13 @@ export default function AnalyticsPro() {
     const turboCount = runes.filter(r => r.turbo).length;
     const avgHolders = Math.round(totalHolders / runes.length);
     const top10Holders = runes.slice(0, 10).reduce((sum, r) => sum + (r.holders || 0), 0);
-    const holderConcentration = ((top10Holders / totalHolders) * 100).toFixed(1);
+    const holderConcentration = totalHolders > 0 ? ((top10Holders / totalHolders) * 100).toFixed(1) : '0.0';
 
     return {
       totalHolders,
       avgHolders,
       turboCount,
-      turboPercent: ((turboCount / runes.length) * 100).toFixed(1),
+      turboPercent: runes.length > 0 ? ((turboCount / runes.length) * 100).toFixed(1) : '0.0',
       holderConcentration
     };
   }, [runes]);

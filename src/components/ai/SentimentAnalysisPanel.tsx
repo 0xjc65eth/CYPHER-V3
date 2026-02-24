@@ -58,10 +58,11 @@ export function SentimentAnalysisPanel() {
     }
   };
 
-  const pieData = aggregatedSentiment ? [
-    { name: 'Positive', value: aggregatedSentiment.distribution.positive, color: '#10b981' },
-    { name: 'Negative', value: aggregatedSentiment.distribution.negative, color: '#ef4444' },
-    { name: 'Neutral', value: aggregatedSentiment.distribution.neutral, color: '#f59e0b' }
+  const dist = aggregatedSentiment?.distribution;
+  const pieData = dist ? [
+    { name: 'Positive', value: dist.positive ?? 0, color: '#10b981' },
+    { name: 'Negative', value: dist.negative ?? 0, color: '#ef4444' },
+    { name: 'Neutral', value: dist.neutral ?? 0, color: '#f59e0b' }
   ] : [];
 
   return (
@@ -72,21 +73,21 @@ export function SentimentAnalysisPanel() {
         {(loading || analyzing) && <div className="ml-auto text-xs text-gray-400">Analisando...</div>}
       </div>
 
-      {aggregatedSentiment && (
+      {aggregatedSentiment?.overall && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <div className="bg-black/40 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-400">Sentimento Geral</span>
-                {getSentimentIcon(aggregatedSentiment.overall.sentiment)}
+                {getSentimentIcon(aggregatedSentiment.overall.sentiment ?? 'neutral')}
               </div>
-              <div className="text-2xl font-bold capitalize" style={{ 
-                color: getSentimentColor(aggregatedSentiment.overall.sentiment) 
+              <div className="text-2xl font-bold capitalize" style={{
+                color: getSentimentColor(aggregatedSentiment.overall.sentiment ?? 'neutral')
               }}>
-                {aggregatedSentiment.overall.sentiment}
+                {aggregatedSentiment.overall.sentiment ?? 'neutral'}
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {(aggregatedSentiment.overall.confidence * 100).toFixed(1)}% confiança
+                {((aggregatedSentiment.overall.confidence ?? 0) * 100).toFixed(1)}% confiança
               </div>
             </div>
 
@@ -98,7 +99,7 @@ export function SentimentAnalysisPanel() {
                   aggregatedSentiment.trend === 'declining' ? 'text-red-500' :
                   'text-yellow-500'
                 }`}>
-                  {aggregatedSentiment.trend}
+                  {aggregatedSentiment.trend ?? 'stable'}
                 </div>
               </div>
             </div>
@@ -128,7 +129,7 @@ export function SentimentAnalysisPanel() {
         </div>
       )}
 
-      {aggregatedSentiment?.overall.keywords.length > 0 && (
+      {(aggregatedSentiment?.overall?.keywords?.length ?? 0) > 0 && (
         <div className="mt-4">
           <div className="text-sm text-gray-400 mb-2">Palavras-chave Detectadas</div>
           <div className="flex flex-wrap gap-2">
