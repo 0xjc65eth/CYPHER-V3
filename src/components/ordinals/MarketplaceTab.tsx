@@ -58,7 +58,7 @@ export default function MarketplaceTab() {
     collection: 'all',
     minPrice: '',
     maxPrice: '',
-    timeRange: '24h'
+    timeRange: '30d'
   });
   const [collections, setCollections] = useState<string[]>([]);
   const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
@@ -504,7 +504,7 @@ export default function MarketplaceTab() {
               collection: 'all',
               minPrice: '',
               maxPrice: '',
-              timeRange: '24h'
+              timeRange: '30d'
             })}
             className="px-4 py-2 bg-[#2a2a3e] hover:bg-[#3a3a4e] text-white text-xs font-bold rounded-lg transition-colors uppercase tracking-wider"
           >

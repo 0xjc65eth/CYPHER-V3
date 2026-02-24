@@ -199,7 +199,8 @@ async function updateMeta(snapshot: DailySnapshot): Promise<void> {
 export async function collectDailySnapshot(): Promise<DailySnapshot> {
   try {
     // Fetch current collections data from API
-    const response = await fetch('http://localhost:4444/api/ordinals/collections?limit=50')
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || 'https://cypherordifuture.xyz';
+    const response = await fetch(`${baseUrl}/api/ordinals/collections?limit=50`)
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`)
     }

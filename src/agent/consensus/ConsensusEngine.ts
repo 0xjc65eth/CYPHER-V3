@@ -115,7 +115,10 @@ export class ConsensusEngine {
     const votes = [technicalVote, sentimentVote, riskVote, llmVote];
 
     // 3. Check for Risk Manager VETO
-    if (riskVote.direction === 'abstain' && riskVote.confidence === 1.0) {
+    // Detect veto: direction=abstain with high confidence, or reasoning starts with "VETO:"
+    const isVeto = (riskVote.direction === 'abstain' && riskVote.confidence >= 0.95)
+      || riskVote.reasoning?.startsWith('VETO:');
+    if (isVeto) {
       const result: ConsensusResult = {
         approved: false,
         direction: proposal.direction,

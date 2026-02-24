@@ -453,6 +453,43 @@ export class AgentPersistenceService {
 
     this.memStore.compoundHistory.push(result);
   }
+
+  // ============================================================================
+  // Audit Log - Structured event logging for all financial operations
+  // ============================================================================
+
+  private auditLog: Array<{ timestamp: number; event: string; details: Record<string, any> }> = [];
+
+  async recordAuditEvent(event: string, details: Record<string, any>): Promise<void> {
+    const entry = {
+      timestamp: Date.now(),
+      event,
+      details: { ...details, iso: new Date().toISOString() },
+    };
+
+    // Always keep in-memory log (bounded)
+    this.auditLog.push(entry);
+    if (this.auditLog.length > 5000) {
+      this.auditLog = this.auditLog.slice(-5000);
+    }
+
+    // Persist to DB if available
+    if (this.useSupabase && this.supabase) {
+      try {
+        await this.supabase.from('agent_audit_log').insert({
+          event,
+          details: JSON.stringify(details),
+          created_at: new Date().toISOString(),
+        });
+      } catch {
+        // Audit log persistence failure is non-critical
+      }
+    }
+  }
+
+  getAuditLog(limit: number = 100): Array<{ timestamp: number; event: string; details: Record<string, any> }> {
+    return this.auditLog.slice(-limit);
+  }
 }
 
 // Singleton

@@ -1,10 +1,14 @@
 import { NextRequest } from 'next/server';
 
 const ALLOWED_ORIGINS = [
+  'https://cypherordifuture.xyz',
   'http://localhost:4444',
   'https://localhost:4444',
+  'http://127.0.0.1:4444',
   process.env.NEXTAUTH_URL,
   process.env.NEXT_PUBLIC_SITE_URL,
+  process.env.NEXT_PUBLIC_APP_URL,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
 ].filter(Boolean) as string[];
 
 /**

@@ -262,9 +262,9 @@ async function handleSubscribePrice(args: Record<string, unknown>): Promise<Tool
     ids: ids.split(","),
     vs_currencies: vsCurrencies.split(","),
     status: "subscription_info",
-    message: "WebSocket subscription setup: connect to ws://localhost:8080 and send a subscribe frame.",
+    message: "WebSocket subscription setup: connect to the configured WS endpoint and send a subscribe frame.",
     protocol: {
-      endpoint: "ws://localhost:8080",
+      endpoint: process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080",
       subscribe_frame: { action: "subscribe", channel: "price", ids: ids.split(","), vs_currencies: vsCurrencies.split(",") },
       unsubscribe_frame: { action: "unsubscribe", channel: "price", ids: ids.split(",") },
     },

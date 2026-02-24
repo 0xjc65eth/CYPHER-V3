@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, memo } from 'react';
-import { createChart, ColorType, CrosshairMode, IChartApi } from 'lightweight-charts';
+import { createChart, ColorType, CrosshairMode, IChartApi, CandlestickSeries, LineSeries, AreaSeries, HistogramSeries } from 'lightweight-charts';
 
 interface CandleData {
   timestamp: number;
@@ -51,17 +51,17 @@ function PairCandlestickChart({ data, height, chartType, onCandleClick }: PairCa
     let series: any;
 
     if (chartType === 'candlestick') {
-      series = chart.addCandlestickSeries({
+      series = chart.addSeries(CandlestickSeries, {
         upColor: '#10B981', downColor: '#EF4444',
         borderUpColor: '#10B981', borderDownColor: '#EF4444',
         wickUpColor: '#10B981', wickDownColor: '#EF4444',
       });
       series.setData(formattedData);
     } else if (chartType === 'line') {
-      series = chart.addLineSeries({ color: '#F59E0B', lineWidth: 2 });
+      series = chart.addSeries(LineSeries, { color: '#F59E0B', lineWidth: 2 });
       series.setData(formattedData.map((d: any) => ({ time: d.time, value: d.close })));
     } else {
-      series = chart.addAreaSeries({
+      series = chart.addSeries(AreaSeries, {
         topColor: 'rgba(245, 158, 11, 0.4)', bottomColor: 'rgba(245, 158, 11, 0.0)',
         lineColor: '#F59E0B', lineWidth: 2,
       });
@@ -69,7 +69,7 @@ function PairCandlestickChart({ data, height, chartType, onCandleClick }: PairCa
     }
 
     // Volume histogram
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       color: '#F59E0B',
       priceFormat: { type: 'volume' },
       priceScaleId: '',

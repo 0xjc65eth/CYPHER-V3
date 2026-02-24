@@ -823,9 +823,9 @@ export class YieldFarmingEngine extends EventEmitter {
       // Update position value based on pool performance
       const timeElapsed = Date.now() - position.lastCompound;
       const daysElapsed = timeElapsed / (24 * 60 * 60 * 1000);
-      const yield = (position.currentValue * pool.apy / 100 / 365) * daysElapsed;
-      
-      position.currentValue += yield;
+      const yieldAmount = (position.currentValue * pool.apy / 100 / 365) * daysElapsed;
+
+      position.currentValue += yieldAmount;
       position.unrealizedPnL = position.currentValue - position.depositAmount;
 
       // Update rewards

@@ -15,6 +15,7 @@ import {
   OrderBookData,
   BalanceInfo,
 } from './BaseConnector';
+import { CircuitBreaker, createAPICircuitBreaker } from '@/lib/circuit-breaker/CircuitBreaker';
 
 export interface CCXTConfig extends ConnectorConfig {
   exchangeId: string; // 'binance', 'coinbase', 'kraken', 'okx', 'bybit'
@@ -40,6 +41,7 @@ export class CCXTConnector extends BaseConnector {
   private password: string | null;
   private baseUrl: string;
   private ccxtExchange: any = null;
+  private circuitBreaker: CircuitBreaker;
 
   constructor(config: CCXTConfig) {
     super({ ...config, name: config.exchangeId, chain: 'evm' });
@@ -50,6 +52,11 @@ export class CCXTConnector extends BaseConnector {
 
     const urls = EXCHANGE_URLS[config.exchangeId];
     this.baseUrl = config.sandbox && urls?.testnet ? urls.testnet : (urls?.rest || '');
+    this.circuitBreaker = createAPICircuitBreaker(`ccxt-${config.exchangeId}`, {
+      failureThreshold: 5,
+      recoveryTimeout: 30000,
+      timeout: 15000,
+    });
   }
 
   async connect(): Promise<boolean> {
@@ -159,17 +166,19 @@ export class CCXTConnector extends BaseConnector {
       const symbol = this.normalizeSymbol(params.pair);
       const orderType = params.type === 'stop' ? 'stop_loss' : params.type;
 
-      const order = await this.ccxtExchange.createOrder(
-        symbol,
-        orderType,
-        params.side,
-        params.size,
-        params.type === 'limit' ? params.price : undefined,
-        {
-          clientOrderId: params.clientId || `cypher_${Date.now()}`,
-          reduceOnly: params.reduceOnly,
-          postOnly: params.postOnly,
-        }
+      const order = await this.circuitBreaker.execute(() =>
+        this.ccxtExchange.createOrder(
+          symbol,
+          orderType,
+          params.side,
+          params.size,
+          params.type === 'limit' ? params.price : undefined,
+          {
+            clientOrderId: params.clientId || `cypher_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            reduceOnly: params.reduceOnly,
+            postOnly: params.postOnly,
+          }
+        )
       );
 
       return {

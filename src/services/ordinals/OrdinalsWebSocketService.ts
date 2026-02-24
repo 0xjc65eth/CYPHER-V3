@@ -40,7 +40,7 @@ export class OrdinalsWebSocketService {
       return;
     }
 
-    const wsUrl = url || 'ws://localhost:8080';
+    const wsUrl = url || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '' : 'ws://localhost:8080');
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
       return;
     }

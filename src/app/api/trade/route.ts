@@ -2,20 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 import { feeSystem, FeeRecord } from '@/lib/fee-system';
 import { ErrorReporter } from '@/lib/ErrorReporter';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
+import { rateLimit } from '@/lib/api-middleware';
 
 const FEE_RECIPIENT_ADDRESS = process.env.FEE_RECIPIENT_ADDRESS || ''; // Set via environment variable
 
+// Rate limit: 30 trades per minute
+const tradeRateLimit = rateLimit({ windowMs: 60000, maxRequests: 30 });
+
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit check
+    const rateLimitResult = tradeRateLimit(request);
+    if (rateLimitResult) return rateLimitResult;
+
+    // Validate request origin to prevent CSRF
+    if (!validateOrigin(request)) {
+      return NextResponse.json(
+        { error: 'Forbidden: invalid origin' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const { 
-      tradeValue, 
-      exchange, 
-      asset, 
-      type, 
+    const {
+      tradeValue,
+      exchange,
+      asset,
+      type,
       userId,
       walletAddress,
-      timestamp = Date.now() 
+      timestamp = Date.now()
     } = body;
 
     // Validar dados de entrada
@@ -26,6 +42,15 @@ export async function POST(request: NextRequest) {
       });
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Cap maximum trade value to prevent abuse
+    const MAX_TRADE_VALUE_USD = 1000000; // $1M max per trade
+    if (typeof tradeValue === 'number' && tradeValue > MAX_TRADE_VALUE_USD) {
+      return NextResponse.json(
+        { error: `Trade value exceeds maximum allowed ($${MAX_TRADE_VALUE_USD.toLocaleString()})` },
         { status: 400 }
       );
     }
@@ -133,4 +158,38 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Validate request origin to prevent CSRF attacks
+ */
+function validateOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+
+  const allowedOrigins = [
+    'https://cypherordifuture.xyz',
+    'http://localhost:4444',
+    'https://localhost:4444',
+    process.env.NEXTAUTH_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+  ].filter(Boolean) as string[];
+
+  if (origin) {
+    return allowedOrigins.includes(origin);
+  }
+
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      return allowedOrigins.includes(refererOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  // Check Sec-Fetch-Site for modern browsers
+  const fetchSite = request.headers.get('sec-fetch-site');
+  return fetchSite === 'same-origin' || fetchSite === 'none';
 }

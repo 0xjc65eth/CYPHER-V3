@@ -35,6 +35,17 @@ export function WhitepaperProvider({ children }: { children: React.ReactNode }) 
     setIsLoading(false)
   }, [])
 
+  // Safety timeout — if useEffect somehow never fires, unblock after 3s
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading((prev) => {
+        if (prev) console.warn('[CYPHER] WhitepaperProvider: safety timeout triggered')
+        return false
+      })
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
   const acceptWhitepaper = useCallback(() => {
     try {
       localStorage.setItem(STORAGE_KEY, WHITEPAPER_VERSION)

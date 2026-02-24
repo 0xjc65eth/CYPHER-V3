@@ -78,14 +78,21 @@ export const CollectionCardGrid = memo<CollectionCardGridProps>(({
     >
       {/* Collection Image Header */}
       <div className="relative aspect-square overflow-hidden bg-[#2a2a3e]">
-        <img
-          src={collection.image}
-          alt={collection.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
+        {collection.image ? (
+          <img
+            src={collection.image}
+            alt={collection.name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <div className={`absolute inset-0 items-center justify-center bg-[#1a1a2e] ${collection.image ? 'hidden' : 'flex'}`}>
+          <span className="text-4xl font-bold text-[#f59e0b]/60">{collection.name?.charAt(0) || '?'}</span>
+        </div>
 
         {/* Hover Overlay with Quick Stats */}
         {isHovered && (
@@ -268,15 +275,22 @@ export const CollectionCardTable = memo<CollectionCardTableProps>(({
 
       {/* Collection Info */}
       <div className="flex items-center gap-3 min-w-0">
-        <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#2a2a3e] flex-shrink-0">
-          <img
-            src={collection.image}
-            alt={collection.name}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
+        <div className="w-10 h-10 rounded-lg overflow-hidden bg-[#2a2a3e] flex-shrink-0 relative">
+          {collection.image ? (
+            <img
+              src={collection.image}
+              alt={collection.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div className={`absolute inset-0 items-center justify-center bg-[#1a1a2e] ${collection.image ? 'hidden' : 'flex'}`}>
+            <span className="text-sm font-bold text-[#f59e0b]/60">{collection.name?.charAt(0) || '?'}</span>
+          </div>
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold text-white truncate">

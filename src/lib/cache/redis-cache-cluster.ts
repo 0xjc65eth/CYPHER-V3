@@ -18,18 +18,20 @@ export class RedisCacheCluster extends EventEmitter {
   private cluster: Redis.Cluster
   private localCache: Map<string, CachedData<any>> = new Map()
   private cacheConfig: Map<string, CacheConfig> = new Map()
+  private readonly MAX_LOCAL_CACHE_SIZE = 50000 // Global hard cap on local cache entries
   
   constructor() {
     super()
     
     // Redis Cluster configuration
+    const clusterHost = process.env.REDIS_CLUSTER_HOST || 'localhost';
     this.cluster = new Redis.Cluster([
-      { host: 'localhost', port: 7000 },
-      { host: 'localhost', port: 7001 },
-      { host: 'localhost', port: 7002 },
-      { host: 'localhost', port: 7003 },
-      { host: 'localhost', port: 7004 },
-      { host: 'localhost', port: 7005 }
+      { host: clusterHost, port: parseInt(process.env.REDIS_CLUSTER_PORT_1 || '7000') },
+      { host: clusterHost, port: parseInt(process.env.REDIS_CLUSTER_PORT_2 || '7001') },
+      { host: clusterHost, port: parseInt(process.env.REDIS_CLUSTER_PORT_3 || '7002') },
+      { host: clusterHost, port: parseInt(process.env.REDIS_CLUSTER_PORT_4 || '7003') },
+      { host: clusterHost, port: parseInt(process.env.REDIS_CLUSTER_PORT_5 || '7004') },
+      { host: clusterHost, port: parseInt(process.env.REDIS_CLUSTER_PORT_6 || '7005') }
     ], {
       redisOptions: {
         password: process.env.REDIS_PASSWORD,
@@ -113,7 +115,12 @@ export class RedisCacheCluster extends EventEmitter {
   async set<T>(key: string, value: T, customTtl?: number): Promise<void> {
     const config = this.getConfigForKey(key)
     const ttl = customTtl || config.ttl
-    
+
+    // Enforce global hard cap - evict oldest entries if at limit
+    if (this.localCache.size >= this.MAX_LOCAL_CACHE_SIZE && !this.localCache.has(key)) {
+      this.evictOldest(Math.floor(this.MAX_LOCAL_CACHE_SIZE * 0.1)) // Evict 10% to avoid thrashing
+    }
+
     // Update local cache
     this.localCache.set(key, {
       data: value,
@@ -275,11 +282,25 @@ export class RedisCacheCluster extends EventEmitter {
         }
       })
       
-      this.emit('cache:eviction', { 
+      // Enforce global hard cap
+      if (this.localCache.size > this.MAX_LOCAL_CACHE_SIZE) {
+        this.evictOldest(this.localCache.size - this.MAX_LOCAL_CACHE_SIZE)
+      }
+
+      this.emit('cache:eviction', {
         evicted: toEvict.length,
-        size: this.localCache.size 
+        size: this.localCache.size
       })
     }, 10000) // Run every 10 seconds
+  }
+
+  private evictOldest(count: number): void {
+    const entries = Array.from(this.localCache.entries())
+      .sort((a, b) => a[1].lastAccess - b[1].lastAccess)
+      .slice(0, count)
+    for (const [key] of entries) {
+      this.localCache.delete(key)
+    }
   }
   
   private async preloadCriticalData() {

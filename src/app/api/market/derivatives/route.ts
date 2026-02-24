@@ -10,31 +10,103 @@ async function fetchWithTimeout(url: string, timeoutMs = 8000): Promise<Response
   }
 }
 
+// Try Binance first, then OKX as fallback
+async function fetchFundingRate(): Promise<number | null> {
+  // Binance
+  try {
+    const res = await fetchWithTimeout('https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1');
+    if (res.ok) {
+      const data = await res.json();
+      if (data[0]?.fundingRate) return parseFloat(data[0].fundingRate);
+    }
+  } catch {}
+
+  // OKX fallback
+  try {
+    const res = await fetchWithTimeout('https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP');
+    if (res.ok) {
+      const data = await res.json();
+      const rate = data?.data?.[0]?.fundingRate;
+      if (rate) return parseFloat(rate);
+    }
+  } catch {}
+
+  // Bybit fallback
+  try {
+    const res = await fetchWithTimeout('https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT');
+    if (res.ok) {
+      const data = await res.json();
+      const rate = data?.result?.list?.[0]?.fundingRate;
+      if (rate) return parseFloat(rate);
+    }
+  } catch {}
+
+  return null;
+}
+
+async function fetchOpenInterest(): Promise<number | null> {
+  // Binance
+  try {
+    const res = await fetchWithTimeout('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.openInterest) return parseFloat(data.openInterest);
+    }
+  } catch {}
+
+  // OKX fallback
+  try {
+    const res = await fetchWithTimeout('https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP');
+    if (res.ok) {
+      const data = await res.json();
+      const oi = data?.data?.[0]?.oi;
+      if (oi) return parseFloat(oi);
+    }
+  } catch {}
+
+  // Bybit fallback
+  try {
+    const res = await fetchWithTimeout('https://api.bybit.com/v5/market/open-interest?category=linear&symbol=BTCUSDT&intervalTime=1h&limit=1');
+    if (res.ok) {
+      const data = await res.json();
+      const oi = data?.result?.list?.[0]?.openInterest;
+      if (oi) return parseFloat(oi);
+    }
+  } catch {}
+
+  return null;
+}
+
+async function fetchLongShortRatio(): Promise<number | null> {
+  // Binance
+  try {
+    const res = await fetchWithTimeout('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1');
+    if (res.ok) {
+      const data = await res.json();
+      if (data[0]?.longShortRatio) return parseFloat(data[0].longShortRatio);
+    }
+  } catch {}
+
+  // OKX fallback
+  try {
+    const res = await fetchWithTimeout('https://www.okx.com/api/v5/rubik/stat/contracts/long-short-account-ratio?ccy=BTC&period=1H');
+    if (res.ok) {
+      const data = await res.json();
+      const ratio = data?.data?.[0]?.[1]; // [timestamp, ratio]
+      if (ratio) return parseFloat(ratio);
+    }
+  } catch {}
+
+  return null;
+}
+
 export async function GET() {
   try {
-    const [fundingRes, oiRes, lsRes] = await Promise.allSettled([
-      fetchWithTimeout('https://fapi.binance.com/fapi/v1/fundingRate?symbol=BTCUSDT&limit=1'),
-      fetchWithTimeout('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT'),
-      fetchWithTimeout('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1'),
+    const [fundingRate, openInterest, longShortRatio] = await Promise.all([
+      fetchFundingRate(),
+      fetchOpenInterest(),
+      fetchLongShortRatio(),
     ]);
-
-    let fundingRate: number | null = null;
-    if (fundingRes.status === 'fulfilled' && fundingRes.value.ok) {
-      const data = await fundingRes.value.json();
-      fundingRate = data[0] ? parseFloat(data[0].fundingRate) : null;
-    }
-
-    let openInterest: number | null = null;
-    if (oiRes.status === 'fulfilled' && oiRes.value.ok) {
-      const data = await oiRes.value.json();
-      openInterest = data.openInterest ? parseFloat(data.openInterest) : null;
-    }
-
-    let longShortRatio: number | null = null;
-    if (lsRes.status === 'fulfilled' && lsRes.value.ok) {
-      const data = await lsRes.value.json();
-      longShortRatio = data[0] ? parseFloat(data[0].longShortRatio) : null;
-    }
 
     return NextResponse.json(
       {

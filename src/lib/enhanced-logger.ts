@@ -53,6 +53,29 @@ export class EnhancedLogger {
     EnhancedLogger.log('performance', message, { ...context, duration });
   }
 
+  // Instance methods that delegate to writeLog (used by services that instantiate the logger)
+  info(message: string, context?: LogContext): void {
+    this.writeLog('info', message, context);
+  }
+
+  debug(message: string, context?: LogContext): void {
+    this.writeLog('debug', message, context);
+  }
+
+  warn(message: string, context?: LogContext): void {
+    this.writeLog('warn', message, context);
+  }
+
+  error(messageOrError: string | Error, context?: LogContext | string): void {
+    if (messageOrError instanceof Error) {
+      const msg = typeof context === 'string' ? context : messageOrError.message;
+      const ctx = typeof context === 'string' ? { error: messageOrError.message, stack: messageOrError.stack } : { ...context, error: messageOrError.message, stack: messageOrError.stack };
+      this.writeLog('error', msg, ctx);
+    } else {
+      this.writeLog('error', messageOrError, context as LogContext);
+    }
+  }
+
   private writeLog(level: LogLevel, message: string, context?: LogContext): void {
     const timestamp = new Date();
     const logEntry = { level, message, context, timestamp };

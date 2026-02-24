@@ -16,6 +16,7 @@ import {
   LPCreateParams,
   LPCollectResult,
 } from './BaseConnector';
+import { CircuitBreaker, createAPICircuitBreaker } from '@/lib/circuit-breaker/CircuitBreaker';
 
 export interface JupiterConfig extends ConnectorConfig {
   rpcUrl: string;
@@ -50,18 +51,30 @@ export class JupiterConnector extends BaseConnector {
   private jupiterApi: string;
   private rpcUrl: string;
   private sessionKey: string | null = null;
+  private circuitBreaker: CircuitBreaker;
 
   constructor(config: JupiterConfig) {
     super({ ...config, name: config.name || 'Jupiter', chain: 'solana' });
     this.rpcUrl = config.rpcUrl || 'https://api.mainnet-beta.solana.com';
     this.jupiterApi = config.jupiterApiUrl || 'https://api.jup.ag';
     this.sessionKey = config.sessionPrivateKey || null;
+    this.circuitBreaker = createAPICircuitBreaker('jupiter', {
+      failureThreshold: 3,
+      recoveryTimeout: 30000,
+      timeout: 15000,
+    });
+  }
+
+  private async fetchWithTimeout(url: string, options?: RequestInit, timeoutMs: number = 10000): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeout));
   }
 
   async connect(): Promise<boolean> {
     try {
       // Verify RPC connection
-      const response = await fetch(this.rpcUrl, {
+      const response = await this.fetchWithTimeout(this.rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -69,7 +82,7 @@ export class JupiterConnector extends BaseConnector {
           id: 1,
           method: 'getHealth',
         }),
-      });
+      }, 5000);
       const data = await response.json();
       if (data.result !== 'ok') throw new Error('RPC unhealthy');
 
@@ -106,7 +119,7 @@ export class JupiterConnector extends BaseConnector {
       }
 
       // Use Jupiter price API
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `${this.jupiterApi}/price/v2?ids=${baseMint}&vsToken=${quoteMint}`
       );
       const data = await response.json();
@@ -182,9 +195,11 @@ export class JupiterConnector extends BaseConnector {
       const decimals = inputMint === TOKEN_MINTS.SOL ? 9 : 6; // USDC/USDT = 6 decimals
       const amountRaw = Math.floor(params.size * params.price * Math.pow(10, decimals));
 
-      // 1. Get Jupiter quote
-      const quoteResponse = await fetch(
-        `${this.jupiterApi}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountRaw}&slippageBps=50`
+      // 1. Get Jupiter quote (via circuit breaker)
+      const quoteResponse = await this.circuitBreaker.execute(() =>
+        this.fetchWithTimeout(
+          `${this.jupiterApi}/quote?inputMint=${inputMint}&outputMint=${outputMint}&amount=${amountRaw}&slippageBps=50`
+        )
       );
       const quote: JupiterQuote = await quoteResponse.json();
 
@@ -192,19 +207,20 @@ export class JupiterConnector extends BaseConnector {
         return { success: false, error: 'No route found' };
       }
 
-      // 2. Get swap transaction
-      // Note: In production, this returns a serialized transaction to sign
-      const swapResponse = await fetch(`${this.jupiterApi}/swap`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          quoteResponse: quote,
-          userPublicKey: this.getPublicKeyFromSession(),
-          dynamicComputeUnitLimit: true,
-          dynamicSlippage: { maxBps: 300 },
-          prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 1000000, priorityLevel: 'medium' } },
-        }),
-      });
+      // 2. Get swap transaction (via circuit breaker)
+      const swapResponse = await this.circuitBreaker.execute(() =>
+        this.fetchWithTimeout(`${this.jupiterApi}/swap`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quoteResponse: quote,
+            userPublicKey: this.getPublicKeyFromSession(),
+            dynamicComputeUnitLimit: true,
+            dynamicSlippage: { maxBps: 300 },
+            prioritizationFeeLamports: { priorityLevelWithMaxLamports: { maxLamports: 1000000, priorityLevel: 'medium' } },
+          }),
+        })
+      );
       const swapData = await swapResponse.json();
 
       if (swapData.error) {

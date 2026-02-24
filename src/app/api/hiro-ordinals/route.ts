@@ -5,14 +5,22 @@ export async function GET(request: NextRequest) {
   const endpoint = searchParams.get('endpoint') || 'inscriptions';
   const limit = searchParams.get('limit') || '10';
   const offset = searchParams.get('offset') || '0';
+  const address = searchParams.get('address') || '';
+  const order = searchParams.get('order') || 'desc';
 
   try {
     let url = '';
-    
+
     switch (endpoint) {
-      case 'inscriptions':
-        url = `https://api.hiro.so/ordinals/v1/inscriptions?limit=${limit}&offset=${offset}`;
+      case 'inscriptions': {
+        const params = new URLSearchParams({ limit, offset, order });
+        // Filter by address if provided (returns wallet-specific inscriptions)
+        if (address) {
+          params.set('address', address);
+        }
+        url = `https://api.hiro.so/ordinals/v1/inscriptions?${params.toString()}`;
         break;
+      }
       case 'brc20':
         url = `https://api.hiro.so/ordinals/v1/brc-20/tokens?limit=${limit}&offset=${offset}`;
         break;

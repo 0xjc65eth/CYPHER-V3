@@ -234,8 +234,13 @@ function validateRequest(body: any): { isValid: boolean; error?: string } {
     return { isValid: false, error: 'Amount must be a positive number' };
   }
 
+  // Cap maximum fee amount to prevent fraud
+  const MAX_FEE_AMOUNT_USD = 1000000; // $1M max per transaction
   if (typeof body.usdValue !== 'number' || body.usdValue <= 0) {
     return { isValid: false, error: 'USD value must be a positive number' };
+  }
+  if (body.usdValue > MAX_FEE_AMOUNT_USD) {
+    return { isValid: false, error: `USD value exceeds maximum allowed (${MAX_FEE_AMOUNT_USD})` };
   }
 
   if (!body.userAddress) {
@@ -265,10 +270,12 @@ function validateAuthentication(request: NextRequest): boolean {
   const referer = request.headers.get('referer');
 
   const allowedOrigins = [
+    'https://cypherordifuture.xyz',
     'http://localhost:4444',
     'https://localhost:4444',
     process.env.NEXTAUTH_URL,
     process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
   ].filter(Boolean) as string[];
 
   if (origin) {

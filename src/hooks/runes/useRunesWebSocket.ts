@@ -79,7 +79,7 @@ export function useRunesWebSocket({
 
   // Only use custom WebSocket URL if explicitly provided; skip WS in production (no WS server on Vercel)
   const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
-  const wsUrl = url || (isProduction ? '' : `ws://localhost:8080/ws`);
+  const wsUrl = url || (isProduction ? (process.env.NEXT_PUBLIC_WS_URL || '') : `ws://localhost:8080/ws`);
 
   // ---- Polling logic ----
 

@@ -141,9 +141,15 @@ export class SentimentAnalystAgent {
   // Data fetching
   // ============================================================================
 
+  private fetchWithTimeout(url: string, options?: RequestInit, timeoutMs: number = 8000): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeout));
+  }
+
   private async fetchFearGreedIndex(): Promise<number> {
     try {
-      const response = await fetch('https://api.alternative.me/fng/?limit=1');
+      const response = await this.fetchWithTimeout('https://api.alternative.me/fng/?limit=1');
       const data = await response.json();
       return parseInt(data?.data?.[0]?.value || '50');
     } catch {
@@ -155,7 +161,7 @@ export class SentimentAnalystAgent {
     try {
       // Fetch from Hyperliquid or fallback to Binance
       const coin = pair.replace('-PERP', '').replace('/USDC', '').replace('/USD', '');
-      const response = await fetch('https://api.hyperliquid.xyz/info', {
+      const response = await this.fetchWithTimeout('https://api.hyperliquid.xyz/info', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: 'metaAndAssetCtxs' }),
@@ -184,7 +190,7 @@ export class SentimentAnalystAgent {
       const cgId = this.getCoinGeckoId(coin);
       if (!cgId) return 0;
 
-      const response = await fetch(
+      const response = await this.fetchWithTimeout(
         `https://api.coingecko.com/api/v3/coins/${cgId}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=false`
       );
       const data = await response.json();

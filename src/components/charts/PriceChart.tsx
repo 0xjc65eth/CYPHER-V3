@@ -9,7 +9,11 @@ import {
   type CandlestickData,
   type LineData,
   type HistogramData,
-  type UTCTimestamp
+  type UTCTimestamp,
+  CandlestickSeries,
+  LineSeries,
+  AreaSeries,
+  HistogramSeries,
 } from 'lightweight-charts'
 
 export interface PriceDataPoint {
@@ -128,7 +132,7 @@ export default function PriceChart({
     let series: ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | ISeriesApi<'Area'>
 
     if (chartType === 'candlestick') {
-      series = chart.addCandlestickSeries({
+      series = chart.addSeries(CandlestickSeries, {
         upColor: '#10b981',
         downColor: '#ef4444',
         borderUpColor: '#10b981',
@@ -149,7 +153,7 @@ export default function PriceChart({
 
       series.setData(candleData)
     } else if (chartType === 'area') {
-      series = chart.addAreaSeries({
+      series = chart.addSeries(AreaSeries, {
         lineColor: '#f59e0b',
         topColor: 'rgba(245, 158, 11, 0.4)',
         bottomColor: 'rgba(245, 158, 11, 0.0)',
@@ -166,7 +170,7 @@ export default function PriceChart({
       series.setData(lineData)
     } else {
       // Line chart (default)
-      series = chart.addLineSeries({
+      series = chart.addSeries(LineSeries, {
         color: '#f59e0b',
         lineWidth: 2,
       })
@@ -185,7 +189,7 @@ export default function PriceChart({
 
     // Add volume histogram if enabled
     if (showVolume && data.some(d => d.volume !== undefined)) {
-      const volumeSeries = chart.addHistogramSeries({
+      const volumeSeries = chart.addSeries(HistogramSeries, {
         color: '#6b7280',
         priceFormat: {
           type: 'volume',

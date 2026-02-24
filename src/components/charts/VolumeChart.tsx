@@ -7,7 +7,8 @@ import {
   type IChartApi,
   type ISeriesApi,
   type HistogramData,
-  type UTCTimestamp
+  type UTCTimestamp,
+  HistogramSeries,
 } from 'lightweight-charts'
 
 export interface VolumeDataPoint {
@@ -61,7 +62,7 @@ export default function VolumeChart({
     chartRef.current = chart
 
     // Create volume histogram series
-    const volumeSeries = chart.addHistogramSeries({
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: {
         type: 'volume',
       },

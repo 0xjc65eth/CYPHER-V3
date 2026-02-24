@@ -444,16 +444,28 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
                   padding="none"
                   className="bg-[#1a1a2e] border-[#2a2a3e] hover:border-[#f59e0b] transition-all overflow-hidden cursor-pointer"
                 >
-                  <div className="aspect-square bg-[#0a0a0f] flex items-center justify-center">
-                    {token.contentURI ? (
-                      <img
-                        src={token.contentURI}
-                        alt={token.meta?.name || `#${token.inscriptionNumber}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none'
-                        }}
-                      />
+                  <div className="aspect-square bg-[#0a0a0f] flex items-center justify-center relative">
+                    {token.contentType?.startsWith('image/') && token.contentURI ? (
+                      <>
+                        <img
+                          src={token.contentURI}
+                          alt={token.meta?.name || `#${token.inscriptionNumber}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                        <div className="absolute inset-0 items-center justify-center hidden">
+                          <ImageIcon className="w-12 h-12 text-gray-600" />
+                        </div>
+                      </>
+                    ) : token.contentType?.startsWith('text/') ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Gem className="w-10 h-10 text-[#f59e0b]/40" />
+                        <span className="text-[10px] text-gray-500 font-mono">{token.contentType}</span>
+                      </div>
                     ) : (
                       <ImageIcon className="w-12 h-12 text-gray-600" />
                     )}

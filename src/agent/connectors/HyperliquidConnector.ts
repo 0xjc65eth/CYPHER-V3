@@ -13,6 +13,7 @@ import {
   OrderBookData,
   BalanceInfo,
 } from './BaseConnector';
+import { CircuitBreaker, createAPICircuitBreaker } from '@/lib/circuit-breaker/CircuitBreaker';
 
 export interface HyperliquidConfig {
   apiUrl: string;
@@ -24,6 +25,7 @@ export interface HyperliquidConfig {
 export class HyperliquidConnector {
   private config: HyperliquidConfig;
   private connected: boolean = false;
+  private circuitBreaker: CircuitBreaker;
 
   constructor(config: HyperliquidConfig) {
     this.config = {
@@ -32,6 +34,11 @@ export class HyperliquidConnector {
         ? 'https://api.hyperliquid-testnet.xyz'
         : 'https://api.hyperliquid.xyz',
     };
+    this.circuitBreaker = createAPICircuitBreaker('hyperliquid', {
+      failureThreshold: 3,
+      recoveryTimeout: 30000,
+      timeout: 10000,
+    });
   }
 
   async connect(): Promise<boolean> {
@@ -252,13 +259,19 @@ export class HyperliquidConnector {
   // Private helpers
   private async request(endpoint: string, body: any): Promise<any> {
     try {
-      const response = await fetch(`${this.config.apiUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+      return await this.circuitBreaker.execute(async () => {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(`${this.config.apiUrl}${endpoint}`, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        clearTimeout(timeout);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json();
     } catch (error) {
       console.error(`[Hyperliquid] Request error (${endpoint}):`, error);
       return null;

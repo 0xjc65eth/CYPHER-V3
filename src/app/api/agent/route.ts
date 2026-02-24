@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/api-middleware';
 
 // Secure in-memory credential storage (never pollute process.env with user secrets)
 const secureCredentials = new Map<string, Record<string, string>>();
+
+// Rate limit: 10 actions per minute for agent control
+const agentRateLimit = rateLimit({ windowMs: 60000, maxRequests: 10 });
 
 // Lazy require to avoid webpack async chunk splitting issues
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -76,9 +80,31 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit check
+    const rateLimitResult = agentRateLimit(request);
+    if (rateLimitResult) return rateLimitResult;
+
+    // Validate request origin
+    if (!validateOrigin(request)) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: invalid origin' },
+        { status: 403 }
+      );
+    }
+
     const { getOrchestrator, resetOrchestrator } = getOrchestratorModule();
     const body = await request.json();
     const { action, config, credentials } = body;
+
+    // Validate action is a known string
+    const VALID_ACTIONS = ['start', 'stop', 'pause', 'resume', 'emergency_stop', 'config', 'reset', 'status'];
+    if (typeof action !== 'string' || !VALID_ACTIONS.includes(action)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid action. Use: start, stop, pause, resume, emergency_stop, config, reset, status' },
+        { status: 400 }
+      );
+    }
+
     const orchestrator = getOrchestrator();
 
     switch (action) {
@@ -179,19 +205,45 @@ export async function POST(request: NextRequest) {
 
       default:
         return NextResponse.json(
-          {
-            success: false,
-            error: `Unknown action: ${action}. Use: start, stop, pause, resume, emergency_stop, config, reset, status`,
-          },
+          { success: false, error: 'Invalid action' },
           { status: 400 }
         );
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal error';
-    console.error('[Agent API] POST error:', message);
+    console.error('[Agent API] POST error:', error instanceof Error ? error.message : 'Unknown');
     return NextResponse.json(
-      { success: false, error: message },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }
+}
+
+function validateOrigin(request: NextRequest): boolean {
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+
+  const allowedOrigins = [
+    'https://cypherordifuture.xyz',
+    'http://localhost:4444',
+    'https://localhost:4444',
+    process.env.NEXTAUTH_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+  ].filter(Boolean) as string[];
+
+  if (origin) {
+    return allowedOrigins.includes(origin);
+  }
+
+  if (referer) {
+    try {
+      const refererOrigin = new URL(referer).origin;
+      return allowedOrigins.includes(refererOrigin);
+    } catch {
+      return false;
+    }
+  }
+
+  const fetchSite = request.headers.get('sec-fetch-site');
+  return fetchSite === 'same-origin' || fetchSite === 'none';
 }

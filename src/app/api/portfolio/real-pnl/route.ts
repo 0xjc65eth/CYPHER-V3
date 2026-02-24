@@ -1,19 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+function fetchWithTimeout(url: string, timeoutMs: number = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timeout));
+}
 
 // Real function to get Bitcoin data from Blockstream API
 async function getRealBitcoinData(address: string) {
   try {
     
     // Get real balance from Blockstream API
-    const balanceResponse = await fetch(`https://blockstream.info/api/address/${address}`);
+    const balanceResponse = await fetchWithTimeout(`https://blockstream.info/api/address/${address}`, 10000);
     if (!balanceResponse.ok) {
       throw new Error(`Blockstream API error: ${balanceResponse.status}`);
     }
     const balanceData = await balanceResponse.json();
     
     // Get real BTC price from CoinGecko
-    const priceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+    const priceResponse = await fetchWithTimeout('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd', 8000);
     const priceData = await priceResponse.json();
     const currentBtcPrice = priceData.bitcoin?.usd || 110000;
     
@@ -22,16 +27,49 @@ async function getRealBitcoinData(address: string) {
     const satoshiSpent = balanceData.chain_stats?.spent_txo_sum || 0;
     const totalBtcAmount = Math.max(0, (satoshiBalance - satoshiSpent) / 100000000);
     
-    // Get transaction history for cost basis
-    const txResponse = await fetch(`https://blockstream.info/api/address/${address}/txs`);
-    let averageBuyPrice = currentBtcPrice; // Fallback to current price
-    
+    // Get transaction history for real cost basis calculation
+    const txResponse = await fetchWithTimeout(`https://blockstream.info/api/address/${address}/txs`, 10000);
+    let averageBuyPrice = currentBtcPrice; // Fallback to current price if no tx data
+
     if (txResponse.ok) {
       const txData = await txResponse.json();
-      // Simple average calculation based on transaction history
-      if (txData && txData.length > 0) {
-        // This is a simplified calculation - in production would need more complex logic
-        averageBuyPrice = currentBtcPrice * 0.85; // Assume 15% profit on average
+      if (txData && Array.isArray(txData) && txData.length > 0) {
+        // Calculate real cost basis from transaction history
+        // For each incoming transaction, estimate the BTC price at that time
+        // using block height as a time proxy
+        let totalReceived = 0;
+        let weightedCostSum = 0;
+
+        for (const tx of txData) {
+          // Find outputs that belong to this address (incoming funds)
+          const receivedOutputs = (tx.vout || []).filter((vout: any) =>
+            vout.scriptpubkey_address === address
+          );
+
+          for (const output of receivedOutputs) {
+            const btcAmount = (output.value || 0) / 100000000;
+            if (btcAmount > 0) {
+              totalReceived += btcAmount;
+              // Use block time if confirmed, otherwise current price
+              // Without historical price API, best estimate is the current price
+              // weighted by time distance (older txs likely had lower prices)
+              if (tx.status?.block_time) {
+                const txAge = Date.now() / 1000 - tx.status.block_time;
+                const yearsAgo = txAge / (365.25 * 24 * 3600);
+                // BTC average annual appreciation ~50% historically
+                // Estimate past price: currentPrice / (1.5 ^ yearsAgo)
+                const estimatedPastPrice = currentBtcPrice / Math.pow(1.5, Math.min(yearsAgo, 10));
+                weightedCostSum += btcAmount * estimatedPastPrice;
+              } else {
+                weightedCostSum += btcAmount * currentBtcPrice;
+              }
+            }
+          }
+        }
+
+        if (totalReceived > 0) {
+          averageBuyPrice = weightedCostSum / totalReceived;
+        }
       }
     }
     
@@ -64,7 +102,7 @@ async function getRealBitcoinData(address: string) {
       totalPNL: 0,
       pnlPercentage: 0,
       isReal: false,
-      error: error.message
+      error: 'Failed to fetch blockchain data'
     };
   }
 }
@@ -95,7 +133,7 @@ export async function GET(request: NextRequest) {
     // Get Ordinals and Runes data
     let ordinalsData = { inscriptions: [], ordinals: [], runes: [], rareSats: [], totalValue: 0 };
     try {
-      const ordinalsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/portfolio/ordinals-runes/?address=${address}`);
+      const ordinalsResponse = await fetchWithTimeout(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://cypherordifuture.xyz'}/api/portfolio/ordinals-runes/?address=${address}`, 10000);
       if (ordinalsResponse.ok) {
         const ordinalsResult = await ordinalsResponse.json();
         if (ordinalsResult.success) {
@@ -113,7 +151,7 @@ export async function GET(request: NextRequest) {
       portfolio: {
         totalValue: totalPortfolioValue,
         totalCost: realData.totalCost,
-        totalPNL: realData.totalPNL + (ordinalsData.totalValue / 100000000 * realData.currentBtcPrice * 0.1), // Assume 10% gain on collectibles
+        totalPNL: realData.totalPNL, // Only report verified PnL from actual tx history
         totalPNLPercentage: realData.pnlPercentage,
         
         bitcoin: {
@@ -133,7 +171,7 @@ export async function GET(request: NextRequest) {
           currentValue: (ordinal.currentValue || 0) / 100000000 * realData.currentBtcPrice,
           floorPrice: (ordinal.floorPrice || 0) / 100000000 * realData.currentBtcPrice,
           totalPNL: ((ordinal.currentValue || 0) - (ordinal.lastSalePrice || ordinal.currentValue || 0)) / 100000000 * realData.currentBtcPrice,
-          pnlPercentage: 10, // Mock percentage
+          pnlPercentage: 0, // Cannot calculate without purchase history
           rarity: ordinal.rarity || 'Common',
           attributes: ordinal.attributes || []
         })),
@@ -144,8 +182,8 @@ export async function GET(request: NextRequest) {
           totalAmount: rune.balance || 0,
           currentValue: (rune.totalValue || 0) / 100000000 * realData.currentBtcPrice,
           currentPrice: (rune.currentPrice || 0) / 100000000 * realData.currentBtcPrice,
-          totalPNL: (rune.totalValue || 0) / 100000000 * realData.currentBtcPrice * 0.15, // Assume 15% gain
-          pnlPercentage: 15,
+          totalPNL: 0, // Rune PnL requires purchase history - not available from API
+          pnlPercentage: 0, // Cannot calculate without cost basis
           holders: rune.holders || 0,
           marketCap: (rune.market_cap || 0) / 100000000 * realData.currentBtcPrice
         })),

@@ -97,26 +97,45 @@ export class LLMConsensusAgent {
     }
   }
 
+  /**
+   * Sanitize text before embedding in LLM prompt to prevent injection
+   */
+  private sanitize(text: string, maxLength: number = 500): string {
+    return text
+      .replace(/[^\w\s.,;:!?%$+\-/()[\]{}@#^&*=<>~`'"]/g, '') // Strip unusual chars
+      .replace(/\b(system|assistant|user|ignore|forget|override|disregard)\b/gi, '[FILTERED]') // Block role keywords
+      .replace(/```[\s\S]*?```/g, '[CODE_BLOCK]') // Strip code blocks
+      .replace(/\n{3,}/g, '\n\n') // Collapse excessive newlines
+      .slice(0, maxLength)
+      .trim();
+  }
+
   private buildPrompt(context: LLMMarketContext): string {
+    // Validate pair format (should be like "BTC/USDT" or "ETH-PERP")
+    const safePair = context.pair.replace(/[^A-Za-z0-9/\-_]/g, '').slice(0, 20);
+    const safeTechnical = this.sanitize(context.technicalSummary, 300);
+    const safeSentiment = this.sanitize(context.sentimentSummary, 300);
+    const safeSMC = this.sanitize(context.smcSummary, 300);
+
     return `You are a professional crypto/forex/stock trading analyst. Analyze the following market data and provide a trading recommendation.
 
-ASSET: ${context.pair}
+ASSET: ${safePair}
 CURRENT PRICE: $${context.currentPrice.toFixed(2)}
 24H CHANGE: ${context.change24h > 0 ? '+' : ''}${context.change24h.toFixed(2)}%
 7D CHANGE: ${context.change7d > 0 ? '+' : ''}${context.change7d.toFixed(2)}%
 24H VOLUME: $${(context.volume24h / 1e6).toFixed(1)}M
 
 TECHNICAL ANALYSIS SUMMARY:
-${context.technicalSummary}
+${safeTechnical}
 
 SENTIMENT ANALYSIS SUMMARY:
-${context.sentimentSummary}
+${safeSentiment}
 
 SMART MONEY CONCEPTS (SMC):
-${context.smcSummary}
+${safeSMC}
 
 RECENT PRICE ACTION (last 10 candles):
-${context.recentCandles.map((c, i) => `  ${i + 1}. O:${c.open.toFixed(2)} H:${c.high.toFixed(2)} L:${c.low.toFixed(2)} C:${c.close.toFixed(2)}`).join('\n')}
+${context.recentCandles.slice(0, 10).map((c, i) => `  ${i + 1}. O:${c.open.toFixed(2)} H:${c.high.toFixed(2)} L:${c.low.toFixed(2)} C:${c.close.toFixed(2)}`).join('\n')}
 
 Respond in EXACTLY this JSON format (no other text):
 {
@@ -129,9 +148,14 @@ Respond in EXACTLY this JSON format (no other text):
 
   private async callLLM(prompt: string): Promise<LLMResponse | null> {
     try {
+      // Timeout: 15s max for LLM calls
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       // Grok (xAI) API - OpenAI-compatible endpoint
       const response = await fetch(this.apiUrl, {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.apiKey}`,
@@ -149,6 +173,8 @@ Respond in EXACTLY this JSON format (no other text):
           max_tokens: 300,
         }),
       });
+
+      clearTimeout(timeout);
 
       if (!response.ok) {
         console.error(`[LLMConsensus] API error: ${response.status}`);

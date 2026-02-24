@@ -14,10 +14,14 @@ export function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const origin = request.headers.get('origin');
     const allowedOrigins = [
+      'https://cypherordifuture.xyz',
       'http://localhost:4444',
       'https://localhost:4444',
       'http://127.0.0.1:4444',
       process.env.NEXTAUTH_URL,
+      process.env.NEXT_PUBLIC_SITE_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
     ].filter(Boolean);
 
     if (origin && allowedOrigins.includes(origin)) {
@@ -62,8 +66,8 @@ export function middleware(request: NextRequest) {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://api.coingecko.com https://assets.coingecko.com https://ordinals.com https://bis-ord-content.fra1.cdn.digitaloceanspaces.com",
-      "connect-src 'self' https://api.coingecko.com https://pro-api.coingecko.com https://mempool.space https://api.hiro.so https://api-mainnet.magiceden.dev https://open-api.unisat.io https://api.bestinslot.xyz https://api.hyperliquid.xyz https://api.binance.com https://api.coinbase.com https://api.kraken.com https://api.bybit.com https://www.okx.com https://api-pub.bitfinex.com https://api.kucoin.com https://api.gateio.ws wss://stream.binance.com wss://ws-feed.exchange.coinbase.com",
+      "img-src 'self' data: blob: https://api.coingecko.com https://assets.coingecko.com https://ordinals.com https://ordinals.hiro.so https://img-cdn.magiceden.dev https://creator-hub-prod.s3.us-east-2.amazonaws.com https://bis-ord-content.fra1.cdn.digitaloceanspaces.com",
+      "connect-src 'self' https://cypherordifuture.xyz https://*.vercel.app https://api.coingecko.com https://pro-api.coingecko.com https://mempool.space https://api.hiro.so https://api-mainnet.magiceden.dev https://open-api.unisat.io https://api.bestinslot.xyz https://api.hyperliquid.xyz https://api.binance.com https://api.coinbase.com https://api.kraken.com https://api.bybit.com https://www.okx.com https://api-pub.bitfinex.com https://api.kucoin.com https://api.gateio.ws wss://stream.binance.com wss://ws-feed.exchange.coinbase.com",
       "font-src 'self' data:",
       "object-src 'none'",
       "base-uri 'self'",

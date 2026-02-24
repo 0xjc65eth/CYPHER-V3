@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data, {
       headers: {
         'Cache-Control': 'public, s-maxage=45, stale-while-revalidate=90',
-        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'https://cypherordifuture.xyz',
         'Access-Control-Allow-Methods': 'GET',
         'Access-Control-Allow-Headers': 'Content-Type',
       },
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       status: 200,
       headers: {
         'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
-        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444',
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_SITE_URL || 'https://cypherordifuture.xyz',
         'X-Fallback-Data': 'true',
       },
     });

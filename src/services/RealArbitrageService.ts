@@ -180,7 +180,7 @@ export class RealArbitrageService {
       const [hiroCollections, ordiscanData] = await Promise.allSettled([
         this.hiroApi.getOrdinalsCollections(0, 10),
         // Use absolute URL for server-side fetch
-        fetch(`http://localhost:4444/api/ordiscan?endpoint=collections&limit=10`).then(res => res.json()).catch(() => null)
+        fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://cypherordifuture.xyz'}/api/ordiscan?endpoint=collections&limit=10`).then(res => res.json()).catch(() => null)
       ]);
       
       // Use Ordiscan data if available, otherwise fallback to Hiro

@@ -157,8 +157,11 @@ export class RiskManagerAgent {
   }
 
   private checkRiskReward(proposal: TradeProposal): { passed: boolean; reason: string; severity: 'block' | 'warn' } {
-    if (!proposal.stopLoss || proposal.takeProfit.length === 0) {
-      return { passed: false, reason: 'Missing stop loss or take profit', severity: 'warn' };
+    if (!proposal.stopLoss || proposal.stopLoss <= 0) {
+      return { passed: false, reason: 'Missing stop loss - cannot trade without risk protection', severity: 'block' };
+    }
+    if (!proposal.takeProfit || proposal.takeProfit.length === 0) {
+      return { passed: false, reason: 'Missing take profit targets', severity: 'warn' };
     }
 
     const risk = Math.abs(proposal.entry - proposal.stopLoss);

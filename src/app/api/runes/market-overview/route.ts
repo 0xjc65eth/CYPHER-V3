@@ -64,10 +64,17 @@ export async function GET(request: Request) {
 
             const enrichedRunes = runes.map((r: any, idx: number) => {
               const supply = parseFloat(r.totalSupply?.toString() || '0');
-              const floorPrice = parseFloat(r.floorUnitPrice?.toString() || '0');
+              // floorUnitPrice can be a number OR an object { formatted, value }
+              const rawFloor = r.floorUnitPrice;
+              const floorPrice = typeof rawFloor === 'number'
+                ? rawFloor
+                : typeof rawFloor === 'object' && rawFloor !== null
+                  ? parseFloat(rawFloor.formatted || rawFloor.value?.toString() || '0')
+                  : parseFloat(rawFloor?.toString() || '0');
               const volume24h = parseFloat(r.volume24h?.toString() || '0');
-              const holders = r.holders || 0;
-              const listed = r.listed || 0;
+              const holders = r.holders || r.ownerCount || 0;
+              const listed = r.listedCount || r.listed || 0;
+              const sales24h = r.sales24h || r.salesCount24h || 0;
               const marketCap = floorPrice * supply;
 
               return {
@@ -86,7 +93,7 @@ export async function GET(request: Request) {
                 floorPrice,
                 volume24h,
                 volume7d: parseFloat(r.volume7d?.toString() || '0'),
-                sales24h: 0,
+                sales24h,
                 marketCap,
                 change24h: parseFloat(r.priceChange24h?.toString() || '0'),
                 turbo: r.turbo || false,

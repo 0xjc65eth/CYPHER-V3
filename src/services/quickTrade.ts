@@ -17,7 +17,7 @@ class QuickTradeAggregator {
   private apiKey?: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4444';
+    this.baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4444');
     this.apiKey = process.env.QUICKTRADE_API_KEY;
   }
 

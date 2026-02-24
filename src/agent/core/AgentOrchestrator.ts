@@ -35,6 +35,8 @@ import { ScalpingEngine } from '../strategies/scalping/ScalpingEngine';
 import { MMStrategyEngine } from '../strategies/market-maker/MMStrategyEngine';
 import { LPStrategyEngine } from '../strategies/liquidity-pool/LPStrategyEngine';
 import { MaxDrawdownProtection } from '../risk/MaxDrawdownProtection';
+import { LiquidationGuard } from '../risk/LiquidationGuard';
+import { MEVProtection } from '../risk/MEVProtection';
 import { ConsensusEngine, getConsensusEngine } from '../consensus/ConsensusEngine';
 import { TradeProposal } from '../consensus/RiskManagerAgent';
 import { getAgentPersistence, AgentPersistenceService } from '../persistence';
@@ -56,6 +58,8 @@ export class AgentOrchestrator {
   private mmEngines: Map<string, MMStrategyEngine> = new Map();
   private lpEngine: LPStrategyEngine;
   private drawdownGuard: MaxDrawdownProtection;
+  private liquidationGuard: LiquidationGuard;
+  private mevProtection: MEVProtection;
   private compounder: AutoCompoundEngine;
   private consensus: ConsensusEngine;
   private persistence: AgentPersistenceService;
@@ -67,6 +71,10 @@ export class AgentOrchestrator {
   private tradeHistory: Array<TradeSignal & { executedAt: number; result?: string }> = [];
   private realizedPnl: number = 0;
   private equitySnapshotCounter: number = 0;
+
+  // Order dedup cache: prevents double-execution (signalId -> timestamp)
+  private orderDedupCache: Map<string, number> = new Map();
+  private readonly DEDUP_WINDOW_MS = 30000; // 30 seconds dedup window
 
   constructor(config?: Partial<AgentConfig>, persistenceId?: string) {
     this.config = { ...DEFAULT_AGENT_CONFIG, ...config };
@@ -87,6 +95,8 @@ export class AgentOrchestrator {
 
     // Initialize drawdown protection
     this.drawdownGuard = new MaxDrawdownProtection(this.config.capitalAllocation.total);
+    this.liquidationGuard = new LiquidationGuard();
+    this.mevProtection = new MEVProtection();
 
     // Initialize auto-compound engine
     this.compounder = new AutoCompoundEngine(this.config.autoCompound);
@@ -231,6 +241,9 @@ export class AgentOrchestrator {
         this.configId = await this.persistence.saveConfig(this.config, 'default');
       }
 
+      // Reconcile positions: check exchange for orphaned positions from previous session
+      await this.reconcilePositions();
+
       this.updateStatus('active');
       this.isRunning = true;
       this.state.startedAt = Date.now();
@@ -290,6 +303,12 @@ export class AgentOrchestrator {
     this.isRunning = false;
     this.updateStatus('emergency_stop');
 
+    // Audit log: emergency stop
+    await this.persistence.recordAuditEvent('EMERGENCY_STOP', {
+      openPositions: this.state.positions.length,
+      positions: this.state.positions.map(p => ({ pair: p.pair, size: p.size, direction: p.direction })),
+    });
+
     // Close all positions via connector
     await this.closeAllPositions('emergency_stop');
 
@@ -328,6 +347,20 @@ export class AgentOrchestrator {
         await this.pause();
         this.emit('risk_pause', riskCheck);
         return;
+      }
+
+      // 3b. Check positions for liquidation risk
+      if (this.state.positions.length > 0) {
+        const liqResults = await this.liquidationGuard.checkPositions(this.state.positions);
+        for (const result of liqResults) {
+          if (result.action === 'close') {
+            this.addError(`LIQUIDATION GUARD: Emergency close ${result.position.pair} - ${result.message}`, 'liquidation_guard');
+            await this.closePosition(result.position, 'liquidation_risk');
+          } else if (result.action === 'reduce') {
+            this.addError(`LIQUIDATION GUARD: Reducing ${result.position.pair} - ${result.message}`, 'liquidation_guard');
+            await this.reducePosition(result.position, 0.5, 'liquidation_risk');
+          }
+        }
       }
 
       // 4. Run strategies
@@ -566,7 +599,7 @@ export class AgentOrchestrator {
       stopLoss: signal.stopLoss,
       takeProfit: signal.takeProfit,
       positionSizeUSD: Math.min(signal.positionSize, market.maxPositionUSD || this.config.riskLimits.maxPositionSize),
-      leverage: 1,
+      leverage: Math.min(signal.leverage, this.config.riskLimits.maxLeverage),
       strategy: 'scalp',
       confidence: signal.confidence,
     };
@@ -666,6 +699,23 @@ export class AgentOrchestrator {
   // ========================================================================
 
   private async executeSignal(signal: TradeSignal, connector?: BaseConnector | HyperliquidConnector): Promise<void> {
+    // Idempotency check: prevent duplicate execution of same signal
+    const dedupKey = `${signal.pair}_${signal.direction}_${signal.strategy}_${signal.id || ''}`;
+    const lastExecution = this.orderDedupCache.get(dedupKey);
+    if (lastExecution && Date.now() - lastExecution < this.DEDUP_WINDOW_MS) {
+      this.addError(`Dedup: Signal ${dedupKey} already executed ${Math.floor((Date.now() - lastExecution) / 1000)}s ago, skipping`, 'execution');
+      return;
+    }
+    this.orderDedupCache.set(dedupKey, Date.now());
+
+    // Clean expired dedup entries
+    if (this.orderDedupCache.size > 500) {
+      const now = Date.now();
+      for (const [key, ts] of this.orderDedupCache) {
+        if (now - ts > this.DEDUP_WINDOW_MS) this.orderDedupCache.delete(key);
+      }
+    }
+
     const activeConnector = connector || this.connectors.get(signal.exchange) || this.connector;
     // Check session key permissions if using delegated mode
     if (this.config.mode === 'delegated') {
@@ -699,24 +749,118 @@ export class AgentOrchestrator {
     }
 
     const coinSize = signal.positionSize / midPrice;
-    const result = await (activeConnector as any).placeOrder({
-      pair: signal.pair,
-      side: signal.direction === 'long' ? 'buy' : 'sell',
-      price: midPrice,
-      size: coinSize,
-      type: 'limit',
-      clientId: `cypher_${signal.strategy}_${Date.now()}`,
-    });
+    const baseClientId = `cypher_${signal.strategy}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // MEV Protection: check if order needs splitting for large orders on DEX chains
+    const network = signal.exchange === 'jupiter' ? 'solana'
+      : signal.exchange === 'uniswap' ? 'ethereum'
+      : signal.exchange;
+    const orderForMEV = { id: baseClientId, pair: signal.pair, size: coinSize, price: midPrice, side: signal.direction === 'long' ? 'buy' as const : 'sell' as const, clientId: baseClientId };
+    const mevStrategy = this.mevProtection.getExecutionStrategy(signal.positionSize, network);
+
+    let result: any;
+    if (mevStrategy.chunks > 1) {
+      // Split large order into chunks with delay between them
+      const chunks = this.mevProtection.splitLargeOrder(orderForMEV as any);
+      this.emit('mev_protection', { pair: signal.pair, chunks: chunks.length, strategy: mevStrategy.method });
+
+      result = { success: true }; // Track overall success
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const chunkResult = await (activeConnector as any).placeOrder({
+          pair: signal.pair,
+          side: signal.direction === 'long' ? 'buy' : 'sell',
+          price: midPrice,
+          size: chunk.size,
+          type: 'limit',
+          clientId: `${baseClientId}_chunk_${i}`,
+        });
+        if (!chunkResult.success) {
+          result = chunkResult;
+          this.addError(`MEV chunk ${i + 1}/${chunks.length} failed for ${signal.pair}: ${chunkResult.error}`, 'execution');
+          break;
+        }
+        // Delay between chunks to avoid detection
+        if (i < chunks.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, mevStrategy.delayMs));
+        }
+      }
+    } else {
+      // Single order - no MEV splitting needed
+      result = await (activeConnector as any).placeOrder({
+        pair: signal.pair,
+        side: signal.direction === 'long' ? 'buy' : 'sell',
+        price: midPrice,
+        size: coinSize,
+        type: 'limit',
+        clientId: baseClientId,
+      });
+    }
 
     if (result.success) {
+      // Place stop-loss order on exchange (CRITICAL: actual risk protection)
+      if (signal.stopLoss && signal.stopLoss > 0) {
+        try {
+          const slSide = signal.direction === 'long' ? 'sell' : 'buy';
+          await (activeConnector as any).placeOrder({
+            pair: signal.pair,
+            side: slSide,
+            price: signal.stopLoss,
+            size: coinSize,
+            type: 'limit',
+            reduceOnly: true,
+            clientId: `cypher_sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          });
+          this.emit('stop_loss_placed', { pair: signal.pair, stopLoss: signal.stopLoss });
+        } catch (slError) {
+          this.addError(`CRITICAL: Failed to place stop-loss for ${signal.pair} at ${signal.stopLoss}: ${slError instanceof Error ? slError.message : 'Unknown'}`, 'execution');
+        }
+      }
+
+      // Place take-profit order on exchange
+      if (signal.takeProfit) {
+        const tpTargets = Array.isArray(signal.takeProfit) ? signal.takeProfit : [signal.takeProfit];
+        const tpSide = signal.direction === 'long' ? 'sell' : 'buy';
+        const tpSizePerTarget = coinSize / tpTargets.length;
+        for (const tp of tpTargets) {
+          if (tp && tp > 0) {
+            try {
+              await (activeConnector as any).placeOrder({
+                pair: signal.pair,
+                side: tpSide,
+                price: tp,
+                size: tpSizePerTarget,
+                type: 'limit',
+                reduceOnly: true,
+                clientId: `cypher_tp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+              });
+            } catch (tpError) {
+              this.addError(`Failed to place take-profit for ${signal.pair} at ${tp}: ${tpError instanceof Error ? tpError.message : 'Unknown'}`, 'execution');
+            }
+          }
+        }
+      }
+
       // Add to recent trades
       this.state.recentTrades.unshift(signal);
       if (this.state.recentTrades.length > 50) {
         this.state.recentTrades = this.state.recentTrades.slice(0, 50);
       }
 
-      // Track in trade history
+      // Track in trade history (bounded to last 1000 trades)
       this.tradeHistory.push({ ...signal, executedAt: Date.now() });
+      if (this.tradeHistory.length > 1000) {
+        this.tradeHistory = this.tradeHistory.slice(-1000);
+      }
+
+      // Audit log: trade execution
+      await this.persistence.recordAuditEvent('TRADE_EXECUTED', {
+        pair: signal.pair, exchange: signal.exchange, direction: signal.direction,
+        strategy: signal.strategy, entryPrice: midPrice, positionSize: signal.positionSize,
+        leverage: signal.leverage, stopLoss: signal.stopLoss,
+        mevChunks: mevStrategy.chunks, mevMethod: mevStrategy.method,
+        txHash: result.txHash || result.orderId,
+      });
 
       // Persist trade to database
       if (this.configId) {
@@ -767,6 +911,12 @@ export class AgentOrchestrator {
         priority: 'high',
       });
     } else {
+      // Audit log: trade failure
+      await this.persistence.recordAuditEvent('TRADE_FAILED', {
+        pair: signal.pair, exchange: signal.exchange, direction: signal.direction,
+        strategy: signal.strategy, positionSize: signal.positionSize,
+        error: result.error || 'Unknown',
+      });
       this.addError(
         `Order failed for ${signal.pair}: ${result.error}`,
         'execution'
@@ -860,6 +1010,118 @@ export class AgentOrchestrator {
       this.state.positions = allPositions;
     } catch (error) {
       console.error('[AgentOrchestrator] Failed to update positions:', error);
+    }
+  }
+
+  /**
+   * Reconcile positions on startup: check exchange for orphaned positions
+   * and re-apply stop-loss orders if missing.
+   */
+  private async reconcilePositions(): Promise<void> {
+    try {
+      // Fetch actual positions from each connected exchange
+      for (const [name, conn] of this.connectors) {
+        try {
+          const exchangePositions = await (conn as any).getPositions();
+          if (!Array.isArray(exchangePositions) || exchangePositions.length === 0) continue;
+
+          for (const pos of exchangePositions) {
+            // Check if we already track this position
+            const tracked = this.state.positions.find(
+              p => p.pair === pos.pair && p.exchange === name
+            );
+
+            if (!tracked) {
+              // Orphaned position found - add to state and log warning
+              this.addError(
+                `RECONCILIATION: Found orphaned position ${pos.pair} on ${name} (size: ${pos.size}). Adding to tracking.`,
+                'reconciliation'
+              );
+              this.state.positions.push({ ...pos, exchange: name });
+            }
+
+            // Check if position has stop-loss protection
+            const openOrders = await (conn as any).getOpenOrders?.() || [];
+            const hasSL = openOrders.some(
+              (o: any) => o.pair === pos.pair && o.reduceOnly === true
+            );
+
+            if (!hasSL && pos.size > 0) {
+              // No stop-loss found - place emergency SL at 5% from current price
+              const midPrice = await (conn as any).getMidPrice(
+                pos.pair.replace('-PERP', '').split('/')[0]
+              );
+              if (midPrice > 0) {
+                const emergencySL = pos.direction === 'long'
+                  ? midPrice * 0.95  // 5% below for longs
+                  : midPrice * 1.05; // 5% above for shorts
+                const slSide = pos.direction === 'long' ? 'sell' : 'buy';
+                try {
+                  await (conn as any).placeOrder({
+                    pair: pos.pair,
+                    side: slSide,
+                    price: emergencySL,
+                    size: pos.size,
+                    type: 'limit',
+                    reduceOnly: true,
+                    clientId: `cypher_recovery_sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                  });
+                  this.addError(
+                    `RECONCILIATION: Placed emergency SL for ${pos.pair} at ${emergencySL.toFixed(2)}`,
+                    'reconciliation'
+                  );
+                } catch (slErr) {
+                  this.addError(
+                    `RECONCILIATION CRITICAL: Failed to place emergency SL for ${pos.pair}`,
+                    'reconciliation'
+                  );
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.error(`[AgentOrchestrator] Reconciliation failed for ${name}:`, err);
+        }
+      }
+    } catch (error) {
+      console.error('[AgentOrchestrator] Position reconciliation error:', error);
+      this.addError('Position reconciliation failed on startup', 'reconciliation');
+    }
+  }
+
+  private async closePosition(position: Position, reason: string): Promise<void> {
+    try {
+      const connector = this.connectors.get(position.exchange) || this.connector;
+      await (connector as any).closePosition(position.pair, position.size, position.direction);
+      this.state.positions = this.state.positions.filter(p => p.pair !== position.pair || p.exchange !== position.exchange);
+      this.emit('position_closed', { pair: position.pair, reason, timestamp: Date.now() });
+    } catch (error) {
+      console.error(`[AgentOrchestrator] Failed to close position ${position.pair}:`, error);
+      this.addError(`Failed to close ${position.pair}: ${error instanceof Error ? error.message : 'Unknown'}`, 'liquidation_guard');
+    }
+  }
+
+  private async reducePosition(position: Position, reduceBy: number, reason: string): Promise<void> {
+    try {
+      const connector = this.connectors.get(position.exchange) || this.connector;
+      const reduceSize = position.size * reduceBy;
+      const side = position.direction === 'long' ? 'sell' : 'buy';
+      const midPrice = await (connector as any).getMidPrice(position.pair.replace('-PERP', '').split('/')[0]);
+      if (midPrice > 0) {
+        await (connector as any).placeOrder({
+          pair: position.pair,
+          side,
+          price: midPrice,
+          size: reduceSize,
+          type: 'limit',
+          reduceOnly: true,
+          clientId: `cypher_reduce_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        });
+        this.emit('position_reduced', { pair: position.pair, reduceBy, reason, timestamp: Date.now() });
+      }
+    } catch (error) {
+      console.error(`[AgentOrchestrator] Failed to reduce position ${position.pair}:`, error);
+      this.addError(`Failed to reduce ${position.pair}: ${error instanceof Error ? error.message : 'Unknown'}`, 'liquidation_guard');
     }
   }
 

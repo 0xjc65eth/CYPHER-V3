@@ -16,6 +16,7 @@ import {
   LPCreateParams,
   LPCollectResult,
 } from './BaseConnector';
+import { CircuitBreaker, createAPICircuitBreaker } from '@/lib/circuit-breaker/CircuitBreaker';
 
 export interface UniswapConfig extends ConnectorConfig {
   rpcUrl: string;
@@ -73,6 +74,7 @@ export class UniswapConnector extends BaseConnector {
   private chainId: number;
   private sessionKey: string | null = null;
   private oneInchApiKey: string | null = null;
+  private circuitBreaker: CircuitBreaker;
 
   constructor(config: UniswapConfig) {
     super({ ...config, name: config.name || 'Uniswap', chain: 'evm' });
@@ -80,11 +82,22 @@ export class UniswapConnector extends BaseConnector {
     this.chainId = config.chainId || 1;
     this.sessionKey = config.sessionPrivateKey || null;
     this.oneInchApiKey = config.oneInchApiKey || null;
+    this.circuitBreaker = createAPICircuitBreaker('uniswap', {
+      failureThreshold: 3,
+      recoveryTimeout: 30000,
+      timeout: 15000,
+    });
+  }
+
+  private async fetchWithTimeout(url: string, options?: RequestInit, timeoutMs: number = 10000): Promise<Response> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timeout));
   }
 
   async connect(): Promise<boolean> {
     try {
-      const response = await fetch(this.rpcUrl, {
+      const response = await this.fetchWithTimeout(this.rpcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -93,7 +106,7 @@ export class UniswapConnector extends BaseConnector {
           method: 'eth_chainId',
           params: [],
         }),
-      });
+      }, 5000);
       const data = await response.json();
       const chainId = parseInt(data.result, 16);
 
@@ -134,7 +147,7 @@ export class UniswapConnector extends BaseConnector {
 
       // Use 1inch API for price
       if (this.oneInchApiKey) {
-        const response = await fetch(
+        const response = await this.fetchWithTimeout(
           `https://api.1inch.dev/price/v1.1/${this.chainId}/${baseAddr}?currency=USD`,
           { headers: { Authorization: `Bearer ${this.oneInchApiKey}` } }
         );
@@ -146,7 +159,7 @@ export class UniswapConnector extends BaseConnector {
       const cgIds: Record<string, string> = { ETH: 'ethereum', WBTC: 'bitcoin', ARB: 'arbitrum' };
       const cgId = cgIds[base];
       if (cgId) {
-        const response = await fetch(
+        const response = await this.fetchWithTimeout(
           `https://api.coingecko.com/api/v3/simple/price?ids=${cgId}&vs_currencies=usd`
         );
         const data = await response.json();
@@ -196,12 +209,14 @@ export class UniswapConnector extends BaseConnector {
       const amountRaw = BigInt(Math.floor(params.size * params.price * Math.pow(10, decimals))).toString();
       const walletAddress = this.getAddressFromSession();
 
-      // 1. Get 1inch swap data
+      // 1. Get 1inch swap data (via circuit breaker)
       const swapUrl = `https://api.1inch.dev/swap/v6.0/${this.chainId}/swap?src=${inputToken}&dst=${outputToken}&amount=${amountRaw}&from=${walletAddress}&slippage=1&disableEstimate=false`;
 
-      const response = await fetch(swapUrl, {
-        headers: this.oneInchApiKey ? { Authorization: `Bearer ${this.oneInchApiKey}` } : {},
-      });
+      const response = await this.circuitBreaker.execute(() =>
+        this.fetchWithTimeout(swapUrl, {
+          headers: this.oneInchApiKey ? { Authorization: `Bearer ${this.oneInchApiKey}` } : {},
+        })
+      );
       const swapData = await response.json();
 
       if (swapData.error) {

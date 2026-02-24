@@ -14,6 +14,7 @@ import {
   OrderBookData,
   BalanceInfo,
 } from './BaseConnector';
+import { CircuitBreaker, createAPICircuitBreaker } from '@/lib/circuit-breaker/CircuitBreaker';
 
 export interface AlpacaConfig extends ConnectorConfig {
   apiKey: string;
@@ -26,6 +27,7 @@ export class AlpacaConnector extends BaseConnector {
   private apiSecret: string;
   private baseUrl: string;
   private dataUrl: string;
+  private circuitBreaker: CircuitBreaker;
 
   constructor(config: AlpacaConfig) {
     super({ ...config, name: config.name || 'Alpaca', chain: 'tradfi' });
@@ -35,6 +37,11 @@ export class AlpacaConnector extends BaseConnector {
       ? 'https://paper-api.alpaca.markets'
       : 'https://api.alpaca.markets';
     this.dataUrl = 'https://data.alpaca.markets';
+    this.circuitBreaker = createAPICircuitBreaker('alpaca', {
+      failureThreshold: 3,
+      recoveryTimeout: 30000,
+      timeout: 10000,
+    });
   }
 
   async connect(): Promise<boolean> {
@@ -283,39 +290,50 @@ export class AlpacaConnector extends BaseConnector {
 
   // Private helpers
   private async request(method: string, endpoint: string, body?: any): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method,
-        headers: {
-          'APCA-API-KEY-ID': this.apiKey,
-          'APCA-API-SECRET-KEY': this.apiSecret,
-          'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
+    return this.circuitBreaker.execute(async () => {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await fetch(`${this.baseUrl}${endpoint}`, {
+          method,
+          signal: controller.signal,
+          headers: {
+            'APCA-API-KEY-ID': this.apiKey,
+            'APCA-API-SECRET-KEY': this.apiSecret,
+            'Content-Type': 'application/json',
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        clearTimeout(timeout);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.message || `HTTP ${response.status}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          throw new Error(errorData?.message || `HTTP ${response.status}`);
+        }
+
+        if (response.status === 204) return null;
+        return await response.json();
+      } catch (error) {
+        clearTimeout(timeout);
+        console.error(`[Alpaca] Request error (${method} ${endpoint}):`, error);
+        throw error;
       }
-
-      if (response.status === 204) return null;
-      return await response.json();
-    } catch (error) {
-      console.error(`[Alpaca] Request error (${method} ${endpoint}):`, error);
-      throw error;
-    }
+    });
   }
 
   private async dataRequest(method: string, endpoint: string): Promise<any> {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
       const response = await fetch(`${this.dataUrl}${endpoint}`, {
         method,
+        signal: controller.signal,
         headers: {
           'APCA-API-KEY-ID': this.apiKey,
           'APCA-API-SECRET-KEY': this.apiSecret,
         },
       });
+      clearTimeout(timeout);
 
       if (!response.ok) return null;
       return await response.json();

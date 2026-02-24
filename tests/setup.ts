@@ -3,7 +3,7 @@
  * Global test configuration and mocks
  */
 
-import 'jest-extended';
+// jest-extended removed (not in devDependencies)
 
 // Global test configuration
 global.console = {

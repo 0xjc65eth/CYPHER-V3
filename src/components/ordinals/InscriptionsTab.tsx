@@ -207,7 +207,8 @@ export default function InscriptionsTab() {
   };
 
   const getInscriptionImageUrl = (inscriptionId: string) => {
-    return `https://ordinals.com/content/${inscriptionId}`;
+    // Use Hiro CDN as primary (more reliable), ordinals.com as concept
+    return `https://ordinals.hiro.so/inscription/${inscriptionId}/content`;
   };
 
   if (loading && inscriptions.length === 0) {

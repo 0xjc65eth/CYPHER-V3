@@ -53,16 +53,6 @@ if (typeof process !== 'undefined') {
   process.on('exit', () => {
     intervalManager.clearAll();
   });
-
-  process.on('SIGINT', () => {
-    intervalManager.clearAll();
-    process.exit();
-  });
-
-  process.on('SIGTERM', () => {
-    intervalManager.clearAll();
-    process.exit();
-  });
 }
 
 export default intervalManager;

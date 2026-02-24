@@ -99,7 +99,7 @@ router.get('/docs', (req, res) => {
     },
     authentication: 'Bearer JWT Token',
     rateLimit: '1000 requests per minute per user',
-    websocket: 'ws://localhost:4444/ws'
+    websocket: process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:4444/ws'
   });
 });
 

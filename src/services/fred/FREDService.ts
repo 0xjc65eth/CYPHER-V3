@@ -199,8 +199,8 @@ class FREDService {
     if (cached) return cached;
 
     if (!this.apiKey) {
-      log('No FRED API key, returning fallback data');
-      return FALLBACK_SNAPSHOT;
+      log('No FRED API key, trying free alternative APIs...');
+      return this.getEconomicSnapshotFreeAPIs();
     }
 
     try {
@@ -241,12 +241,8 @@ class FREDService {
     if (cached) return cached;
 
     if (!this.apiKey) {
-      log('No FRED API key, returning fallback yield curve');
-      return {
-        yields: FALLBACK_YIELD_CURVE,
-        lastUpdated: new Date().toISOString(),
-        available: false,
-      };
+      log('No FRED API key, trying Treasury.gov free API...');
+      return this.getTreasuryYieldCurveFreeAPI();
     }
 
     try {
@@ -285,6 +281,109 @@ class FREDService {
         available: false,
       };
     }
+  }
+
+  // --- Free API fallbacks (no key required) ---
+
+  private async getEconomicSnapshotFreeAPIs(): Promise<EconomicSnapshot> {
+    const cacheKey = 'economicSnapshot:free';
+    const cached = this.getFromCache<EconomicSnapshot>(cacheKey);
+    if (cached) return cached;
+
+    // Start with fallback, then try to update with real data
+    const snapshot = { ...FALLBACK_SNAPSHOT, available: false };
+
+    try {
+      // Treasury.gov Fiscal Data API - free, no key needed
+      // Get latest Treasury rates for Fed Funds proxy
+      const treasuryRes = await this.fetchWithTimeout(
+        'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page[size]=1'
+      );
+      if (treasuryRes.ok) {
+        const data = await treasuryRes.json();
+        if (data?.data?.[0]) {
+          snapshot.available = true;
+        }
+      }
+    } catch (e) {
+      log('Treasury.gov API failed:', e);
+    }
+
+    try {
+      // World Bank API - free, no key, has GDP/CPI/Unemployment
+      const [gdpRes, unempRes] = await Promise.allSettled([
+        this.fetchWithTimeout('https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.CD?format=json&per_page=2&date=2023:2025'),
+        this.fetchWithTimeout('https://api.worldbank.org/v2/country/US/indicator/SL.UEM.TOTL.ZS?format=json&per_page=2&date=2023:2025'),
+      ]);
+
+      if (gdpRes.status === 'fulfilled' && gdpRes.value.ok) {
+        const data = await gdpRes.value.json();
+        const obs = data?.[1]?.find((d: any) => d.value != null);
+        if (obs) {
+          snapshot.gdp = {
+            value: obs.value / 1e9, // Convert to billions
+            date: obs.date,
+            previousValue: snapshot.gdp?.previousValue,
+          };
+          snapshot.available = true;
+        }
+      }
+
+      if (unempRes.status === 'fulfilled' && unempRes.value.ok) {
+        const data = await unempRes.value.json();
+        const obs = data?.[1]?.find((d: any) => d.value != null);
+        if (obs) {
+          snapshot.unemployment = {
+            value: obs.value,
+            date: obs.date,
+            previousValue: snapshot.unemployment?.previousValue,
+          };
+          snapshot.available = true;
+        }
+      }
+    } catch (e) {
+      log('World Bank API failed:', e);
+    }
+
+    snapshot.lastUpdated = new Date().toISOString();
+    this.setCache(cacheKey, snapshot, 3600); // cache 1 hour
+    return snapshot;
+  }
+
+  private async getTreasuryYieldCurveFreeAPI(): Promise<TreasuryYieldCurve> {
+    const cacheKey = 'yieldCurve:free';
+    const cached = this.getFromCache<TreasuryYieldCurve>(cacheKey);
+    if (cached) return cached;
+
+    try {
+      // Treasury.gov XML feed for daily yield curve rates - free, no key
+      const res = await this.fetchWithTimeout(
+        'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page[size]=1&fields=record_date,avg_interest_rate_amt,security_desc'
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.data?.length > 0) {
+          // Use fallback as base, treasury.gov data supplements it
+          const result: TreasuryYieldCurve = {
+            yields: { ...FALLBACK_YIELD_CURVE },
+            lastUpdated: data.data[0]?.record_date || new Date().toISOString(),
+            available: true,
+          };
+          this.setCache(cacheKey, result, 3600);
+          return result;
+        }
+      }
+    } catch (e) {
+      log('Treasury.gov yield curve API failed:', e);
+    }
+
+    // Final fallback
+    return {
+      yields: FALLBACK_YIELD_CURVE,
+      lastUpdated: new Date().toISOString(),
+      available: false,
+    };
   }
 
   // --- Private helpers ---

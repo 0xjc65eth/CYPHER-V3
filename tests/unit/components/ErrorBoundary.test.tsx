@@ -185,9 +185,17 @@ describe('Error Boundary Bloomberg Terminal Styling', () => {
       </ErrorBoundary>
     );
 
-    const errorContainer = screen.getByText(/COMPONENT ERROR/i).closest('div');
-    expect(errorContainer).toHaveClass('bg-gray-900');
-    expect(errorContainer).toHaveClass('border-red-500/30');
+    // The Card component renders with bg-gray-900 and border-red-500/30 classes
+    // We need to find the Card element which is an ancestor of the error text
+    const errorHeading = screen.getByText(/COMPONENT ERROR/i);
+    // Walk up the DOM tree to find the element with the expected classes
+    let el = errorHeading.closest('.bg-gray-900');
+    if (!el) {
+      // Card may render as a div wrapper; search more broadly
+      el = errorHeading.closest('[class*="bg-gray-900"]');
+    }
+    expect(el).not.toBeNull();
+    expect(el).toHaveClass('border-red-500/30');
   });
 
   it('should show Bloomberg Terminal footer', () => {

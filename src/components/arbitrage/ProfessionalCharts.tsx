@@ -17,7 +17,10 @@ import {
   ISeriesApi,
   CandlestickData,
   HistogramData,
-  Time
+  Time,
+  CandlestickSeries,
+  LineSeries,
+  HistogramSeries,
 } from 'lightweight-charts';
 import {
   TrendingUp,
@@ -170,8 +173,8 @@ export function ProfessionalCharts({
 
     chartRef.current = chart;
 
-    // Add candlestick series
-    const candlestickSeries = chart.addCandlestickSeries({
+    // Add candlestick series (v5 API)
+    const candlestickSeries = chart.addSeries(CandlestickSeries, {
       upColor: '#00ff88',
       downColor: '#ff4444',
       borderUpColor: '#00ff88',
@@ -182,8 +185,8 @@ export function ProfessionalCharts({
 
     candlestickSeriesRef.current = candlestickSeries;
 
-    // Add volume series
-    const volumeSeries = chart.addHistogramSeries({
+    // Add volume series (v5 API)
+    const volumeSeries = chart.addSeries(HistogramSeries, {
       color: '#26a69a',
       priceFormat: {
         type: 'volume',
@@ -262,8 +265,8 @@ export function ProfessionalCharts({
   // Add SMC overlays to chart
   const addSMCOverlays = (chart: IChartApi, zones: SMCZone[], candles: Candle[]) => {
     zones.forEach(zone => {
-      // Create line series for zone boundaries
-      const topLine = chart.addLineSeries({
+      // Create line series for zone boundaries (v5 API)
+      const topLine = chart.addSeries(LineSeries, {
         color: zone.direction === 'bullish' ? '#00ff8866' : '#ff444466',
         lineWidth: 2,
         lineStyle: 2, // Dashed
@@ -272,7 +275,7 @@ export function ProfessionalCharts({
         priceLineVisible: false,
       });
 
-      const bottomLine = chart.addLineSeries({
+      const bottomLine = chart.addSeries(LineSeries, {
         color: zone.direction === 'bullish' ? '#00ff8866' : '#ff444466',
         lineWidth: 2,
         lineStyle: 2,

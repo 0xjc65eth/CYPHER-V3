@@ -36,14 +36,17 @@ export function useCypherAI() {
     const analyze = async () => {
       setLoading(true);
       try {
+        const price = (btcPrice as any).price ?? btcPrice?.prices?.USD ?? 0;
+        const volume = (btcPrice as any).volume24h ?? btcPrice?.volume_24h ?? 0;
+        const change = (btcPrice as any).change24h ?? btcPrice?.change_24h ?? 0;
         const marketData = {
-          price: btcPrice.price,
-          volume: btcPrice.volume24h,
-          change24h: btcPrice.change24h,
+          price,
+          volume,
+          change24h: change,
           // Derive approximate indicators from price change instead of random
-          rsi: 50 + (btcPrice.change24h || 0) * 2, // Approximate RSI from price change
-          macd: (btcPrice.change24h || 0) * 0.5, // Approximate MACD direction from change
-          sentiment: 50 + (btcPrice.change24h || 0) * 3 // Approximate sentiment from change
+          rsi: 50 + (change || 0) * 2, // Approximate RSI from price change
+          macd: (change || 0) * 0.5, // Approximate MACD direction from change
+          sentiment: 50 + (change || 0) * 3 // Approximate sentiment from change
         };
 
         const newInsights = await cypherAI.generateInsights({
@@ -68,9 +71,9 @@ export function useCypherAI() {
     setLoading(true);
     try {
       const data = customData || {
-        price: btcPrice?.price || 0,
-        volume: btcPrice?.volume24h || 0,
-        change24h: btcPrice?.change24h || 0
+        price: (btcPrice as any)?.price ?? btcPrice?.prices?.USD ?? 0,
+        volume: (btcPrice as any)?.volume24h ?? btcPrice?.volume_24h ?? 0,
+        change24h: (btcPrice as any)?.change24h ?? btcPrice?.change_24h ?? 0
       };
 
       const newInsights = await cypherAI.generateInsights({

@@ -32,7 +32,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://cypher-ordi.com'),
+  metadataBase: new URL('https://cypherordifuture.xyz'),
   title: DEFAULT_META.title,
   description: DEFAULT_META.description,
   keywords: DEFAULT_META.keywords,

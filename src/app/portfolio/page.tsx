@@ -209,57 +209,116 @@ export default function PortfolioPage() {
       
       if (result.success) {
         const { positions, metrics, summary } = result.data;
-        
-        // Update portfolio metrics with API data
+
+        // Build real PnL map from positions
+        const assetPnLMap = new Map(positions.map((pos: any) => [
+          pos.symbol,
+          {
+            asset: pos.symbol,
+            method: selectedCostBasis,
+            totalQuantity: pos.quantity || 0,
+            avgCostBasis: pos.avgCostBasis || pos.currentPrice || 0,
+            currentPrice: pos.currentPrice || 0,
+            marketValue: pos.value || 0,
+            realizedPnL: pos.realizedPnL || 0,
+            realizedGains: Math.max(0, pos.realizedPnL || 0),
+            realizedLosses: Math.min(0, pos.realizedPnL || 0),
+            unrealizedPnL: pos.unrealizedPnL || 0,
+            unrealizedPnLPercent: pos.unrealizedPnLPercent || 0,
+            shortTermGains: 0,
+            longTermGains: 0,
+            totalReturn: pos.unrealizedPnL || 0,
+            totalReturnPercent: pos.unrealizedPnLPercent || 0,
+            holdingPeriod: 0,
+            volatility: pos.volatility || 0.5,
+            maxDrawdown: pos.maxDrawdown || 0,
+            sharpeRatio: 0,
+            lots: [],
+            transactions: [],
+            lastUpdated: Date.now(),
+          }
+        ]));
+
+        // Build PortfolioPnL for analytics service
+        const portfolioPnLData = {
+          totalValue: metrics.totalValue,
+          totalCost: metrics.totalCost || metrics.totalValue - metrics.totalPnL,
+          totalRealizedPnL: 0,
+          totalUnrealizedPnL: metrics.totalPnL,
+          totalPnL: metrics.totalPnL,
+          totalPnLPercent: metrics.totalValue > 0 ? (metrics.totalPnL / (metrics.totalValue - metrics.totalPnL)) * 100 : 0,
+          totalShortTermGains: 0,
+          totalLongTermGains: 0,
+          taxLiability: 0,
+          bestPerformer: '',
+          worstPerformer: '',
+          winRate: 0,
+          portfolioVolatility: 0,
+          portfolioSharpe: 0,
+          maxDrawdown: 0,
+          assetPnL: assetPnLMap,
+          lastUpdated: Date.now(),
+        };
+
+        // Calculate real metrics using analytics service
+        const realRiskMetrics = portfolioAnalytics.calculateRiskMetrics(portfolioPnLData as any);
+        const assetNames = positions.map((p: any) => p.symbol);
+        const correlationMatrix = portfolioAnalytics.calculateCorrelationMatrix(assetNames);
+        const realHealthScore = portfolioAnalytics.calculatePortfolioHealthScore(portfolioPnLData as any, realRiskMetrics, correlationMatrix);
+        const realStressTests = portfolioAnalytics.performStressTests(portfolioPnLData as any);
+
+        // Update portfolio metrics with REAL computed data
         setPortfolioMetrics({
           totalValue: metrics.totalValue,
           totalPnL: metrics.totalPnL,
           unrealizedPnL: metrics.totalPnL,
           realizedPnL: 0,
           riskMetrics: {
-            volatility: 0.25,
-            beta: 1.2,
-            sharpeRatio: 1.5,
-            maxDrawdown: 0.15,
-            var95: metrics.totalValue * 0.1,
-            concentrationRisk: 0.6,
-            liquidityRisk: 0.3
+            volatility: realRiskMetrics.volatility,
+            beta: realRiskMetrics.beta,
+            sharpeRatio: realRiskMetrics.sharpeRatio,
+            maxDrawdown: realRiskMetrics.maxDrawdown,
+            var95: realRiskMetrics.valueAtRisk,
+            concentrationRisk: correlationMatrix.averageCorrelation,
+            liquidityRisk: Math.max(0, 1 - (positions.length / 10)),
+            alpha: realRiskMetrics.alpha,
           },
           healthScore: {
-            overall: 85,
-            diversification: 75,
-            riskManagement: 80,
-            performance: 90,
-            liquidity: 85,
-            recommendations: [
-              {
-                type: 'diversification',
-                priority: 'medium' as const,
-                description: 'Consider reducing Bitcoin concentration',
-                impact: 0.1,
-                timeframe: '1-3 months',
-                actionRequired: true,
-                category: 'risk'
-              }
-            ]
+            overall: realHealthScore.overall,
+            diversification: realHealthScore.diversification,
+            riskManagement: realHealthScore.riskManagement,
+            performance: realHealthScore.performance,
+            liquidity: realHealthScore.efficiency,
+            recommendations: realHealthScore.recommendations.map(r => ({
+              type: r.type,
+              priority: r.priority as 'high' | 'medium' | 'low',
+              description: r.description,
+              impact: r.impact.riskReduction || r.impact.returnIncrease || 0,
+              timeframe: r.priority === 'high' ? '1-2 weeks' : '1-3 months',
+              actionRequired: r.priority === 'high',
+              category: r.type === 'reduce_risk' ? 'risk' : 'optimization'
+            }))
           },
-          stressTests: [
-            {
-              scenario: 'Market Crash',
-              impact: {
-                percentChange: -25,
-                absoluteChange: -metrics.totalValue * 0.25
-              },
-              probability: 0.15,
-              description: 'Major crypto market downturn',
-              timeframe: 'immediate',
-              mitigationStrategies: ['Reduce exposure', 'Add hedges']
-            }
-          ],
+          stressTests: realStressTests.map(st => ({
+            scenario: st.scenario,
+            impact: {
+              percentChange: st.impact.percentChange,
+              absoluteChange: st.impact.portfolioValue - metrics.totalValue
+            },
+            probability: st.probability,
+            description: st.description,
+            timeframe: `~${st.timeToRecover} days to recover`,
+            mitigationStrategies: st.impact.worstAsset.name
+              ? [`Reduce ${st.impact.worstAsset.name} exposure`, 'Diversify into uncorrelated assets']
+              : ['Reduce exposure', 'Add hedges']
+          })),
           costBasisMethod: selectedCostBasis
         });
-        
-        // Update portfolio P&L with simplified structure
+
+        // Compute real daily PnL from position data
+        const dailyPnL = metrics.dailyChange || 0;
+
+        // Update portfolio P&L with real structure
         setPortfolioPnL({
           totalUnrealizedPnL: metrics.totalPnL,
           totalRealizedPnL: 0,
@@ -273,9 +332,9 @@ export default function PortfolioPage() {
               percentChange: pos.unrealizedPnLPercent
             }
           ])),
-          dailyPnL: metrics.dailyChange,
-          weeklyPnL: metrics.totalValue * 0.05,
-          monthlyPnL: metrics.totalValue * 0.1,
+          dailyPnL,
+          weeklyPnL: dailyPnL * 7,
+          monthlyPnL: dailyPnL * 30,
           portfolioValue: metrics.totalValue
         });
         
@@ -859,24 +918,30 @@ export default function PortfolioPage() {
                     <h3 className="text-sm font-bold text-orange-500 font-mono">PERFORMANCE ATTRIBUTION</h3>
                   </div>
                   <div className="p-4">
-                    {portfolioPnL ? (
+                    {portfolioPnL && portfolioMetrics ? (
                       <div className="space-y-3">
                         <div className="flex justify-between text-xs font-mono">
                           <span className="text-orange-500/60">Asset Selection:</span>
-                          <span className="text-green-400">+{formatPercentage(Math.random() * 5)}</span>
+                          <span className={portfolioMetrics.totalPnL >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {portfolioMetrics.totalPnL >= 0 ? '+' : ''}{formatPercentage(portfolioMetrics.riskMetrics.alpha || 0)}
+                          </span>
                         </div>
                         <div className="flex justify-between text-xs font-mono">
-                          <span className="text-orange-500/60">Market Timing:</span>
-                          <span className="text-red-400">-{formatPercentage(Math.random() * 2)}</span>
+                          <span className="text-orange-500/60">Risk-Adjusted Return:</span>
+                          <span className={portfolioMetrics.riskMetrics.sharpeRatio >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {portfolioMetrics.riskMetrics.sharpeRatio >= 0 ? '+' : ''}{formatPercentage(portfolioMetrics.riskMetrics.sharpeRatio)}
+                          </span>
                         </div>
                         <div className="flex justify-between text-xs font-mono">
-                          <span className="text-orange-500/60">Risk Management:</span>
-                          <span className="text-green-400">+{formatPercentage(Math.random() * 3)}</span>
+                          <span className="text-orange-500/60">Volatility:</span>
+                          <span className="text-yellow-400">{formatPercentage(portfolioMetrics.riskMetrics.volatility * 100)}</span>
                         </div>
                         <div className="border-t border-orange-500/30 pt-2 mt-2">
                           <div className="flex justify-between text-sm font-mono font-bold">
                             <span className="text-orange-500">Total Alpha:</span>
-                            <span className="text-green-400">+{formatPercentage(portfolioMetrics?.riskMetrics.alpha || 0)}</span>
+                            <span className={`${(portfolioMetrics.riskMetrics.alpha || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {(portfolioMetrics.riskMetrics.alpha || 0) >= 0 ? '+' : ''}{formatPercentage(portfolioMetrics.riskMetrics.alpha || 0)}
+                            </span>
                           </div>
                         </div>
                       </div>

@@ -118,11 +118,28 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Validate destination address if provided (alphanumeric + common crypto address chars)
+    if (destination && !/^[a-zA-Z0-9._\-:]{10,120}$/.test(destination)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid destination address format',
+      }, { status: 400 });
+    }
+
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
       return NextResponse.json({
         success: false,
         error: 'Amount must be a positive number',
+      }, { status: 400 });
+    }
+
+    // Cap maximum swap amount (100 BTC equivalent in base units)
+    const MAX_SWAP_AMOUNT = 100; // 100 units of base asset
+    if (amountNum > MAX_SWAP_AMOUNT) {
+      return NextResponse.json({
+        success: false,
+        error: `Amount exceeds maximum swap limit (${MAX_SWAP_AMOUNT})`,
       }, { status: 400 });
     }
 
@@ -182,10 +199,10 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      console.error('[Swap API] THORChain quote error:', errorText);
       return NextResponse.json({
         success: false,
         error: errorMessage,
-        details: errorText,
       }, { status: quoteRes.status === 400 ? 400 : 502 });
     }
 
@@ -329,10 +346,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { txHash, fromAsset, toAsset, amount, destination } = body;
 
-    if (!txHash) {
+    if (!txHash || typeof txHash !== 'string') {
       return NextResponse.json({
         success: false,
         error: 'Transaction hash is required',
+      }, { status: 400 });
+    }
+
+    // Validate txHash format (hex string, 64 chars for most chains)
+    if (!/^[a-fA-F0-9]{64}$/.test(txHash)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid transaction hash format',
       }, { status: 400 });
     }
 
