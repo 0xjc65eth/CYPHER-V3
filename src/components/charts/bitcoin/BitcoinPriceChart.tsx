@@ -1,12 +1,12 @@
 'use client';
 
-// 📊 Bitcoin Price Chart
-import { useState, useEffect } from 'react';
+// Bitcoin Price Chart - Real CoinGecko data via useBitcoinPriceHistory
+import { useState } from 'react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, Line, LineChart } from 'recharts';
 import { BaseChart } from '../base/BaseChart';
 import { Button } from '@/components/ui/button';
-import { generateMockData } from '../utils/chartUtils';
 import { ChartTimeframe } from '../types/chartTypes';
+import { useBitcoinPriceHistory } from '@/hooks/useBitcoinPriceHistory';
 
 interface BitcoinPriceChartProps {
   showIndicators?: boolean;
@@ -14,29 +14,39 @@ interface BitcoinPriceChartProps {
   className?: string;
 }
 
+// Map chart timeframe to useBitcoinPriceHistory interval
+const TIMEFRAME_MAP: Record<ChartTimeframe, string> = {
+  '1h': '24h',  // CoinGecko minimum is 1 day
+  '4h': '24h',
+  '1d': '24h',
+  '1w': '7d',
+  '1m': '30d',
+  '3m': '90d',
+  '1y': '365d',
+};
+
 export function BitcoinPriceChart({
   showIndicators = true,
   height = 400,
   className
 }: BitcoinPriceChartProps) {
   const [timeframe, setTimeframe] = useState<ChartTimeframe>('1d');
-  const [data, setData] = useState<any[]>([]);
 
-  useEffect(() => {
-    const mockData = generateMockData(24, 65000, 0.02);
-    setData(mockData.map(item => ({
-      time: new Date(item.time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      price: item.price,
-      sma20: item.price * (1 + (Math.random() - 0.5) * 0.01),
-    })));
-  }, [timeframe]);
+  const interval = TIMEFRAME_MAP[timeframe] || '24h';
+  const { data: priceHistory, loading, error } = useBitcoinPriceHistory(interval);
+
+  // Transform real price history into chart data
+  const data = priceHistory.map(item => ({
+    time: new Date(item.timestamp).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+    price: item.price,
+  }));
 
   const TimeframeButtons = () => (
     <div className="flex gap-1 mb-4">
       {(['1h', '4h', '1d', '1w'] as ChartTimeframe[]).map((tf) => (
-        <Button 
+        <Button
           key={tf}
-          size="sm" 
+          size="sm"
           variant={timeframe === tf ? 'default' : 'outline'}
           onClick={() => setTimeframe(tf)}
         >
@@ -45,6 +55,30 @@ export function BitcoinPriceChart({
       ))}
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className={className}>
+        <TimeframeButtons />
+        <div className="flex items-center justify-center" style={{ height }}>
+          <span className="text-gray-400 text-sm">Loading Bitcoin price data...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || data.length === 0) {
+    return (
+      <div className={className}>
+        <TimeframeButtons />
+        <div className="flex items-center justify-center" style={{ height }}>
+          <span className="text-gray-500 text-sm">
+            {error || 'No price data available'}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={className}>
@@ -63,7 +97,7 @@ export function BitcoinPriceChart({
           <CartesianGrid strokeDasharray="3 3" stroke="#333" />
           <XAxis dataKey="time" stroke="#888" />
           <YAxis stroke="#888" />
-          <Tooltip 
+          <Tooltip
             contentStyle={{ backgroundColor: '#000', border: '1px solid #333' }}
             labelStyle={{ color: '#888' }}
           />
@@ -72,12 +106,9 @@ export function BitcoinPriceChart({
             dataKey="price"
             stroke="#f97316"
             fillOpacity={1}
-            
+
             strokeWidth={2}
           />
-          {showIndicators && (
-            <Line type="monotone" dataKey="sma20" stroke="#3b82f6" dot={false} />
-          )}
         </LineChart>
       </BaseChart>
     </div>

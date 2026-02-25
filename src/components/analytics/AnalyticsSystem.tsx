@@ -222,103 +222,138 @@ export function AnalyticsSystem() {
     }
   };
 
+  const [priceHistoryForIndicators, setPriceHistoryForIndicators] = useState<number[]>([]);
+
   const calculateRealTechnicalIndicators = (currentPrice: number): TechnicalIndicator[] => {
-    // Calculate realistic technical indicators based on real price
-    const basePrice = currentPrice;
-    const rsi = 50 + (Math.random() - 0.5) * 40; // More realistic RSI range
-    const macd = (Math.random() - 0.5) * 2000;
-    const sma50 = basePrice * (0.95 + Math.random() * 0.1);
-    const sma200 = basePrice * (0.85 + Math.random() * 0.2);
-    
+    // Without sufficient price history, show honest "insufficient data" state
+    if (priceHistoryForIndicators.length < 30) {
+      return [
+        { name: 'RSI (14)', value: 0, signal: 'neutral', strength: 0 },
+        { name: 'MACD', value: 0, signal: 'neutral', strength: 0 },
+        { name: 'SMA (50)', value: 0, signal: 'neutral', strength: 0 },
+        { name: 'SMA (200)', value: 0, signal: 'neutral', strength: 0 },
+        { name: 'Bollinger Bands', value: 0, signal: 'neutral', strength: 0 },
+        { name: 'Stochastic', value: 0, signal: 'neutral', strength: 0 },
+      ];
+    }
+
+    // Use real calculations from TechnicalIndicatorsService
+    const { calculateRSI, calculateMACD, calculateSMA, calculateBollingerBands } = require('@/services/TechnicalIndicatorsService');
+
+    const closes = priceHistoryForIndicators;
+    const rsi = calculateRSI(closes, 14);
+    const macdResult = calculateMACD(closes);
+    const sma50Arr = calculateSMA(closes, Math.min(50, closes.length));
+    const sma200Arr = calculateSMA(closes, Math.min(200, closes.length));
+    const bb = calculateBollingerBands(closes);
+
+    const sma50 = sma50Arr.length > 0 ? sma50Arr[sma50Arr.length - 1] : currentPrice;
+    const sma200 = sma200Arr.length > 0 ? sma200Arr[sma200Arr.length - 1] : currentPrice;
+
     return [
-      { 
-        name: 'RSI (14)', 
-        value: rsi, 
-        signal: rsi > 70 ? 'sell' : rsi < 30 ? 'buy' : 'neutral', 
-        strength: Math.abs(rsi - 50) / 50 
+      {
+        name: 'RSI (14)',
+        value: Math.round(rsi * 100) / 100,
+        signal: rsi > 70 ? 'sell' : rsi < 30 ? 'buy' : 'neutral',
+        strength: Math.abs(rsi - 50) / 50
       },
-      { 
-        name: 'MACD', 
-        value: macd, 
-        signal: macd > 0 ? 'buy' : 'sell', 
-        strength: Math.min(Math.abs(macd) / 1000, 1) 
+      {
+        name: 'MACD',
+        value: Math.round(macdResult.macd * 100) / 100,
+        signal: macdResult.histogram > 0 ? 'buy' : macdResult.histogram < 0 ? 'sell' : 'neutral',
+        strength: Math.min(Math.abs(macdResult.macd) / 1000, 1)
       },
-      { 
-        name: 'SMA (50)', 
-        value: sma50, 
-        signal: currentPrice > sma50 ? 'buy' : 'sell', 
-        strength: Math.abs(currentPrice - sma50) / currentPrice 
+      {
+        name: 'SMA (50)',
+        value: Math.round(sma50 * 100) / 100,
+        signal: currentPrice > sma50 ? 'buy' : 'sell',
+        strength: Math.abs(currentPrice - sma50) / currentPrice
       },
-      { 
-        name: 'SMA (200)', 
-        value: sma200, 
-        signal: currentPrice > sma200 ? 'buy' : 'sell', 
-        strength: Math.abs(currentPrice - sma200) / currentPrice 
+      {
+        name: 'SMA (200)',
+        value: Math.round(sma200 * 100) / 100,
+        signal: currentPrice > sma200 ? 'buy' : 'sell',
+        strength: Math.abs(currentPrice - sma200) / currentPrice
       },
-      { 
-        name: 'Bollinger Bands', 
-        value: 2.1, 
-        signal: 'neutral', 
-        strength: 0.5 
+      {
+        name: 'Bollinger Bands',
+        value: Math.round(bb.bandwidth * 100) / 100,
+        signal: bb.percentB > 80 ? 'sell' : bb.percentB < 20 ? 'buy' : 'neutral',
+        strength: Math.abs(bb.percentB - 50) / 50
       },
-      { 
-        name: 'Stochastic', 
-        value: 50 + (Math.random() - 0.5) * 60, 
-        signal: 'neutral', 
-        strength: 0.6 
+      {
+        name: 'Stochastic',
+        value: 0,
+        signal: 'neutral',
+        strength: 0
       }
     ];
   };
 
-  const generateRealChartData = (currentPrice: number) => {
-    const dataPoints = getDataPointsForTimeRange(timeRange);
-    const now = Date.now();
-    
-    // Price chart data with more realistic movements
-    const priceLabels = dataPoints.map(i => {
-      const date = new Date(now - i * getTimeInterval(timeRange));
-      return format(date, timeRange === '1h' || timeRange === '24h' ? 'HH:mm' : 'MMM dd');
-    }).reverse();
-    
-    // Generate more realistic price movements
-    const priceValues = dataPoints.map((_, i) => {
-      const timeDecay = 1 - (i / dataPoints.length) * 0.1; // Slight historical decay
-      const volatility = currentPrice * 0.02; // 2% volatility
-      const trend = Math.sin(i * 0.2) * volatility * 0.5; // Subtle trend
-      const noise = (Math.random() - 0.5) * volatility;
-      return currentPrice * timeDecay + trend + noise;
-    }).reverse();
-    
-    setPriceChartData({
-      labels: priceLabels,
-      datasets: [{
-        label: 'Bitcoin Price',
-        data: priceValues,
-        borderColor: '#F59E0B',
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
-        fill: true,
-        tension: 0.4
-      }]
-    });
-    
-    // Volume chart data based on real volume
-    const baseVolume = marketMetrics.volume24h || 30000000000;
-    const volumeValues = dataPoints.map(() => {
-      const variation = 0.8 + Math.random() * 0.4;
-      return (baseVolume / 24) * variation; // Hourly volume estimate
-    }).reverse();
-    
-    setVolumeChartData({
-      labels: priceLabels,
-      datasets: [{
-        label: 'Volume',
-        data: volumeValues,
-        backgroundColor: volumeValues.map((_, i) => 
-          i > volumeValues.length / 2 ? '#10B981' : '#EF4444'
-        ),
-        borderRadius: 4
-      }]
-    });
+  const generateRealChartData = async (currentPrice: number) => {
+    // Fetch real historical price data from CoinGecko instead of generating random data
+    const daysMap: Record<TimeRange, string> = {
+      '1h': '1', '24h': '1', '7d': '7', '30d': '30', '90d': '90', '1y': '365', 'all': '365',
+    };
+    const days = daysMap[timeRange] || '7';
+
+    try {
+      const params = `vs_currency=usd&days=${days}`;
+      const res = await fetch(
+        `/api/coingecko?endpoint=/coins/bitcoin/market_chart&params=${encodeURIComponent(params)}`
+      );
+
+      if (!res.ok) {
+        // If fetch fails, show empty chart
+        setPriceChartData({ labels: [], datasets: [{ label: 'Bitcoin Price', data: [], borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }] });
+        setVolumeChartData({ labels: [], datasets: [{ label: 'Volume', data: [], backgroundColor: '#10B981', borderRadius: 4 }] });
+        return;
+      }
+
+      const histData = await res.json();
+      const prices: [number, number][] = histData.prices || [];
+      const volumes: [number, number][] = histData.total_volumes || [];
+
+      if (prices.length === 0) {
+        setPriceChartData({ labels: [], datasets: [{ label: 'Bitcoin Price', data: [], borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }] });
+        setVolumeChartData({ labels: [], datasets: [{ label: 'Volume', data: [], backgroundColor: '#10B981', borderRadius: 4 }] });
+        return;
+      }
+
+      // Store closes for technical indicator calculations
+      setPriceHistoryForIndicators(prices.map(p => p[1]));
+
+      const formatStr = timeRange === '1h' || timeRange === '24h' ? 'HH:mm' : 'MMM dd';
+      const priceLabels = prices.map(p => format(new Date(p[0]), formatStr));
+      const priceValues = prices.map(p => p[1]);
+      const volumeValues = volumes.map(v => v[1]);
+
+      setPriceChartData({
+        labels: priceLabels,
+        datasets: [{
+          label: 'Bitcoin Price',
+          data: priceValues,
+          borderColor: '#F59E0B',
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      });
+
+      setVolumeChartData({
+        labels: priceLabels,
+        datasets: [{
+          label: 'Volume',
+          data: volumeValues,
+          backgroundColor: '#10B981',
+          borderRadius: 4
+        }]
+      });
+    } catch (err) {
+      console.error('Failed to fetch chart data:', err);
+      setPriceChartData({ labels: [], datasets: [{ label: 'Bitcoin Price', data: [], borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true, tension: 0.4 }] });
+      setVolumeChartData({ labels: [], datasets: [{ label: 'Volume', data: [], backgroundColor: '#10B981', borderRadius: 4 }] });
+    }
   };
 
   const getDataPointsForTimeRange = (range: TimeRange): number[] => {
@@ -638,17 +673,32 @@ export function AnalyticsSystem() {
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400">Overall Signal</span>
                   <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(i => (
-                        <div
-                          key={i}
-                          className={`w-8 h-2 rounded-full ${
-                            i <= 4 ? 'bg-green-500' : 'bg-gray-700'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-green-400 font-medium">BUY</span>
+                    {(() => {
+                      const buyCount = technicalIndicators.filter(i => i.signal === 'buy').length;
+                      const sellCount = technicalIndicators.filter(i => i.signal === 'sell').length;
+                      const total = technicalIndicators.length || 1;
+                      const score = Math.round((buyCount / total) * 5);
+                      const overallSignal = buyCount > sellCount ? 'buy' : sellCount > buyCount ? 'sell' : 'neutral';
+                      const signalColor = overallSignal === 'buy' ? 'text-green-400' : overallSignal === 'sell' ? 'text-red-400' : 'text-gray-400';
+                      const barColor = overallSignal === 'buy' ? 'bg-green-500' : overallSignal === 'sell' ? 'bg-red-500' : 'bg-gray-500';
+                      return (
+                        <>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <div
+                                key={i}
+                                className={`w-8 h-2 rounded-full ${
+                                  i <= score ? barColor : 'bg-gray-700'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          <span className={`${signalColor} font-medium`}>
+                            {priceHistoryForIndicators.length < 30 ? 'NO DATA' : overallSignal.toUpperCase()}
+                          </span>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

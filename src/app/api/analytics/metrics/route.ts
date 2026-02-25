@@ -1,163 +1,112 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
-interface AnalyticsMetrics {
-  price: {
-    current: number;
-    change24h: number;
-    change7d: number;
-    ath: number;
-    atl: number;
-  };
-  market: {
-    cap: number;
-    volume24h: number;
-    dominance: number;
-    circulatingSupply: number;
-    maxSupply: number;
-  };
-  onChain: {
-    hashRate: number;
-    difficulty: number;
-    blockHeight: number;
-    blockTime: number;
-    mempoolSize: number;
-    medianFee: number;
-    activeAddresses: number;
-    transactionCount: number;
-  };
-  technical: {
-    rsi: number;
-    macd: {
-      value: number;
-      signal: number;
-      histogram: number;
-    };
-    bollinger: {
-      upper: number;
-      middle: number;
-      lower: number;
-    };
-    ma50: number;
-    ma200: number;
-  };
-  sentiment: {
-    fearGreedIndex: number;
-    socialVolume: number;
-    newsVolume: number;
-    sentiment: 'bullish' | 'neutral' | 'bearish';
-  };
-}
-
-// Mock data generator
-function generateMetrics(): AnalyticsMetrics {
-  const basePrice = 98500;
-  
-  return {
-    price: {
-      current: basePrice + (Math.random() - 0.5) * 1000,
-      change24h: (Math.random() - 0.5) * 10,
-      change7d: (Math.random() - 0.5) * 15,
-      ath: 103500,
-      atl: 15500
-    },
-    market: {
-      cap: 1920000000000 + (Math.random() - 0.5) * 50000000000,
-      volume24h: 45678900000 + (Math.random() - 0.5) * 5000000000,
-      dominance: 52.3 + (Math.random() - 0.5) * 2,
-      circulatingSupply: 19500000,
-      maxSupply: 21000000
-    },
-    onChain: {
-      hashRate: 450.5 + (Math.random() - 0.5) * 20,
-      difficulty: 72.01 + (Math.random() - 0.5) * 5,
-      blockHeight: 825000 + Math.floor(Math.random() * 10),
-      blockTime: 10 + (Math.random() - 0.5) * 2,
-      mempoolSize: 125 + (Math.random() - 0.5) * 50,
-      medianFee: 30 + (Math.random() - 0.5) * 10,
-      activeAddresses: 1000000 + Math.floor(Math.random() * 100000),
-      transactionCount: 350000 + Math.floor(Math.random() * 50000)
-    },
-    technical: {
-      rsi: 50 + (Math.random() - 0.5) * 40,
-      macd: {
-        value: 1250 + (Math.random() - 0.5) * 500,
-        signal: 1200 + (Math.random() - 0.5) * 400,
-        histogram: 50 + (Math.random() - 0.5) * 100
-      },
-      bollinger: {
-        upper: basePrice + 5000,
-        middle: basePrice,
-        lower: basePrice - 5000
-      },
-      ma50: basePrice - 3000,
-      ma200: basePrice - 10000
-    },
-    sentiment: {
-      fearGreedIndex: 65 + Math.floor((Math.random() - 0.5) * 20),
-      socialVolume: 85000 + Math.floor(Math.random() * 15000),
-      newsVolume: 1250 + Math.floor(Math.random() * 250),
-      sentiment: Math.random() > 0.6 ? 'bullish' : Math.random() > 0.3 ? 'neutral' : 'bearish'
-    }
-  };
-}
-
-
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const timeframe = searchParams.get('timeframe') || '24h';
     const metrics = searchParams.get('metrics')?.split(',') || ['all'];
 
-    // Generate metrics data
-    const fullMetrics = generateMetrics();
+    const result: Record<string, any> = {};
 
-    // Filter metrics if specific ones requested
-    let filteredMetrics: any = {};
-    
-    if (metrics.includes('all')) {
-      filteredMetrics = fullMetrics;
-    } else {
-      metrics.forEach(metric => {
-        if (metric in fullMetrics) {
-          filteredMetrics[metric] = fullMetrics[metric as keyof AnalyticsMetrics];
+    // Fetch real price and market data from CoinGecko
+    if (metrics.includes('all') || metrics.includes('price') || metrics.includes('market')) {
+      try {
+        const coinData = await rateLimitedFetch(
+          'https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false&sparkline=false'
+        );
+
+        if (coinData) {
+          if (metrics.includes('all') || metrics.includes('price')) {
+            result.price = {
+              current: coinData.market_data?.current_price?.usd ?? null,
+              change24h: coinData.market_data?.price_change_percentage_24h ?? null,
+              change7d: coinData.market_data?.price_change_percentage_7d ?? null,
+              ath: coinData.market_data?.ath?.usd ?? null,
+              atl: coinData.market_data?.atl?.usd ?? null,
+            };
+          }
+
+          if (metrics.includes('all') || metrics.includes('market')) {
+            result.market = {
+              cap: coinData.market_data?.market_cap?.usd ?? null,
+              volume24h: coinData.market_data?.total_volume?.usd ?? null,
+              circulatingSupply: coinData.market_data?.circulating_supply ?? null,
+              maxSupply: coinData.market_data?.max_supply ?? 21000000,
+            };
+          }
         }
-      });
+      } catch {
+        // CoinGecko unavailable; omit price/market sections
+      }
     }
 
-    // Try to fetch real data from multiple sources
-    const promises = [];
-    
-    // CoinGecko for price data with rate limiting
-    if (metrics.includes('all') || metrics.includes('price')) {
-      promises.push(
-        rateLimitedFetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true&include_7d_change=true'
-        ).catch(() => null)
-      );
+    // Fetch real on-chain data from mempool.space
+    if (metrics.includes('all') || metrics.includes('onChain')) {
+      try {
+        const [hashrate, difficulty, blockHeight, mempoolInfo] = await Promise.all([
+          fetch('https://mempool.space/api/v1/mining/hashrate/1d').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('https://mempool.space/api/v1/difficulty-adjustment').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('https://mempool.space/api/blocks/tip/height').then(r => r.ok ? r.json() : null).catch(() => null),
+          fetch('https://mempool.space/api/mempool').then(r => r.ok ? r.json() : null).catch(() => null),
+        ]);
+
+        const onChain: Record<string, any> = {};
+        if (hashrate?.currentHashrate) onChain.hashRate = hashrate.currentHashrate / 1e18; // EH/s
+        if (difficulty?.difficultyChange !== undefined) onChain.difficultyChange = difficulty.difficultyChange;
+        if (typeof blockHeight === 'number') onChain.blockHeight = blockHeight;
+        if (mempoolInfo?.count) onChain.mempoolTxCount = mempoolInfo.count;
+        if (mempoolInfo?.vsize) onChain.mempoolSize = Math.round(mempoolInfo.vsize / 1_000_000); // MB
+
+        if (Object.keys(onChain).length > 0) {
+          result.onChain = onChain;
+        }
+      } catch {
+        // Mempool.space unavailable; omit on-chain section
+      }
     }
 
-    // Execute all promises
-    const results = await Promise.all(promises);
-    
-    // Merge real data with mock data
-    if (results[0] && results[0].bitcoin) {
-      filteredMetrics.price.current = results[0].bitcoin.usd;
-      filteredMetrics.price.change24h = results[0].bitcoin.usd_24h_change || filteredMetrics.price.change24h;
+    // Technical indicators are NOT included - they require historical OHLCV data
+    // and proper calculation. Omitting them is more honest than faking them.
+    if (metrics.includes('all') || metrics.includes('technical')) {
+      result.technical = {
+        message: 'Technical indicators require historical OHLCV data and are available through the TechnicalIndicatorsService when configured.'
+      };
     }
+
+    // Sentiment - only include fear/greed index if available from a real source
+    if (metrics.includes('all') || metrics.includes('sentiment')) {
+      try {
+        const fgRes = await fetch('https://api.alternative.me/fng/?limit=1');
+        if (fgRes.ok) {
+          const fgData = await fgRes.json();
+          if (fgData?.data?.[0]) {
+            result.sentiment = {
+              fearGreedIndex: parseInt(fgData.data[0].value, 10),
+              fearGreedLabel: fgData.data[0].value_classification,
+            };
+          }
+        }
+      } catch {
+        // Fear & Greed API unavailable; omit sentiment section
+      }
+    }
+
+    const hasData = Object.keys(result).some(k => result[k] && typeof result[k] === 'object' && !result[k].message);
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
       timeframe,
-      data: filteredMetrics
+      data: result,
+      ...(hasData ? {} : { message: 'Some data sources may be temporarily unavailable' })
     });
 
   } catch (error) {
     console.error('Analytics metrics API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to fetch analytics metrics',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
