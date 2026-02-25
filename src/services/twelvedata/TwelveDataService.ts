@@ -381,12 +381,28 @@ class TwelveDataService {
     const cached = this.getFromCache<MultiAssetData>(cacheKey);
     if (cached) return cached;
 
-    const [forex, commodities, indices, stocks] = await Promise.all([
-      this.getForexQuotes(),
-      this.getCommodityQuotes(),
-      this.getIndicesQuotes(),
-      this.getStockQuotes(),
+    if (!this.apiKey) {
+      return this.getEmptyMarketData();
+    }
+
+    // Combine ALL symbols into 2 batch calls to minimize API credit usage
+    // (TwelveData basic plan: 8 credits/min, each call = 1 credit)
+    // Batch 1: Forex + Commodities (8 symbols)
+    // Batch 2: Indices + Stocks (11 symbols)
+    const batch1Symbols = [...FOREX_SYMBOLS, ...COMMODITY_SYMBOLS];
+    const batch2Symbols = [...INDEX_SYMBOLS, ...STOCK_SYMBOLS];
+
+    const [batch1, batch2] = await Promise.all([
+      this.getBatchQuotes(batch1Symbols),
+      this.getBatchQuotes(batch2Symbols),
     ]);
+
+    const allQuotes = { ...batch1, ...batch2 };
+
+    const forex = this.mapForexQuotes(allQuotes);
+    const commodities = this.mapCommodityQuotes(allQuotes);
+    const indices = this.mapIndexQuotes(allQuotes);
+    const stocks = this.mapStockQuotes(allQuotes);
 
     const hasData = [...forex, ...commodities, ...indices, ...stocks].some((q) => q.available);
 
@@ -401,6 +417,49 @@ class TwelveDataService {
 
     this.setCache(cacheKey, result);
     return result;
+  }
+
+  private getEmptyMarketData(): MultiAssetData {
+    return {
+      forex: FOREX_SYMBOLS.map((s) => ({ symbol: s, name: FOREX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
+      commodities: COMMODITY_SYMBOLS.map((s) => ({ symbol: s, name: COMMODITY_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
+      indices: INDEX_SYMBOLS.map((s) => ({ symbol: s, name: INDEX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
+      stocks: STOCK_SYMBOLS.map((s) => ({ symbol: s, name: s, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false })),
+      lastUpdated: new Date().toISOString(),
+      available: false,
+    };
+  }
+
+  private mapForexQuotes(allQuotes: Record<string, TwelveDataQuote>): ForexQuote[] {
+    return FOREX_SYMBOLS.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: FOREX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+      return { symbol, name: q.name || FOREX_NAMES[symbol] || symbol, price: parseFloat(q.close) || 0, change: parseFloat(q.change) || 0, changePercent: parseFloat(q.percent_change) || 0, available: true };
+    });
+  }
+
+  private mapCommodityQuotes(allQuotes: Record<string, TwelveDataQuote>): CommodityQuote[] {
+    return COMMODITY_SYMBOLS.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: COMMODITY_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+      return { symbol, name: q.name || COMMODITY_NAMES[symbol] || symbol, price: parseFloat(q.close) || 0, change: parseFloat(q.change) || 0, changePercent: parseFloat(q.percent_change) || 0, available: true };
+    });
+  }
+
+  private mapIndexQuotes(allQuotes: Record<string, TwelveDataQuote>): IndexQuote[] {
+    return INDEX_SYMBOLS.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: INDEX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+      return { symbol, name: q.name || INDEX_NAMES[symbol] || symbol, price: parseFloat(q.close) || 0, change: parseFloat(q.change) || 0, changePercent: parseFloat(q.percent_change) || 0, available: true };
+    });
+  }
+
+  private mapStockQuotes(allQuotes: Record<string, TwelveDataQuote>): StockQuote[] {
+    return STOCK_SYMBOLS.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: symbol, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false };
+      return { symbol, name: q.name || symbol, price: parseFloat(q.close) || 0, change: parseFloat(q.change) || 0, changePercent: parseFloat(q.percent_change) || 0, volume: parseInt(q.volume, 10) || 0, marketOpen: q.is_market_open ?? false, available: true };
+    });
   }
 
   // --- Private helpers ---

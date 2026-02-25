@@ -21,18 +21,20 @@ interface ForexWatchlistProps {
 const JPY_PAIRS = new Set(['USD/JPY']);
 
 function fmtForexPrice(price: number, pair: string): string {
-  // JPY pairs use 2 decimals, others use 4
+  if (!price || price === 0) return 'N/A';
   const isJpy = JPY_PAIRS.has(pair) || pair.includes('JPY');
   return price.toFixed(isJpy ? 2 : 4);
 }
 
 function fmtChange(n: number, pair: string): string {
+  if (!n || n === 0) return '--';
   const isJpy = JPY_PAIRS.has(pair) || pair.includes('JPY');
   const prefix = n >= 0 ? '+' : '';
   return `${prefix}${n.toFixed(isJpy ? 2 : 4)}`;
 }
 
 function fmtPct(n: number): string {
+  if (!n || n === 0) return '--';
   return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
