@@ -95,7 +95,7 @@ export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
           name: asset.name || asset.symbol,
           changePercent: asset.changePercent ?? 0,
           category: cat,
-          isLarge: LARGE_SYMBOLS.has(asset.symbol.toUpperCase()),
+          isLarge: LARGE_SYMBOLS.has((asset.symbol || '').toUpperCase()),
         });
       }
     }

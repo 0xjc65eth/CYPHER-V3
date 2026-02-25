@@ -150,3 +150,4 @@ dump.rdb.claude/
 
 # Claude Code
 .claude/
+.jest-cache/

@@ -74,7 +74,7 @@ function flattenAssets(data: TickerBarProps['data']): TickerAsset[] {
 
   // Crypto
   for (const c of data.crypto) {
-    items.push({ symbol: c.symbol.toUpperCase(), price: c.price, change: c.change24h });
+    items.push({ symbol: (c.symbol || '').toUpperCase(), price: c.price, change: c.change24h });
   }
 
   // Forex
@@ -84,7 +84,7 @@ function flattenAssets(data: TickerBarProps['data']): TickerAsset[] {
 
   // Commodities
   for (const c of data.commodities) {
-    items.push({ symbol: c.name.toUpperCase(), price: c.price, change: c.changePercent });
+    items.push({ symbol: (c.name || '').toUpperCase(), price: c.price, change: c.changePercent });
   }
 
   // Indices

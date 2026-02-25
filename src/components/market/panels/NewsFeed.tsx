@@ -103,7 +103,7 @@ export function NewsFeed({ articles, loading, error }: NewsFeedProps) {
               const sourceColor =
                 SOURCE_COLORS[article.source] || 'bg-[#2a2a3e] text-[#e4e4e7]/60';
               const catColor = article.category
-                ? CATEGORY_COLORS[article.category.toUpperCase()] || 'text-[#e4e4e7]/40'
+                ? CATEGORY_COLORS[(article.category || '').toUpperCase()] || 'text-[#e4e4e7]/40'
                 : null;
 
               return (
@@ -122,7 +122,7 @@ export function NewsFeed({ articles, loading, error }: NewsFeedProps) {
                     </span>
                     {article.category && catColor && (
                       <span className={`text-[8px] font-mono font-medium ${catColor}`}>
-                        {article.category.toUpperCase()}
+                        {(article.category || '').toUpperCase()}
                       </span>
                     )}
                     <span className="ml-auto text-[10px] text-[#e4e4e7]/30 font-mono whitespace-nowrap">

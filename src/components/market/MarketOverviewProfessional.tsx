@@ -897,7 +897,7 @@ export default function MarketOverviewProfessional() {
                         ) : (
                           <Activity className="h-4 w-4" />
                         )}
-                        <span className="font-medium">{indicator.impact.toUpperCase()}</span>
+                        <span className="font-medium">{(indicator.impact || '').toUpperCase()}</span>
                       </div>
                     </div>
                     <div className="flex items-center justify-between">

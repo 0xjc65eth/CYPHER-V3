@@ -132,10 +132,19 @@ function formatCompact(n: number): string {
   return n.toLocaleString();
 }
 
-function formatHashrate(h: number): string {
-  if (h >= 1e18) return `${(h / 1e18).toFixed(1)} EH/s`;
-  if (h >= 1e15) return `${(h / 1e15).toFixed(1)} PH/s`;
-  return `${h.toLocaleString()} H/s`;
+function formatHashrate(h: number | { current?: number; [key: string]: unknown }): string {
+  const val = typeof h === 'object' && h !== null ? (h.current ?? 0) : h;
+  if (typeof val !== 'number' || isNaN(val)) return '---';
+  if (val >= 1e18) return `${(val / 1e18).toFixed(1)} EH/s`;
+  if (val >= 1e15) return `${(val / 1e15).toFixed(1)} PH/s`;
+  return `${val.toLocaleString()} H/s`;
+}
+
+function formatDifficulty(d: number | { current?: number; [key: string]: unknown } | undefined): string {
+  if (!d) return '---';
+  const val = typeof d === 'object' && d !== null ? (d.current ?? 0) : d;
+  if (typeof val !== 'number' || isNaN(val) || val === 0) return '---';
+  return `${(val / 1e12).toFixed(2)}T`;
 }
 
 function formatPrice(price: number): string {
@@ -746,7 +755,7 @@ function NetworkHealthPanel({ mempool, fees, blocks }: {
           <span className="text-[9px] text-[#e4e4e7]/35 font-mono">DIFFICULTY</span>
           {mining.loading ? <Pulse w="w-16" h="h-3" /> : (
             <span className="text-[11px] text-[#e4e4e7]/70 font-mono">
-              {mining.data?.difficulty ? `${(mining.data.difficulty / 1e12).toFixed(2)}T` : '---'}
+              {formatDifficulty(mining.data?.difficulty)}
             </span>
           )}
         </div>
@@ -1292,7 +1301,7 @@ function HashrateCard() {
           <div>
             <div className="text-[9px] text-[#e4e4e7]/35 font-mono">Difficulty</div>
             <div className="text-sm font-bold text-[#e4e4e7]/70 font-mono">
-              {data.difficulty ? `${(data.difficulty / 1e12).toFixed(2)}T` : '---'}
+              {formatDifficulty(data.difficulty)}
             </div>
           </div>
           <div>

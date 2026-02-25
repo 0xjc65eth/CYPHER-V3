@@ -34,43 +34,57 @@ export async function GET(request: NextRequest) {
     const interval = searchParams.get('interval') || '1h';
     const limit = Math.min(parseInt(searchParams.get('limit') || '100'), 1000);
 
-    // Try to fetch from Binance API first
-    try {
-      const binanceUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-      const response = await fetch(binanceUrl, { 
-        next: { revalidate: 60 } // Cache for 1 minute
-      });
+    // Try Binance API endpoints (primary + fallback for geo-restricted regions)
+    const endpoints = [
+      `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+      `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+    ];
 
-      if (response.ok) {
-        const binanceData = await response.json();
-        const formattedData: ChartDataPoint[] = binanceData.map((candle: any[]) => ({
-          time: candle[0],
-          open: parseFloat(candle[1]),
-          high: parseFloat(candle[2]),
-          low: parseFloat(candle[3]),
-          close: parseFloat(candle[4]),
-          volume: parseFloat(candle[5])
-        }));
-
-        return NextResponse.json({
-          success: true,
-          data: formattedData,
-          source: 'binance'
+    for (const binanceUrl of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        const response = await fetch(binanceUrl, {
+          signal: controller.signal,
+          next: { revalidate: 60 }
         });
+        clearTimeout(timeout);
+
+        if (response.ok) {
+          const binanceData = await response.json();
+          if (Array.isArray(binanceData) && binanceData.length > 0) {
+            const formattedData: ChartDataPoint[] = binanceData.map((candle: any[]) => ({
+              time: candle[0],
+              open: parseFloat(candle[1]),
+              high: parseFloat(candle[2]),
+              low: parseFloat(candle[3]),
+              close: parseFloat(candle[4]),
+              volume: parseFloat(candle[5])
+            }));
+
+            return NextResponse.json({
+              success: true,
+              data: formattedData,
+              source: 'binance'
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Binance API error (${binanceUrl}):`, error);
+        // Try next endpoint
       }
-    } catch (error) {
-      console.error('Binance API error:', error);
-      // Return error - NO MOCK DATA
-      return NextResponse.json(
-        {
-          success: false,
-          data: null,
-          error: 'Failed to fetch real historical data from Binance API',
-          message: error instanceof Error ? error.message : 'Unknown error'
-        },
-        { status: 503 }
-      );
     }
+
+    // All endpoints failed - return error, NO MOCK DATA
+    return NextResponse.json(
+      {
+        success: false,
+        data: null,
+        error: 'Failed to fetch real historical data from Binance API',
+        message: 'All Binance endpoints unreachable'
+      },
+      { status: 503 }
+    );
 
   } catch (error) {
     console.error('Historical data API error:', error);

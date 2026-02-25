@@ -446,7 +446,7 @@ export default function MarketOverview() {
                       ticker.volatility === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                       'bg-green-500/20 text-green-400'
                     }`}>
-                      {ticker.volatility.toUpperCase()}
+                      {(ticker.volatility || '').toUpperCase()}
                     </div>
                   </div>
                   
@@ -572,7 +572,7 @@ export default function MarketOverview() {
                           ) : (
                             <Activity className="h-3 w-3" />
                           )}
-                          <span className="text-xs">{indicator.impact.toUpperCase()}</span>
+                          <span className="text-xs">{(indicator.impact || '').toUpperCase()}</span>
                         </div>
                       </div>
                       
@@ -610,7 +610,7 @@ export default function MarketOverview() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-white">{signal.asset}</span>
                       <div className={`px-2 py-1 rounded text-xs font-bold ${getSignalColor(signal.type)}`}>
-                        {signal.type.toUpperCase()}
+                        {(signal.type || '').toUpperCase()}
                       </div>
                     </div>
                     
@@ -658,7 +658,7 @@ export default function MarketOverview() {
                         item.impact === 'medium' ? 'bg-yellow-500/20 text-yellow-400' :
                         'bg-green-500/20 text-green-400'
                       }`}>
-                        {item.impact.toUpperCase()}
+                        {(item.impact || '').toUpperCase()}
                       </div>
                     </div>
                     

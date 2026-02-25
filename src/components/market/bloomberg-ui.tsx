@@ -47,7 +47,7 @@ export function MetricCard({ label, value, sub, subColor, progress }: {
 }) {
   return (
     <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
-      <div className="text-[10px] text-[#e4e4e7]/40 mb-1">{label.toUpperCase()}</div>
+      <div className="text-[10px] text-[#e4e4e7]/40 mb-1">{(label || '').toUpperCase()}</div>
       <div className="text-lg font-bold" style={{ textShadow: '0 0 10px rgba(0,255,136,0.1)' }}>{value}</div>
       {sub && <div className={`text-[10px] mt-0.5 ${subColor || 'text-[#e4e4e7]/40'}`}>{sub}</div>}
       {progress != null && (

@@ -64,7 +64,7 @@ const columns: WatchlistColumn[] = [
             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
           />
         )}
-        <span className="font-bold text-[#F7931A]">{value.toUpperCase()}</span>
+        <span className="font-bold text-[#F7931A]">{(value || '').toUpperCase()}</span>
       </div>
     ),
   },
