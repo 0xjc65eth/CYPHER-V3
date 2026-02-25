@@ -142,14 +142,16 @@ export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
                 ? 'text-[#ff3366]'
                 : 'text-[#e4e4e7]/50';
 
+            const noData = asset.changePercent === 0;
+
             return (
               <div
                 key={`${asset.category}-${asset.symbol}`}
                 className={`relative rounded p-2 flex flex-col items-center justify-center transition-all hover:brightness-125 cursor-default ${
                   asset.isLarge ? 'col-span-2 min-h-[56px]' : 'min-h-[48px]'
-                }`}
-                style={{ backgroundColor: bg }}
-                title={`${asset.name} (${asset.category}): ${asset.changePercent > 0 ? '+' : ''}${asset.changePercent.toFixed(2)}%`}
+                }${noData ? ' opacity-40' : ''}`}
+                style={{ backgroundColor: noData ? 'rgba(42, 42, 62, 0.3)' : bg }}
+                title={`${asset.name} (${asset.category}): ${noData ? 'N/A' : `${asset.changePercent > 0 ? '+' : ''}${asset.changePercent.toFixed(2)}%`}`}
               >
                 {/* Category dot */}
                 <div
@@ -159,9 +161,8 @@ export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
                 <span className="text-xs font-bold text-[#e4e4e7] font-mono leading-none">
                   {asset.symbol}
                 </span>
-                <span className={`text-[10px] font-mono font-medium ${textColor} leading-none mt-1`}>
-                  {asset.changePercent > 0 ? '+' : ''}
-                  {asset.changePercent.toFixed(2)}%
+                <span className={`text-[10px] font-mono font-medium ${noData ? 'text-[#e4e4e7]/30' : textColor} leading-none mt-1`}>
+                  {noData ? 'N/A' : `${asset.changePercent > 0 ? '+' : ''}${asset.changePercent.toFixed(2)}%`}
                 </span>
               </div>
             );

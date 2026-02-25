@@ -315,7 +315,367 @@ export function MacroIndicatorsPro({ refreshTrigger = 0 }: MacroIndicatorsProPro
         )}
       </div>
 
-      {/* Rest of the sections will be added in next files... */}
+      {/* Equities & Risk */}
+      <div className="bg-[#0d0d14] border border-[#1a1a2e] rounded">
+        <button
+          onClick={() => toggleSection('equities')}
+          className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a2e]/30 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <div className="text-[11px] font-bold text-[#F7931A] font-mono">EQUITIES & RISK</div>
+            <div className="text-[9px] text-[#e4e4e7]/40">(4 indicators)</div>
+          </div>
+          {expandedSections.equities ? <ChevronUp className="w-4 h-4 text-[#e4e4e7]/40" /> : <ChevronDown className="w-4 h-4 text-[#e4e4e7]/40" />}
+        </button>
+
+        {expandedSections.equities && (
+          <div className="border-t border-[#1a1a2e]">
+            {/* S&P 500 */}
+            <div className="p-3 border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">S&P 500</div>
+                    <div className="text-xl font-bold text-[#00D4AA] font-mono">{d.sp500.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  </div>
+                  <div className={`text-[11px] font-bold font-mono ${getChangeByTimeframe(d.sp500) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {getChangeByTimeframe(d.sp500) >= 0 ? '+' : ''}{getChangeByTimeframe(d.sp500).toFixed(2)}%
+                  </div>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <div className="text-[9px] text-[#e4e4e7]/40">52W Range</div>
+                  <div className="text-[10px] text-[#e4e4e7]/60 font-mono">
+                    {d.sp500.low52w.toLocaleString()} - {d.sp500.high52w.toLocaleString()}
+                  </div>
+                  <div className="h-1 w-24 bg-[#1a1a2e] rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#00D4AA] via-[#F7931A] to-[#FF4757]"
+                      style={{ width: `${getPercentile(d.sp500.value, d.sp500.low52w, d.sp500.high52w)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">P/E: </span>
+                  <span className="text-[#e4e4e7]/80 font-mono">{d.sp500.pe.toFixed(1)}</span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1W: </span>
+                  <span className={`font-mono ${(d.sp500.change1w ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.sp500.change1w ?? 0) >= 0 ? '+' : ''}{(d.sp500.change1w ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1M: </span>
+                  <span className={`font-mono ${(d.sp500.change1m ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.sp500.change1m ?? 0) >= 0 ? '+' : ''}{(d.sp500.change1m ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* NASDAQ */}
+            <div className="p-3 border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">NASDAQ</div>
+                    <div className="text-xl font-bold text-[#3B82F6] font-mono">{d.nasdaq.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  </div>
+                  <div className={`text-[11px] font-bold font-mono ${getChangeByTimeframe(d.nasdaq) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {getChangeByTimeframe(d.nasdaq) >= 0 ? '+' : ''}{getChangeByTimeframe(d.nasdaq).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">1W: </span>
+                  <span className={`font-mono ${(d.nasdaq.change1w ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.nasdaq.change1w ?? 0) >= 0 ? '+' : ''}{(d.nasdaq.change1w ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1M: </span>
+                  <span className={`font-mono ${(d.nasdaq.change1m ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.nasdaq.change1m ?? 0) >= 0 ? '+' : ''}{(d.nasdaq.change1m ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1Y: </span>
+                  <span className={`font-mono ${(d.nasdaq.change1y ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.nasdaq.change1y ?? 0) >= 0 ? '+' : ''}{(d.nasdaq.change1y ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* VIX */}
+            <div className="p-3 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">VIX (Fear Index)</div>
+                    <div className={`text-xl font-bold font-mono ${d.vix.value < 18 ? 'text-[#00D4AA]' : d.vix.value <= 25 ? 'text-[#FBBF24]' : 'text-[#FF4757]'}`}>
+                      {d.vix.value.toFixed(2)}
+                    </div>
+                  </div>
+                  <div className={`text-[11px] font-bold font-mono ${d.vix.change >= 0 ? 'text-[#FF4757]' : 'text-[#00D4AA]'}`}>
+                    {d.vix.change >= 0 ? '+' : ''}{d.vix.change.toFixed(2)}%
+                  </div>
+                </div>
+                <div className="text-right space-y-0.5">
+                  <div className="text-[9px] text-[#e4e4e7]/40">52W Range</div>
+                  <div className="text-[10px] text-[#e4e4e7]/60 font-mono">
+                    {d.vix.low52w.toFixed(2)} - {d.vix.high52w.toFixed(2)}
+                  </div>
+                  <div className="h-1 w-24 bg-[#1a1a2e] rounded-full overflow-hidden mt-1">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#00D4AA] via-[#FBBF24] to-[#FF4757]"
+                      style={{ width: `${getPercentile(d.vix.value, d.vix.low52w, d.vix.high52w)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">90D Percentile: </span>
+                  <span className="text-[#e4e4e7]/80 font-mono">{d.vix.percentile90d}%</span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Level: </span>
+                  <span className={`font-mono ${d.vix.value < 18 ? 'text-[#00D4AA]' : d.vix.value <= 25 ? 'text-[#FBBF24]' : 'text-[#FF4757]'}`}>
+                    {d.vix.value < 18 ? 'Low Fear' : d.vix.value <= 25 ? 'Moderate' : 'High Fear'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Impact: </span>
+                  <span className={d.vix.value < 18 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}>
+                    {d.vix.value < 18 ? 'Bullish' : 'Bearish'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Commodities */}
+      <div className="bg-[#0d0d14] border border-[#1a1a2e] rounded">
+        <button
+          onClick={() => toggleSection('commodities')}
+          className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a2e]/30 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <div className="text-[11px] font-bold text-[#F7931A] font-mono">COMMODITIES</div>
+            <div className="text-[9px] text-[#e4e4e7]/40">(2 indicators)</div>
+          </div>
+          {expandedSections.commodities ? <ChevronUp className="w-4 h-4 text-[#e4e4e7]/40" /> : <ChevronDown className="w-4 h-4 text-[#e4e4e7]/40" />}
+        </button>
+
+        {expandedSections.commodities && (
+          <div className="border-t border-[#1a1a2e]">
+            {/* Gold */}
+            <div className="p-3 border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">Gold (XAU/USD)</div>
+                    <div className="text-xl font-bold text-[#FBBF24] font-mono">${d.gold.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  </div>
+                  <div className={`text-[11px] font-bold font-mono ${getChangeByTimeframe(d.gold) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {getChangeByTimeframe(d.gold) >= 0 ? '+' : ''}{getChangeByTimeframe(d.gold).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">1W: </span>
+                  <span className={`font-mono ${(d.gold.change1w ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.gold.change1w ?? 0) >= 0 ? '+' : ''}{(d.gold.change1w ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1M: </span>
+                  <span className={`font-mono ${(d.gold.change1m ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.gold.change1m ?? 0) >= 0 ? '+' : ''}{(d.gold.change1m ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1Y: </span>
+                  <span className={`font-mono ${(d.gold.change1y ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.gold.change1y ?? 0) >= 0 ? '+' : ''}{(d.gold.change1y ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Oil (WTI) */}
+            <div className="p-3 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">Oil (WTI Crude)</div>
+                    <div className="text-xl font-bold text-[#e4e4e7] font-mono">${d.oil.value.toFixed(2)}</div>
+                  </div>
+                  <div className={`text-[11px] font-bold font-mono ${getChangeByTimeframe(d.oil) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {getChangeByTimeframe(d.oil) >= 0 ? '+' : ''}{getChangeByTimeframe(d.oil).toFixed(2)}%
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">1W: </span>
+                  <span className={`font-mono ${(d.oil.change1w ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.oil.change1w ?? 0) >= 0 ? '+' : ''}{(d.oil.change1w ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">1M: </span>
+                  <span className={`font-mono ${(d.oil.change1m ?? 0) >= 0 ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.oil.change1m ?? 0) >= 0 ? '+' : ''}{(d.oil.change1m ?? 0).toFixed(2)}%
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Impact: </span>
+                  <span className={d.oil.change >= 0 ? 'text-[#FF4757]' : 'text-[#00D4AA]'}>
+                    {d.oil.change >= 0 ? 'Inflationary' : 'Deflationary'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Inflation & Employment */}
+      <div className="bg-[#0d0d14] border border-[#1a1a2e] rounded">
+        <button
+          onClick={() => toggleSection('inflation')}
+          className="w-full px-3 py-2 flex items-center justify-between hover:bg-[#1a1a2e]/30 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <div className="text-[11px] font-bold text-[#F7931A] font-mono">INFLATION & EMPLOYMENT</div>
+            <div className="text-[9px] text-[#e4e4e7]/40">(4 indicators)</div>
+          </div>
+          {expandedSections.inflation ? <ChevronUp className="w-4 h-4 text-[#e4e4e7]/40" /> : <ChevronDown className="w-4 h-4 text-[#e4e4e7]/40" />}
+        </button>
+
+        {expandedSections.inflation && (
+          <div className="border-t border-[#1a1a2e]">
+            {/* CPI */}
+            <div className="p-3 border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5 flex items-center gap-2">
+                      CPI (Consumer Price Index)
+                      <span className={`px-1.5 py-0.5 text-[8px] rounded font-bold ${
+                        d.cpi.trend === 'falling' ? 'bg-[#00D4AA]/20 text-[#00D4AA]' :
+                        d.cpi.trend === 'rising' ? 'bg-[#FF4757]/20 text-[#FF4757]' :
+                        'bg-[#FBBF24]/20 text-[#FBBF24]'
+                      }`}>
+                        {d.cpi.trend.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="text-xl font-bold text-[#FF4757] font-mono">{d.cpi.value.toFixed(1)}%</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] text-[#e4e4e7]/40 mb-1">Release</div>
+                  <div className="text-[11px] text-[#e4e4e7]/80">{d.cpi.date}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">Previous: </span>
+                  <span className="text-[#e4e4e7]/80 font-mono">{d.cpi.previous.toFixed(1)}%</span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Change: </span>
+                  <span className={`font-mono ${d.cpi.value <= d.cpi.previous ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.cpi.value - d.cpi.previous) >= 0 ? '+' : ''}{(d.cpi.value - d.cpi.previous).toFixed(1)}pp
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Impact: </span>
+                  <span className={d.cpi.value <= d.cpi.previous ? 'text-[#00D4AA]' : 'text-[#FF4757]'}>
+                    {d.cpi.value <= d.cpi.previous ? 'Bullish' : 'Bearish'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* PPI */}
+            <div className="p-3 border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">PPI (Producer Price Index)</div>
+                    <div className="text-xl font-bold text-[#8B5CF6] font-mono">{d.ppi.value.toFixed(1)}%</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] text-[#e4e4e7]/40 mb-1">Release</div>
+                  <div className="text-[11px] text-[#e4e4e7]/80">{d.ppi.date}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">Previous: </span>
+                  <span className="text-[#e4e4e7]/80 font-mono">{d.ppi.previous.toFixed(1)}%</span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Change: </span>
+                  <span className={`font-mono ${d.ppi.value <= d.ppi.previous ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.ppi.value - d.ppi.previous) >= 0 ? '+' : ''}{(d.ppi.value - d.ppi.previous).toFixed(1)}pp
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Impact: </span>
+                  <span className={d.ppi.value <= d.ppi.previous ? 'text-[#00D4AA]' : 'text-[#FF4757]'}>
+                    {d.ppi.value <= d.ppi.previous ? 'Bullish' : 'Bearish'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Unemployment */}
+            <div className="p-3 hover:bg-[#1a1a2e]/20 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div>
+                    <div className="text-[10px] text-[#e4e4e7]/60 mb-0.5">Unemployment Rate</div>
+                    <div className="text-xl font-bold text-[#3B82F6] font-mono">{d.unemployment.value.toFixed(1)}%</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] text-[#e4e4e7]/40 mb-1">Release</div>
+                  <div className="text-[11px] text-[#e4e4e7]/80">{d.unemployment.date}</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-[10px]">
+                <div>
+                  <span className="text-[#e4e4e7]/40">Previous: </span>
+                  <span className="text-[#e4e4e7]/80 font-mono">{d.unemployment.previous.toFixed(1)}%</span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Change: </span>
+                  <span className={`font-mono ${d.unemployment.value <= d.unemployment.previous ? 'text-[#00D4AA]' : 'text-[#FF4757]'}`}>
+                    {(d.unemployment.value - d.unemployment.previous) >= 0 ? '+' : ''}{(d.unemployment.value - d.unemployment.previous).toFixed(1)}pp
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[#e4e4e7]/40">Impact: </span>
+                  <span className={d.unemployment.value <= d.unemployment.previous ? 'text-[#00D4AA]' : 'text-[#FF4757]'}>
+                    {d.unemployment.value <= d.unemployment.previous ? 'Bullish' : 'Bearish'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

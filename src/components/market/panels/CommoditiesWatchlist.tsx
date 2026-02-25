@@ -20,14 +20,17 @@ interface CommoditiesWatchlistProps {
 }
 
 function fmtPrice(n: number): string {
+  if (!n || n === 0) return 'N/A';
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function fmtChange(n: number): string {
+  if (!n || n === 0) return '--';
   return `${n >= 0 ? '+' : ''}$${Math.abs(n).toFixed(2)}`;
 }
 
 function fmtPct(n: number): string {
+  if (!n || n === 0) return '--';
   return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
