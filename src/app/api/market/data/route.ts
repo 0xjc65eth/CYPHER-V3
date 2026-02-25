@@ -177,31 +177,32 @@ async function fetchCryptoMarketData(options: any) {
   } catch (error) {
     logger.error(error instanceof Error ? error : new Error(String(error)), 'Failed to fetch real crypto market data, falling back to mock data');
     // Fallback to basic mock data if API fails
+    // Fallback data atualizado em 2026-02-24
     return [
       {
         symbol: 'BTC',
         name: 'Bitcoin',
         category: 'bitcoin',
-        price: 98000,
-        change24h: 2.5,
-        change24hPercent: 2.5,
-        volume24h: 15000000000,
-        marketCap: 1900000000000,
-        high24h: 99000,
-        low24h: 97000,
+        price: 63500,
+        change24h: 0,
+        change24hPercent: 0,
+        volume24h: 25000000000,
+        marketCap: 1250000000000,
+        high24h: 64500,
+        low24h: 62500,
         timestamp: new Date()
       },
       {
         symbol: 'ETH',
         name: 'Ethereum',
         category: 'ethereum',
-        price: 3500,
-        change24h: 1.8,
-        change24hPercent: 1.8,
-        volume24h: 8000000000,
-        marketCap: 420000000000,
-        high24h: 3600,
-        low24h: 3400,
+        price: 1850,
+        change24h: 0,
+        change24hPercent: 0,
+        volume24h: 12000000000,
+        marketCap: 223000000000,
+        high24h: 1900,
+        low24h: 1800,
         timestamp: new Date()
       }
     ];
@@ -288,10 +289,11 @@ async function fetchGlobalMarketMetrics() {
   } catch (error) {
     logger.error(error instanceof Error ? error : new Error(String(error)), 'Failed to fetch real global metrics, falling back to mock data');
     // Fallback to mock data if API fails
+    // Fallback métricas globais - atualizado 2026-02-24
     return {
-      totalMarketCap: 2500000000000,
-      totalVolume24h: 50000000000,
-      btcDominance: 52,
+      totalMarketCap: 2100000000000,
+      totalVolume24h: 80000000000,
+      btcDominance: 60,
       totalSupply: 21000000,
       activeCurrencies: 15000
     };
@@ -300,9 +302,9 @@ async function fetchGlobalMarketMetrics() {
 
 function getDefaultGlobalMetrics() {
   return {
-    totalMarketCap: 2500000000000,
-    totalVolume24h: 50000000000,
-    btcDominance: 52,
+    totalMarketCap: 2100000000000,
+    totalVolume24h: 80000000000,
+    btcDominance: 60,
     totalSupply: 21000000,
     activeCurrencies: 15000
   };

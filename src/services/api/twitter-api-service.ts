@@ -1,8 +1,11 @@
 /**
  * Twitter API Service
- * 
- * This service provides methods for interacting with the Twitter API.
- * It includes methods for fetching tweets, user data, and performing sentiment analysis.
+ *
+ * ⚠️ STATUS: SIMULADO - Retorna dados gerados, NÃO dados reais do Twitter/X.
+ * Para ativar dados reais, configure as variáveis de ambiente:
+ * - TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_BEARER_TOKEN
+ *
+ * Todos os métodos retornam dados simulados quando as credenciais não estão configuradas.
  */
 
 import { loggerService } from '@/lib/logger';

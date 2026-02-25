@@ -592,19 +592,19 @@ class RealAnalyticsDataService {
       // Test Hiro API
       await hiroAPI.healthCheck();
       services.hiro = true;
-    } catch {}
+    } catch (err) { console.debug("[analytics] Error:", (err as Error).message); }
 
     try {
       // Test CoinGecko with rate limiting
       await rateLimitedFetch('https://api.coingecko.com/api/v3/ping');
       services.coinGecko = true;
-    } catch {}
+    } catch (err) { console.debug("[analytics] Error:", (err as Error).message); }
 
     try {
       // Test Mempool.space
       await fetch('https://mempool.space/api/blocks/tip/height');
       services.mempool = true;
-    } catch {}
+    } catch (err) { console.debug("[analytics] Error:", (err as Error).message); }
 
     const status = Object.values(services).some(s => s) ? 'operational' : 'degraded';
 

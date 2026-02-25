@@ -295,8 +295,12 @@ async function handleOrdinalsData(request: NextRequest): Promise<NextResponse> {
 
     const ordinalsData = engine.getOrdinalsData();
 
+    // NOTA: Dados são mock/fallback - integrar com Magic Eden/Hiro API para dados reais
     return NextResponse.json(
-      createSuccessResponse(ordinalsData, 'Ordinals data retrieved successfully'),
+      createSuccessResponse(
+        { ...ordinalsData, isMockData: true },
+        'Ordinals data retrieved (fallback - real API integration pending)'
+      ),
       { headers: corsHeaders }
     );
   } catch (error) {

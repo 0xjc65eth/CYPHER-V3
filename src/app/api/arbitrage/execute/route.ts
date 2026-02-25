@@ -9,6 +9,22 @@ import { ccxtIntegration } from '@/services/arbitrage/CCXTIntegration';
 import { dbService } from '@/lib/database/db-service';
 import { cache } from '@/lib/cache/redis.config';
 
+/** Validate admin bearer token for mutation endpoints */
+function validateAdminToken(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return false;
+  const token = authHeader.substring(7);
+  const secret = process.env.ADMIN_JWT_SECRET;
+  if (!secret || secret === 'changeme') return false;
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, secret);
+    return !!decoded?.adminId;
+  } catch {
+    return false;
+  }
+}
+
 interface ExecuteTradeRequest {
   opportunityId?: string;
   buyExchange: string;
@@ -31,6 +47,10 @@ interface ExecutionResult {
 }
 
 export async function POST(request: NextRequest) {
+  if (!validateAdminToken(request)) {
+    return NextResponse.json({ error: 'Admin authentication required' }, { status: 401 });
+  }
+
   try {
     const body: ExecuteTradeRequest = await request.json();
 

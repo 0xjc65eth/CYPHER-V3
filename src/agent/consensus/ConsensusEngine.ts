@@ -141,9 +141,15 @@ export class ConsensusEngine {
     const positionSize = riskVote.positionSize || proposal.positionSizeUSD;
 
     // 6. Build result
-    const approved = confidence >= this.config.minConfidence
+    const meetsThreshold = confidence >= this.config.minConfidence
       && direction !== 'neutral'
       && direction !== 'abstain';
+
+    // SECURITY FIX: Trades require explicit user opt-in.
+    // Auto-trade is DISABLED by default. Set ENABLE_AUTO_TRADE=true to enable.
+    // Without this, AI decisions execute immediately without human oversight.
+    const autoTradeEnabled = process.env.ENABLE_AUTO_TRADE === 'true';
+    const approved = meetsThreshold && autoTradeEnabled;
 
     const allReasons = votes
       .filter(v => v.direction !== 'abstain')

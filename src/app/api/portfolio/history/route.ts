@@ -91,7 +91,8 @@ async function fetchPortfolioHistory(
   offset: number, 
   type?: string | null
 ) {
-  // Mock transaction history - in production, this would query the database
+  // Dados de exemplo - em produção, buscar do banco/mempool.space
+  // TODO: Integrar com API real de transações (mempool.space, Hiro)
   const allTransactions = [
     {
       id: 'tx_001',
@@ -99,8 +100,8 @@ async function fetchPortfolioHistory(
       asset: 'BTC',
       assetType: 'bitcoin',
       amount: 0.5,
-      price: 95000,
-      value: 47500,
+      price: 63500,
+      value: 31750,
       fee: 25,
       timestamp: new Date('2024-01-15T10:30:00Z'),
       txHash: 'abc123def456...',
@@ -328,7 +329,7 @@ async function generatePortfolioValueHistory(address: string, timeframe: string)
 
   // Generate snapshots
   const snapshots: any[] = [];
-  const btcPriceBase = 97000; // Current BTC price (would fetch real price)
+  const btcPriceBase = 63500; // Fallback BTC price - atualizado 2026-02-24
 
   for (let time = startTime; time <= now; time += interval) {
     // Simulate portfolio value growth with some volatility

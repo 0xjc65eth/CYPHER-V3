@@ -606,22 +606,30 @@ class OptimizedQuickTradeAggregator {
     return [DEXType.ONEINCH, DEXType.PARASWAP, DEXType.JUPITER].includes(dex);
   }
 
+  // Preços de fallback usados APENAS quando todas as APIs de cotação falham.
+  // Última atualização: 2026-02-24. IMPORTANTE: não usar para cotações reais.
   private getMockPrice(tokenIn: Token, tokenOut: Token): number {
     const basePrices: Record<string, number> = {
-      'ETH': 2850,
-      'BTC': 67000,
-      'SOL': 95,
-      'MATIC': 0.8,
-      'AVAX': 25,
-      'BNB': 320,
+      'ETH': 1850,
+      'BTC': 63500,
+      'SOL': 78,
+      'MATIC': 0.30,
+      'AVAX': 20,
+      'BNB': 590,
       'USDC': 1,
       'USDT': 1,
-      'DAI': 1
+      'DAI': 1,
+      'LINK': 12,
+      'UNI': 7,
+      'ARB': 0.35,
+      'XRP': 0.55,
+      'ADA': 0.35,
     };
 
     const inPrice = basePrices[tokenIn.symbol] || 1;
     const outPrice = basePrices[tokenOut.symbol] || 1;
-    
+
+    console.warn(`[QuickTrade] Using fallback prices for ${tokenIn.symbol}/${tokenOut.symbol} - APIs unavailable`);
     return inPrice / outPrice;
   }
 

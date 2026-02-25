@@ -596,8 +596,8 @@ export class YieldFarmingEngine extends EventEmitter {
         protocol: protocolName,
         name: `${protocolName.toUpperCase()} BTC/ETH Pool`,
         tokens: [
-          { symbol: 'BTC', address: '0x0000', weight: 50, price: 45000, balance: 0, decimals: 8 },
-          { symbol: 'ETH', address: '0x0001', weight: 50, price: 3000, balance: 0, decimals: 18 }
+          { symbol: 'BTC', address: '0x0000', weight: 50, price: 63500, balance: 0, decimals: 8 },
+          { symbol: 'ETH', address: '0x0001', weight: 50, price: 1850, balance: 0, decimals: 18 }
         ],
         apy: 15 + Math.random() * 20,
         tvl: 1000000 + Math.random() * 5000000,
@@ -755,12 +755,12 @@ export class YieldFarmingEngine extends EventEmitter {
     // Stale fallback prices - should be replaced with real price API
     console.warn('[YIELD] Using stale fallback price for', symbol);
     const fallbackPrices: Record<string, number> = {
-      'BTC': 45000,
-      'ETH': 3000,
-      'UNISWAP': 25,
-      'CURVE': 1.2,
-      'CONVEX': 15,
-      'YEARN': 8000,
+      'BTC': 63500,
+      'ETH': 1850,
+      'UNISWAP': 7,
+      'CURVE': 0.40,
+      'CONVEX': 3,
+      'YEARN': 6000,
       'COMPOUND': 45
     };
 

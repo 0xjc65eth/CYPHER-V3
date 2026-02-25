@@ -5,55 +5,25 @@ import { getRedisClient } from '@/lib/cache/redis.config';
 const CACHE_KEY = 'market:news';
 const CACHE_TTL = 1800; // 30 minutes
 
-// Fallback mock news data (used when NewsAPI is unavailable)
+// Fallback placeholder messages (used when NewsAPI is unavailable)
+// NOTA: Estas NÃO são notícias reais - são mensagens de sistema.
+// O frontend deve exibir aviso quando 'fallback: true'.
 const newsTemplates = [
   {
-    headline: 'Bitcoin ETF Sees Record $500M Daily Inflow',
-    summary: 'Institutional investors continue to pour money into Bitcoin ETFs, marking the highest single-day inflow.',
-    impact: 'high',
-    sentiment: 'positive',
-    source: 'Bloomberg',
-    relatedAssets: ['BTC', 'ETH']
-  },
-  {
-    headline: 'Ordinals Protocol Update Enhances Inscription Speed',
-    summary: 'New protocol update reduces inscription time by 40%, making Ordinals more accessible.',
-    impact: 'medium',
-    sentiment: 'positive',
-    source: 'Ordinals News',
-    relatedAssets: ['ORDI', 'SATS']
-  },
-  {
-    headline: 'Federal Reserve Signals Potential Rate Cut',
-    summary: 'Fed Chair hints at possible rate cuts in Q2, crypto markets react positively.',
-    impact: 'high',
-    sentiment: 'positive',
-    source: 'Reuters',
-    relatedAssets: ['BTC', 'ETH', 'SOL']
-  },
-  {
-    headline: 'Major Exchange Lists New Runes Token',
-    summary: 'Binance announces listing of PUPS token, trading to begin next week.',
-    impact: 'medium',
-    sentiment: 'positive',
-    source: 'CoinDesk',
-    relatedAssets: ['PUPS', 'RSIC']
-  },
-  {
-    headline: 'Whale Alert: 1000 BTC Moved to Cold Storage',
-    summary: 'Large Bitcoin holder moves significant amount to cold storage, indicating long-term hold.',
+    headline: 'Notícias em tempo real temporariamente indisponíveis',
+    summary: 'A API de notícias está fora do ar. Notícias serão carregadas automaticamente quando a conexão for restabelecida.',
     impact: 'low',
     sentiment: 'neutral',
-    source: 'Whale Alert',
+    source: 'CYPHER System',
     relatedAssets: ['BTC']
   },
   {
-    headline: 'DeFi TVL Reaches New All-Time High',
-    summary: 'Total value locked in DeFi protocols surpasses $150 billion milestone.',
-    impact: 'medium',
-    sentiment: 'positive',
-    source: 'DeFi Pulse',
-    relatedAssets: ['ETH', 'SOL', 'AVAX']
+    headline: 'Acompanhe o mercado crypto pelo dashboard',
+    summary: 'Utilize gráficos e dados de mercado disponíveis para acompanhar tendências. Notícias voltam em breve.',
+    impact: 'low',
+    sentiment: 'neutral',
+    source: 'CYPHER System',
+    relatedAssets: ['BTC', 'ETH']
   }
 ];
 

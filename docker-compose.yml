@@ -29,10 +29,10 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_DB=cypher_ordi
       - POSTGRES_USER=cypher
-      - POSTGRES_PASSWORD=cypher_password_2025
-      # Auth secrets
-      - JWT_SECRET=cypher_jwt_secret_2025_production
-      - ADMIN_JWT_SECRET=cypher_admin_jwt_secret_2025_production
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      # Auth secrets (set via .env file, never hardcode)
+      - JWT_SECRET=${JWT_SECRET:-changeme}
+      - ADMIN_JWT_SECRET=${ADMIN_JWT_SECRET:-changeme}
     depends_on:
       - redis
       - postgres
@@ -77,7 +77,7 @@ services:
     environment:
       - POSTGRES_DB=cypher_ordi
       - POSTGRES_USER=cypher
-      - POSTGRES_PASSWORD=cypher_password_2025
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
       - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     networks:
       - cypher-network
@@ -126,7 +126,7 @@ services:
       - "3001:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=cypher_admin_2025
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme}
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource,grafana-worldmap-panel
       - GF_FEATURE_TOGGLES_ENABLE=newNavigation
     networks:

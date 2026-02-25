@@ -1,8 +1,13 @@
 /**
  * Discord API Service
- * 
- * This service provides methods for interacting with the Discord API.
- * It includes methods for fetching messages, server data, and performing sentiment analysis.
+ *
+ * ⚠️ STATUS: SIMULADO - Retorna dados gerados, NÃO dados reais do Discord.
+ * Para ativar dados reais, configure as variáveis de ambiente:
+ * - DISCORD_BOT_TOKEN
+ * - DISCORD_CLIENT_ID
+ * - DISCORD_CLIENT_SECRET
+ *
+ * Todos os métodos retornam dados simulados quando as credenciais não estão configuradas.
  */
 
 import { loggerService } from '@/lib/logger';

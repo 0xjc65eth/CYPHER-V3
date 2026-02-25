@@ -171,7 +171,7 @@ export const FinalChart: React.FC<FinalChartProps> = ({
       if (chartInstanceRef.current) {
         try {
           chartInstanceRef.current.remove();
-        } catch (e) {}
+        } catch (e) { console.debug("[chart] Error:", (e as Error).message); }
       }
     };
   }, [fetchData]);

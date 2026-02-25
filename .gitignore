@@ -122,6 +122,7 @@ server.log
 
 # API Keys and sensitive data
 api-keys.txt
+VERCEL_ENV_VARS.txt
 *.key
 *.pem
 

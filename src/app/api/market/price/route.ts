@@ -24,14 +24,17 @@ export async function GET() {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
 
-    // Return fallback data instead of error
+    // Return fallback data instead of error - atualizado 2026-02-24
+    console.warn('[market/price] Using fallback data:', message);
     return NextResponse.json(
       {
-        price: 98750,
-        change24h: 2.5,
-        volume24h: 45000000000,
-        marketCap: 1920000000000,
+        price: 63500,
+        change24h: 0,
+        volume24h: 25000000000,
+        marketCap: 1250000000000,
         timestamp: Date.now(),
+        isFallback: true,
+        warning: 'Dados de fallback - API indisponível',
       },
       {
         status: 200,

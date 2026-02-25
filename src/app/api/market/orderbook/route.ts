@@ -34,7 +34,7 @@ async function fetchOrderBook(symbol: string, limit: string): Promise<{ bids: Or
     if (res.status === 451 || res.status === 403) {
       console.warn(`[orderbook] Binance blocked (${res.status}), trying fallback...`);
     }
-  } catch {}
+  } catch (err) { console.debug('[orderbook] Exchange fallback:', (err as Error).message); }
 
   // OKX fallback - convert BTCUSDT → BTC-USDT
   try {
@@ -54,7 +54,7 @@ async function fetchOrderBook(symbol: string, limit: string): Promise<{ bids: Or
         };
       }
     }
-  } catch {}
+  } catch (err) { console.debug('[orderbook] Exchange fallback:', (err as Error).message); }
 
   // Kraken fallback - convert BTCUSDT → XBTUSD
   try {
@@ -81,7 +81,7 @@ async function fetchOrderBook(symbol: string, limit: string): Promise<{ bids: Or
         }
       }
     }
-  } catch {}
+  } catch (err) { console.debug('[orderbook] Exchange fallback:', (err as Error).message); }
 
   return null;
 }

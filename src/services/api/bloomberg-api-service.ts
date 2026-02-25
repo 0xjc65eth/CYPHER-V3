@@ -1,8 +1,12 @@
 /**
  * Bloomberg API Service
- * 
- * This service provides methods for interacting with the Bloomberg API.
- * It includes methods for fetching market data, news articles, and financial information.
+ *
+ * ⚠️ STATUS: SIMULADO - Retorna dados vazios/zero, NÃO dados reais da Bloomberg.
+ * Para ativar dados reais, configure a variável de ambiente:
+ * - BLOOMBERG_API_KEY
+ *
+ * A API Bloomberg Terminal requer licença comercial ($24k+/ano).
+ * Considere usar alternativas: TwelveData, Alpha Vantage, ou FRED.
  */
 
 import { loggerService } from '@/lib/logger';

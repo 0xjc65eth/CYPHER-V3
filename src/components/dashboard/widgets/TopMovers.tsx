@@ -64,7 +64,7 @@ export function TopMovers() {
           if (gainers.length > 0) setTopGainers(gainers);
           if (losers.length > 0) setTopLosers(losers);
         }
-      } catch {
+      } catch (err) { console.debug("[widget] Fetch error:", (err as Error).message);
       }
     };
 

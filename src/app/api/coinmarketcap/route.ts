@@ -1,11 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimiter } from '@/lib/rateLimiter';
 import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
+import { FALLBACK_PRICES, FALLBACK_MARKET_DATA, FALLBACK_WARNING } from '@/config/api-keys';
 
 export const dynamic = 'force-dynamic'; // Essential for Netlify
 
 const CMC_API_KEY = process.env.CMC_API_KEY;
 const CMC_BASE_URL = 'https://pro-api.coinmarketcap.com/v1';
+
+// Gera dados fallback dinâmicos a partir da config centralizada
+function getFallbackData(symbols: string[] = ['BTC', 'ETH', 'SOL']) {
+  const current: Record<string, any> = {};
+  for (const sym of symbols) {
+    const price = FALLBACK_PRICES[sym] || 0;
+    const mktData = FALLBACK_MARKET_DATA[sym] || { marketCap: 0, volume24h: 0 };
+    current[sym] = {
+      price,
+      change24h: 0,
+      marketCap: mktData.marketCap,
+      volume24h: mktData.volume24h,
+      lastUpdated: new Date().toISOString(),
+    };
+  }
+  return {
+    current,
+    historical: generateRecentHistory(FALLBACK_PRICES['BTC'] || 63500, 0),
+  };
+}
 
 
 export async function GET(request: NextRequest) {
@@ -16,28 +37,15 @@ export async function GET(request: NextRequest) {
   try {
     // Check rate limit first - return proper HTTP response instead of throwing
     if (!rateLimiter.canMakeRequest('coinmarketcap')) {
-      // Return fallback data immediately instead of throwing
-      const hardcodedData = {
-        current: {
-          BTC: { price: 105847, change24h: 2.85, marketCap: 2075000000000, volume24h: 34567000000, lastUpdated: new Date().toISOString() },
-          ETH: { price: 3345, change24h: 3.42, marketCap: 402000000000, volume24h: 18234000000, lastUpdated: new Date().toISOString() },
-          SOL: { price: 188.5, change24h: -1.23, marketCap: 84000000000, volume24h: 3456000000, lastUpdated: new Date().toISOString() },
-          MATIC: { price: 0.89, change24h: 1.23, marketCap: 8900000000, volume24h: 567890123, lastUpdated: new Date().toISOString() },
-          ARB: { price: 0.78, change24h: 2.34, marketCap: 3100000000, volume24h: 234567890, lastUpdated: new Date().toISOString() },
-          AVAX: { price: 37.5, change24h: 1.89, marketCap: 15200000000, volume24h: 445678901, lastUpdated: new Date().toISOString() },
-          BNB: { price: 695, change24h: 0.56, marketCap: 101000000000, volume24h: 1234567890, lastUpdated: new Date().toISOString() },
-          ADA: { price: 0.91, change24h: 3.45, marketCap: 32100000000, volume24h: 678901234, lastUpdated: new Date().toISOString() },
-          LINK: { price: 22.5, change24h: 2.78, marketCap: 14200000000, volume24h: 567890123, lastUpdated: new Date().toISOString() },
-          UNI: { price: 14.8, change24h: 1.67, marketCap: 8900000000, volume24h: 345678901, lastUpdated: new Date().toISOString() }
-        },
-        historical: generateRecentHistory(105847, 2.85)
-      };
-      
+      // Return fallback data from centralized config
+      const requestedSymbols = symbols.split(',').map((s: string) => s.trim());
       return NextResponse.json({
         success: true,
-        data: hardcodedData,
-        source: 'Rate Limit Protection Cache',
+        data: getFallbackData(requestedSymbols),
+        source: 'Rate Limit Protection - Fallback',
         timestamp: new Date().toISOString(),
+        warning: FALLBACK_WARNING,
+        isFallback: true,
       });
     }
     
@@ -59,20 +67,14 @@ export async function GET(request: NextRequest) {
     if (!quotesResponse.ok) {
       // Handle rate limit specifically - return response instead of throwing
       if (quotesResponse.status === 429) {
-        const hardcodedData = {
-          current: {
-            BTC: { price: 105847, change24h: 2.85, marketCap: 2075000000000, volume24h: 34567000000, lastUpdated: new Date().toISOString() },
-            ETH: { price: 3345, change24h: 3.42, marketCap: 402000000000, volume24h: 18234000000, lastUpdated: new Date().toISOString() },
-            SOL: { price: 188.5, change24h: -1.23, marketCap: 84000000000, volume24h: 3456000000, lastUpdated: new Date().toISOString() }
-          },
-          historical: generateRecentHistory(105847, 2.85)
-        };
-        
+        const requestedSymbols = symbols.split(',').map((s: string) => s.trim());
         return NextResponse.json({
           success: true,
-          data: hardcodedData,
-          source: 'CMC Rate Limit Fallback',
+          data: getFallbackData(requestedSymbols),
+          source: 'CMC Rate Limit - Fallback',
           timestamp: new Date().toISOString(),
+          warning: FALLBACK_WARNING,
+          isFallback: true,
         });
       }
       throw new Error(`CMC API error: ${quotesResponse.status}`);
@@ -193,25 +195,14 @@ export async function GET(request: NextRequest) {
     } catch (fallbackError) {
       console.error('Fallback API Error:', fallbackError);
       
-      // Return hardcoded data as last resort
-      const hardcodedData = {
-        current: {
-          BTC: { price: 105847, change24h: 2.85, marketCap: 2075000000000, volume24h: 34567000000, lastUpdated: new Date().toISOString() },
-          ETH: { price: 3345, change24h: 3.42, marketCap: 402000000000, volume24h: 18234000000, lastUpdated: new Date().toISOString() },
-          SOL: { price: 188.5, change24h: -1.23, marketCap: 84000000000, volume24h: 3456000000, lastUpdated: new Date().toISOString() },
-          ORDI: { price: 42.5, change24h: 5.67, marketCap: 892500000, volume24h: 123456789, lastUpdated: new Date().toISOString() },
-          RUNE: { price: 5.23, change24h: -2.34, marketCap: 523000000, volume24h: 45678901, lastUpdated: new Date().toISOString() },
-          MATIC: { price: 0.89, change24h: 1.23, marketCap: 8900000000, volume24h: 567890123, lastUpdated: new Date().toISOString() }
-        },
-        historical: generateRecentHistory(105847, 2.85)
-      };
-      
+      // Return centralized fallback data as last resort
       return NextResponse.json({
         success: true,
-        data: hardcodedData,
-        source: 'Hardcoded (Emergency Fallback)',
+        data: getFallbackData(['BTC', 'ETH', 'SOL', 'ORDI', 'RUNE', 'MATIC']),
+        source: 'Emergency Fallback',
         timestamp: new Date().toISOString(),
-        warning: 'All APIs failed, using hardcoded data',
+        warning: FALLBACK_WARNING,
+        isFallback: true,
       });
     }
   }

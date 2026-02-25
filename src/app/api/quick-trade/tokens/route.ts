@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// Mock token data - in production this would come from multiple sources
+// Token registry - preços são atualizados via API em runtime.
+// Valores iniciais servem apenas como fallback. Atualizado 2026-02-24.
 const TOKEN_REGISTRY = {
   // Ethereum tokens
   1: [
@@ -12,10 +13,10 @@ const TOKEN_REGISTRY = {
       logoUri: '/icons/ethereum.png',
       chainId: 1,
       isNative: true,
-      price: 2350.45,
-      priceChange24h: 2.45,
-      volume24h: 8500000000,
-      marketCap: 282000000000,
+      price: 1850,
+      priceChange24h: 0,
+      volume24h: 12000000000,
+      marketCap: 223000000000,
       verified: true,
       coingeckoId: 'ethereum'
     },
@@ -58,8 +59,8 @@ const TOKEN_REGISTRY = {
       logoUri: '/icons/ethereum.png',
       chainId: 42161,
       isNative: true,
-      price: 2350.45,
-      priceChange24h: 2.45,
+      price: 1850,
+      priceChange24h: 0,
       volume24h: 3200000000,
       verified: true,
       coingeckoId: 'ethereum'
@@ -88,10 +89,10 @@ const TOKEN_REGISTRY = {
       logoUri: '/icons/solana.png',
       chainId: 101,
       isNative: true,
-      price: 98.76,
-      priceChange24h: 5.23,
-      volume24h: 1200000000,
-      marketCap: 42000000000,
+      price: 78,
+      priceChange24h: 0,
+      volume24h: 4900000000,
+      marketCap: 38000000000,
       verified: true,
       coingeckoId: 'solana'
     },

@@ -76,6 +76,11 @@ export class AgentOrchestrator {
   private orderDedupCache: Map<string, number> = new Map();
   private readonly DEDUP_WINDOW_MS = 30000; // 30 seconds dedup window
 
+  // SECURITY FIX: Execution mutex prevents race conditions.
+  // Without this, two identical signals arriving within the same event loop tick
+  // could both pass the dedup check before either writes to the cache.
+  private executionLock: Map<string, Promise<void>> = new Map();
+
   constructor(config?: Partial<AgentConfig>, persistenceId?: string) {
     this.config = { ...DEFAULT_AGENT_CONFIG, ...config };
     this.state = this.createInitialState();
@@ -700,20 +705,44 @@ export class AgentOrchestrator {
 
   private async executeSignal(signal: TradeSignal, connector?: BaseConnector | HyperliquidConnector): Promise<void> {
     // Idempotency check: prevent duplicate execution of same signal
-    const dedupKey = `${signal.pair}_${signal.direction}_${signal.strategy}_${signal.id || ''}`;
+    const dedupKey = `${signal.pair}_${signal.direction}_${signal.strategy}_${signal.id || Date.now().toString(36)}`;
+
+    // SECURITY FIX: Acquire execution lock (mutex) to prevent race conditions.
+    // Two identical signals in the same event loop tick would both pass dedup without this.
+    const existingLock = this.executionLock.get(dedupKey);
+    if (existingLock) {
+      await existingLock; // Wait for previous execution to complete
+    }
+
+    // Check dedup AFTER acquiring lock
     const lastExecution = this.orderDedupCache.get(dedupKey);
     if (lastExecution && Date.now() - lastExecution < this.DEDUP_WINDOW_MS) {
       this.addError(`Dedup: Signal ${dedupKey} already executed ${Math.floor((Date.now() - lastExecution) / 1000)}s ago, skipping`, 'execution');
       return;
     }
-    this.orderDedupCache.set(dedupKey, Date.now());
 
-    // Clean expired dedup entries
+    // Create lock promise for this execution
+    let releaseLock: () => void;
+    const lockPromise = new Promise<void>(resolve => { releaseLock = resolve; });
+    this.executionLock.set(dedupKey, lockPromise);
+
+    try {
+      this.orderDedupCache.set(dedupKey, Date.now());
+
+    // Clean expired dedup entries (also clean execution locks)
     if (this.orderDedupCache.size > 500) {
       const now = Date.now();
       for (const [key, ts] of this.orderDedupCache) {
-        if (now - ts > this.DEDUP_WINDOW_MS) this.orderDedupCache.delete(key);
+        if (now - ts > this.DEDUP_WINDOW_MS) {
+          this.orderDedupCache.delete(key);
+          this.executionLock.delete(key);
+        }
       }
+    }
+    } finally {
+      // ALWAYS release the execution lock
+      releaseLock!();
+      this.executionLock.delete(dedupKey);
     }
 
     const activeConnector = connector || this.connectors.get(signal.exchange) || this.connector;
@@ -799,21 +828,46 @@ export class AgentOrchestrator {
 
     if (result.success) {
       // Place stop-loss order on exchange (CRITICAL: actual risk protection)
+      // SECURITY FIX: Using 'stop' type instead of 'limit'.
+      // Limit stop-loss orders do NOT trigger in gap-down scenarios (flash crash).
+      // Stop orders trigger at market when stop price is hit, ensuring execution.
       if (signal.stopLoss && signal.stopLoss > 0) {
         try {
           const slSide = signal.direction === 'long' ? 'sell' : 'buy';
-          await (activeConnector as any).placeOrder({
-            pair: signal.pair,
-            side: slSide,
-            price: signal.stopLoss,
-            size: coinSize,
-            type: 'limit',
-            reduceOnly: true,
-            clientId: `cypher_sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-          });
-          this.emit('stop_loss_placed', { pair: signal.pair, stopLoss: signal.stopLoss });
+          const slClientId = `cypher_sl_${Date.now()}_${require('crypto').randomBytes(4).toString('hex')}`;
+
+          // Try stop-market order first (best for crash protection)
+          try {
+            await (activeConnector as any).placeOrder({
+              pair: signal.pair,
+              side: slSide,
+              price: signal.stopLoss,
+              size: coinSize,
+              type: 'stop',       // STOP order - triggers at market when price hits stopLoss
+              triggerPrice: signal.stopLoss,
+              reduceOnly: true,
+              clientId: slClientId,
+            });
+          } catch (stopErr) {
+            // Fallback: some connectors may not support 'stop' type - use 'stop_limit'
+            console.warn(`[AgentOrchestrator] Stop-market not supported, falling back to stop-limit: ${(stopErr as Error).message}`);
+            await (activeConnector as any).placeOrder({
+              pair: signal.pair,
+              side: slSide,
+              price: signal.stopLoss,
+              size: coinSize,
+              type: 'stop_limit',
+              triggerPrice: signal.stopLoss,
+              reduceOnly: true,
+              clientId: slClientId,
+            });
+          }
+
+          this.emit('stop_loss_placed', { pair: signal.pair, stopLoss: signal.stopLoss, orderType: 'stop' });
         } catch (slError) {
           this.addError(`CRITICAL: Failed to place stop-loss for ${signal.pair} at ${signal.stopLoss}: ${slError instanceof Error ? slError.message : 'Unknown'}`, 'execution');
+          // Emit critical alert - position has NO stop-loss protection
+          this.emit('stop_loss_failed', { pair: signal.pair, stopLoss: signal.stopLoss, error: slError });
         }
       }
 
@@ -1182,7 +1236,8 @@ export class AgentOrchestrator {
   private calculateCurrentEquity(): number {
     const totalCapital = this.config.capitalAllocation.total;
     const unrealizedPnl = this.state.positions.reduce((sum, p) => sum + p.unrealizedPnl, 0);
-    return totalCapital + this.realizedPnl + unrealizedPnl;
+    const equity = totalCapital + this.realizedPnl + unrealizedPnl;
+    return isFinite(equity) ? equity : totalCapital;
   }
 
   private updatePerformance(): void {

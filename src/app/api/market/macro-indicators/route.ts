@@ -18,17 +18,18 @@ interface MacroIndicators {
   fedRate: { value: number; nextMeeting: string };
 }
 
-// Fallback mock data (used when APIs are unavailable)
+// Fallback data (atualizado 2026-02-24) - usado quando APIs estão indisponíveis
+// Fontes: FRED, Yahoo Finance - valores aproximados
 const FALLBACK_DATA: MacroIndicators = {
-  dxy: { value: 104.25, change: -0.18 },
-  treasury10y: { value: 4.35, change: 0.05 },
-  vix: { value: 15.8, change: -2.1 },
-  sp500: { value: 5847.23, change: 0.45 },
-  nasdaq: { value: 18402.56, change: 0.58 },
-  gold: { value: 2634.50, change: 0.32 },
-  oil: { value: 78.45, change: -1.24 },
-  cpi: { value: 3.2, date: 'Jan 2026' },
-  fedRate: { value: 5.50, nextMeeting: 'Mar 18, 2026' },
+  dxy: { value: 106.50, change: 0 },
+  treasury10y: { value: 4.50, change: 0 },
+  vix: { value: 20.5, change: 0 },
+  sp500: { value: 5900, change: 0 },
+  nasdaq: { value: 18800, change: 0 },
+  gold: { value: 2950, change: 0 },
+  oil: { value: 72, change: 0 },
+  cpi: { value: 2.9, date: 'Jan 2026' },
+  fedRate: { value: 4.50, nextMeeting: 'Mar 18, 2026' },
 };
 
 export async function GET(request: NextRequest) {

@@ -45,7 +45,7 @@ export function MiningMetrics() {
             });
           }
         }
-      } catch {
+      } catch (err) { console.debug("[widget] Fetch error:", (err as Error).message);
       }
     };
 

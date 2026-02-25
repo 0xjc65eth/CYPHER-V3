@@ -1,8 +1,11 @@
 /**
  * Reddit API Service
- * 
- * This service provides methods for interacting with the Reddit API.
- * It includes methods for fetching posts, comments, and performing sentiment analysis.
+ *
+ * ⚠️ STATUS: SIMULADO - Retorna dados gerados, NÃO dados reais do Reddit.
+ * Para ativar dados reais, configure as variáveis de ambiente:
+ * - REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USERNAME, REDDIT_PASSWORD
+ *
+ * Todos os métodos retornam dados simulados quando as credenciais não estão configuradas.
  */
 
 import { loggerService } from '@/lib/logger';

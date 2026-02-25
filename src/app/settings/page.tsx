@@ -57,11 +57,8 @@ export default function SettingsPage() {
   // Security settings
   const [twoFaEnabled, setTwoFaEnabled] = useState(true);
 
-  // API Keys
-  const [apiKeys, setApiKeys] = useState([
-    { id: 1, name: 'Trading Bot', key: 'cyph_live_a1b2c3d4e5f6...', created: '2026-01-15', lastUsed: '2026-02-10', status: 'active' },
-    { id: 2, name: 'Portfolio Tracker', key: 'cyph_live_x7y8z9w0v1u2...', created: '2026-02-01', lastUsed: '2026-02-09', status: 'active' },
-  ]);
+  // API Keys (empty by default - user creates their own)
+  const [apiKeys, setApiKeys] = useState<Array<{ id: number; name: string; key: string; created: string; lastUsed: string; status: string }>>([]);
   const [showKey, setShowKey] = useState<number | null>(null);
   const [copiedKey, setCopiedKey] = useState<number | null>(null);
 
@@ -76,9 +73,7 @@ export default function SettingsPage() {
   };
 
   const connectedDevices = [
-    { name: 'MacBook Pro', type: 'laptop', location: 'San Francisco, US', lastActive: 'Now', current: true },
-    { name: 'iPhone 15 Pro', type: 'mobile', location: 'San Francisco, US', lastActive: '2 hours ago', current: false },
-    { name: 'Windows Desktop', type: 'desktop', location: 'New York, US', lastActive: '3 days ago', current: false },
+    { name: 'Current Browser', type: 'laptop', location: 'Active session', lastActive: 'Now', current: true },
   ];
 
   return (
@@ -350,23 +345,10 @@ export default function SettingsPage() {
               {/* Security Log */}
               <div className="bg-[#0a0a14] border border-[#1a1a2e] rounded-xl p-6">
                 <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono mb-4">Recent Security Events</h3>
-                <div className="space-y-2">
-                  {[
-                    { event: 'Login from MacBook Pro', time: '2 minutes ago', type: 'info' },
-                    { event: 'API key created: Trading Bot', time: '2 days ago', type: 'info' },
-                    { event: 'Password changed', time: '1 week ago', type: 'warning' },
-                    { event: '2FA enabled', time: '2 weeks ago', type: 'success' },
-                  ].map((event, i) => (
-                    <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-1.5 h-1.5 rounded-full ${
-                          event.type === 'success' ? 'bg-green-400' : event.type === 'warning' ? 'bg-yellow-400' : 'bg-blue-400'
-                        }`} />
-                        <span className="text-xs text-white/70 font-mono">{event.event}</span>
-                      </div>
-                      <span className="text-xs text-white/30 font-mono">{event.time}</span>
-                    </div>
-                  ))}
+                <div className="py-6 text-center">
+                  <Shield className="w-6 h-6 text-white/20 mx-auto mb-2" />
+                  <p className="text-xs text-white/40 font-mono">No security events recorded yet</p>
+                  <p className="text-xs text-white/20 mt-1">Events will appear here as you use the platform</p>
                 </div>
               </div>
             </div>

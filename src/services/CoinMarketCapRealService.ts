@@ -307,11 +307,12 @@ class CoinMarketCapRealService {
   private getFallbackPrices(symbols: string[]): CoinPrice[] {
     console.warn('[CMC] Using stale fallback prices');
     const fallbackData: Record<string, Partial<CoinPrice>> = {
-      'BTC': { symbol: 'BTC', name: 'Bitcoin', price: 98500, change24h: 2.5 },
-      'ETH': { symbol: 'ETH', name: 'Ethereum', price: 3800, change24h: 1.8 },
-      'SOL': { symbol: 'SOL', name: 'Solana', price: 235, change24h: 5.2 },
-      'ADA': { symbol: 'ADA', name: 'Cardano', price: 1.05, change24h: -1.2 },
-      'DOT': { symbol: 'DOT', name: 'Polkadot', price: 8.20, change24h: 0.8 }
+      // Preços de fallback atualizados em 2026-02-24
+      'BTC': { symbol: 'BTC', name: 'Bitcoin', price: 63500, change24h: 0 },
+      'ETH': { symbol: 'ETH', name: 'Ethereum', price: 1850, change24h: 0 },
+      'SOL': { symbol: 'SOL', name: 'Solana', price: 78, change24h: 0 },
+      'ADA': { symbol: 'ADA', name: 'Cardano', price: 0.35, change24h: 0 },
+      'DOT': { symbol: 'DOT', name: 'Polkadot', price: 4.50, change24h: 0 }
     };
     
     return symbols.map(symbol => {

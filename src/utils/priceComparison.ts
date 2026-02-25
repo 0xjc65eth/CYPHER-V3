@@ -70,12 +70,12 @@ export class PriceComparisonEngine {
 
   private static generateMockPrice(symbol: string): number {
     const basePrices: { [key: string]: number } = {
-      'BTC': 42000,
-      'ETH': 2500,
-      'SOL': 100,
-      'MATIC': 0.80,
-      'AVAX': 35,
-      'BNB': 300
+      'BTC': 63500,
+      'ETH': 1850,
+      'SOL': 78,
+      'MATIC': 0.30,
+      'AVAX': 20,
+      'BNB': 590
     };
 
     const basePrice = basePrices[symbol] || 100;

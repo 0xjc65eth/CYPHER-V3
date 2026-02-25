@@ -1,4 +1,4 @@
-import { createHash } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import * as secp256k1 from '@noble/secp256k1'
 
 export interface TransactionToSign {
@@ -27,9 +27,11 @@ export interface ValidationResult {
 }
 
 export class TransactionValidator {
-  // Generate a unique nonce for each transaction
+  // Generate a cryptographically secure nonce for each transaction
+  // SECURITY: Uses crypto.randomBytes instead of Math.random()
+  // Math.random() is predictable and compromises ECDSA signatures
   static generateNonce(): string {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36)
+    return randomBytes(16).toString('hex') + '-' + Date.now().toString(36)
   }
 
   // Create a message to be signed

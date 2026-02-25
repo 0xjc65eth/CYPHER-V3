@@ -328,7 +328,7 @@ export class BlockchainEventService {
    */
   private createBitcoinTxEvent(tx: any): BlockchainEvent {
     const amount = tx.vout?.reduce((sum: number, output: any) => sum + (output.value || 0), 0) / 100000000 || 0;
-    const currentBtcPrice = 105000; // This should come from a price service
+    const currentBtcPrice = 63500; // Fallback price - atualizado 2026-02-24 // This should come from a price service
     
     return {
       id: `btc-tx-${tx.txid || Date.now()}`,
@@ -386,7 +386,7 @@ export class BlockchainEventService {
 
   private createWhaleEvent(tx: any): BlockchainEvent {
     const amount = this.calculateTransactionAmount(tx);
-    const currentBtcPrice = 105000;
+    const currentBtcPrice = 63500; // Fallback price - atualizado 2026-02-24
     
     return {
       id: `whale-${tx.txid || Date.now()}`,
@@ -418,7 +418,7 @@ export class BlockchainEventService {
       timestamp: new Date(),
       network: 'Bitcoin',
       priority: amount > 50 ? 'HIGH' : 'MEDIUM',
-      value: amount * 105000,
+      value: amount * 63500,
       source: 'mempool'
     };
   }
@@ -428,7 +428,7 @@ export class BlockchainEventService {
    */
   private shouldTrackTransaction(tx: any): boolean {
     const amount = this.calculateTransactionAmount(tx);
-    const usdValue = amount * 105000; // Current BTC price
+    const usdValue = amount * 63500; // Current BTC price
     return usdValue >= this.config.minTransactionValue;
   }
 

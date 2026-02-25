@@ -24,42 +24,42 @@ export default function NeuralPage() {
           </div>
         </div>
 
-        {/* Estatísticas da IA */}
+        {/* AI System Status */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-gray-900 rounded-lg p-4 border border-orange-500/20">
             <div className="flex items-center justify-between mb-2">
               <Brain className="w-5 h-5 text-orange-500" />
-              <span className="text-xs text-gray-500">Active</span>
+              <span className="text-xs text-gray-500">Models</span>
             </div>
             <div className="text-2xl font-bold text-white">3</div>
-            <div className="text-xs text-gray-400">Neural Models</div>
+            <div className="text-xs text-gray-400">Prediction + Sentiment + Risk</div>
           </div>
 
           <div className="bg-gray-900 rounded-lg p-4 border border-orange-500/20">
             <div className="flex items-center justify-between mb-2">
               <Cpu className="w-5 h-5 text-purple-500" />
-              <span className="text-xs text-gray-500">LSTM</span>
+              <span className="text-xs text-gray-500">Engine</span>
             </div>
-            <div className="text-2xl font-bold text-white">98.7%</div>
-            <div className="text-xs text-gray-400">Model Accuracy</div>
+            <div className="text-2xl font-bold text-white">LSTM</div>
+            <div className="text-xs text-gray-400">TensorFlow.js</div>
           </div>
 
           <div className="bg-gray-900 rounded-lg p-4 border border-orange-500/20">
             <div className="flex items-center justify-between mb-2">
               <Activity className="w-5 h-5 text-green-500" />
-              <span className="text-xs text-gray-500">Real-time</span>
+              <span className="text-xs text-gray-500">Status</span>
             </div>
-            <div className="text-2xl font-bold text-white">24/7</div>
-            <div className="text-xs text-gray-400">Analysis</div>
+            <div className="text-2xl font-bold text-white">Live</div>
+            <div className="text-xs text-gray-400">Continuous Analysis</div>
           </div>
 
           <div className="bg-gray-900 rounded-lg p-4 border border-orange-500/20">
             <div className="flex items-center justify-between mb-2">
               <Zap className="w-5 h-5 text-yellow-500" />
-              <span className="text-xs text-gray-500">GPU</span>
+              <span className="text-xs text-gray-500">Runtime</span>
             </div>
-            <div className="text-2xl font-bold text-white">&lt;50ms</div>
-            <div className="text-xs text-gray-400">Inference Time</div>
+            <div className="text-2xl font-bold text-white">Browser</div>
+            <div className="text-xs text-gray-400">Client-side Inference</div>
           </div>
         </div>
 

@@ -19,7 +19,7 @@ async function fetchFundingRate(): Promise<number | null> {
       const data = await res.json();
       if (data[0]?.fundingRate) return parseFloat(data[0].fundingRate);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   // OKX fallback
   try {
@@ -29,7 +29,7 @@ async function fetchFundingRate(): Promise<number | null> {
       const rate = data?.data?.[0]?.fundingRate;
       if (rate) return parseFloat(rate);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   // Bybit fallback
   try {
@@ -39,7 +39,7 @@ async function fetchFundingRate(): Promise<number | null> {
       const rate = data?.result?.list?.[0]?.fundingRate;
       if (rate) return parseFloat(rate);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   return null;
 }
@@ -52,7 +52,7 @@ async function fetchOpenInterest(): Promise<number | null> {
       const data = await res.json();
       if (data.openInterest) return parseFloat(data.openInterest);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   // OKX fallback
   try {
@@ -62,7 +62,7 @@ async function fetchOpenInterest(): Promise<number | null> {
       const oi = data?.data?.[0]?.oi;
       if (oi) return parseFloat(oi);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   // Bybit fallback
   try {
@@ -72,7 +72,7 @@ async function fetchOpenInterest(): Promise<number | null> {
       const oi = data?.result?.list?.[0]?.openInterest;
       if (oi) return parseFloat(oi);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   return null;
 }
@@ -85,7 +85,7 @@ async function fetchLongShortRatio(): Promise<number | null> {
       const data = await res.json();
       if (data[0]?.longShortRatio) return parseFloat(data[0].longShortRatio);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   // OKX fallback
   try {
@@ -95,7 +95,7 @@ async function fetchLongShortRatio(): Promise<number | null> {
       const ratio = data?.data?.[0]?.[1]; // [timestamp, ratio]
       if (ratio) return parseFloat(ratio);
     }
-  } catch {}
+  } catch (err) { console.debug('[derivatives] Exchange fallback:', (err as Error).message); }
 
   return null;
 }

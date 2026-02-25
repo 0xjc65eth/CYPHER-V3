@@ -202,9 +202,10 @@ export class CypherAI {
   private async handleMarketAnalysis(): Promise<any> {
     // Simulação de análise de mercado
     const analysis = {
-      btc: { price: 98500, change: 2.5, sentiment: 'bullish' },
-      eth: { price: 3850, change: -1.2, sentiment: 'neutral' },
-      market: { fearGreedIndex: 75, volume24h: 125000000000 }
+      // Dados fallback - atualizado 2026-02-24
+      btc: { price: 63500, change: 0, sentiment: 'neutral' },
+      eth: { price: 1850, change: 0, sentiment: 'neutral' },
+      market: { fearGreedIndex: 50, volume24h: 80000000000 }
     };
 
     const content = `${this.getRandomResponse('analysis')}

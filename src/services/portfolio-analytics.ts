@@ -171,12 +171,12 @@ class PortfolioAnalyticsService {
    */
   public calculatePerformanceAttribution(portfolio: PortfolioPnL): PerformanceAttribution {
     const assets = Array.from(portfolio.assetPnL.entries());
-    const totalValue = portfolio.totalValue;
-    
+    const totalValue = portfolio.totalValue || 1;
+
     // Asset allocation attribution
     const assetAllocation = assets.map(([asset, calc]) => {
-      const allocation = (calc.marketValue / totalValue) * 100;
-      const contribution = (calc.totalReturn / totalValue) * 100;
+      const allocation = totalValue > 0 ? (calc.marketValue / totalValue) * 100 : 0;
+      const contribution = totalValue > 0 ? (calc.totalReturn / totalValue) * 100 : 0;
       const benchmarkReturn = this.getBenchmarkReturn(asset);
       const excess = calc.totalReturnPercent - benchmarkReturn;
       
@@ -601,11 +601,11 @@ class PortfolioAnalyticsService {
       sectors.set(sector, current);
     }
     
-    const totalValue = assets.reduce((sum, [, calc]) => sum + calc.marketValue, 0);
-    
+    const totalValue = assets.reduce((sum, [, calc]) => sum + calc.marketValue, 0) || 1;
+
     return Array.from(sectors.entries()).map(([sector, data]) => ({
       sector,
-      allocation: (data.allocation / totalValue) * 100,
+      allocation: totalValue > 0 ? (data.allocation / totalValue) * 100 : 0,
       performance: data.performance / data.count
     }));
   }
@@ -785,7 +785,7 @@ class PortfolioAnalyticsService {
       }
     }
     
-    const percentChange = ((newValue - portfolio.totalValue) / portfolio.totalValue) * 100;
+    const percentChange = portfolio.totalValue > 0 ? ((newValue - portfolio.totalValue) / portfolio.totalValue) * 100 : 0;
     
     return {
       portfolioValue: newValue,

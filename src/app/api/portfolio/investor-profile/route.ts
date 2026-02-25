@@ -27,7 +27,7 @@ export async function GET(request: Request) {
         const fgData = await fgRes.json();
         fearGreed = parseInt(fgData.data?.[0]?.value || '50');
       }
-    } catch {}
+    } catch (err) { console.debug("[investor-profile] Error:", (err as Error).message); }
 
     // Derive profile based on address pattern (BTC vs ETH vs SOL)
     const isBTC = address.startsWith('bc1') || address.startsWith('1') || address.startsWith('3');

@@ -8,6 +8,22 @@ import { cypherFeeDistributor } from '@/lib/feeDistribution';
 import { cypherRevenueTracker } from '@/lib/revenueTracking';
 import { NetworkType } from '@/lib/feeManager';
 
+/** Validate admin bearer token for mutation endpoints */
+function validateAdminToken(request: NextRequest): boolean {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return false;
+  const token = authHeader.substring(7);
+  const secret = process.env.ADMIN_JWT_SECRET;
+  if (!secret || secret === 'changeme') return false;
+  try {
+    const jwt = require('jsonwebtoken');
+    const decoded = jwt.verify(token, secret);
+    return !!decoded?.adminId;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * GET /api/fees/distribute
  * Retorna status das distribuições
@@ -44,6 +60,10 @@ export async function GET() {
  * Executa distribuição manual de taxas
  */
 export async function POST(request: NextRequest) {
+  if (!validateAdminToken(request)) {
+    return NextResponse.json({ success: false, error: 'Admin authentication required' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { action, network, force = false } = body;
@@ -163,6 +183,10 @@ export async function POST(request: NextRequest) {
  * Atualiza configurações de distribuição
  */
 export async function PUT(request: NextRequest) {
+  if (!validateAdminToken(request)) {
+    return NextResponse.json({ success: false, error: 'Admin authentication required' }, { status: 401 });
+  }
+
   try {
     const body = await request.json();
     const { minimumAmount, distributionFrequency, autoDistribution, gasOptimization } = body;
@@ -212,6 +236,10 @@ export async function PUT(request: NextRequest) {
  * Cancela distribuições pendentes (se suportado)
  */
 export async function DELETE(request: NextRequest) {
+  if (!validateAdminToken(request)) {
+    return NextResponse.json({ success: false, error: 'Admin authentication required' }, { status: 401 });
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const network = searchParams.get('network') as NetworkType | null;

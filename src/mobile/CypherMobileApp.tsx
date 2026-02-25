@@ -261,26 +261,27 @@ const MarketScreen: React.FC = () => {
 
   const loadMarketData = async () => {
     try {
-      // Mock market data
+      // Fallback market data - atualizado 2026-02-24
+      // TODO: Substituir por chamada real à API /api/market/data
       const mockData: MarketData[] = [
         {
           symbol: 'BTC',
-          price: 45000,
-          change24h: 2.5,
-          volume24h: 1200000000,
-          marketCap: 850000000000,
-          high24h: 46000,
-          low24h: 44000,
+          price: 63500,
+          change24h: 0,
+          volume24h: 25000000000,
+          marketCap: 1250000000000,
+          high24h: 64500,
+          low24h: 62500,
           chartData: generateMockChartData()
         },
         {
           symbol: 'ETH',
-          price: 3000,
-          change24h: -1.2,
-          volume24h: 800000000,
-          marketCap: 360000000000,
-          high24h: 3100,
-          low24h: 2950,
+          price: 1850,
+          change24h: 0,
+          volume24h: 12000000000,
+          marketCap: 223000000000,
+          high24h: 1900,
+          low24h: 1800,
           chartData: generateMockChartData()
         }
       ];

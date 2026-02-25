@@ -659,7 +659,7 @@ export class StakingRewardsSystem extends EventEmitter {
           emissionRate: 0.00001,
           totalRewards: 1000000,
           remainingRewards: 800000,
-          price: 3000,
+          price: 1850, // Fallback ETH price - atualizado 2026-02-24
           multiplier: 1
         }],
         lockupPeriod: 0,

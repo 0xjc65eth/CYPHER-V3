@@ -33,9 +33,30 @@ interface VoiceProcessingOptions {
 export class EnhancedCypherAIService extends CypherAIService {
   private voiceManager: VoiceAIManager;
   private isVoiceEnabled: boolean = true;
+  // PERFORMANCE FIX: Audio cache com limite de tamanho para evitar memory leak.
+  // Sem limite, buffers de audio acumulam indefinidamente e causam OOM.
   private voiceResponseCache: Map<string, AudioBuffer> = new Map();
+  private readonly MAX_VOICE_CACHE_SIZE = 50; // Max 50 cached audio responses
   private lastResponseTime: number = 0;
   private responseQueue: Array<{ text: string; options: VoiceProcessingOptions }> = [];
+
+  /**
+   * Limpa entradas antigas do cache de audio quando excede o limite.
+   * Evita memory leak em processos de longa duração.
+   */
+  private pruneVoiceCache(): void {
+    if (this.voiceResponseCache.size > this.MAX_VOICE_CACHE_SIZE) {
+      // Remove as entradas mais antigas (primeiras inseridas no Map)
+      const toDelete = this.voiceResponseCache.size - this.MAX_VOICE_CACHE_SIZE;
+      let deleted = 0;
+      for (const key of this.voiceResponseCache.keys()) {
+        if (deleted >= toDelete) break;
+        this.voiceResponseCache.delete(key);
+        deleted++;
+      }
+      console.debug(`[VoiceCache] Pruned ${deleted} entries, size now: ${this.voiceResponseCache.size}`);
+    }
+  }
 
   constructor(elevenLabsApiKey?: string) {
     super();
@@ -232,6 +253,9 @@ export class EnhancedCypherAIService extends CypherAIService {
     options: VoiceProcessingOptions
   ): Promise<void> {
     try {
+      // PERFORMANCE: Prune voice cache antes de adicionar novos entries
+      this.pruneVoiceCache();
+
       const voiceText = response.voiceResponse || response.response;
       
       // Split long responses for optimal voice synthesis

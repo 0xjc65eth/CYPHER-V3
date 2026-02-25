@@ -16,16 +16,35 @@ export const API_URLS = {
   // Adicione outras URLs de API conforme necessário
 };
 
-// Configurações de fallback
+// Configurações de fallback - Preços aproximados de Fev 2026
+// IMPORTANTE: Estes valores são usados APENAS quando TODAS as APIs falham.
+// Devem ser atualizados periodicamente para refletir o mercado.
+// Última atualização: 2026-02-24
 export const FALLBACK_PRICES: { [key: string]: number } = {
-  'BTC': 64000,
-  'ETH': 3100,
-  'BNB': 560,
-  'SOL': 145,
-  'XRP': 0.50,
-  'ADA': 0.45,
-  'AVAX': 35,
-  'DOGE': 0.15,
-  'DOT': 7.5,
-  'MATIC': 0.65
+  'BTC': 63500,
+  'ETH': 1850,
+  'BNB': 590,
+  'SOL': 78,
+  'XRP': 0.55,
+  'ADA': 0.35,
+  'AVAX': 20,
+  'DOGE': 0.10,
+  'DOT': 4.50,
+  'MATIC': 0.30,
+  'LINK': 12,
+  'UNI': 7,
+  'ARB': 0.35,
+  'ORDI': 8,
+  'RUNE': 2.50,
 };
+
+// Dados fallback de market cap e volume (Fev 2026)
+export const FALLBACK_MARKET_DATA: { [key: string]: { marketCap: number; volume24h: number } } = {
+  'BTC': { marketCap: 1250000000000, volume24h: 25000000000 },
+  'ETH': { marketCap: 223000000000, volume24h: 12000000000 },
+  'BNB': { marketCap: 86000000000, volume24h: 1800000000 },
+  'SOL': { marketCap: 38000000000, volume24h: 4900000000 },
+};
+
+// Flag para indicar que dados são fallback
+export const FALLBACK_WARNING = '⚠️ Dados de fallback - APIs indisponíveis. Preços podem estar desatualizados.';

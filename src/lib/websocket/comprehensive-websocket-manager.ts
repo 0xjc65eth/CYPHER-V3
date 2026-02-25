@@ -622,11 +622,11 @@ export class ComprehensiveWebSocketManager {
         channel: 'BTCUSDT',
         data: {
           s: 'BTCUSDT',
-          c: (67000 + (Math.random() - 0.5) * 2000).toFixed(2),
+          c: (63500 + (Math.random() - 0.5) * 2000).toFixed(2),
           P: ((Math.random() - 0.5) * 5).toFixed(2),
           v: (25000 + Math.random() * 5000).toFixed(2),
-          h: (69000 + Math.random() * 1000).toFixed(2),
-          l: (65000 + Math.random() * 1000).toFixed(2)
+          h: (65500 + Math.random() * 1000).toFixed(2),
+          l: (61500 + Math.random() * 1000).toFixed(2)
         },
         timestamp: Date.now(),
         source: connectionId
@@ -643,11 +643,11 @@ export class ComprehensiveWebSocketManager {
         channel: 'ETHUSDT',
         data: {
           s: 'ETHUSDT',
-          c: (3200 + (Math.random() - 0.5) * 200).toFixed(2),
+          c: (1850 + (Math.random() - 0.5) * 100).toFixed(2),
           P: ((Math.random() - 0.5) * 4).toFixed(2),
           v: (15000 + Math.random() * 3000).toFixed(2),
-          h: (3300 + Math.random() * 100).toFixed(2),
-          l: (3100 + Math.random() * 100).toFixed(2)
+          h: (1900 + Math.random() * 50).toFixed(2),
+          l: (1800 + Math.random() * 50).toFixed(2)
         },
         timestamp: Date.now(),
         source: connectionId

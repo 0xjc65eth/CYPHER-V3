@@ -27,10 +27,20 @@ export class SecureKeyStore {
     if (keySource && keySource.length >= 64) {
       this.encryptionKey = Buffer.from(keySource.slice(0, 64), 'hex');
     } else {
-      // Derive from a stable seed so keys survive restarts
-      // In production, AGENT_ENCRYPTION_KEY must be set
-      const seed = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXTAUTH_SECRET || 'cypher-v3-dev-key';
-      this.encryptionKey = crypto.createHash('sha256').update(seed).digest();
+      // SECURITY: AGENT_ENCRYPTION_KEY MUST be set in production.
+      // Derive from a stable seed so keys survive restarts.
+      // Falls back to NEXTAUTH_SECRET - NEVER use a hardcoded string.
+      const seed = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXTAUTH_SECRET;
+      if (!seed) {
+        console.error(
+          'CRITICAL SECURITY: No encryption key source available! ' +
+          'Set AGENT_ENCRYPTION_KEY or NEXTAUTH_SECRET in environment. ' +
+          'Generating ephemeral key - encrypted data will NOT survive restarts.'
+        );
+        this.encryptionKey = crypto.randomBytes(KEY_LENGTH);
+      } else {
+        this.encryptionKey = crypto.createHash('sha256').update(seed).digest();
+      }
     }
   }
 

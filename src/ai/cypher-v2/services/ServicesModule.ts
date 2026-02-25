@@ -151,8 +151,8 @@ export class ServicesModule extends EventEmitter {
           resolve({
             success: true,
             data: {
-              btc: { price: 95000, change: 2.1 },
-              eth: { price: 3500, change: 1.8 }
+              btc: { price: 63500, change: 0 },
+              eth: { price: 1850, change: 0 }
             }
           });
         } else if (endpoint.includes('/user-data')) {

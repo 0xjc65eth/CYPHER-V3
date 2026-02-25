@@ -27,9 +27,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate fee in USD (mock calculation)
+    // Calculate fee in USD (estimativa - atualizado 2026-02-24)
+    // TODO: Buscar preço real via /api/market/price em produção
     const amountValue = parseFloat(data.amount) || 0;
-    const estimatedTokenPrice = data.network === 'bitcoin' ? 73000 : 2000; // Mock prices
+    const estimatedTokenPrice = data.network === 'bitcoin' ? 63500 : 1850;
     const feeUSD = (amountValue * estimatedTokenPrice * data.feePercentage) / 100;
 
     // Enhanced tracking data

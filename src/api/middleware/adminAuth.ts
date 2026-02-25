@@ -293,13 +293,13 @@ export const requireRole = (roles: string | string[]) => {
 // ============================================================================
 
 function extractToken(req: Request): string | null {
+  // SECURITY: Tokens MUST come from Authorization header ONLY.
+  // Query string tokens leak via referrer headers, browser history, and server logs.
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
-  if (req.query.token && typeof req.query.token === 'string') {
-    return req.query.token;
-  }
+  // REMOVED: req.query.token - security vulnerability (token leak via URL)
   return null;
 }
 

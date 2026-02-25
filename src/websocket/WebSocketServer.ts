@@ -6,9 +6,20 @@
 import { WebSocketServer as WSServer } from 'ws';
 import { createServer } from 'http';
 import { EventEmitter } from 'events';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { systemIntegrator } from '@/core/SystemIntegrator';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
+
+// SECURITY & PERFORMANCE: Limites configuráveis para proteger contra DoS/abuse
+const WS_LIMITS = {
+  MAX_MESSAGE_SIZE: 64 * 1024,         // 64KB max por mensagem
+  MAX_CONNECTIONS: 500,                  // Max conexões simultâneas
+  MAX_SUBSCRIPTIONS_PER_CLIENT: 20,      // Max channels por cliente
+  MAX_MESSAGE_QUEUE_SIZE: 100,           // Max mensagens enfileiradas por cliente
+  CONNECTION_TIMEOUT_MS: 30_000,         // Timeout para autenticação após conexão
+  MAX_MESSAGES_PER_MINUTE: 120,          // Rate limit: 120 msgs/min por cliente
+};
 
 interface WebSocketClient {
   id: string;
@@ -17,6 +28,8 @@ interface WebSocketClient {
   subscriptions: Set<string>;
   authenticated: boolean;
   lastPing: number;
+  messageCount: number;        // SECURITY: Contagem de msgs para rate limiting
+  messageWindowStart: number;  // SECURITY: Início da janela de rate limit
   metadata: {
     ip: string;
     userAgent: string;
@@ -60,10 +73,12 @@ export class WebSocketServer extends EventEmitter {
   async start(): Promise<void> {
     try {
       this.server = createServer();
-      this.wss = new WSServer({ 
+      this.wss = new WSServer({
         server: this.server,
         path: '/ws',
-        clientTracking: true
+        clientTracking: true,
+        // SECURITY: Limita tamanho máximo da mensagem para prevenir DoS
+        maxPayload: WS_LIMITS.MAX_MESSAGE_SIZE,
       });
 
       this.setupWebSocketHandlers();
@@ -136,6 +151,13 @@ export class WebSocketServer extends EventEmitter {
     if (!this.wss) return;
 
     this.wss.on('connection', (ws, request) => {
+      // SECURITY: Rejeita conexões acima do limite
+      if (this.clients.size >= WS_LIMITS.MAX_CONNECTIONS) {
+        EnhancedLogger.warn('WebSocket max connections reached, rejecting new client');
+        ws.close(1013, 'Server at capacity');
+        return;
+      }
+
       const clientId = this.generateClientId();
       const client: WebSocketClient = {
         id: clientId,
@@ -143,6 +165,8 @@ export class WebSocketServer extends EventEmitter {
         subscriptions: new Set(),
         authenticated: false,
         lastPing: Date.now(),
+        messageCount: 0,
+        messageWindowStart: Date.now(),
         metadata: {
           ip: request.socket.remoteAddress || 'unknown',
           userAgent: request.headers['user-agent'] || 'unknown',
@@ -153,15 +177,36 @@ export class WebSocketServer extends EventEmitter {
       this.clients.set(clientId, client);
       EnhancedLogger.info('WebSocket client connected', { clientId, ip: client.metadata.ip });
 
-      // Handle authentication with token from query
-      const url = new URL(request.url || '', `http://${request.headers.host}`);
-      const token = url.searchParams.get('token');
-      if (token) {
-        this.authenticateClient(client, token);
-      }
+      // SECURITY: Token DEVE ser enviado via mensagem 'auth', NÃO via query string.
+      // Query strings ficam em logs do servidor, histórico do browser e referrer headers.
+      // Removido: url.searchParams.get('token') — use ws.send({ type: 'auth', token: '...' })
 
-      // Message handler
+      // SECURITY: Timeout para autenticação — desconecta se não autenticar em 30s
+      const authTimeout = setTimeout(() => {
+        if (!client.authenticated) {
+          EnhancedLogger.warn('Client auth timeout, disconnecting', { clientId });
+          ws.close(4001, 'Authentication timeout');
+        }
+      }, WS_LIMITS.CONNECTION_TIMEOUT_MS);
+
+      // Message handler with size check
       ws.on('message', (data: Buffer) => {
+        // SECURITY: Rate limiting por cliente
+        const now = Date.now();
+        if (now - client.messageWindowStart > 60_000) {
+          client.messageCount = 0;
+          client.messageWindowStart = now;
+        }
+        client.messageCount++;
+        if (client.messageCount > WS_LIMITS.MAX_MESSAGES_PER_MINUTE) {
+          this.sendToClient(client, {
+            type: 'error',
+            data: { message: 'Rate limit exceeded. Max 120 messages per minute.' },
+            timestamp: now
+          });
+          return;
+        }
+
         this.handleClientMessage(client, data);
       });
 
@@ -172,6 +217,7 @@ export class WebSocketServer extends EventEmitter {
 
       // Close handler
       ws.on('close', (code: number, reason: Buffer) => {
+        clearTimeout(authTimeout);
         this.handleClientDisconnect(client, code, reason.toString());
       });
 
@@ -316,9 +362,22 @@ export class WebSocketServer extends EventEmitter {
     if (this.requiresAuth(channel) && !client.authenticated) {
       this.sendToClient(client, {
         type: 'subscription_error',
-        data: { 
+        data: {
           channel,
-          message: 'Authentication required for this channel' 
+          message: 'Authentication required for this channel'
+        },
+        timestamp: Date.now()
+      });
+      return;
+    }
+
+    // SECURITY: Limita número de subscriptions por cliente para prevenir abuse
+    if (client.subscriptions.size >= WS_LIMITS.MAX_SUBSCRIPTIONS_PER_CLIENT) {
+      this.sendToClient(client, {
+        type: 'subscription_error',
+        data: {
+          channel,
+          message: `Maximum ${WS_LIMITS.MAX_SUBSCRIPTIONS_PER_CLIENT} subscriptions per client`
         },
         timestamp: Date.now()
       });
@@ -375,10 +434,10 @@ export class WebSocketServer extends EventEmitter {
           break;
         
         case 'portfolio':
-          response = { 
-            balance: 50000,
-            positions: [],
-            pnl: 1250.75
+          // TODO: Integrar com serviço real de portfolio
+          response = {
+            error: 'Portfolio endpoint requires real data integration',
+            message: 'Use /api/portfolio/history for portfolio data'
           };
           break;
 
@@ -461,11 +520,16 @@ export class WebSocketServer extends EventEmitter {
         client.ws.send(JSON.stringify(message));
         return true;
       } else {
-        // Queue message for later delivery
+        // Queue message for later delivery (with size limit)
         if (!this.messageQueue.has(client.id)) {
           this.messageQueue.set(client.id, []);
         }
-        this.messageQueue.get(client.id)!.push(message);
+        const queue = this.messageQueue.get(client.id)!;
+        // PERFORMANCE: Limita fila para evitar memory leak com clientes offline
+        if (queue.length >= WS_LIMITS.MAX_MESSAGE_QUEUE_SIZE) {
+          queue.shift(); // Remove mensagem mais antiga
+        }
+        queue.push(message);
         return false;
       }
     } catch (error) {
@@ -642,8 +706,12 @@ export class WebSocketServer extends EventEmitter {
   /**
    * Generate unique client ID
    */
+  /**
+   * SECURITY: Gera client ID usando crypto.randomBytes ao invés de Math.random()
+   * Math.random() é previsível e pode ser explorado para enumerar clientes.
+   */
   private generateClientId(): string {
-    return `client_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    return `client_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
   }
 
   /**
