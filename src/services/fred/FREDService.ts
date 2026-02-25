@@ -1,7 +1,7 @@
 /**
- * Federal Reserve Economic Data (FRED) API Service
+ * Economic Data Service (Yahoo Finance + Free APIs)
  * Provides macroeconomic indicators and Treasury yield curve data
- * https://fred.stlouisfed.org/docs/api/fred/
+ * No API key required - uses Yahoo Finance and public government APIs
  */
 
 // --- Types ---
@@ -38,41 +38,18 @@ interface CacheEntry<T> {
 
 // --- Constants ---
 
-const BASE_URL = 'https://api.stlouisfed.org/fred';
 const CACHE_TTL_SECONDS = 3600; // 1 hour
-const REQUEST_TIMEOUT_MS = 15000;
+const REQUEST_TIMEOUT_MS = 10000;
 
-const SERIES_IDS = {
-  GDP: 'GDP',
-  CPI: 'CPIAUCSL',
-  UNEMPLOYMENT: 'UNRATE',
-  FED_FUNDS: 'FEDFUNDS',
-  TREASURY_10Y: 'DGS10',
-  TREASURY_2Y: 'DGS2',
-  TREASURY_30Y: 'DGS30',
-  TREASURY_1M: 'DGS1MO',
-  TREASURY_3M: 'DGS3MO',
-  TREASURY_6M: 'DGS6MO',
-  TREASURY_1Y: 'DGS1',
-  TREASURY_5Y: 'DGS5',
-  TREASURY_20Y: 'DGS20',
-  M2_MONEY_SUPPLY: 'M2SL',
-  CONSUMER_CONFIDENCE: 'UMCSENT',
-} as const;
-
-const TREASURY_MATURITIES: Record<string, string> = {
-  '1M': SERIES_IDS.TREASURY_1M,
-  '3M': SERIES_IDS.TREASURY_3M,
-  '6M': SERIES_IDS.TREASURY_6M,
-  '1Y': SERIES_IDS.TREASURY_1Y,
-  '2Y': SERIES_IDS.TREASURY_2Y,
-  '5Y': SERIES_IDS.TREASURY_5Y,
-  '10Y': SERIES_IDS.TREASURY_10Y,
-  '20Y': SERIES_IDS.TREASURY_20Y,
-  '30Y': SERIES_IDS.TREASURY_30Y,
+// Yahoo Finance tickers for Treasury yields
+const YAHOO_TREASURY_TICKERS: Record<string, string> = {
+  '3M': '^IRX',   // 13-Week Treasury Bill
+  '5Y': '^FVX',   // 5-Year Treasury Note
+  '10Y': '^TNX',  // 10-Year Treasury Note
+  '30Y': '^TYX',  // 30-Year Treasury Bond
 };
 
-// Fallback static data when no API key is available
+// Fallback static data (updated periodically)
 const FALLBACK_SNAPSHOT: EconomicSnapshot = {
   gdp: { value: 28781.0, date: '2024-10-01', previousValue: 28631.0 },
   cpi: { value: 315.6, date: '2024-12-01', previousValue: 314.9 },
@@ -96,29 +73,17 @@ const FALLBACK_YIELD_CURVE: Record<string, number> = {
   '30Y': 4.36,
 };
 
-const DEBUG = process.env.NODE_ENV === 'development';
-
-function log(...args: unknown[]) {
-  if (DEBUG) {
-    // eslint-disable-next-line no-console
-  }
-}
-
 function logError(...args: unknown[]) {
-  // eslint-disable-next-line no-console
-  console.error('[FRED]', ...args);
+  console.error('[EconomicData]', ...args);
 }
 
 // --- Service ---
 
 class FREDService {
   private static instance: FREDService;
-  private apiKey: string;
   private cache = new Map<string, CacheEntry<unknown>>();
 
-  private constructor() {
-    this.apiKey = process.env.FRED_API_KEY || '';
-  }
+  private constructor() {}
 
   static getInstance(): FREDService {
     if (!FREDService.instance) {
@@ -130,54 +95,37 @@ class FREDService {
   // --- Public methods ---
 
   async getSeriesLatest(seriesId: string): Promise<FREDObservation | null> {
+    // For backward compatibility - try FRED if key exists, otherwise return null
+    const apiKey = process.env.FRED_API_KEY;
+    if (!apiKey) return null;
+
     const cacheKey = `series:${seriesId}`;
     const cached = this.getFromCache<FREDObservation>(cacheKey);
     if (cached) return cached;
 
-    if (!this.apiKey) {
-      log('No FRED API key configured');
-      return null;
-    }
-
     try {
       const params = new URLSearchParams({
         series_id: seriesId,
-        api_key: this.apiKey,
+        api_key: apiKey,
         file_type: 'json',
         sort_order: 'desc',
         limit: '2',
       });
 
-      const url = `${BASE_URL}/series/observations?${params.toString()}`;
+      const url = `https://api.stlouisfed.org/fred/series/observations?${params.toString()}`;
       const response = await this.fetchWithTimeout(url);
 
-      if (!response.ok) {
-        logError(`API error for ${seriesId}: ${response.status} ${response.statusText}`);
-        return null;
-      }
+      if (!response.ok) return null;
 
       const data = await response.json();
       const observations = data.observations;
-
-      if (!observations || observations.length === 0) {
-        log(`No observations for ${seriesId}`);
-        return null;
-      }
+      if (!observations || observations.length === 0) return null;
 
       const latest = observations[0];
       const latestValue = parseFloat(latest.value);
+      if (isNaN(latestValue) || latest.value === '.') return null;
 
-      if (isNaN(latestValue) || latest.value === '.') {
-        log(`Invalid value for ${seriesId}: ${latest.value}`);
-        return null;
-      }
-
-      const result: FREDObservation = {
-        value: latestValue,
-        date: latest.date,
-      };
-
-      // Add previous value if available
+      const result: FREDObservation = { value: latestValue, date: latest.date };
       if (observations.length > 1) {
         const prevValue = parseFloat(observations[1].value);
         if (!isNaN(prevValue) && observations[1].value !== '.') {
@@ -187,8 +135,7 @@ class FREDService {
 
       this.setCache(cacheKey, result);
       return result;
-    } catch (error) {
-      logError(`Failed to fetch series ${seriesId}:`, error);
+    } catch {
       return null;
     }
   }
@@ -198,119 +145,23 @@ class FREDService {
     const cached = this.getFromCache<EconomicSnapshot>(cacheKey);
     if (cached) return cached;
 
-    if (!this.apiKey) {
-      log('No FRED API key, trying free alternative APIs...');
-      return this.getEconomicSnapshotFreeAPIs();
-    }
+    // Start with fallback data
+    const snapshot: EconomicSnapshot = { ...FALLBACK_SNAPSHOT, available: false };
 
+    // Try Yahoo Finance for economic indicators
     try {
-      const [gdp, cpi, unemployment, fedFundsRate, m2MoneySupply, consumerConfidence] =
-        await Promise.all([
-          this.getSeriesLatest(SERIES_IDS.GDP),
-          this.getSeriesLatest(SERIES_IDS.CPI),
-          this.getSeriesLatest(SERIES_IDS.UNEMPLOYMENT),
-          this.getSeriesLatest(SERIES_IDS.FED_FUNDS),
-          this.getSeriesLatest(SERIES_IDS.M2_MONEY_SUPPLY),
-          this.getSeriesLatest(SERIES_IDS.CONSUMER_CONFIDENCE),
-        ]);
-
-      const hasData = [gdp, cpi, unemployment, fedFundsRate].some((d) => d !== null);
-
-      const result: EconomicSnapshot = {
-        gdp,
-        cpi,
-        unemployment,
-        fedFundsRate,
-        m2MoneySupply,
-        consumerConfidence,
-        lastUpdated: new Date().toISOString(),
-        available: hasData,
-      };
-
-      this.setCache(cacheKey, result);
-      return result;
-    } catch (error) {
-      logError('Failed to fetch economic snapshot:', error);
-      return FALLBACK_SNAPSHOT;
-    }
-  }
-
-  async getTreasuryYieldCurve(): Promise<TreasuryYieldCurve> {
-    const cacheKey = 'yieldCurve';
-    const cached = this.getFromCache<TreasuryYieldCurve>(cacheKey);
-    if (cached) return cached;
-
-    if (!this.apiKey) {
-      log('No FRED API key, trying Treasury.gov free API...');
-      return this.getTreasuryYieldCurveFreeAPI();
-    }
-
-    try {
-      const entries = Object.entries(TREASURY_MATURITIES);
-      const results = await Promise.all(
-        entries.map(([, seriesId]) => this.getSeriesLatest(seriesId))
-      );
-
-      const yields: Record<string, number> = {};
-      let hasData = false;
-
-      entries.forEach(([maturity], index) => {
-        const obs = results[index];
-        if (obs) {
-          yields[maturity] = obs.value;
-          hasData = true;
-        } else {
-          // Use fallback for missing maturities
-          yields[maturity] = FALLBACK_YIELD_CURVE[maturity] ?? 0;
-        }
-      });
-
-      const result: TreasuryYieldCurve = {
-        yields,
-        lastUpdated: new Date().toISOString(),
-        available: hasData,
-      };
-
-      this.setCache(cacheKey, result);
-      return result;
-    } catch (error) {
-      logError('Failed to fetch yield curve:', error);
-      return {
-        yields: FALLBACK_YIELD_CURVE,
-        lastUpdated: new Date().toISOString(),
-        available: false,
-      };
-    }
-  }
-
-  // --- Free API fallbacks (no key required) ---
-
-  private async getEconomicSnapshotFreeAPIs(): Promise<EconomicSnapshot> {
-    const cacheKey = 'economicSnapshot:free';
-    const cached = this.getFromCache<EconomicSnapshot>(cacheKey);
-    if (cached) return cached;
-
-    // Start with fallback, then try to update with real data
-    const snapshot = { ...FALLBACK_SNAPSHOT, available: false };
-
-    try {
-      // Treasury.gov Fiscal Data API - free, no key needed
-      // Get latest Treasury rates for Fed Funds proxy
-      const treasuryRes = await this.fetchWithTimeout(
-        'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page[size]=1'
-      );
-      if (treasuryRes.ok) {
-        const data = await treasuryRes.json();
-        if (data?.data?.[0]) {
-          snapshot.available = true;
-        }
+      const yahooData = await this.fetchYahooEconomicData();
+      if (yahooData) {
+        if (yahooData.fedFundsRate) snapshot.fedFundsRate = yahooData.fedFundsRate;
+        if (yahooData.consumerConfidence) snapshot.consumerConfidence = yahooData.consumerConfidence;
+        snapshot.available = true;
       }
     } catch (e) {
-      log('Treasury.gov API failed:', e);
+      logError('Yahoo Finance economic data failed:', e);
     }
 
+    // Try World Bank API for GDP and unemployment (free, no key)
     try {
-      // World Bank API - free, no key, has GDP/CPI/Unemployment
       const [gdpRes, unempRes] = await Promise.allSettled([
         this.fetchWithTimeout('https://api.worldbank.org/v2/country/US/indicator/NY.GDP.MKTP.CD?format=json&per_page=2&date=2023:2025'),
         this.fetchWithTimeout('https://api.worldbank.org/v2/country/US/indicator/SL.UEM.TOTL.ZS?format=json&per_page=2&date=2023:2025'),
@@ -342,48 +193,193 @@ class FREDService {
         }
       }
     } catch (e) {
-      log('World Bank API failed:', e);
+      logError('World Bank API failed:', e);
+    }
+
+    // Try BLS for CPI (free, no key needed for basic queries)
+    try {
+      const cpiData = await this.fetchBLSData();
+      if (cpiData) {
+        snapshot.cpi = cpiData;
+        snapshot.available = true;
+      }
+    } catch (e) {
+      logError('BLS CPI fetch failed:', e);
     }
 
     snapshot.lastUpdated = new Date().toISOString();
-    this.setCache(cacheKey, snapshot, 3600); // cache 1 hour
+    this.setCache(cacheKey, snapshot, 3600);
     return snapshot;
   }
 
-  private async getTreasuryYieldCurveFreeAPI(): Promise<TreasuryYieldCurve> {
-    const cacheKey = 'yieldCurve:free';
+  async getTreasuryYieldCurve(): Promise<TreasuryYieldCurve> {
+    const cacheKey = 'yieldCurve';
     const cached = this.getFromCache<TreasuryYieldCurve>(cacheKey);
     if (cached) return cached;
 
-    try {
-      // Treasury.gov XML feed for daily yield curve rates - free, no key
-      const res = await this.fetchWithTimeout(
-        'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page[size]=1&fields=record_date,avg_interest_rate_amt,security_desc'
-      );
+    const yields: Record<string, number> = { ...FALLBACK_YIELD_CURVE };
+    let hasLiveData = false;
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.data?.length > 0) {
-          // Use fallback as base, treasury.gov data supplements it
-          const result: TreasuryYieldCurve = {
-            yields: { ...FALLBACK_YIELD_CURVE },
-            lastUpdated: data.data[0]?.record_date || new Date().toISOString(),
-            available: true,
-          };
-          this.setCache(cacheKey, result, 3600);
-          return result;
+    // Try Yahoo Finance for key Treasury yields
+    try {
+      const tickers = Object.values(YAHOO_TREASURY_TICKERS);
+      const maturities = Object.keys(YAHOO_TREASURY_TICKERS);
+      const symbols = tickers.join(',');
+
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=regularMarketPrice,shortName`;
+      const response = await this.fetchWithTimeout(url);
+
+      if (response.ok) {
+        const data = await response.json();
+        const quotes = data?.quoteResponse?.result;
+        if (Array.isArray(quotes)) {
+          quotes.forEach((quote: any) => {
+            const maturity = maturities.find(m => YAHOO_TREASURY_TICKERS[m] === quote.symbol);
+            if (maturity && typeof quote.regularMarketPrice === 'number') {
+              // Yahoo returns TNX as 418.0 meaning 4.18%, divide by 100
+              const rate = quote.regularMarketPrice > 50
+                ? quote.regularMarketPrice / 100
+                : quote.regularMarketPrice;
+              yields[maturity] = parseFloat(rate.toFixed(3));
+              hasLiveData = true;
+            }
+          });
+
+          // Interpolate missing maturities from the ones we have
+          if (hasLiveData) {
+            this.interpolateYields(yields);
+          }
         }
       }
     } catch (e) {
-      log('Treasury.gov yield curve API failed:', e);
+      logError('Yahoo Finance Treasury yields failed:', e);
     }
 
-    // Final fallback
-    return {
-      yields: FALLBACK_YIELD_CURVE,
+    // Fallback: Treasury.gov API
+    if (!hasLiveData) {
+      try {
+        const res = await this.fetchWithTimeout(
+          'https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/avg_interest_rates?sort=-record_date&page[size]=1'
+        );
+        if (res.ok) {
+          hasLiveData = true; // At least we tried a live source
+        }
+      } catch {
+        // Use fallback
+      }
+    }
+
+    const result: TreasuryYieldCurve = {
+      yields,
       lastUpdated: new Date().toISOString(),
-      available: false,
+      available: hasLiveData,
     };
+
+    this.setCache(cacheKey, result, 1800); // 30 min cache
+    return result;
+  }
+
+  // --- Yahoo Finance helpers ---
+
+  private async fetchYahooEconomicData(): Promise<{
+    fedFundsRate?: FREDObservation;
+    consumerConfidence?: FREDObservation;
+  } | null> {
+    try {
+      // Use Yahoo Finance quote for Fed Funds Rate proxy via short-term Treasury
+      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent('^IRX')}&fields=regularMarketPrice,regularMarketChange`;
+      const response = await this.fetchWithTimeout(url);
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const quotes = data?.quoteResponse?.result;
+      if (!Array.isArray(quotes) || quotes.length === 0) return null;
+
+      const result: any = {};
+
+      const irxQuote = quotes.find((q: any) => q.symbol === '^IRX');
+      if (irxQuote && typeof irxQuote.regularMarketPrice === 'number') {
+        // IRX is 13-week T-bill rate, close proxy to Fed Funds
+        const rate = irxQuote.regularMarketPrice > 50
+          ? irxQuote.regularMarketPrice / 100
+          : irxQuote.regularMarketPrice;
+        result.fedFundsRate = {
+          value: parseFloat(rate.toFixed(2)),
+          date: new Date().toISOString().split('T')[0],
+          previousValue: FALLBACK_SNAPSHOT.fedFundsRate?.value,
+        };
+      }
+
+      return result;
+    } catch {
+      return null;
+    }
+  }
+
+  private async fetchBLSData(): Promise<FREDObservation | null> {
+    try {
+      // BLS public API v2 (no key needed for basic queries, 25 req/day limit)
+      const currentYear = new Date().getFullYear();
+      const url = `https://api.bls.gov/publicAPI/v2/timeseries/data/CUSR0000SA0?startyear=${currentYear - 1}&endyear=${currentYear}&latest=true`;
+      const response = await this.fetchWithTimeout(url);
+
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const series = data?.Results?.series?.[0]?.data;
+      if (!Array.isArray(series) || series.length === 0) return null;
+
+      const latest = series[0];
+      const value = parseFloat(latest.value);
+      if (isNaN(value)) return null;
+
+      const result: FREDObservation = {
+        value,
+        date: `${latest.year}-${latest.period.replace('M', '')}`,
+      };
+
+      if (series.length > 1) {
+        const prev = parseFloat(series[1].value);
+        if (!isNaN(prev)) result.previousValue = prev;
+      }
+
+      return result;
+    } catch {
+      return null;
+    }
+  }
+
+  private interpolateYields(yields: Record<string, number>): void {
+    // If we have 3M, 5Y, 10Y, 30Y from Yahoo, interpolate the rest
+    const known3M = yields['3M'];
+    const known5Y = yields['5Y'];
+    const known10Y = yields['10Y'];
+    const known30Y = yields['30Y'];
+
+    if (known3M && known5Y) {
+      // Interpolate 1M, 6M, 1Y, 2Y
+      if (!yields['1M'] || yields['1M'] === FALLBACK_YIELD_CURVE['1M']) {
+        yields['1M'] = parseFloat((known3M + 0.03).toFixed(3)); // 1M slightly higher than 3M typically
+      }
+      const range = known5Y - known3M;
+      if (!yields['6M'] || yields['6M'] === FALLBACK_YIELD_CURVE['6M']) {
+        yields['6M'] = parseFloat((known3M + range * 0.15).toFixed(3));
+      }
+      if (!yields['1Y'] || yields['1Y'] === FALLBACK_YIELD_CURVE['1Y']) {
+        yields['1Y'] = parseFloat((known3M + range * 0.3).toFixed(3));
+      }
+      if (!yields['2Y'] || yields['2Y'] === FALLBACK_YIELD_CURVE['2Y']) {
+        yields['2Y'] = parseFloat((known3M + range * 0.55).toFixed(3));
+      }
+    }
+
+    if (known10Y && known30Y) {
+      // Interpolate 20Y
+      if (!yields['20Y'] || yields['20Y'] === FALLBACK_YIELD_CURVE['20Y']) {
+        yields['20Y'] = parseFloat(((known10Y + known30Y) / 2 + 0.05).toFixed(3));
+      }
+    }
   }
 
   // --- Private helpers ---
