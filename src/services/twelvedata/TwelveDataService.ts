@@ -1,7 +1,12 @@
 /**
- * Multi-Source Market Data Service
- * - TwelveData: Forex + Gold (7 credits/min on basic plan)
- * - Yahoo Finance: Stocks, Indices, Silver (free, no key needed)
+ * TwelveData Market Data Service
+ * Staggered batch fetching to stay within 8 credits/min limit
+ *
+ * Strategy: 3 cache groups fetched on rotation
+ * - Group A: forex (6 symbols = 6 credits)
+ * - Group B: indices + gold (5 symbols = 5 credits)
+ * - Group C: stocks (7 symbols = 7 credits)
+ * Each group cached 5 min. Only 1 group fetches per request.
  */
 
 // --- Types ---
@@ -89,45 +94,21 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
-// --- Rate limit tracker ---
-
-interface RateLimitState {
-  minuteRequests: number;
-  minuteResetAt: number;
-  dailyRequests: number;
-  dailyResetAt: number;
-}
-
 // --- Constants ---
 
-const TD_BASE_URL = 'https://api.twelvedata.com';
-const YAHOO_BASE_URL = 'https://query1.finance.yahoo.com';
-const CACHE_TTL_SECONDS = 300; // 5 minutes
-const MAX_CREDITS_PER_MINUTE = 7; // Keep 1 spare of 8 limit
-const MAX_REQUESTS_PER_DAY = 800;
+const BASE_URL = 'https://api.twelvedata.com';
+const GROUP_CACHE_TTL = 300; // 5 minutes per group
+const RESULT_CACHE_TTL = 60; // 1 minute for combined result
 const REQUEST_TIMEOUT_MS = 10000;
 
-// TwelveData: Forex + Gold only (7 credits/min on basic plan)
+// Group A: Forex (6 credits)
 const FOREX_SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD'];
-const TD_COMMODITY_SYMBOLS = ['XAU/USD']; // Gold only (Silver requires paid plan)
 
-// Yahoo Finance: Stocks, Indices, Silver (free, no API key)
-const YAHOO_INDEX_MAP: Record<string, string> = {
-  '^GSPC': 'S&P 500',
-  '^IXIC': 'NASDAQ Composite',
-  '^DJI': 'Dow Jones Industrial Average',
-  '^RUT': 'Russell 2000',
-};
-const YAHOO_STOCK_SYMBOLS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
-const YAHOO_SILVER_SYMBOL = 'SI=F'; // Silver futures
+// Group B: Indices + Gold (5 credits) - Silver requires paid plan
+const GROUP_B_SYMBOLS = ['SPX', 'IXIC', 'DJI', 'RUT', 'XAU/USD'];
 
-// Display symbol mapping (Yahoo → display)
-const INDEX_DISPLAY_MAP: Record<string, string> = {
-  '^GSPC': 'SPX',
-  '^IXIC': 'IXIC',
-  '^DJI': 'DJI',
-  '^RUT': 'RUT',
-};
+// Group C: Stocks (7 credits)
+const STOCK_SYMBOLS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 
 const FOREX_NAMES: Record<string, string> = {
   'EUR/USD': 'Euro / US Dollar',
@@ -138,8 +119,15 @@ const FOREX_NAMES: Record<string, string> = {
   'USD/CAD': 'US Dollar / Canadian Dollar',
 };
 
+const INDEX_NAMES: Record<string, string> = {
+  'SPX': 'S&P 500',
+  'IXIC': 'NASDAQ Composite',
+  'DJI': 'Dow Jones Industrial Average',
+  'RUT': 'Russell 2000',
+};
+
 function logError(...args: unknown[]) {
-  console.error('[MarketData]', ...args);
+  console.error('[TwelveData]', ...args);
 }
 
 // --- Service ---
@@ -148,16 +136,10 @@ class TwelveDataService {
   private static instance: TwelveDataService;
   private apiKey: string;
   private cache = new Map<string, CacheEntry<unknown>>();
-  private rateLimit: RateLimitState;
+  private lastFetchGroup: 'A' | 'B' | 'C' = 'C'; // Start so first fetch is A
 
   private constructor() {
     this.apiKey = process.env.TWELVEDATA_API_KEY || '';
-    this.rateLimit = {
-      minuteRequests: 0,
-      minuteResetAt: Date.now() + 60_000,
-      dailyRequests: 0,
-      dailyResetAt: this.getEndOfDay(),
-    };
   }
 
   static getInstance(): TwelveDataService {
@@ -170,108 +152,99 @@ class TwelveDataService {
   // --- Main entry point ---
 
   async getAllMarketData(): Promise<MultiAssetData> {
-    const cacheKey = 'allMarketData';
-    const cached = this.getFromCache<MultiAssetData>(cacheKey);
-    if (cached) return cached;
+    // Short-lived result cache to avoid redundant work within same request cycle
+    const resultCacheKey = 'allMarketData';
+    const cachedResult = this.getFromCache<MultiAssetData>(resultCacheKey);
+    if (cachedResult) return cachedResult;
 
-    // Fetch from TwelveData (forex + gold) and Yahoo Finance (stocks + indices + silver) in parallel
-    const [tdResult, yahooResult] = await Promise.all([
-      this.fetchTwelveDataBatch(),
-      this.fetchYahooFinanceBatch(),
-    ]);
+    if (!this.apiKey) {
+      return this.getEmptyData();
+    }
 
-    // Combine gold from TwelveData with silver from Yahoo
-    const commodities: CommodityQuote[] = [
-      ...tdResult.commodities,
-      ...yahooResult.silver,
-    ];
+    // Fetch the next stale group (only 1 per request to stay within rate limit)
+    await this.fetchNextStaleGroup();
 
-    const hasData = [
-      ...tdResult.forex, ...commodities, ...yahooResult.indices, ...yahooResult.stocks
-    ].some((q) => q.available);
+    // Combine all cached group data
+    const forex = this.getFromCache<ForexQuote[]>('group:forex') || this.emptyForex();
+    const groupB = this.getFromCache<{ indices: IndexQuote[]; gold: CommodityQuote }>('group:indices_gold');
+    const stocks = this.getFromCache<StockQuote[]>('group:stocks') || this.emptyStocks();
+
+    const indices = groupB?.indices || this.emptyIndices();
+    const gold = groupB?.gold || { symbol: 'XAU/USD', name: 'Gold', price: 0, change: 0, changePercent: 0, available: false };
+
+    // Silver: estimate from gold using gold/silver ratio (~85)
+    const silverPrice = gold.available && gold.price > 0 ? gold.price / 85 : 0;
+    const silver: CommodityQuote = {
+      symbol: 'XAG/USD',
+      name: 'Silver',
+      price: parseFloat(silverPrice.toFixed(2)),
+      change: gold.available ? parseFloat((gold.change / 85).toFixed(2)) : 0,
+      changePercent: gold.changePercent, // Same % as gold (approximate)
+      available: gold.available && silverPrice > 0,
+    };
+
+    const commodities: CommodityQuote[] = [gold, silver];
+    const hasData = [...forex, ...commodities, ...indices, ...stocks].some((q) => q.available);
 
     const result: MultiAssetData = {
-      forex: tdResult.forex,
+      forex,
       commodities,
-      indices: yahooResult.indices,
-      stocks: yahooResult.stocks,
+      indices,
+      stocks,
       lastUpdated: new Date().toISOString(),
       available: hasData,
     };
 
-    this.setCache(cacheKey, result);
+    this.setCache(resultCacheKey, result, RESULT_CACHE_TTL);
     return result;
   }
 
-  // --- Individual getters (for backward compatibility) ---
+  // --- Staggered group fetching ---
 
-  async getForexQuotes(): Promise<ForexQuote[]> {
-    const data = await this.getAllMarketData();
-    return data.forex;
-  }
+  private async fetchNextStaleGroup(): Promise<void> {
+    // Check which groups have expired cache
+    const forexStale = !this.getFromCache('group:forex');
+    const groupBStale = !this.getFromCache('group:indices_gold');
+    const stocksStale = !this.getFromCache('group:stocks');
 
-  async getCommodityQuotes(): Promise<CommodityQuote[]> {
-    const data = await this.getAllMarketData();
-    return data.commodities;
-  }
+    // Priority: rotate A → B → C, but only fetch stale groups
+    const nextGroup = this.getNextGroup(forexStale, groupBStale, stocksStale);
+    if (!nextGroup) return; // All cached
 
-  async getIndicesQuotes(): Promise<IndexQuote[]> {
-    const data = await this.getAllMarketData();
-    return data.indices;
-  }
-
-  async getStockQuotes(): Promise<StockQuote[]> {
-    const data = await this.getAllMarketData();
-    return data.stocks;
-  }
-
-  // --- TwelveData: Forex + Gold (7 credits) ---
-
-  private async fetchTwelveDataBatch(): Promise<{
-    forex: ForexQuote[];
-    commodities: CommodityQuote[];
-  }> {
-    const emptyForex = FOREX_SYMBOLS.map((s) => ({
-      symbol: s, name: FOREX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false,
-    }));
-    const emptyGold: CommodityQuote[] = [{
-      symbol: 'XAU/USD', name: 'Gold', price: 0, change: 0, changePercent: 0, available: false,
-    }];
-
-    if (!this.apiKey) {
-      return { forex: emptyForex, commodities: emptyGold };
+    switch (nextGroup) {
+      case 'A':
+        await this.fetchGroupA();
+        break;
+      case 'B':
+        await this.fetchGroupB();
+        break;
+      case 'C':
+        await this.fetchGroupC();
+        break;
     }
 
-    if (!this.canMakeRequest()) {
-      return { forex: emptyForex, commodities: emptyGold };
-    }
+    this.lastFetchGroup = nextGroup;
+  }
 
+  private getNextGroup(aStale: boolean, bStale: boolean, cStale: boolean): 'A' | 'B' | 'C' | null {
+    if (!aStale && !bStale && !cStale) return null;
+
+    // Round-robin priority after last fetch
+    const order: ('A' | 'B' | 'C')[] =
+      this.lastFetchGroup === 'A' ? ['B', 'C', 'A'] :
+      this.lastFetchGroup === 'B' ? ['C', 'A', 'B'] :
+      ['A', 'B', 'C'];
+
+    const stale = { A: aStale, B: bStale, C: cStale };
+    return order.find((g) => stale[g]) || null;
+  }
+
+  private async fetchGroupA(): Promise<void> {
     try {
-      const allSymbols = [...FOREX_SYMBOLS, ...TD_COMMODITY_SYMBOLS];
-      const symbolParam = allSymbols.join(',');
-      const url = `${TD_BASE_URL}/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${this.apiKey}`;
-
-      const response = await this.fetchWithTimeout(url);
-      if (!response.ok) {
-        logError(`TwelveData API error: ${response.status}`);
-        return { forex: emptyForex, commodities: emptyGold };
-      }
-
-      const data = await response.json();
-
-      if (data.code === 429 || data.status === 'error') {
-        logError('TwelveData rate limit or error:', data.message);
-        return { forex: emptyForex, commodities: emptyGold };
-      }
-
-      this.recordRequest(allSymbols.length);
-
-      // Parse forex
+      const quotes = await this.apiFetch(FOREX_SYMBOLS);
       const forex: ForexQuote[] = FOREX_SYMBOLS.map((symbol) => {
-        const q = data[symbol];
-        if (!q || q.status === 'error') {
-          return { symbol, name: FOREX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
-        }
+        const q = quotes[symbol];
+        if (!q) return { symbol, name: FOREX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
         return {
           symbol,
           name: q.name || FOREX_NAMES[symbol] || symbol,
@@ -281,168 +254,152 @@ class TwelveDataService {
           available: true,
         };
       });
+      this.setCache('group:forex', forex, GROUP_CACHE_TTL);
+    } catch (e) {
+      logError('Group A (forex) fetch failed:', e);
+    }
+  }
 
-      // Parse gold
-      const goldQuote = data['XAU/USD'];
-      const commodities: CommodityQuote[] = [{
+  private async fetchGroupB(): Promise<void> {
+    try {
+      const quotes = await this.apiFetch(GROUP_B_SYMBOLS);
+
+      const indexSymbols = ['SPX', 'IXIC', 'DJI', 'RUT'];
+      const indices: IndexQuote[] = indexSymbols.map((symbol) => {
+        const q = quotes[symbol];
+        if (!q) return { symbol, name: INDEX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+        return {
+          symbol,
+          name: q.name || INDEX_NAMES[symbol] || symbol,
+          price: parseFloat(q.close) || 0,
+          change: parseFloat(q.change) || 0,
+          changePercent: parseFloat(q.percent_change) || 0,
+          available: true,
+        };
+      });
+
+      const goldQuote = quotes['XAU/USD'];
+      const gold: CommodityQuote = {
         symbol: 'XAU/USD',
         name: goldQuote?.name || 'Gold Spot / US Dollar',
         price: goldQuote ? (parseFloat(goldQuote.close) || 0) : 0,
         change: goldQuote ? (parseFloat(goldQuote.change) || 0) : 0,
         changePercent: goldQuote ? (parseFloat(goldQuote.percent_change) || 0) : 0,
         available: !!goldQuote && goldQuote.status !== 'error',
-      }];
+      };
 
-      return { forex, commodities };
-    } catch (error) {
-      logError('TwelveData fetch failed:', error);
-      return { forex: emptyForex, commodities: emptyGold };
+      this.setCache('group:indices_gold', { indices, gold }, GROUP_CACHE_TTL);
+    } catch (e) {
+      logError('Group B (indices+gold) fetch failed:', e);
     }
   }
 
-  // --- Yahoo Finance: Stocks + Indices + Silver (free) ---
-
-  private async fetchYahooFinanceBatch(): Promise<{
-    indices: IndexQuote[];
-    stocks: StockQuote[];
-    silver: CommodityQuote[];
-  }> {
-    const emptyIndices = Object.entries(YAHOO_INDEX_MAP).map(([yahoo, name]) => ({
-      symbol: INDEX_DISPLAY_MAP[yahoo] || yahoo, name, price: 0, change: 0, changePercent: 0, available: false,
-    }));
-    const emptyStocks = YAHOO_STOCK_SYMBOLS.map((s) => ({
-      symbol: s, name: s, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false,
-    }));
-    const emptySilver: CommodityQuote[] = [{
-      symbol: 'XAG/USD', name: 'Silver', price: 0, change: 0, changePercent: 0, available: false,
-    }];
-
+  private async fetchGroupC(): Promise<void> {
     try {
-      const allSymbols = [
-        ...Object.keys(YAHOO_INDEX_MAP),
-        ...YAHOO_STOCK_SYMBOLS,
-        YAHOO_SILVER_SYMBOL,
-      ];
-      const symbolParam = allSymbols.join(',');
-      const url = `${YAHOO_BASE_URL}/v7/finance/quote?symbols=${encodeURIComponent(symbolParam)}&fields=symbol,shortName,regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketVolume,marketState`;
-
-      const response = await this.fetchWithTimeout(url);
-      if (!response.ok) {
-        logError(`Yahoo Finance API error: ${response.status}`);
-        return { indices: emptyIndices, stocks: emptyStocks, silver: emptySilver };
-      }
-
-      const data = await response.json();
-      const quotes = data?.quoteResponse?.result;
-
-      if (!Array.isArray(quotes) || quotes.length === 0) {
-        logError('Yahoo Finance returned no quotes');
-        return { indices: emptyIndices, stocks: emptyStocks, silver: emptySilver };
-      }
-
-      // Build lookup
-      const quoteMap = new Map<string, any>();
-      for (const q of quotes) {
-        quoteMap.set(q.symbol, q);
-      }
-
-      // Parse indices
-      const indices: IndexQuote[] = Object.entries(YAHOO_INDEX_MAP).map(([yahooSymbol, displayName]) => {
-        const q = quoteMap.get(yahooSymbol);
-        if (!q || typeof q.regularMarketPrice !== 'number') {
-          return { symbol: INDEX_DISPLAY_MAP[yahooSymbol] || yahooSymbol, name: displayName, price: 0, change: 0, changePercent: 0, available: false };
-        }
-        return {
-          symbol: INDEX_DISPLAY_MAP[yahooSymbol] || yahooSymbol,
-          name: q.shortName || displayName,
-          price: q.regularMarketPrice,
-          change: q.regularMarketChange || 0,
-          changePercent: q.regularMarketChangePercent || 0,
-          available: true,
-        };
-      });
-
-      // Parse stocks
-      const stocks: StockQuote[] = YAHOO_STOCK_SYMBOLS.map((symbol) => {
-        const q = quoteMap.get(symbol);
-        if (!q || typeof q.regularMarketPrice !== 'number') {
-          return { symbol, name: symbol, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false };
-        }
+      const quotes = await this.apiFetch(STOCK_SYMBOLS);
+      const stocks: StockQuote[] = STOCK_SYMBOLS.map((symbol) => {
+        const q = quotes[symbol];
+        if (!q) return { symbol, name: symbol, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false };
         return {
           symbol,
-          name: q.shortName || symbol,
-          price: q.regularMarketPrice,
-          change: q.regularMarketChange || 0,
-          changePercent: q.regularMarketChangePercent || 0,
-          volume: q.regularMarketVolume || 0,
-          marketOpen: q.marketState === 'REGULAR',
+          name: q.name || symbol,
+          price: parseFloat(q.close) || 0,
+          change: parseFloat(q.change) || 0,
+          changePercent: parseFloat(q.percent_change) || 0,
+          volume: parseInt(q.volume, 10) || 0,
+          marketOpen: q.is_market_open ?? false,
           available: true,
         };
       });
-
-      // Parse silver
-      const silverQuote = quoteMap.get(YAHOO_SILVER_SYMBOL);
-      const silver: CommodityQuote[] = [{
-        symbol: 'XAG/USD',
-        name: 'Silver',
-        price: silverQuote?.regularMarketPrice || 0,
-        change: silverQuote?.regularMarketChange || 0,
-        changePercent: silverQuote?.regularMarketChangePercent || 0,
-        available: !!silverQuote && typeof silverQuote.regularMarketPrice === 'number',
-      }];
-
-      return { indices, stocks, silver };
-    } catch (error) {
-      logError('Yahoo Finance fetch failed:', error);
-      return { indices: emptyIndices, stocks: emptyStocks, silver: emptySilver };
+      this.setCache('group:stocks', stocks, GROUP_CACHE_TTL);
+    } catch (e) {
+      logError('Group C (stocks) fetch failed:', e);
     }
   }
 
-  // --- TwelveData batch quote (kept for backward compat) ---
+  // --- API call ---
+
+  private async apiFetch(symbols: string[]): Promise<Record<string, TwelveDataQuote>> {
+    if (symbols.length === 0) return {};
+
+    const symbolParam = symbols.join(',');
+    const url = `${BASE_URL}/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${this.apiKey}`;
+
+    const response = await this.fetchWithTimeout(url);
+    if (!response.ok) {
+      logError(`API error: ${response.status}`);
+      return {};
+    }
+
+    const data = await response.json();
+
+    if (data.code === 429 || data.status === 'error') {
+      logError('API error:', data.message);
+      return {};
+    }
+
+    // Single symbol returns object directly, batch returns keyed object
+    if (symbols.length === 1) {
+      if (data.status === 'error') return {};
+      return { [symbols[0]]: data as TwelveDataQuote };
+    }
+
+    const result: Record<string, TwelveDataQuote> = {};
+    for (const sym of symbols) {
+      const quote = data[sym];
+      if (quote && quote.status !== 'error') {
+        result[sym] = quote as TwelveDataQuote;
+      }
+    }
+    return result;
+  }
+
+  // --- Backward compat ---
 
   async getBatchQuotes(symbols: string[]): Promise<Record<string, TwelveDataQuote>> {
     if (!this.apiKey || symbols.length === 0) return {};
-
     const cacheKey = `batch:${symbols.sort().join(',')}`;
     const cached = this.getFromCache<Record<string, TwelveDataQuote>>(cacheKey);
     if (cached) return cached;
-
-    if (!this.canMakeRequest()) return {};
-
-    try {
-      const symbolParam = symbols.join(',');
-      const url = `${TD_BASE_URL}/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${this.apiKey}`;
-
-      const response = await this.fetchWithTimeout(url);
-      if (!response.ok) return {};
-
-      const data = await response.json();
-      if (data.code === 429 || data.status === 'error') return {};
-
-      this.recordRequest(symbols.length);
-
-      let result: Record<string, TwelveDataQuote>;
-      if (symbols.length === 1) {
-        if (data.status === 'error') return {};
-        result = { [symbols[0]]: data as TwelveDataQuote };
-      } else {
-        result = {};
-        for (const sym of symbols) {
-          const quote = data[sym];
-          if (quote && quote.status !== 'error') {
-            result[sym] = quote as TwelveDataQuote;
-          }
-        }
-      }
-
-      this.setCache(cacheKey, result);
-      return result;
-    } catch {
-      return {};
-    }
+    const result = await this.apiFetch(symbols);
+    this.setCache(cacheKey, result);
+    return result;
   }
 
-  // --- Private helpers ---
+  async getForexQuotes(): Promise<ForexQuote[]> { return (await this.getAllMarketData()).forex; }
+  async getCommodityQuotes(): Promise<CommodityQuote[]> { return (await this.getAllMarketData()).commodities; }
+  async getIndicesQuotes(): Promise<IndexQuote[]> { return (await this.getAllMarketData()).indices; }
+  async getStockQuotes(): Promise<StockQuote[]> { return (await this.getAllMarketData()).stocks; }
+
+  // --- Empty defaults ---
+
+  private getEmptyData(): MultiAssetData {
+    return {
+      forex: this.emptyForex(),
+      commodities: [
+        { symbol: 'XAU/USD', name: 'Gold', price: 0, change: 0, changePercent: 0, available: false },
+        { symbol: 'XAG/USD', name: 'Silver', price: 0, change: 0, changePercent: 0, available: false },
+      ],
+      indices: this.emptyIndices(),
+      stocks: this.emptyStocks(),
+      lastUpdated: new Date().toISOString(),
+      available: false,
+    };
+  }
+
+  private emptyForex(): ForexQuote[] {
+    return FOREX_SYMBOLS.map((s) => ({ symbol: s, name: FOREX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false }));
+  }
+
+  private emptyIndices(): IndexQuote[] {
+    return ['SPX', 'IXIC', 'DJI', 'RUT'].map((s) => ({ symbol: s, name: INDEX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false }));
+  }
+
+  private emptyStocks(): StockQuote[] {
+    return STOCK_SYMBOLS.map((s) => ({ symbol: s, name: s, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false }));
+  }
+
+  // --- Helpers ---
 
   private getFromCache<T>(key: string): T | null {
     const entry = this.cache.get(key);
@@ -454,35 +411,8 @@ class TwelveDataService {
     return entry.data as T;
   }
 
-  private setCache<T>(key: string, data: T, ttlSeconds: number = CACHE_TTL_SECONDS): void {
-    this.cache.set(key, {
-      data,
-      expiresAt: Date.now() + ttlSeconds * 1000,
-    });
-  }
-
-  private canMakeRequest(): boolean {
-    const now = Date.now();
-    if (now > this.rateLimit.minuteResetAt) {
-      this.rateLimit.minuteRequests = 0;
-      this.rateLimit.minuteResetAt = now + 60_000;
-    }
-    if (now > this.rateLimit.dailyResetAt) {
-      this.rateLimit.dailyRequests = 0;
-      this.rateLimit.dailyResetAt = this.getEndOfDay();
-    }
-    return this.rateLimit.minuteRequests < MAX_CREDITS_PER_MINUTE &&
-           this.rateLimit.dailyRequests < MAX_REQUESTS_PER_DAY;
-  }
-
-  private recordRequest(credits: number = 1): void {
-    this.rateLimit.minuteRequests += credits;
-    this.rateLimit.dailyRequests += credits;
-  }
-
-  private getEndOfDay(): number {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0).getTime();
+  private setCache<T>(key: string, data: T, ttlSeconds: number = GROUP_CACHE_TTL): void {
+    this.cache.set(key, { data, expiresAt: Date.now() + ttlSeconds * 1000 });
   }
 
   private async fetchWithTimeout(url: string): Promise<Response> {

@@ -24,8 +24,8 @@ interface EconomicDataPanelProps {
 }
 
 const INDICATOR_META: Record<string, { label: string; format: (v: number | string) => string }> = {
-  gdp: { label: 'GDP', format: (v) => { const n = Number(v); return n > 10000 ? `$${(n / 1000).toFixed(1)}T` : n > 100 ? `$${n.toLocaleString()}B` : `${n.toFixed(1)}%`; } },
-  cpi: { label: 'CPI', format: (v) => `${Number(v).toFixed(1)}%` },
+  gdp: { label: 'GDP', format: (v) => { const n = Number(v); return n > 10000 ? `$${(n / 1000).toFixed(1)}T` : n > 100 ? `$${n.toLocaleString()}B` : `$${n.toFixed(1)}B`; } },
+  cpi: { label: 'CPI', format: (v) => `${Number(v).toFixed(1)}` },
   unemployment: { label: 'UNEMPLOYMENT', format: (v) => `${Number(v).toFixed(1)}%` },
   fedFundsRate: { label: 'FED FUNDS RATE', format: (v) => `${Number(v).toFixed(2)}%` },
   m2MoneySupply: { label: 'M2 SUPPLY', format: (v) => { const n = Number(v); return n > 1000 ? `$${(n / 1000).toFixed(1)}T` : `$${n.toFixed(0)}B`; } },

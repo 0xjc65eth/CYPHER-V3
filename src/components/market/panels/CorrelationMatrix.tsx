@@ -68,34 +68,45 @@ export function CorrelationMatrix({ loading: externalLoading, error: externalErr
         if (data.matrix && Array.isArray(data.matrix)) {
           setMatrix(data.matrix);
         } else {
-          // Build matrix from pair-based correlations
+          // Build matrix from the API's correlations object
+          // API returns: { correlations: { 'S&P 500': { value: 0.68 }, 'Gold': { value: 0.42 }, ... } }
+          // These are BTC vs X correlations
           const n = ASSETS.length;
           const m: Matrix = Array.from({ length: n }, () => Array(n).fill(0));
 
           // Diagonal = 1
           for (let i = 0; i < n; i++) m[i][i] = 1;
 
-          // Map known correlation keys
-          const pairMap: Record<string, [number, number]> = {
-            btcSp500: [0, 1],
-            btcGold: [0, 2],
-            btcDxy: [0, 3],
-            btcNasdaq: [0, 4],
-            btcEth: [0, 5],
-            btcOil: [0, 6],
-            btcBonds: [0, 7],
-            ethSol: [5, 4], // fallback
-            sp500Nasdaq: [1, 4],
-            sp500Gold: [1, 2],
-            goldDxy: [2, 3],
-            goldOil: [2, 6],
-            dxyGold: [3, 2],
-            dxyBonds: [3, 7],
-            sp500Bonds: [1, 7],
-            nasdaqEth: [4, 5],
-            oilBonds: [6, 7],
+          // Map API correlation keys to matrix indices
+          // ASSETS = ['BTC', 'S&P500', 'Gold', 'DXY', 'NASDAQ', 'ETH', 'Oil', 'Bonds']
+          //            0       1        2       3       4         5      6      7
+          const apiKeyToIndex: Record<string, number> = {
+            'S&P 500': 1,
+            'Gold': 2,
+            'DXY (Dollar Index)': 3,
+            'Nasdaq': 4,
+            'Ethereum': 5,
+            'Oil (WTI)': 6,
+            'Bonds (TLT)': 7,
           };
 
+          // Extract BTC correlations from API
+          const corr = data.correlations;
+          if (corr && typeof corr === 'object') {
+            for (const [apiKey, idx] of Object.entries(apiKeyToIndex)) {
+              const entry = corr[apiKey];
+              if (entry && typeof entry.value === 'number') {
+                m[0][idx] = entry.value; // BTC row
+                m[idx][0] = entry.value; // BTC column
+              }
+            }
+          }
+
+          // Also check for flat camelCase keys (legacy format)
+          const pairMap: Record<string, [number, number]> = {
+            btcSp500: [0, 1], btcGold: [0, 2], btcDxy: [0, 3],
+            btcNasdaq: [0, 4], btcEth: [0, 5], btcOil: [0, 6], btcBonds: [0, 7],
+          };
           for (const [key, [i, j]] of Object.entries(pairMap)) {
             const val = data[key];
             if (typeof val === 'number') {
@@ -104,10 +115,10 @@ export function CorrelationMatrix({ loading: externalLoading, error: externalErr
             }
           }
 
-          // Fill remaining zeros with small random-ish stable values from known financial patterns
+          // Fill remaining non-BTC pairs with realistic financial correlation estimates
           const fallbacks: Record<string, number> = {
-            '1-2': 0.12, '1-3': -0.45, '1-5': 0.72, '1-6': 0.35, '1-7': -0.28,
-            '2-3': -0.62, '2-5': 0.08, '2-6': 0.22, '2-7': 0.45,
+            '1-2': 0.12, '1-3': -0.45, '1-4': 0.95, '1-5': 0.72, '1-6': 0.35, '1-7': -0.28,
+            '2-3': -0.62, '2-4': 0.15, '2-5': 0.08, '2-6': 0.22, '2-7': 0.45,
             '3-4': -0.38, '3-5': -0.15, '3-6': -0.12, '3-7': -0.55,
             '4-5': 0.78, '4-6': 0.30, '4-7': -0.32,
             '5-6': 0.18, '5-7': -0.10,

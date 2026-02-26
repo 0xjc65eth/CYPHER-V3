@@ -77,6 +77,7 @@ interface FlatAsset {
   changePercent: number;
   category: Category;
   isLarge: boolean;
+  hasData: boolean;
 }
 
 export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
@@ -90,16 +91,20 @@ export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
       const assets = data[cat];
       if (!assets) continue;
       for (const asset of assets) {
-        // Crypto uses change24h, others use changePercent
-        const change = (asset as any).changePercent ?? (asset as any).change24h ?? (asset as any).changePercent ?? 0;
+        const a = asset as any;
+        // Crypto uses change24h, forex/commodities/indices/stocks use changePercent
+        const rawChange = a.changePercent ?? a.change24h ?? null;
+        const change = typeof rawChange === 'number' ? rawChange : 0;
+        const hasData = typeof rawChange === 'number';
         // For forex, use 'pair' as symbol if 'symbol' is missing
-        const symbol = asset.symbol || (asset as any).pair || '';
+        const symbol = a.symbol || a.pair || '';
         result.push({
           symbol,
-          name: asset.name || symbol,
+          name: a.name || symbol,
           changePercent: change,
           category: cat,
           isLarge: LARGE_SYMBOLS.has(symbol.toUpperCase()),
+          hasData,
         });
       }
     }
@@ -146,7 +151,7 @@ export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
                 ? 'text-[#ff3366]'
                 : 'text-[#e4e4e7]/50';
 
-            const noData = asset.changePercent === 0;
+            const noData = !asset.hasData;
 
             return (
               <div
