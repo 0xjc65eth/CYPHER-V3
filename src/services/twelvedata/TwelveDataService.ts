@@ -102,18 +102,21 @@ const GROUP_CACHE_TTL = 300; // 5 minutes per group
 const RESULT_CACHE_TTL = 30; // 30s for combined result
 const REQUEST_TIMEOUT_MS = 10000;
 
+// NOTE: Real index symbols (SPX, IXIC, DJI, RUT) require TwelveData paid plan.
+// We use ETF proxies instead: SPY (S&P500), QQQ (NASDAQ), DIA (Dow), IWM (Russell).
+
 // Group 1 (Priority - 8 credits): covers ALL categories on first load
-const GROUP1_SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'SPX', 'IXIC', 'XAU/USD', 'AAPL', 'NVDA'];
+const GROUP1_SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'SPY', 'QQQ', 'XAU/USD', 'AAPL', 'NVDA'];
 
 // Group 2 (Enrich - 7 credits): remaining forex, indices, stocks
-const GROUP2_SYMBOLS = ['AUD/USD', 'USD/CHF', 'USD/CAD', 'DJI', 'RUT', 'TSLA', 'MSFT'];
+const GROUP2_SYMBOLS = ['AUD/USD', 'USD/CHF', 'USD/CAD', 'DIA', 'IWM', 'TSLA', 'MSFT'];
 
 // Group 3 (Enrich - 3 credits): remaining stocks
 const GROUP3_SYMBOLS = ['GOOGL', 'AMZN', 'META'];
 
-// All forex symbols (for building complete response)
+// All symbols by category (using ETF proxies for indices)
 const ALL_FOREX = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD'];
-const ALL_INDICES = ['SPX', 'IXIC', 'DJI', 'RUT'];
+const ALL_INDEX_ETFS = ['SPY', 'QQQ', 'DIA', 'IWM'];
 const ALL_STOCKS = ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 
 const FOREX_NAMES: Record<string, string> = {
@@ -125,11 +128,20 @@ const FOREX_NAMES: Record<string, string> = {
   'USD/CAD': 'US Dollar / Canadian Dollar',
 };
 
-const INDEX_NAMES: Record<string, string> = {
-  'SPX': 'S&P 500',
-  'IXIC': 'NASDAQ Composite',
-  'DJI': 'Dow Jones Industrial Average',
-  'RUT': 'Russell 2000',
+// ETF → display name mapping (we show the index name, not the ETF name)
+const INDEX_ETF_NAMES: Record<string, string> = {
+  'SPY': 'S&P 500',
+  'QQQ': 'NASDAQ',
+  'DIA': 'Dow Jones',
+  'IWM': 'Russell 2000',
+};
+
+// ETF → index symbol mapping for display
+const ETF_TO_INDEX: Record<string, string> = {
+  'SPY': 'SPX',
+  'QQQ': 'NDX',
+  'DIA': 'DJI',
+  'IWM': 'RUT',
 };
 
 const STOCK_NAMES: Record<string, string> = {
@@ -197,13 +209,15 @@ class TwelveDataService {
       };
     });
 
-    // Build indices
-    const indices: IndexQuote[] = ALL_INDICES.map((symbol) => {
-      const q = allQuotes[symbol];
-      if (!q) return { symbol, name: INDEX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+    // Build indices (from ETF proxies, display as index symbols)
+    const indices: IndexQuote[] = ALL_INDEX_ETFS.map((etfSymbol) => {
+      const displaySymbol = ETF_TO_INDEX[etfSymbol] || etfSymbol;
+      const displayName = INDEX_ETF_NAMES[etfSymbol] || etfSymbol;
+      const q = allQuotes[etfSymbol];
+      if (!q) return { symbol: displaySymbol, name: displayName, price: 0, change: 0, changePercent: 0, available: false };
       return {
-        symbol,
-        name: q.name || INDEX_NAMES[symbol] || symbol,
+        symbol: displaySymbol,
+        name: displayName,
         price: parseFloat(q.close) || 0,
         change: parseFloat(q.change) || 0,
         changePercent: parseFloat(q.percent_change) || 0,
@@ -375,7 +389,7 @@ class TwelveDataService {
         { symbol: 'XAU/USD', name: 'Gold', price: 0, change: 0, changePercent: 0, available: false },
         { symbol: 'XAG/USD', name: 'Silver', price: 0, change: 0, changePercent: 0, available: false },
       ],
-      indices: ALL_INDICES.map((s) => ({ symbol: s, name: INDEX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
+      indices: ALL_INDEX_ETFS.map((s) => ({ symbol: ETF_TO_INDEX[s] || s, name: INDEX_ETF_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
       stocks: ALL_STOCKS.map((s) => ({ symbol: s, name: STOCK_NAMES[s] || s, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false })),
       lastUpdated: new Date().toISOString(),
       available: false,
