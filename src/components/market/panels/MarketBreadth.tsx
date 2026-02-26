@@ -88,7 +88,10 @@ export function MarketBreadth({ data, loading }: MarketBreadthProps) {
       const assets = data[cat];
       if (!assets) continue;
       for (const a of assets) {
-        flat.push({ symbol: a.symbol, changePercent: a.changePercent ?? 0, category: cat });
+        const change = (a as any).changePercent ?? (a as any).change24h ?? 0;
+        const symbol = a.symbol || (a as any).pair || '';
+        if (!symbol) continue;
+        flat.push({ symbol, changePercent: change, category: cat });
       }
     }
 

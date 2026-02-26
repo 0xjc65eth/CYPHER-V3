@@ -90,12 +90,16 @@ export function AssetHeatmap({ data, loading }: AssetHeatmapProps) {
       const assets = data[cat];
       if (!assets) continue;
       for (const asset of assets) {
+        // Crypto uses change24h, others use changePercent
+        const change = (asset as any).changePercent ?? (asset as any).change24h ?? (asset as any).changePercent ?? 0;
+        // For forex, use 'pair' as symbol if 'symbol' is missing
+        const symbol = asset.symbol || (asset as any).pair || '';
         result.push({
-          symbol: asset.symbol,
-          name: asset.name || asset.symbol,
-          changePercent: asset.changePercent ?? 0,
+          symbol,
+          name: asset.name || symbol,
+          changePercent: change,
           category: cat,
-          isLarge: LARGE_SYMBOLS.has((asset.symbol || '').toUpperCase()),
+          isLarge: LARGE_SYMBOLS.has(symbol.toUpperCase()),
         });
       }
     }
