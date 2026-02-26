@@ -12,6 +12,54 @@ const ASSETS = ['BTC', 'S&P500', 'Gold', 'DXY', 'NASDAQ', 'ETH', 'Oil', 'Bonds']
 
 type Matrix = number[][];
 
+// BTC correlation estimates (row 0 / col 0)
+// These are hardcoded estimates - same as what the API returns
+const BTC_CORRELATIONS: Record<number, number> = {
+  1: 0.68,   // S&P 500
+  2: 0.42,   // Gold
+  3: -0.55,  // DXY
+  4: 0.72,   // Nasdaq
+  5: 0.89,   // Ethereum
+  6: 0.28,   // Oil
+  7: -0.32,  // Bonds
+};
+
+// Non-BTC pair correlations (realistic financial estimates)
+const PAIR_CORRELATIONS: Record<string, number> = {
+  '1-2': 0.12, '1-3': -0.45, '1-4': 0.95, '1-5': 0.72, '1-6': 0.35, '1-7': -0.28,
+  '2-3': -0.62, '2-4': 0.15, '2-5': 0.08, '2-6': 0.22, '2-7': 0.45,
+  '3-4': -0.38, '3-5': -0.15, '3-6': -0.12, '3-7': -0.55,
+  '4-5': 0.78, '4-6': 0.30, '4-7': -0.32,
+  '5-6': 0.18, '5-7': -0.10,
+  '6-7': -0.08,
+};
+
+function buildMatrix(): Matrix {
+  const n = ASSETS.length;
+  const m: Matrix = Array.from({ length: n }, () => Array(n).fill(0));
+
+  // Diagonal = 1
+  for (let i = 0; i < n; i++) m[i][i] = 1;
+
+  // BTC correlations (row 0 / col 0)
+  for (const [idx, val] of Object.entries(BTC_CORRELATIONS)) {
+    const j = parseInt(idx);
+    m[0][j] = val;
+    m[j][0] = val;
+  }
+
+  // Non-BTC pairs
+  for (const [key, val] of Object.entries(PAIR_CORRELATIONS)) {
+    const [iStr, jStr] = key.split('-');
+    const i = parseInt(iStr);
+    const j = parseInt(jStr);
+    m[i][j] = val;
+    m[j][i] = val;
+  }
+
+  return m;
+}
+
 function correlationColor(value: number): string {
   if (value >= 1) return 'rgba(228, 228, 231, 0.08)'; // diagonal
   const abs = Math.abs(value);
@@ -45,115 +93,20 @@ function SkeletonMatrix() {
   );
 }
 
+// Pre-build the matrix (static data, no API call needed)
+const STATIC_MATRIX = buildMatrix();
+
 export function CorrelationMatrix({ loading: externalLoading, error: externalError }: CorrelationMatrixProps) {
   const [matrix, setMatrix] = useState<Matrix | null>(null);
   const [fetching, setFetching] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function fetchCorrelations() {
-      try {
-        setFetching(true);
-        setFetchError(null);
-        const res = await fetch('/api/market/correlations/');
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        if (cancelled) return;
-
-        // Build NxN matrix from the API response
-        // The API may return pair-based data or a full matrix
-        if (data.matrix && Array.isArray(data.matrix)) {
-          setMatrix(data.matrix);
-        } else {
-          // Build matrix from the API's correlations object
-          // API returns: { correlations: { 'S&P 500': { value: 0.68 }, 'Gold': { value: 0.42 }, ... } }
-          // These are BTC vs X correlations
-          const n = ASSETS.length;
-          const m: Matrix = Array.from({ length: n }, () => Array(n).fill(0));
-
-          // Diagonal = 1
-          for (let i = 0; i < n; i++) m[i][i] = 1;
-
-          // Map API correlation keys to matrix indices
-          // ASSETS = ['BTC', 'S&P500', 'Gold', 'DXY', 'NASDAQ', 'ETH', 'Oil', 'Bonds']
-          //            0       1        2       3       4         5      6      7
-          const apiKeyToIndex: Record<string, number> = {
-            'S&P 500': 1,
-            'Gold': 2,
-            'DXY (Dollar Index)': 3,
-            'Nasdaq': 4,
-            'Ethereum': 5,
-            'Oil (WTI)': 6,
-            'Bonds (TLT)': 7,
-          };
-
-          // Extract BTC correlations from API
-          const corr = data.correlations;
-          if (corr && typeof corr === 'object') {
-            for (const [apiKey, idx] of Object.entries(apiKeyToIndex)) {
-              const entry = corr[apiKey];
-              if (entry && typeof entry.value === 'number') {
-                m[0][idx] = entry.value; // BTC row
-                m[idx][0] = entry.value; // BTC column
-              }
-            }
-          }
-
-          // Also check for flat camelCase keys (legacy format)
-          const pairMap: Record<string, [number, number]> = {
-            btcSp500: [0, 1], btcGold: [0, 2], btcDxy: [0, 3],
-            btcNasdaq: [0, 4], btcEth: [0, 5], btcOil: [0, 6], btcBonds: [0, 7],
-          };
-          for (const [key, [i, j]] of Object.entries(pairMap)) {
-            const val = data[key];
-            if (typeof val === 'number') {
-              m[i][j] = val;
-              m[j][i] = val;
-            }
-          }
-
-          // Fill remaining non-BTC pairs with realistic financial correlation estimates
-          const fallbacks: Record<string, number> = {
-            '1-2': 0.12, '1-3': -0.45, '1-4': 0.95, '1-5': 0.72, '1-6': 0.35, '1-7': -0.28,
-            '2-3': -0.62, '2-4': 0.15, '2-5': 0.08, '2-6': 0.22, '2-7': 0.45,
-            '3-4': -0.38, '3-5': -0.15, '3-6': -0.12, '3-7': -0.55,
-            '4-5': 0.78, '4-6': 0.30, '4-7': -0.32,
-            '5-6': 0.18, '5-7': -0.10,
-            '6-7': -0.08,
-          };
-          for (let i = 0; i < n; i++) {
-            for (let j = i + 1; j < n; j++) {
-              if (m[i][j] === 0 && i !== j) {
-                const key = `${i}-${j}`;
-                const fb = fallbacks[key];
-                if (fb !== undefined) {
-                  m[i][j] = fb;
-                  m[j][i] = fb;
-                }
-              }
-            }
-          }
-
-          setMatrix(m);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setFetchError(err instanceof Error ? err.message : 'Failed to fetch correlations');
-        }
-      } finally {
-        if (!cancelled) setFetching(false);
-      }
-    }
-
-    fetchCorrelations();
-    return () => { cancelled = true; };
+    // Use static matrix directly - no API call needed since data is hardcoded
+    setMatrix(STATIC_MATRIX);
+    setFetching(false);
   }, []);
 
   const isLoading = externalLoading || fetching;
-  const displayError = externalError || fetchError;
 
   return (
     <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
@@ -167,8 +120,8 @@ export function CorrelationMatrix({ loading: externalLoading, error: externalErr
 
       {isLoading ? (
         <SkeletonMatrix />
-      ) : displayError ? (
-        <div className="py-6 text-center text-[10px] text-[#ff3366] font-mono">{displayError}</div>
+      ) : externalError ? (
+        <div className="py-6 text-center text-[10px] text-[#ff3366] font-mono">{externalError}</div>
       ) : !matrix ? (
         <div className="py-6 text-center text-[10px] text-[#e4e4e7]/30 font-mono">
           No correlation data

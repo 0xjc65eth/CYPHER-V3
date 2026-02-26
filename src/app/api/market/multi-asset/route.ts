@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { twelveDataService } from '@/services/twelvedata/TwelveDataService';
-import { getRedisClient } from '@/lib/cache/redis.config';
 
-const CACHE_KEY = 'market:multi-asset';
-const CACHE_TTL = 300; // 5 minutes
 const COINGECKO_URL =
   'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=true&price_change_percentage=1h,24h,7d';
 
+// No route-level cache — TwelveDataService handles its own per-group caching.
+// Caching here would prevent the staggered group rotation from advancing on Vercel serverless.
+
 export async function GET(request: NextRequest) {
   try {
-    const redis = getRedisClient();
-
-    // Check cache first
-    const cached = await redis.get(CACHE_KEY);
-    if (cached) {
-      return NextResponse.json(JSON.parse(cached as string), {
-        headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
-      });
-    }
 
     // Fetch crypto data from CoinGecko
     let crypto: Array<{
@@ -115,11 +106,8 @@ export async function GET(request: NextRequest) {
       timestamp: Date.now(),
     };
 
-    // Cache the result
-    await redis.set(CACHE_KEY, JSON.stringify(data), 'EX', CACHE_TTL);
-
     return NextResponse.json(data, {
-      headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
     });
   } catch (error) {
     console.error('[multi-asset] Route error:', error);

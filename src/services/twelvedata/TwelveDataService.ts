@@ -1,12 +1,13 @@
 /**
  * TwelveData Market Data Service
- * Staggered batch fetching to stay within 8 credits/min limit
+ * Priority-first batch fetching for Vercel serverless (8 credits/min limit)
  *
- * Strategy: 3 cache groups fetched on rotation
- * - Group A: forex (6 symbols = 6 credits)
- * - Group B: indices + gold (5 symbols = 5 credits)
- * - Group C: stocks (7 symbols = 7 credits)
+ * Strategy: Priority group ensures ALL categories have data on first load.
+ * - Group 1 (Priority): 3 forex + 2 indices + 1 gold + 2 stocks = 8 credits
+ * - Group 2 (Enrich):   3 forex + 2 indices + 2 stocks           = 7 credits
+ * - Group 3 (Enrich):   3 stocks                                  = 3 credits
  * Each group cached 5 min. Only 1 group fetches per request.
+ * On cold start, Group 1 always runs first → every category has data.
  */
 
 // --- Types ---
@@ -98,17 +99,22 @@ interface CacheEntry<T> {
 
 const BASE_URL = 'https://api.twelvedata.com';
 const GROUP_CACHE_TTL = 300; // 5 minutes per group
-const RESULT_CACHE_TTL = 60; // 1 minute for combined result
+const RESULT_CACHE_TTL = 30; // 30s for combined result
 const REQUEST_TIMEOUT_MS = 10000;
 
-// Group A: Forex (6 credits)
-const FOREX_SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD'];
+// Group 1 (Priority - 8 credits): covers ALL categories on first load
+const GROUP1_SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'SPX', 'IXIC', 'XAU/USD', 'AAPL', 'NVDA'];
 
-// Group B: Indices + Gold (5 credits) - Silver requires paid plan
-const GROUP_B_SYMBOLS = ['SPX', 'IXIC', 'DJI', 'RUT', 'XAU/USD'];
+// Group 2 (Enrich - 7 credits): remaining forex, indices, stocks
+const GROUP2_SYMBOLS = ['AUD/USD', 'USD/CHF', 'USD/CAD', 'DJI', 'RUT', 'TSLA', 'MSFT'];
 
-// Group C: Stocks (7 credits)
-const STOCK_SYMBOLS = ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
+// Group 3 (Enrich - 3 credits): remaining stocks
+const GROUP3_SYMBOLS = ['GOOGL', 'AMZN', 'META'];
+
+// All forex symbols (for building complete response)
+const ALL_FOREX = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD'];
+const ALL_INDICES = ['SPX', 'IXIC', 'DJI', 'RUT'];
+const ALL_STOCKS = ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 
 const FOREX_NAMES: Record<string, string> = {
   'EUR/USD': 'Euro / US Dollar',
@@ -126,6 +132,16 @@ const INDEX_NAMES: Record<string, string> = {
   'RUT': 'Russell 2000',
 };
 
+const STOCK_NAMES: Record<string, string> = {
+  'AAPL': 'Apple Inc',
+  'NVDA': 'NVIDIA Corp',
+  'TSLA': 'Tesla Inc',
+  'MSFT': 'Microsoft Corp',
+  'GOOGL': 'Alphabet Inc',
+  'AMZN': 'Amazon.com Inc',
+  'META': 'Meta Platforms Inc',
+};
+
 function logError(...args: unknown[]) {
   console.error('[TwelveData]', ...args);
 }
@@ -136,7 +152,7 @@ class TwelveDataService {
   private static instance: TwelveDataService;
   private apiKey: string;
   private cache = new Map<string, CacheEntry<unknown>>();
-  private lastFetchGroup: 'A' | 'B' | 'C' = 'C'; // Start so first fetch is A
+  private lastFetchGroup = 0; // 0 = none yet, 1/2/3 = last group fetched
 
   private constructor() {
     this.apiKey = process.env.TWELVEDATA_API_KEY || '';
@@ -152,7 +168,7 @@ class TwelveDataService {
   // --- Main entry point ---
 
   async getAllMarketData(): Promise<MultiAssetData> {
-    // Short-lived result cache to avoid redundant work within same request cycle
+    // Short-lived result cache
     const resultCacheKey = 'allMarketData';
     const cachedResult = this.getFromCache<MultiAssetData>(resultCacheKey);
     if (cachedResult) return cachedResult;
@@ -161,16 +177,50 @@ class TwelveDataService {
       return this.getEmptyData();
     }
 
-    // Fetch the next stale group (only 1 per request to stay within rate limit)
+    // Fetch the next stale group
     await this.fetchNextStaleGroup();
 
-    // Combine all cached group data
-    const forex = this.getFromCache<ForexQuote[]>('group:forex') || this.emptyForex();
-    const groupB = this.getFromCache<{ indices: IndexQuote[]; gold: CommodityQuote }>('group:indices_gold');
-    const stocks = this.getFromCache<StockQuote[]>('group:stocks') || this.emptyStocks();
+    // Build combined response from all cached quotes
+    const allQuotes = this.getFromCache<Record<string, TwelveDataQuote>>('quotes:all') || {};
 
-    const indices = groupB?.indices || this.emptyIndices();
-    const gold = groupB?.gold || { symbol: 'XAU/USD', name: 'Gold', price: 0, change: 0, changePercent: 0, available: false };
+    // Build forex
+    const forex: ForexQuote[] = ALL_FOREX.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: FOREX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+      return {
+        symbol,
+        name: q.name || FOREX_NAMES[symbol] || symbol,
+        price: parseFloat(q.close) || 0,
+        change: parseFloat(q.change) || 0,
+        changePercent: parseFloat(q.percent_change) || 0,
+        available: true,
+      };
+    });
+
+    // Build indices
+    const indices: IndexQuote[] = ALL_INDICES.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: INDEX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
+      return {
+        symbol,
+        name: q.name || INDEX_NAMES[symbol] || symbol,
+        price: parseFloat(q.close) || 0,
+        change: parseFloat(q.change) || 0,
+        changePercent: parseFloat(q.percent_change) || 0,
+        available: true,
+      };
+    });
+
+    // Build gold
+    const goldQuote = allQuotes['XAU/USD'];
+    const gold: CommodityQuote = {
+      symbol: 'XAU/USD',
+      name: goldQuote?.name || 'Gold Spot / US Dollar',
+      price: goldQuote ? (parseFloat(goldQuote.close) || 0) : 0,
+      change: goldQuote ? (parseFloat(goldQuote.change) || 0) : 0,
+      changePercent: goldQuote ? (parseFloat(goldQuote.percent_change) || 0) : 0,
+      available: !!goldQuote,
+    };
 
     // Silver: estimate from gold using gold/silver ratio (~85)
     const silverPrice = gold.available && gold.price > 0 ? gold.price / 85 : 0;
@@ -179,9 +229,25 @@ class TwelveDataService {
       name: 'Silver',
       price: parseFloat(silverPrice.toFixed(2)),
       change: gold.available ? parseFloat((gold.change / 85).toFixed(2)) : 0,
-      changePercent: gold.changePercent, // Same % as gold (approximate)
+      changePercent: gold.changePercent,
       available: gold.available && silverPrice > 0,
     };
+
+    // Build stocks
+    const stocks: StockQuote[] = ALL_STOCKS.map((symbol) => {
+      const q = allQuotes[symbol];
+      if (!q) return { symbol, name: STOCK_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false };
+      return {
+        symbol,
+        name: q.name || STOCK_NAMES[symbol] || symbol,
+        price: parseFloat(q.close) || 0,
+        change: parseFloat(q.change) || 0,
+        changePercent: parseFloat(q.percent_change) || 0,
+        volume: parseInt(q.volume, 10) || 0,
+        marketOpen: q.is_market_open ?? false,
+        available: true,
+      };
+    });
 
     const commodities: CommodityQuote[] = [gold, silver];
     const hasData = [...forex, ...commodities, ...indices, ...stocks].some((q) => q.available);
@@ -199,121 +265,50 @@ class TwelveDataService {
     return result;
   }
 
-  // --- Staggered group fetching ---
+  // --- Priority-first group fetching ---
 
   private async fetchNextStaleGroup(): Promise<void> {
-    // Check which groups have expired cache
-    const forexStale = !this.getFromCache('group:forex');
-    const groupBStale = !this.getFromCache('group:indices_gold');
-    const stocksStale = !this.getFromCache('group:stocks');
+    const g1Stale = !this.getFromCache('group:1');
+    const g2Stale = !this.getFromCache('group:2');
+    const g3Stale = !this.getFromCache('group:3');
 
-    // Priority: rotate A → B → C, but only fetch stale groups
-    const nextGroup = this.getNextGroup(forexStale, groupBStale, stocksStale);
-    if (!nextGroup) return; // All cached
+    if (!g1Stale && !g2Stale && !g3Stale) return;
 
-    switch (nextGroup) {
-      case 'A':
-        await this.fetchGroupA();
-        break;
-      case 'B':
-        await this.fetchGroupB();
-        break;
-      case 'C':
-        await this.fetchGroupC();
-        break;
+    // Group 1 ALWAYS takes priority on cold start (lastFetchGroup === 0)
+    // After that, round-robin through stale groups
+    let target = 0;
+
+    if (this.lastFetchGroup === 0) {
+      // Cold start: always fetch priority group first
+      target = 1;
+    } else if (g1Stale) {
+      // Priority group expired: refresh it first
+      target = 1;
+    } else {
+      // Round-robin enrichment groups
+      const order = this.lastFetchGroup === 1 ? [2, 3] :
+                    this.lastFetchGroup === 2 ? [3, 2] : [2, 3];
+      const stale: Record<number, boolean> = { 2: g2Stale, 3: g3Stale };
+      target = order.find((g) => stale[g]) || 0;
     }
 
-    this.lastFetchGroup = nextGroup;
-  }
+    if (!target) return;
 
-  private getNextGroup(aStale: boolean, bStale: boolean, cStale: boolean): 'A' | 'B' | 'C' | null {
-    if (!aStale && !bStale && !cStale) return null;
+    const symbols = target === 1 ? GROUP1_SYMBOLS :
+                    target === 2 ? GROUP2_SYMBOLS : GROUP3_SYMBOLS;
 
-    // Round-robin priority after last fetch
-    const order: ('A' | 'B' | 'C')[] =
-      this.lastFetchGroup === 'A' ? ['B', 'C', 'A'] :
-      this.lastFetchGroup === 'B' ? ['C', 'A', 'B'] :
-      ['A', 'B', 'C'];
-
-    const stale = { A: aStale, B: bStale, C: cStale };
-    return order.find((g) => stale[g]) || null;
-  }
-
-  private async fetchGroupA(): Promise<void> {
     try {
-      const quotes = await this.apiFetch(FOREX_SYMBOLS);
-      const forex: ForexQuote[] = FOREX_SYMBOLS.map((symbol) => {
-        const q = quotes[symbol];
-        if (!q) return { symbol, name: FOREX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
-        return {
-          symbol,
-          name: q.name || FOREX_NAMES[symbol] || symbol,
-          price: parseFloat(q.close) || 0,
-          change: parseFloat(q.change) || 0,
-          changePercent: parseFloat(q.percent_change) || 0,
-          available: true,
-        };
-      });
-      this.setCache('group:forex', forex, GROUP_CACHE_TTL);
+      const quotes = await this.apiFetch(symbols);
+      if (Object.keys(quotes).length > 0) {
+        // Merge new quotes into the all-quotes cache
+        const existing = this.getFromCache<Record<string, TwelveDataQuote>>('quotes:all') || {};
+        const merged = { ...existing, ...quotes };
+        this.setCache('quotes:all', merged, GROUP_CACHE_TTL);
+        this.setCache(`group:${target}`, true, GROUP_CACHE_TTL);
+        this.lastFetchGroup = target;
+      }
     } catch (e) {
-      logError('Group A (forex) fetch failed:', e);
-    }
-  }
-
-  private async fetchGroupB(): Promise<void> {
-    try {
-      const quotes = await this.apiFetch(GROUP_B_SYMBOLS);
-
-      const indexSymbols = ['SPX', 'IXIC', 'DJI', 'RUT'];
-      const indices: IndexQuote[] = indexSymbols.map((symbol) => {
-        const q = quotes[symbol];
-        if (!q) return { symbol, name: INDEX_NAMES[symbol] || symbol, price: 0, change: 0, changePercent: 0, available: false };
-        return {
-          symbol,
-          name: q.name || INDEX_NAMES[symbol] || symbol,
-          price: parseFloat(q.close) || 0,
-          change: parseFloat(q.change) || 0,
-          changePercent: parseFloat(q.percent_change) || 0,
-          available: true,
-        };
-      });
-
-      const goldQuote = quotes['XAU/USD'];
-      const gold: CommodityQuote = {
-        symbol: 'XAU/USD',
-        name: goldQuote?.name || 'Gold Spot / US Dollar',
-        price: goldQuote ? (parseFloat(goldQuote.close) || 0) : 0,
-        change: goldQuote ? (parseFloat(goldQuote.change) || 0) : 0,
-        changePercent: goldQuote ? (parseFloat(goldQuote.percent_change) || 0) : 0,
-        available: !!goldQuote && goldQuote.status !== 'error',
-      };
-
-      this.setCache('group:indices_gold', { indices, gold }, GROUP_CACHE_TTL);
-    } catch (e) {
-      logError('Group B (indices+gold) fetch failed:', e);
-    }
-  }
-
-  private async fetchGroupC(): Promise<void> {
-    try {
-      const quotes = await this.apiFetch(STOCK_SYMBOLS);
-      const stocks: StockQuote[] = STOCK_SYMBOLS.map((symbol) => {
-        const q = quotes[symbol];
-        if (!q) return { symbol, name: symbol, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false };
-        return {
-          symbol,
-          name: q.name || symbol,
-          price: parseFloat(q.close) || 0,
-          change: parseFloat(q.change) || 0,
-          changePercent: parseFloat(q.percent_change) || 0,
-          volume: parseInt(q.volume, 10) || 0,
-          marketOpen: q.is_market_open ?? false,
-          available: true,
-        };
-      });
-      this.setCache('group:stocks', stocks, GROUP_CACHE_TTL);
-    } catch (e) {
-      logError('Group C (stocks) fetch failed:', e);
+      logError(`Group ${target} fetch failed:`, e);
     }
   }
 
@@ -375,28 +370,16 @@ class TwelveDataService {
 
   private getEmptyData(): MultiAssetData {
     return {
-      forex: this.emptyForex(),
+      forex: ALL_FOREX.map((s) => ({ symbol: s, name: FOREX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
       commodities: [
         { symbol: 'XAU/USD', name: 'Gold', price: 0, change: 0, changePercent: 0, available: false },
         { symbol: 'XAG/USD', name: 'Silver', price: 0, change: 0, changePercent: 0, available: false },
       ],
-      indices: this.emptyIndices(),
-      stocks: this.emptyStocks(),
+      indices: ALL_INDICES.map((s) => ({ symbol: s, name: INDEX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false })),
+      stocks: ALL_STOCKS.map((s) => ({ symbol: s, name: STOCK_NAMES[s] || s, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false })),
       lastUpdated: new Date().toISOString(),
       available: false,
     };
-  }
-
-  private emptyForex(): ForexQuote[] {
-    return FOREX_SYMBOLS.map((s) => ({ symbol: s, name: FOREX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false }));
-  }
-
-  private emptyIndices(): IndexQuote[] {
-    return ['SPX', 'IXIC', 'DJI', 'RUT'].map((s) => ({ symbol: s, name: INDEX_NAMES[s] || s, price: 0, change: 0, changePercent: 0, available: false }));
-  }
-
-  private emptyStocks(): StockQuote[] {
-    return STOCK_SYMBOLS.map((s) => ({ symbol: s, name: s, price: 0, change: 0, changePercent: 0, volume: 0, marketOpen: false, available: false }));
   }
 
   // --- Helpers ---
