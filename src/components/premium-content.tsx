@@ -4,20 +4,30 @@ import { RiLockLine, RiShieldCheckLine, RiVipCrownLine } from 'react-icons/ri'
 import { usePremium } from '@/contexts/PremiumContext'
 import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
 import { getWalletAccessTier, hasPremiumAccess } from '@/config/vip-wallets'
+import { type SubscriptionTier, tierHasAccess, tierHasFeature } from '@/lib/stripe/config'
+import { UpgradePrompt } from '@/components/subscription/UpgradePrompt'
 
 interface PremiumContentProps {
   children: React.ReactNode
   fallback?: React.ReactNode
+  /** If set, checks if user's subscription tier meets this level */
+  requiredTier?: SubscriptionTier
+  /** If set, checks if user's tier includes this specific feature */
+  requiredFeature?: string
 }
 
-export function PremiumContent({ children, fallback }: PremiumContentProps) {
+export function PremiumContent({ children, fallback, requiredTier, requiredFeature }: PremiumContentProps) {
   const { connected, address } = useLaserEyes()
-  const { isPremium, isVerifying, accessTier } = usePremium()
+  const { isPremium, isVerifying, accessTier, subscriptionTier, hasFeature } = usePremium()
 
   // Derive effective premium from both context and direct BTC VIP check
   const btcTier = getWalletAccessTier(connected ? (address ?? null) : null)
   const effectivePremium = isPremium || hasPremiumAccess(btcTier)
   const effectiveTier = btcTier !== 'free' ? btcTier : accessTier
+
+  // Subscription-based tier check
+  const hasTierAccess = requiredTier ? tierHasAccess(subscriptionTier, requiredTier) : null
+  const hasFeatureAccess = requiredFeature ? hasFeature(requiredFeature) : null
 
   // Default fallback content if none provided
   const defaultFallback = (
@@ -50,7 +60,18 @@ export function PremiumContent({ children, fallback }: PremiumContentProps) {
     )
   }
 
-  if (!effectivePremium) {
+  // When requiredTier is set, check subscription tier access
+  if (requiredTier !== undefined && hasTierAccess === false) {
+    return <UpgradePrompt requiredTier={requiredTier} />
+  }
+
+  // When requiredFeature is set, check feature access
+  if (requiredFeature !== undefined && hasFeatureAccess === false) {
+    return <UpgradePrompt requiredFeature={requiredFeature} />
+  }
+
+  // When neither is set, use existing isPremium check (backwards compatible)
+  if (requiredTier === undefined && requiredFeature === undefined && !effectivePremium) {
     return fallback || defaultFallback
   }
 

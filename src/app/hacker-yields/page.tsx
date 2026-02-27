@@ -1622,7 +1622,7 @@ export default function TradingAgentPage() {
 
   if (!isConfigured || !showDashboard) {
     return (
-      <PremiumContent fallback={yhpFallback}>
+      <PremiumContent requiredFeature="ai_trading_agent" fallback={yhpFallback}>
         <SetupWizard
           currentStep={currentStep}
           setCurrentStep={setCurrentStep}
@@ -1635,7 +1635,7 @@ export default function TradingAgentPage() {
   }
 
   return (
-    <PremiumContent fallback={yhpFallback}>
+    <PremiumContent requiredFeature="ai_trading_agent" fallback={yhpFallback}>
       <AgentDashboard
         config={config}
         agentStatus={agentStatus}

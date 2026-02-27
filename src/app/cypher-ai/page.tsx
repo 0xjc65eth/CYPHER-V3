@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CypherAIInterface } from '@/components/ai/CypherAIInterface';
 import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
 import { TradingSignalsPanel } from '@/components/ai/TradingSignalsPanel';
@@ -26,15 +26,135 @@ const AGENT_ROSTER = [
 type AnalysisMode = 'realtime' | 'deep' | 'predictive';
 type BottomTab = 'backtesting' | 'performance';
 
-// Performance data should come from real trading history
-const PERFORMANCE_MOCK_DATA: Array<{date: string, profit: number, trades: number, winRate: number}> = [];
+interface AgentStatus {
+  isActive: boolean;
+  accuracy: number;
+  totalTrades: number;
+  profitability: number;
+  riskLevel: 'low' | 'medium' | 'high';
+}
+
+interface PerformanceDay {
+  date: string;
+  profit: number;
+  trades: number;
+  winRate: number;
+}
+
+interface AgentPerformanceSummary {
+  data: PerformanceDay[];
+  totalProfit: number;
+  avgWinRate: number;
+  bestDay: number;
+}
+
+function useAgentStatus() {
+  const [status, setStatus] = useState<AgentStatus>({
+    isActive: false,
+    accuracy: 0,
+    totalTrades: 0,
+    profitability: 0,
+    riskLevel: 'medium',
+  });
+  const [performance, setPerformance] = useState<AgentPerformanceSummary>({
+    data: [],
+    totalProfit: 0,
+    avgWinRate: 0,
+    bestDay: 0,
+  });
+  const isActiveRef = useRef(false);
+
+  const fetchAgentData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agent?include=trades');
+      if (!res.ok) return;
+      const json = await res.json();
+      if (!json.success) return;
+
+      const agentStatus = json.state?.status;
+      const isActive = agentStatus === 'running' || agentStatus === 'paused';
+      const perf = json.performance || {};
+
+      // Derive risk level from drawdown
+      const drawdown = Math.abs(perf.currentDrawdown || 0);
+      const riskLevel: 'low' | 'medium' | 'high' =
+        drawdown > 10 ? 'high' : drawdown > 5 ? 'medium' : 'low';
+
+      isActiveRef.current = isActive;
+      setStatus({
+        isActive,
+        accuracy: perf.winRate || 0,
+        totalTrades: perf.totalTrades || 0,
+        profitability: perf.totalPnlPercent || 0,
+        riskLevel,
+      });
+
+      // Aggregate trade history into daily performance
+      const trades = json.tradeHistory || [];
+      if (trades.length > 0) {
+        const dailyMap = new Map<string, { profit: number; trades: number; wins: number }>();
+        for (const trade of trades) {
+          const date = new Date(trade.timestamp || trade.closedAt || Date.now())
+            .toISOString()
+            .slice(0, 10);
+          const entry = dailyMap.get(date) || { profit: 0, trades: 0, wins: 0 };
+          entry.profit += trade.pnlPercent || 0;
+          entry.trades += 1;
+          if ((trade.pnlPercent || 0) > 0) entry.wins += 1;
+          dailyMap.set(date, entry);
+        }
+
+        const data: PerformanceDay[] = Array.from(dailyMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, d]) => ({
+            date,
+            profit: parseFloat(d.profit.toFixed(2)),
+            trades: d.trades,
+            winRate: d.trades > 0 ? parseFloat(((d.wins / d.trades) * 100).toFixed(1)) : 0,
+          }));
+
+        const bestDay = data.reduce((max, d) => Math.max(max, d.profit), 0);
+
+        setPerformance({
+          data,
+          totalProfit: perf.totalPnlPercent || 0,
+          avgWinRate: perf.winRate || 0,
+          bestDay,
+        });
+      } else {
+        setPerformance({
+          data: [],
+          totalProfit: perf.totalPnlPercent || 0,
+          avgWinRate: perf.winRate || 0,
+          bestDay: 0,
+        });
+      }
+    } catch {
+      // Agent API unavailable — keep defaults
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAgentData();
+
+    // Poll: 3s when active, 15s when idle
+    const id = setInterval(() => {
+      fetchAgentData();
+    }, isActiveRef.current ? 3000 : 15000);
+
+    return () => clearInterval(id);
+  }, [fetchAgentData]);
+
+  return { status, performance };
+}
 
 export default function CypherAIPage() {
   const [mode, setMode] = useState<AnalysisMode>('realtime');
   const [bottomTab, setBottomTab] = useState<BottomTab>('backtesting');
+  const { status: agentStatus, performance: agentPerformance } = useAgentStatus();
 
   return (
-    <PremiumContent fallback={
+    <PremiumContent requiredFeature="ai_analytics" fallback={
       <div className="bg-[#0a0a0f] min-h-screen font-mono text-white flex flex-col items-center justify-center px-4">
         <div className="w-20 h-20 bg-[#1a1a2e] border border-orange-500/30 rounded-full flex items-center justify-center mb-6">
           <Brain className="w-10 h-10 text-orange-500" />
@@ -79,6 +199,8 @@ export default function CypherAIPage() {
                   <button
                     key={key}
                     onClick={() => setMode(key)}
+                    aria-label={`${label} mode`}
+                    aria-pressed={mode === key}
                     className={`flex items-center gap-1 px-2 py-1 text-[10px] rounded transition-all ${
                       mode === key
                         ? 'bg-orange-500/20 text-orange-400 border border-orange-500/40'
@@ -180,12 +302,15 @@ export default function CypherAIPage() {
           </div>
           <div className="p-3">
             <AIStatusCard
-              isActive={true}
-              accuracy={87.4}
-              totalTrades={14892}
-              profitability={23.7}
-              riskLevel="medium"
+              isActive={agentStatus.isActive}
+              accuracy={agentStatus.accuracy}
+              totalTrades={agentStatus.totalTrades}
+              profitability={agentStatus.profitability}
+              riskLevel={agentStatus.riskLevel}
             />
+            {!agentStatus.isActive && (
+              <p className="text-xs text-gray-500 mt-2">Connect trading agent to track performance</p>
+            )}
           </div>
         </div>
 
@@ -217,10 +342,10 @@ export default function CypherAIPage() {
               <BacktestingPanel />
             ) : (
               <PerformanceMetrics
-                data={PERFORMANCE_MOCK_DATA}
-                totalProfit={14.3}
-                avgWinRate={69.4}
-                bestDay={4.2}
+                data={agentPerformance.data}
+                totalProfit={agentPerformance.totalProfit}
+                avgWinRate={agentPerformance.avgWinRate}
+                bestDay={agentPerformance.bestDay}
               />
             )}
           </div>

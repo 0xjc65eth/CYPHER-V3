@@ -598,7 +598,7 @@ export default function ArbitragePage() {
 
             {/* Cross-Exchange Tab (YHP Premium) */}
             <TabsContent value="cross-exchange">
-              <PremiumContent fallback={arbYhpFallback('CROSS-EXCHANGE')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('CROSS-EXCHANGE')}>
               {/* Stats Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
@@ -792,7 +792,7 @@ export default function ArbitragePage() {
 
             {/* Triangular Tab (YHP Premium) */}
             <TabsContent value="triangular">
-              <PremiumContent fallback={arbYhpFallback('TRIANGULAR ARBITRAGE')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('TRIANGULAR ARBITRAGE')}>
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-bold text-[#00ff88]">Triangular Arbitrage Paths</h2>
@@ -878,7 +878,7 @@ export default function ArbitragePage() {
 
             {/* Analytics Tab (YHP Premium) */}
             <TabsContent value="analytics">
-              <PremiumContent fallback={arbYhpFallback('ANALYTICS')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('ANALYTICS')}>
               {(() => {
                 // Compute real analytics from arbData
                 const allOpps = arbData?.opportunities || [];
@@ -977,7 +977,7 @@ export default function ArbitragePage() {
 
             {/* SMC Analysis Tab (YHP Premium) */}
             <TabsContent value="smc">
-              <PremiumContent fallback={arbYhpFallback('SMC ANALYSIS')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('SMC ANALYSIS')}>
               <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -1066,14 +1066,14 @@ export default function ArbitragePage() {
 
             {/* Performance Tab (YHP Premium) */}
             <TabsContent value="performance">
-              <PremiumContent fallback={arbYhpFallback('PERFORMANCE')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PERFORMANCE')}>
                 <PerformanceAnalytics strategy="all" defaultPeriod="24h" />
               </PremiumContent>
             </TabsContent>
 
             {/* Risk Management Tab (YHP Premium) */}
             <TabsContent value="risk">
-              <PremiumContent fallback={arbYhpFallback('RISK MANAGEMENT')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('RISK MANAGEMENT')}>
                 <RiskManagementPanel
                   capital={10000}
                   currentExposure={0}
@@ -1084,7 +1084,7 @@ export default function ArbitragePage() {
 
             {/* Charts Tab (YHP Premium) */}
             <TabsContent value="charts">
-              <PremiumContent fallback={arbYhpFallback('PROFESSIONAL CHARTS')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PROFESSIONAL CHARTS')}>
                 <div className="space-y-6">
                   <ProfessionalCharts
                     symbol="BTC/USDT"
@@ -1102,7 +1102,7 @@ export default function ArbitragePage() {
 
             {/* Paper Trading Tab (YHP Premium) */}
             <TabsContent value="paper-trading">
-              <PremiumContent fallback={arbYhpFallback('PAPER TRADING')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PAPER TRADING')}>
                 <PaperTradingPanel
                   initialBalance={10000}
                   onTradeExecuted={() => {}}
@@ -1112,7 +1112,7 @@ export default function ArbitragePage() {
 
             {/* Backtest Tab (YHP Premium) */}
             <TabsContent value="backtest">
-              <PremiumContent fallback={arbYhpFallback('BACKTEST')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('BACKTEST')}>
                 <BacktestPanel
                   onBacktestComplete={() => {}}
                 />
@@ -1121,7 +1121,7 @@ export default function ArbitragePage() {
 
             {/* Alerts Tab (YHP Premium) */}
             <TabsContent value="alerts">
-              <PremiumContent fallback={arbYhpFallback('ALERT SYSTEM')}>
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('ALERT SYSTEM')}>
                 <AlertSystemPanel
                   onAlertTriggered={() => {}}
                 />

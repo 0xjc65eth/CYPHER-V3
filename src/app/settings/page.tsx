@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Settings,
   Bell,
@@ -19,8 +20,15 @@ import {
   EyeOff,
   Check,
   AlertTriangle,
+  CreditCard,
+  ExternalLink,
+  Loader2,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider';
+import { TierBadge } from '@/components/subscription/TierBadge';
+import { SUBSCRIPTION_TIERS } from '@/lib/stripe/config';
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
@@ -40,6 +48,54 @@ function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { tier, status, isActive, endDate } = useSubscription();
+  const { connected, address } = useLaserEyes();
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
+  const tierConfig = SUBSCRIPTION_TIERS[tier];
+
+  const handleManageBilling = async () => {
+    if (!address) return;
+    setPortalLoading(true);
+    try {
+      const res = await fetch('/api/subscription/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setPortalLoading(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!address) return;
+    setCancelLoading(true);
+    try {
+      await fetch('/api/subscription/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ walletAddress: address }),
+      });
+      setShowCancelConfirm(false);
+      // Refresh page to update subscription status
+      window.location.reload();
+    } catch {
+      // silently fail
+    } finally {
+      setCancelLoading(false);
+    }
+  };
+
   // General settings
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [currency, setCurrency] = useState('USD');
@@ -107,6 +163,10 @@ export default function SettingsPage() {
               <TabsTrigger value="api-keys" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
                 <Key className="w-4 h-4 mr-2" />
                 API Keys
+              </TabsTrigger>
+              <TabsTrigger value="subscription" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Subscription
               </TabsTrigger>
             </TabsList>
           </div>
@@ -457,6 +517,151 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          </TabsContent>
+
+          {/* === SUBSCRIPTION TAB === */}
+          <TabsContent value="subscription">
+            <div className="space-y-6">
+              {/* Current Plan */}
+              <div className="bg-[#0a0a14] border border-[#1a1a2e] rounded-xl p-6">
+                <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono mb-4">Current Plan</h3>
+
+                {tier === 'free' && !isActive ? (
+                  <div className="text-center py-8">
+                    <CreditCard className="w-8 h-8 text-white/20 mx-auto mb-3" />
+                    <p className="text-sm text-white/40 font-mono mb-1">No active subscription</p>
+                    <p className="text-xs text-white/20 mb-4">Upgrade to unlock advanced trading tools and AI analytics</p>
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="px-6 py-2.5 bg-[#F7931A] text-black text-sm font-mono font-bold rounded-lg hover:bg-[#F7931A]/90 transition-colors"
+                    >
+                      View Plans
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Tier & Status */}
+                    <div className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="w-5 h-5 text-[#F7931A]" />
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-sm text-white font-mono font-medium">Plan:</span>
+                            <TierBadge tier={tier} size="md" />
+                          </div>
+                          <p className="text-xs text-white/40 font-mono">{tierConfig.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold font-mono text-[#F7931A]">${tierConfig.price}<span className="text-xs text-white/40 font-normal">/mo</span></p>
+                      </div>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                      <span className="text-xs text-white/50 font-mono">Status</span>
+                      <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full ${
+                        status === 'active' ? 'bg-green-500/10 text-green-400 border border-green-500/20' :
+                        status === 'canceled' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' :
+                        status === 'past_due' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                        'bg-white/5 text-white/40 border border-white/10'
+                      }`}>
+                        {status.replace(/_/g, ' ').toUpperCase()}
+                      </span>
+                    </div>
+
+                    {/* Period End */}
+                    {endDate && (
+                      <div className="flex items-center justify-between p-3 bg-white/[0.02] border border-white/5 rounded-lg">
+                        <span className="text-xs text-white/50 font-mono">Current period ends</span>
+                        <span className="text-xs text-white/70 font-mono">
+                          {new Date(endDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Features List */}
+              {tier !== 'free' && (
+                <div className="bg-[#0a0a14] border border-[#1a1a2e] rounded-xl p-6">
+                  <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono mb-4">Included Features</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {tierConfig.features.map((feature) => (
+                      <div key={feature} className="flex items-center gap-2 p-2 bg-white/[0.02] rounded-lg">
+                        <Check className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                        <span className="text-xs text-white/60 font-mono">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              {tier !== 'free' && isActive && (
+                <div className="bg-[#0a0a14] border border-[#1a1a2e] rounded-xl p-6">
+                  <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono mb-4">Manage Subscription</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="flex items-center gap-2 px-4 py-2 bg-[#F7931A] text-black text-xs font-mono font-bold rounded-lg hover:bg-[#F7931A]/90 transition-colors"
+                    >
+                      Upgrade
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      onClick={handleManageBilling}
+                      disabled={portalLoading}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white/70 text-xs font-mono font-medium rounded-lg hover:bg-white/10 transition-colors disabled:opacity-50"
+                    >
+                      {portalLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CreditCard className="w-3.5 h-3.5" />}
+                      Manage Billing
+                    </button>
+
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono font-medium rounded-lg hover:bg-red-500/20 transition-colors"
+                    >
+                      Cancel Subscription
+                    </button>
+                  </div>
+
+                  {/* Cancel Confirmation Modal */}
+                  {showCancelConfirm && (
+                    <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                      <div className="flex items-start gap-2 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm text-red-400 font-mono font-medium">Are you sure?</p>
+                          <p className="text-xs text-white/40 mt-1">
+                            Your subscription will remain active until the end of the current billing period.
+                            You will lose access to {tierConfig.name} features after that date.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleCancelSubscription}
+                          disabled={cancelLoading}
+                          className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white text-xs font-mono font-bold rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {cancelLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                          Yes, Cancel
+                        </button>
+                        <button
+                          onClick={() => setShowCancelConfirm(false)}
+                          className="px-4 py-2 bg-white/5 border border-white/10 text-white/50 text-xs font-mono rounded-lg hover:bg-white/10 transition-colors"
+                        >
+                          Keep Subscription
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
