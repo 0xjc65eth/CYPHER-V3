@@ -12,7 +12,6 @@ import {
 import {
   fetchTwelveDataBatch,
   BATCH1_SYMBOLS,
-  BATCH2_SYMBOLS,
 } from '@/services/twelvedata/TwelveDataService';
 import { FALLBACK_PRICES } from '@/config/api-keys';
 
@@ -53,14 +52,10 @@ const COMMODITY_UNITS: Record<string, string> = {
   'HG=F': 'lb',
 };
 
-const ETF_TO_INDEX: Record<string, string> = { SPY: 'SPX', QQQ: 'NDX', DIA: 'DJI', IWM: 'RUT' };
-
-const TD_COMMODITY_ALTERNATIVES: Record<string, string> = {
-  'CL=F': 'USO',
-  'NG=F': 'UNG',
-  'PL=F': 'PPLT',
-  'HG=F': 'CPER',
-};
+// REMOVED: ETF_TO_INDEX mapping — ETF prices (SPY $685) are NOT index values (SPX $5950).
+// Indices are fetched correctly via Yahoo v8 using ^GSPC, ^IXIC, ^DJI, ^RUT symbols.
+// REMOVED: TD_COMMODITY_ALTERNATIVES — commodity ETF prices don't match futures prices.
+// Yahoo v8 fetches real futures data (CL=F, NG=F, etc.) directly.
 
 // Static fallback prices for non-crypto symbols (last resort) — Feb 2026 values
 const STATIC_FALLBACK: Record<string, { price: number; name: string }> = {
@@ -113,19 +108,17 @@ export async function GET(request: NextRequest) {
     let source = 'static';
 
     // Level 1: TwelveData (PRIMARY) — reliable on Vercel
+    // RATE LIMIT FIX: Only send Batch 1 (8 symbols) to stay within free tier (8 credits/min).
+    // Batch 2 symbols + indices + commodities are handled by Yahoo v8 fallback (Level 2).
     const apiKey = process.env.TWELVEDATA_API_KEY || '';
     if (apiKey) {
       try {
-        const [batch1, batch2] = await Promise.all([
-          fetchTwelveDataBatch(BATCH1_SYMBOLS, apiKey),
-          fetchTwelveDataBatch(BATCH2_SYMBOLS, apiKey),
-        ]);
-        const tdQuotes = { ...batch1, ...batch2 };
-        const count = Object.keys(tdQuotes).length;
-        console.log(`[multi-asset] L1 TwelveData: ${count} symbols`);
+        const batch1 = await fetchTwelveDataBatch(BATCH1_SYMBOLS, apiKey);
+        const count = Object.keys(batch1).length;
+        console.log(`[multi-asset] L1 TwelveData: ${count} symbols (single batch, rate-limit safe)`);
 
         // Convert TwelveData quotes to YahooQuoteResult format for uniform handling
-        for (const [sym, q] of Object.entries(tdQuotes)) {
+        for (const [sym, q] of Object.entries(batch1)) {
           const price = parseFloat(q.close) || 0;
           if (price === 0) continue;
           combinedQuotes[sym] = {
@@ -139,44 +132,8 @@ export async function GET(request: NextRequest) {
             marketState: q.is_market_open ? 'REGULAR' : 'CLOSED',
           };
         }
-        // Handle ETF->Index mapping from TwelveData
-        for (const [etf, idx] of Object.entries(ETF_TO_INDEX)) {
-          if (!combinedQuotes[idx] && tdQuotes[etf]) {
-            const q = tdQuotes[etf];
-            const price = parseFloat(q.close) || 0;
-            if (price > 0) {
-              combinedQuotes[idx] = {
-                symbol: idx,
-                name: INDEX_NAMES[idx] || idx,
-                price,
-                change: parseFloat(q.change) || 0,
-                changePercent: parseFloat(q.percent_change) || 0,
-                previousClose: parseFloat(q.previous_close) || (price - (parseFloat(q.change) || 0)),
-                volume: parseInt(q.volume, 10) || 0,
-                marketState: q.is_market_open ? 'REGULAR' : 'CLOSED',
-              };
-            }
-          }
-        }
-        // Handle commodity ETF->futures mapping from TwelveData
-        for (const [futures, etf] of Object.entries(TD_COMMODITY_ALTERNATIVES)) {
-          if (!combinedQuotes[futures] && tdQuotes[etf]) {
-            const q = tdQuotes[etf];
-            const price = parseFloat(q.close) || 0;
-            if (price > 0) {
-              combinedQuotes[futures] = {
-                symbol: futures,
-                name: COMMODITY_NAMES[futures] || futures,
-                price,
-                change: parseFloat(q.change) || 0,
-                changePercent: parseFloat(q.percent_change) || 0,
-                previousClose: parseFloat(q.previous_close) || (price - (parseFloat(q.change) || 0)),
-                volume: parseInt(q.volume, 10) || 0,
-                marketState: q.is_market_open ? 'REGULAR' : 'CLOSED',
-              };
-            }
-          }
-        }
+        // NO ETF→Index mapping: Yahoo v8 fetches real index values (^GSPC, ^IXIC, ^DJI, ^RUT)
+        // NO commodity ETF mapping: Yahoo v8 fetches real futures (CL=F, NG=F, etc.)
         if (count > 0) source = 'twelvedata';
       } catch (tdErr) {
         console.error('[multi-asset] L1 TwelveData failed:', tdErr);

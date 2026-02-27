@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Check, Zap, Crown, Rocket, Loader2 } from 'lucide-react'
 import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
+import { useEthWallet } from '@/hooks/useEthWallet'
 import { useSubscription } from '@/hooks/useSubscription'
 import { TierBadge } from '@/components/subscription/TierBadge'
 import {
@@ -26,13 +27,19 @@ const TIER_ACCENT: Record<string, string> = {
 }
 
 export default function PricingPage() {
-  const { connected, address } = useLaserEyes()
+  const { connected: btcConnected, address: btcAddress } = useLaserEyes()
+  const { address: ethAddress, isConnected: ethConnected, connecting: ethConnecting, connectEth } = useEthWallet()
   const { tier: currentTier, isActive } = useSubscription()
   const [loadingTier, setLoadingTier] = useState<SubscriptionTier | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
+  // User is "connected" if either BTC or ETH wallet is connected
+  const isWalletConnected = btcConnected || ethConnected
+  // Use whichever wallet address is available (prefer ETH for Stripe, fallback to BTC)
+  const walletAddress = ethAddress || btcAddress || null
+
   const handleSubscribe = async (tier: SubscriptionTier) => {
-    if (!connected || !address) return
+    if (!walletAddress) return
 
     setLoadingTier(tier)
     setCheckoutError(null)
@@ -40,7 +47,7 @@ export default function PricingPage() {
       const res = await fetch('/api/subscription/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ walletAddress: address, tier }),
+        body: JSON.stringify({ walletAddress, tier }),
       })
       const data = await res.json()
       if (data.url) {
@@ -54,6 +61,16 @@ export default function PricingPage() {
       setCheckoutError('Failed to start checkout. Please try again.')
     } finally {
       setLoadingTier(null)
+    }
+  }
+
+  const handleConnectWallet = async () => {
+    try {
+      // Try ETH first (MetaMask) — most common for Stripe subscriptions
+      await connectEth()
+    } catch {
+      // If MetaMask not available, dispatch event for BTC wallet modal
+      window.dispatchEvent(new CustomEvent('openWalletConnect'))
     }
   }
 
@@ -146,20 +163,25 @@ export default function PricingPage() {
                     <div className="w-full py-2.5 text-center text-sm font-mono font-bold text-white/40 border border-white/10 rounded-lg">
                       Current Plan
                     </div>
-                  ) : !connected ? (
+                  ) : !isWalletConnected ? (
                     <button
-                      onClick={() => {
-                        // Dispatch event to trigger wallet connection modal
-                        window.dispatchEvent(new CustomEvent('openWalletConnect'))
-                      }}
-                      className="w-full py-2.5 text-sm font-mono font-bold rounded-lg transition-colors border"
+                      onClick={handleConnectWallet}
+                      disabled={ethConnecting}
+                      className="w-full py-2.5 text-sm font-mono font-bold rounded-lg transition-colors border disabled:opacity-50"
                       style={{
                         borderColor: `${accent}40`,
                         color: accent,
                         backgroundColor: `${accent}10`,
                       }}
                     >
-                      Connect Wallet
+                      {ethConnecting ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Connecting...
+                        </span>
+                      ) : (
+                        'Connect Wallet'
+                      )}
                     </button>
                   ) : (
                     <button

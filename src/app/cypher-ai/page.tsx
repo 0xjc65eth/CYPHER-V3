@@ -154,19 +154,19 @@ export default function CypherAIPage() {
   const { status: agentStatus, performance: agentPerformance } = useAgentStatus();
 
   return (
-    <PremiumContent requiredFeature="ai_analytics" fallback={
+    <PremiumContent requiredFeature="cypher_ai" fallback={
       <div className="bg-[#0a0a0f] min-h-screen font-mono text-white flex flex-col items-center justify-center px-4">
         <div className="w-20 h-20 bg-[#1a1a2e] border border-orange-500/30 rounded-full flex items-center justify-center mb-6">
           <Brain className="w-10 h-10 text-orange-500" />
         </div>
-        <h2 className="text-2xl font-bold text-orange-500 mb-3">CYPHER AI TERMINAL — YHP ACCESS</h2>
+        <h2 className="text-2xl font-bold text-orange-500 mb-3">CYPHER AI TERMINAL</h2>
         <p className="text-[#e4e4e7]/50 text-sm text-center max-w-lg mb-2">
           AI Trading Intelligence with 8 specialized agents, sentiment analysis, neural predictions, and backtesting.
         </p>
         <p className="text-[#e4e4e7]/40 text-xs text-center max-w-md mb-6">
-          Connect your ETH wallet and verify Yield Hacker Pass ownership to unlock full access.
+          Subscribe to the Trader plan ($79/mo) or connect your wallet and verify Yield Hacker Pass ownership to unlock full access.
         </p>
-        <div className="text-[10px] text-orange-500/40 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+        <div className="text-[10px] text-orange-500/40 font-mono">REQUIRED: TRADER PLAN OR YIELD HACKER PASS NFT</div>
       </div>
     }>
     <div className="bg-[#0a0a0f] min-h-screen font-mono text-white">

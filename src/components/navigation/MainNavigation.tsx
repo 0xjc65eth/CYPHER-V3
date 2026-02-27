@@ -6,12 +6,13 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { NavigationIcons } from '@/lib/icons/icon-system'
 import { CypherLogo } from '@/components/ui/CypherLogo'
-import { useEthWallet } from '@/hooks/useEthWallet'
 import { useYHPVerification } from '@/hooks/useYHPVerification'
 import { usePremium } from '@/contexts/PremiumContext'
 import { hasPremiumAccess } from '@/config/vip-wallets'
 import { RiWallet3Line, RiVipCrownLine } from 'react-icons/ri'
 import WalletConnect from '@/components/wallet/WalletConnect'
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
+import { injected } from 'wagmi/connectors'
 
 interface NavItem {
   id: string
@@ -203,8 +204,15 @@ export function MainNavigation() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const { address: ethAddress, isConnected: ethConnected, connecting: ethConnecting, connectEth, disconnectEth } = useEthWallet()
-  const { isHolder: isYHPHolder, loading: yhpLoading } = useYHPVerification(ethAddress)
+  const { address: ethAddress, isConnected: ethConnected } = useAccount()
+  const { connect: wagmiConnect, connectors, isPending: ethConnecting } = useConnect()
+  const { disconnect: wagmiDisconnect } = useDisconnect()
+  const connectEth = useCallback(async () => {
+    const connector = connectors.find(c => c.id === 'injected') || connectors[0]
+    if (connector) wagmiConnect({ connector })
+  }, [connectors, wagmiConnect])
+  const disconnectEth = useCallback(() => wagmiDisconnect(), [wagmiDisconnect])
+  const { isHolder: isYHPHolder, loading: yhpLoading } = useYHPVerification(ethAddress ?? null)
 
   const closeMobileMenu = useCallback(() => {
     setMobileMenuOpen(false)
@@ -214,6 +222,20 @@ export function MainNavigation() {
   useEffect(() => {
     closeMobileMenu()
   }, [pathname, closeMobileMenu])
+
+  // Listen for 'openWalletConnect' custom events (e.g. from Pricing page)
+  // When triggered, auto-connect ETH wallet (MetaMask) since subscriptions use walletAddress
+  useEffect(() => {
+    const handler = () => {
+      if (!ethConnected) {
+        connectEth().catch((err) => {
+          console.error('Wallet connect from pricing failed:', err)
+        })
+      }
+    }
+    window.addEventListener('openWalletConnect', handler)
+    return () => window.removeEventListener('openWalletConnect', handler)
+  }, [ethConnected, connectEth])
 
   // Lock body scroll and handle Escape key when mobile menu is open
   useEffect(() => {

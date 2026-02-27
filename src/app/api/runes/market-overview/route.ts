@@ -64,14 +64,30 @@ export async function GET(request: Request) {
 
             const enrichedRunes = runes.map((r: any, idx: number) => {
               const supply = parseFloat(r.totalSupply?.toString() || '0');
-              // floorUnitPrice can be a number OR an object { formatted, value }
-              const rawFloor = r.floorUnitPrice;
-              const floorPrice = typeof rawFloor === 'number'
-                ? rawFloor
-                : typeof rawFloor === 'object' && rawFloor !== null
-                  ? parseFloat(rawFloor.formatted || rawFloor.value?.toString() || '0')
-                  : parseFloat(rawFloor?.toString() || '0');
-              const volume24h = parseFloat(r.volume24h?.toString() || '0');
+
+              // floorUnitPrice from Magic Eden can be:
+              //   - a number in sats (e.g. 1500 = 0.00001500 BTC)
+              //   - an object { formatted, value }
+              //   - already in BTC (if < 1, it's likely BTC; if >= 1, it's sats)
+              const rawFloor = r.floorUnitPrice ?? r.fp ?? r.floorPrice;
+              let floorPrice: number;
+              if (typeof rawFloor === 'object' && rawFloor !== null) {
+                floorPrice = parseFloat(rawFloor.formatted || rawFloor.value?.toString() || '0');
+              } else {
+                floorPrice = parseFloat(rawFloor?.toString() || '0');
+              }
+              // Magic Eden typically returns prices in sats for runes — convert to BTC
+              // Heuristic: if > 1, it's almost certainly sats (a rune floor of 1+ BTC is extremely rare)
+              if (floorPrice >= 1) {
+                floorPrice = floorPrice / 1e8;
+              }
+
+              // volume24h from Magic Eden is typically in sats
+              let volume24h = parseFloat(r.volume24h?.toString() || r.vol24h?.toString() || '0');
+              if (volume24h >= 1000) {
+                volume24h = volume24h / 1e8; // Convert sats to BTC
+              }
+
               const holders = r.holders || r.ownerCount || 0;
               const listed = r.listedCount || r.listed || 0;
               const sales24h = r.sales24h || r.salesCount24h || 0;
@@ -92,7 +108,7 @@ export async function GET(request: Request) {
                 transactions: 0,
                 floorPrice,
                 volume24h,
-                volume7d: parseFloat(r.volume7d?.toString() || '0'),
+                volume7d: (() => { const v = parseFloat(r.volume7d?.toString() || '0'); return v >= 1000 ? v / 1e8 : v; })(),
                 sales24h,
                 marketCap,
                 change24h: parseFloat(r.priceChange24h?.toString() || '0'),

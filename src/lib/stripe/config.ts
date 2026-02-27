@@ -122,6 +122,7 @@ export const FEATURE_TIER_MAP: Record<string, SubscriptionTier> = {
   smart_money: 'trader',
   alerts_unlimited: 'trader',
   paper_trading: 'trader',
+  cypher_ai: 'trader',
   ai_trading_agent: 'hacker_yields',
   multi_agent: 'hacker_yields',
   auto_compound: 'hacker_yields',

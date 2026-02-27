@@ -268,23 +268,26 @@ export function UnifiedNavbar() {
         <div className="text-xl font-bold font-montserrat bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#8B5CF6] text-transparent bg-clip-text">CYPHER ORDI FUTURE</div>
       </div>
 
-      <div className="hidden lg:flex space-x-6">
-        {navItems.map((item) => {
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-[#3D3D3D] hover:text-[#8B5CF6]",
-                pathname === item.href ? "bg-[#3D3D3D] text-[#8B5CF6]" : "text-gray-300"
-              )}
-            >
-              {Icon ? <Icon className="w-4 h-4" /> : null}
-              <span>{item.name}</span>
-            </Link>
-          )
-        })}
+      {/* Desktop nav: focused subset of most important items (including Pricing for conversions) */}
+      <div className="hidden lg:flex space-x-1">
+        {navItems
+          .filter(item => ['/', '/trading', '/market', '/ordinals', '/runes', '/portfolio', '/pricing', '/settings'].includes(item.href))
+          .map((item) => {
+            const Icon = item.icon
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex items-center space-x-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-[#3D3D3D] hover:text-[#8B5CF6]",
+                  pathname === item.href ? "bg-[#3D3D3D] text-[#8B5CF6]" : "text-gray-300"
+                )}
+              >
+                {Icon ? <Icon className="w-4 h-4" /> : null}
+                <span>{item.name}</span>
+              </Link>
+            )
+          })}
       </div>
 
 

@@ -10,6 +10,10 @@
 export interface AgentConfig {
   enabled: boolean;
   mode: 'manual' | 'delegated'; // manual = approve each trade, delegated = autonomous
+  /** Per-user opt-in for autonomous trade execution (set by wizard Step 5).
+   *  When true, consensus-approved trades execute automatically.
+   *  When false or undefined, trades are logged but NOT executed. */
+  enableTrading?: boolean;
   capitalAllocation: {
     total: number; // USD
     lp: number; // percentage (0-1)

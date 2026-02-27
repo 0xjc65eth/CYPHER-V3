@@ -20,6 +20,16 @@ interface MiningEconomics {
 
 const tabTriggerClass = "rounded-none border-b-2 border-transparent data-[state=active]:border-[#8B5CF6] data-[state=active]:bg-transparent data-[state=active]:text-[#8B5CF6] text-gray-500 px-4 py-2 text-sm font-mono"
 
+/** Safe number formatter — returns fallback for NaN/null/undefined */
+function safeNum(value: any, opts?: { decimals?: number; fallback?: string; suffix?: string; prefix?: string; divide?: number }): string {
+  const { decimals = 2, fallback = '—', suffix = '', prefix = '', divide = 1 } = opts || {}
+  if (value === null || value === undefined) return fallback
+  const num = typeof value === 'number' ? value : parseFloat(value)
+  if (isNaN(num) || !isFinite(num)) return fallback
+  const divided = num / divide
+  return `${prefix}${divided.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}${suffix}`
+}
+
 export default function MinersPage() {
   const { data: hashrateData, isLoading: isHashrateLoading } = useMempoolHashrate()
   const { data: difficultyData, isLoading: isDifficultyLoading } = useMempoolDifficulty()
@@ -29,7 +39,8 @@ export default function MinersPage() {
   const [economicsLoading, setEconomicsLoading] = useState(true)
   const [economicsError, setEconomicsError] = useState<string | null>(null)
 
-  const decentralization = poolsData && poolsData.length > 0 ? 100 - poolsData[0].share : 0
+  const topPoolShare = poolsData?.[0]?.share
+  const decentralization = typeof topPoolShare === 'number' && !isNaN(topPoolShare) ? 100 - topPoolShare : null
 
   useEffect(() => {
     async function fetchEconomics() {
@@ -106,6 +117,9 @@ export default function MinersPage() {
 /* ── Existing sub-components ── */
 
 function HashrateCard({ data, loading }: { data: any; loading: boolean }) {
+  const lastHashrate = Array.isArray(data) && data.length > 0 && typeof data[data.length - 1]?.avgHashrate === 'number'
+    ? data[data.length - 1].avgHashrate
+    : null
   return (
     <Card className="bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] text-white border-none">
       <CardHeader>
@@ -113,9 +127,7 @@ function HashrateCard({ data, loading }: { data: any; loading: boolean }) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {loading || !Array.isArray(data) || data.length === 0
-            ? 'Loading...'
-            : `${(data[data.length - 1].avgHashrate / 1e18).toLocaleString('en-US', { maximumFractionDigits: 2 })} EH/s`}
+          {loading ? 'Loading...' : safeNum(lastHashrate, { divide: 1e18, decimals: 2, suffix: ' EH/s', fallback: 'N/A' })}
         </div>
       </CardContent>
     </Card>
@@ -123,6 +135,7 @@ function HashrateCard({ data, loading }: { data: any; loading: boolean }) {
 }
 
 function DifficultyCard({ data, loading }: { data: any; loading: boolean }) {
+  const difficultyValue = typeof data === 'number' && data > 0 ? data : null
   return (
     <Card className="bg-gradient-to-br from-[#f59e42] to-[#fbbf24] text-white border-none">
       <CardHeader>
@@ -130,7 +143,7 @@ function DifficultyCard({ data, loading }: { data: any; loading: boolean }) {
       </CardHeader>
       <CardContent>
         <div className="text-2xl font-bold">
-          {loading || !data ? 'Loading...' : `${(data / 1e12).toLocaleString('en-US', { maximumFractionDigits: 2 })} T`}
+          {loading ? 'Loading...' : safeNum(difficultyValue, { divide: 1e12, decimals: 2, suffix: ' T', fallback: 'N/A' })}
         </div>
       </CardContent>
     </Card>
@@ -146,12 +159,14 @@ function PoolsCard({ data, loading }: { data: any; loading: boolean }) {
       <CardContent>
         {loading ? (
           <p>Loading...</p>
+        ) : !data || data.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No pool data available</p>
         ) : (
           <div className="space-y-2">
-            {data?.slice(0, 3).map((pool: any, idx: number) => (
+            {data.slice(0, 3).map((pool: any, idx: number) => (
               <div key={idx} className="flex justify-between">
                 <span>{pool.name || 'Unknown'}</span>
-                <span>{pool.share ? pool.share.toFixed(1) : '0.0'}%</span>
+                <span>{safeNum(typeof pool.share === 'number' ? pool.share : null, { decimals: 1, suffix: '%', fallback: '—' })}</span>
               </div>
             ))}
           </div>
@@ -161,14 +176,14 @@ function PoolsCard({ data, loading }: { data: any; loading: boolean }) {
   )
 }
 
-function DecentralizationCard({ decentralization }: { decentralization: number }) {
+function DecentralizationCard({ decentralization }: { decentralization: number | null }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Decentralization</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{decentralization.toFixed(1)}%</div>
+        <div className="text-2xl font-bold">{safeNum(decentralization, { decimals: 1, suffix: '%', fallback: 'N/A' })}</div>
         <p className="text-sm text-muted-foreground mt-2">
           Network distribution level
         </p>
@@ -186,13 +201,15 @@ function RecentBlocksCard({ data, loading }: { data: any; loading: boolean }) {
       <CardContent>
         {loading ? (
           <p>Loading...</p>
+        ) : !data || data.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No block data available</p>
         ) : (
           <div className="space-y-2">
-            {data?.slice(0, 5).map((block: any, idx: number) => (
+            {data.slice(0, 5).map((block: any, idx: number) => (
               <div key={idx} className="flex justify-between text-sm">
-                <span>#{block.height}</span>
-                <span>{block.poolName || 'Unknown'}</span>
-                <span>{(block.reward / 1e8).toFixed(2)} BTC</span>
+                <span>#{block.height?.toLocaleString() ?? '—'}</span>
+                <span>{block.poolName || block.extras?.pool?.name || 'Unknown'}</span>
+                <span>{safeNum(typeof block.reward === 'number' && block.reward > 0 ? block.reward : null, { divide: 1e8, decimals: 2, suffix: ' BTC', fallback: 'N/A' })}</span>
               </div>
             ))}
           </div>
@@ -219,7 +236,7 @@ function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: number })
 }
 
 function PoolsTable({ data, loading, hashrateData }: { data: any; loading: boolean; hashrateData: any }) {
-  const networkHashrate = Array.isArray(hashrateData) && hashrateData.length > 0
+  const networkHashrate = Array.isArray(hashrateData) && hashrateData.length > 0 && typeof hashrateData[hashrateData.length - 1]?.avgHashrate === 'number'
     ? hashrateData[hashrateData.length - 1].avgHashrate
     : 0
 
@@ -243,7 +260,10 @@ function PoolsTable({ data, loading, hashrateData }: { data: any; loading: boole
               </tr>
             </thead>
             <tbody>
-              {data.map((pool: any, idx: number) => (
+              {data.map((pool: any, idx: number) => {
+                const shareValue = typeof pool.share === 'number' && !isNaN(pool.share) ? pool.share : 0
+                const hasValidShare = typeof pool.share === 'number' && !isNaN(pool.share) && pool.share > 0
+                return (
                 <tr key={idx} className="border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/30 transition-colors">
                   <td className="py-3 px-2 text-gray-500">{idx + 1}</td>
                   <td className="py-3 px-2 text-white font-semibold">{pool.name || 'Unknown'}</td>
@@ -252,22 +272,23 @@ function PoolsTable({ data, loading, hashrateData }: { data: any; loading: boole
                       <div className="w-16 h-1.5 bg-[#1a1a2e] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#8B5CF6] rounded-full"
-                          style={{ width: `${Math.min(pool.share || 0, 100)}%` }}
+                          style={{ width: `${Math.min(shareValue, 100)}%` }}
                         />
                       </div>
-                      {pool.share ? pool.share.toFixed(1) : '0.0'}%
+                      {safeNum(hasValidShare ? pool.share : null, { decimals: 1, suffix: '%', fallback: '—' })}
                     </div>
                   </td>
                   <td className="py-3 px-2 text-right text-gray-300">
-                    {networkHashrate && pool.share
-                      ? `${((networkHashrate * pool.share / 100) / 1e18).toFixed(2)} EH/s`
-                      : '--'}
+                    {networkHashrate && hasValidShare
+                      ? safeNum(networkHashrate * shareValue / 100, { divide: 1e18, decimals: 2, suffix: ' EH/s', fallback: '—' })
+                      : '—'}
                   </td>
                   <td className="py-3 px-2 text-right text-gray-300">
                     {pool.blockCount?.toLocaleString() || '--'}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -298,9 +319,12 @@ function BlocksTable({ data, loading }: { data: any; loading: boolean }) {
               </tr>
             </thead>
             <tbody>
-              {data.slice(0, 15).map((block: any, idx: number) => (
+              {data.slice(0, 15).map((block: any, idx: number) => {
+                const blockReward = typeof block.reward === 'number' ? block.reward : 0
+                const feeAmount = blockReward > 312500000 ? blockReward - 312500000 : 0
+                return (
                 <tr key={idx} className="border-b border-[#1a1a2e]/50 hover:bg-[#1a1a2e]/30 transition-colors">
-                  <td className="py-3 px-2 text-[#8B5CF6] font-semibold">#{block.height?.toLocaleString()}</td>
+                  <td className="py-3 px-2 text-[#8B5CF6] font-semibold">#{block.height?.toLocaleString() ?? '—'}</td>
                   <td className="py-3 px-2 text-gray-400">
                     {block.timestamp
                       ? new Date(block.timestamp * 1000).toLocaleString()
@@ -312,10 +336,13 @@ function BlocksTable({ data, loading }: { data: any; loading: boolean }) {
                     {block.size ? `${(block.size / 1e6).toFixed(2)} MB` : '--'}
                   </td>
                   <td className="py-3 px-2 text-right text-amber-400">
-                    {block.reward ? ((block.reward - 312500000) / 1e8).toFixed(4) : '--'}
+                    {feeAmount > 0
+                      ? safeNum(feeAmount, { divide: 1e8, decimals: 4, fallback: '—' })
+                      : '—'}
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </table>
         </div>

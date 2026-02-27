@@ -28,6 +28,8 @@ export interface ConsensusConfig {
   };
   minConfidence: number;
   enableLLM: boolean;
+  /** Per-user opt-in for autonomous trade execution (set by wizard Step 5) */
+  enableTrading?: boolean;
 }
 
 const DEFAULT_CONSENSUS_CONFIG: ConsensusConfig = {
@@ -146,9 +148,12 @@ export class ConsensusEngine {
       && direction !== 'abstain';
 
     // SECURITY FIX: Trades require explicit user opt-in.
-    // Auto-trade is DISABLED by default. Set ENABLE_AUTO_TRADE=true to enable.
-    // Without this, AI decisions execute immediately without human oversight.
-    const autoTradeEnabled = process.env.ENABLE_AUTO_TRADE === 'true';
+    // Auto-trade is DISABLED by default. Enable via:
+    //   1. Environment variable: ENABLE_AUTO_TRADE=true (global)
+    //   2. Agent config: enableTrading=true (per-user, set by wizard Step 5)
+    // Without this, AI decisions are logged but NOT executed.
+    const autoTradeEnabled = process.env.ENABLE_AUTO_TRADE === 'true'
+      || this.config?.enableTrading === true;
     const approved = meetsThreshold && autoTradeEnabled;
 
     const allReasons = votes

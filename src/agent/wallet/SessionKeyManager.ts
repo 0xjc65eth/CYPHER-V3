@@ -10,6 +10,8 @@
  * Non-custodial: user's main private key is never stored or accessed
  */
 
+import { ethers } from 'ethers';
+import { Keypair } from '@solana/web3.js';
 import { ChainType, SessionKeyConfig } from '../core/types';
 import { SecureKeyStore, getSecureKeyStore, EncryptedKey } from './SecureKeyStore';
 import { getAgentPersistence } from '../persistence';
@@ -76,20 +78,20 @@ export class SessionKeyManager {
     switch (chain) {
       case 'evm':
         privateKey = this.keyStore.generateEVMKey();
-        // In production: publicAddress = new ethers.Wallet(privateKey).address;
-        publicAddress = `0x${privateKey.slice(4, 44)}`;
+        publicAddress = new ethers.Wallet(privateKey).address;
         break;
 
       case 'solana':
         privateKey = this.keyStore.generateSolanaKey();
-        // In production: publicAddress = Keypair.fromSecretKey(Buffer.from(privateKey, 'hex')).publicKey.toBase58();
-        publicAddress = `sol_${privateKey.slice(0, 32)}`;
+        publicAddress = Keypair.fromSecretKey(Buffer.from(privateKey, 'hex')).publicKey.toBase58();
         break;
 
       case 'hyperliquid':
-        // Hyperliquid uses API agent wallet - user provides key during setup
-        privateKey = this.keyStore.generateApiSessionToken();
-        publicAddress = `hl_agent_${privateKey.slice(0, 16)}`;
+        // Hyperliquid uses the agent wallet private key from env
+        privateKey = process.env.HYPERLIQUID_AGENT_SECRET || this.keyStore.generateApiSessionToken();
+        publicAddress = privateKey.startsWith('0x')
+          ? new ethers.Wallet(privateKey).address
+          : privateKey.slice(0, 42);
         break;
 
       case 'tradfi':

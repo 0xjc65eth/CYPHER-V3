@@ -44,12 +44,12 @@ export function LivePriceTicker() {
       .filter(Boolean) as TickerItem[];
   }, [tickers]);
 
-  // Show placeholder while connecting
+  // Show minimal placeholder while loading (no misleading "connecting" text)
   if (!items || items.length === 0) {
     return (
       <div className="bg-[#12121a]/80 border-b border-[#2a2a3e] py-1.5 overflow-hidden">
-        <div className="flex items-center text-xs font-mono text-[#00ff88]/40 px-4">
-          CONNECTING TO LIVE FEED...
+        <div className="flex items-center text-xs font-mono text-[#e4e4e7]/20 px-4">
+          BTC — ETH — SOL — ORDI — RUNE
         </div>
       </div>
     );

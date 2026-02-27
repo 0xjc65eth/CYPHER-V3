@@ -66,8 +66,14 @@ export function PremiumContent({ children, fallback, requiredTier, requiredFeatu
     )
   }
 
-  // If wallet is disconnected and premium features are required, always show locked
-  if (walletRequired && walletDisconnected) {
+  // Check if user has subscription-based access (Stripe) regardless of wallet
+  // This allows subscribers to access features without connecting a wallet
+  const hasSubscriptionBasedAccess = (requiredTier !== undefined && hasTierAccess === true)
+    || (requiredFeature !== undefined && hasFeatureAccess === true)
+
+  // If wallet is disconnected and premium features are required,
+  // BUT user has subscription access via Stripe → allow through
+  if (walletRequired && walletDisconnected && !hasSubscriptionBasedAccess) {
     return fallback || defaultFallback
   }
 

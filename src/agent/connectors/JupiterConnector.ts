@@ -4,6 +4,7 @@
  * Non-custodial: uses session keypair for signing
  */
 
+import { Connection, Keypair, VersionedTransaction, Transaction } from '@solana/web3.js';
 import { Candle, Position, LPPosition } from '../core/types';
 import {
   BaseConnector,
@@ -50,6 +51,7 @@ const TOKEN_MINTS: Record<string, string> = {
 export class JupiterConnector extends BaseConnector {
   private jupiterApi: string;
   private rpcUrl: string;
+  private connection: Connection;
   private sessionKey: string | null = null;
   private circuitBreaker: CircuitBreaker;
 
@@ -58,6 +60,7 @@ export class JupiterConnector extends BaseConnector {
     this.rpcUrl = config.rpcUrl || 'https://api.mainnet-beta.solana.com';
     this.jupiterApi = config.jupiterApiUrl || 'https://api.jup.ag';
     this.sessionKey = config.sessionPrivateKey || null;
+    this.connection = new Connection(this.rpcUrl, 'confirmed');
     this.circuitBreaker = createAPICircuitBreaker('jupiter', {
       failureThreshold: 3,
       recoveryTimeout: 30000,
@@ -303,14 +306,52 @@ export class JupiterConnector extends BaseConnector {
     }
   }
 
-  // LP Methods (via Raydium CLMM)
+  // LP Methods (via Raydium CLMM API)
   async createLPPosition(params: LPCreateParams): Promise<LPPosition> {
     if (!this.sessionKey) throw new Error('No session key for LP operations');
 
-    // Raydium CLMM concentrated liquidity position
-    // In production: use @raydium-io/raydium-sdk-v2
-    const position: LPPosition = {
-      id: `sol_lp_${Date.now()}`,
+    const keypair = this.getKeypair();
+    const walletAddress = keypair.publicKey.toBase58();
+
+    // 1. Get pool info from Raydium API
+    const mint0 = TOKEN_MINTS[params.token0] || params.token0;
+    const mint1 = TOKEN_MINTS[params.token1] || params.token1;
+
+    const poolResponse = await this.fetchWithTimeout(
+      `https://api-v3.raydium.io/pools/info/mint?mint1=${mint0}&mint2=${mint1}&poolType=concentrated&poolSortField=liquidity&sortType=desc&pageSize=1`
+    );
+    const poolData = await poolResponse.json();
+    const pool = poolData?.data?.data?.[0];
+
+    if (!pool) {
+      throw new Error(`No Raydium CLMM pool found for ${params.token0}/${params.token1}`);
+    }
+
+    // 2. Request open-position transaction from Raydium API
+    const openPosResponse = await this.fetchWithTimeout(
+      'https://api-v3.raydium.io/clmm/openPosition', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          poolId: pool.id,
+          ownerInfo: { wallet: walletAddress },
+          priceLower: params.tickLower,
+          priceUpper: params.tickUpper,
+          liquidity: String(params.amount0 + params.amount1),
+          amountMaxA: String(params.amount0),
+          amountMaxB: String(params.amount1),
+        }),
+      }
+    );
+    const openPosData = await openPosResponse.json();
+
+    if (openPosData.data?.transaction) {
+      const txHash = await this.signAndSendTransaction(openPosData.data.transaction);
+      if (!txHash) throw new Error('Failed to send LP open-position transaction');
+    }
+
+    return {
+      id: `sol_lp_${pool.id}_${Date.now()}`,
       pair: `${params.token0}/${params.token1}`,
       protocol: 'raydium',
       tickLower: params.tickLower,
@@ -320,25 +361,51 @@ export class JupiterConnector extends BaseConnector {
       token1Amount: params.amount1,
       feeTier: params.feeTier,
       unclaimedFees: { token0: 0, token1: 0 },
-      valueUSD: 0, // Will be calculated
+      valueUSD: 0,
       impermanentLoss: 0,
       inRange: true,
       createdAt: Date.now(),
       lastRebalance: Date.now(),
     };
-
-    return position;
   }
 
   async collectLPFees(positionId: string): Promise<LPCollectResult> {
-    // In production: call Raydium decreaseLiquidity with 0 liquidity to harvest fees
-    return {
-      token0: 0,
-      token1: 0,
-      token0Symbol: 'SOL',
-      token1Symbol: 'USDC',
-      valueUSD: 0,
-    };
+    if (!this.sessionKey) {
+      return { token0: 0, token1: 0, token0Symbol: 'SOL', token1Symbol: 'USDC', valueUSD: 0 };
+    }
+
+    try {
+      const keypair = this.getKeypair();
+      const walletAddress = keypair.publicKey.toBase58();
+
+      // Harvest fees via Raydium API (decreaseLiquidity with 0 amount)
+      const harvestResponse = await this.fetchWithTimeout(
+        'https://api-v3.raydium.io/clmm/harvestAllRewards', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerInfo: { wallet: walletAddress },
+            positionIds: [positionId],
+          }),
+        }
+      );
+      const harvestData = await harvestResponse.json();
+
+      if (harvestData.data?.transaction) {
+        await this.signAndSendTransaction(harvestData.data.transaction);
+      }
+
+      return {
+        token0: harvestData.data?.rewards?.token0 || 0,
+        token1: harvestData.data?.rewards?.token1 || 0,
+        token0Symbol: 'SOL',
+        token1Symbol: 'USDC',
+        valueUSD: harvestData.data?.rewards?.totalValueUSD || 0,
+      };
+    } catch (error) {
+      console.error('[Jupiter] collectLPFees error:', error);
+      return { token0: 0, token1: 0, token0Symbol: 'SOL', token1Symbol: 'USDC', valueUSD: 0 };
+    }
   }
 
   // Private helpers
@@ -348,42 +415,50 @@ export class JupiterConnector extends BaseConnector {
     return [parts[0] || 'SOL', parts[1] || 'USDC'];
   }
 
+  private getKeypair(): Keypair {
+    if (!this.sessionKey) throw new Error('No session key');
+    return Keypair.fromSecretKey(Buffer.from(this.sessionKey, 'hex'));
+  }
+
   private getPublicKeyFromSession(): string {
     if (!this.sessionKey) return '';
-    // In production: derive public key from the session keypair
-    // using @solana/web3.js Keypair.fromSecretKey(bs58.decode(this.sessionKey)).publicKey.toBase58()
-    return this.config.apiKey || '';
+    return this.getKeypair().publicKey.toBase58();
   }
 
   private async signAndSendTransaction(serializedTx: string): Promise<string | null> {
     if (!this.sessionKey) return null;
 
     try {
-      // In production:
-      // 1. Deserialize: Transaction.from(Buffer.from(serializedTx, 'base64'))
-      // 2. Sign: tx.sign(Keypair.fromSecretKey(bs58.decode(this.sessionKey)))
-      // 3. Send: connection.sendRawTransaction(tx.serialize())
-      // 4. Confirm: connection.confirmTransaction(signature)
+      const keypair = this.getKeypair();
+      const txBuffer = Buffer.from(serializedTx, 'base64');
 
-      // For now, send the pre-signed transaction
-      const response = await fetch(this.rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'sendTransaction',
-          params: [serializedTx, { encoding: 'base64', skipPreflight: false }],
-        }),
-      });
-      const data = await response.json();
-
-      if (data.error) {
-        console.error('[Jupiter] TX error:', data.error);
-        return null;
+      // Try VersionedTransaction first (Jupiter v6 default)
+      let rawTx: Uint8Array;
+      try {
+        const versionedTx = VersionedTransaction.deserialize(txBuffer);
+        versionedTx.sign([keypair]);
+        rawTx = versionedTx.serialize();
+      } catch {
+        // Fallback to legacy Transaction
+        const legacyTx = Transaction.from(txBuffer);
+        legacyTx.sign(keypair);
+        rawTx = legacyTx.serialize();
       }
 
-      return data.result;
+      const signature = await this.connection.sendRawTransaction(rawTx, {
+        skipPreflight: false,
+        maxRetries: 2,
+      });
+
+      // Confirm transaction
+      const latestBlockhash = await this.connection.getLatestBlockhash();
+      await this.connection.confirmTransaction({
+        signature,
+        blockhash: latestBlockhash.blockhash,
+        lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      });
+
+      return signature;
     } catch (error) {
       console.error('[Jupiter] signAndSend error:', error);
       return null;

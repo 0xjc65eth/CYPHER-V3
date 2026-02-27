@@ -279,6 +279,8 @@ function SetupWizard({
     solanaRpc: string;
     ethRpc: string;
     walletAddress: string | null;
+    solanaPrivateKey: string;
+    evmPrivateKey: string;
   }) => void;
 }) {
   // Real wallet hooks
@@ -298,6 +300,8 @@ function SetupWizard({
   const [solanaRpc, setSolanaRpc] = useState('https://api.mainnet-beta.solana.com');
   const [ethRpc, setEthRpc] = useState('https://eth.llamarpc.com');
   const [hlTestnet, setHlTestnet] = useState(true);
+  const [solanaPrivateKey, setSolanaPrivateKey] = useState('');
+  const [evmPrivateKey, setEvmPrivateKey] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
 
   // Determine which wallets are connected
@@ -534,15 +538,33 @@ function SetupWizard({
                   )}
                 </div>
                 <p className="text-xs text-white/40 mb-3">LP positions + DEX swaps on Solana. Signing via Phantom wallet.</p>
-                <div>
-                  <label className="text-[10px] text-white/30 font-mono block mb-1">SOLANA RPC URL</label>
-                  <input
-                    type="text"
-                    value={solanaRpc}
-                    onChange={e => setSolanaRpc(e.target.value)}
-                    placeholder="https://api.mainnet-beta.solana.com"
-                    className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs font-mono text-white placeholder-white/20 focus:border-orange-500/50 focus:outline-none"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-white/30 font-mono block mb-1">SOLANA RPC URL</label>
+                    <input
+                      type="text"
+                      value={solanaRpc}
+                      onChange={e => setSolanaRpc(e.target.value)}
+                      placeholder="https://api.mainnet-beta.solana.com"
+                      className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs font-mono text-white placeholder-white/20 focus:border-orange-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/30 font-mono block mb-1">SOLANA PRIVATE KEY (hex)</label>
+                    <div className="relative">
+                      <input
+                        type={showKeys['sol_pk'] ? 'text' : 'password'}
+                        value={solanaPrivateKey}
+                        onChange={e => setSolanaPrivateKey(e.target.value)}
+                        placeholder="Only needed for LP/swap operations"
+                        className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs font-mono text-white placeholder-white/20 focus:border-orange-500/50 focus:outline-none pr-16"
+                      />
+                      <button onClick={() => setShowKeys(p => ({ ...p, sol_pk: !p.sol_pk }))} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/30 font-mono hover:text-white/60">
+                        {showKeys['sol_pk'] ? 'HIDE' : 'SHOW'}
+                      </button>
+                    </div>
+                    <p className="text-[9px] text-white/20 font-mono mt-1">Stored in memory only, never persisted to disk or database.</p>
+                  </div>
                 </div>
               </div>
 
@@ -559,15 +581,33 @@ function SetupWizard({
                   )}
                 </div>
                 <p className="text-xs text-white/40 mb-3">Concentrated LP positions on Ethereum/Arbitrum. Signing via MetaMask.</p>
-                <div>
-                  <label className="text-[10px] text-white/30 font-mono block mb-1">EVM RPC URL</label>
-                  <input
-                    type="text"
-                    value={ethRpc}
-                    onChange={e => setEthRpc(e.target.value)}
-                    placeholder="https://eth.llamarpc.com"
-                    className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs font-mono text-white placeholder-white/20 focus:border-orange-500/50 focus:outline-none"
-                  />
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-[10px] text-white/30 font-mono block mb-1">EVM RPC URL</label>
+                    <input
+                      type="text"
+                      value={ethRpc}
+                      onChange={e => setEthRpc(e.target.value)}
+                      placeholder="https://eth.llamarpc.com"
+                      className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs font-mono text-white placeholder-white/20 focus:border-orange-500/50 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-white/30 font-mono block mb-1">EVM PRIVATE KEY (hex)</label>
+                    <div className="relative">
+                      <input
+                        type={showKeys['evm_pk'] ? 'text' : 'password'}
+                        value={evmPrivateKey}
+                        onChange={e => setEvmPrivateKey(e.target.value)}
+                        placeholder="Only needed for LP/swap operations"
+                        className="w-full bg-black border border-white/10 rounded px-3 py-2 text-xs font-mono text-white placeholder-white/20 focus:border-orange-500/50 focus:outline-none pr-16"
+                      />
+                      <button onClick={() => setShowKeys(p => ({ ...p, evm_pk: !p.evm_pk }))} className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-white/30 font-mono hover:text-white/60">
+                        {showKeys['evm_pk'] ? 'HIDE' : 'SHOW'}
+                      </button>
+                    </div>
+                    <p className="text-[9px] text-white/20 font-mono mt-1">Stored in memory only, never persisted to disk or database.</p>
+                  </div>
                 </div>
               </div>
 
@@ -840,11 +880,13 @@ function SetupWizard({
                   solanaRpc,
                   ethRpc,
                   walletAddress: connectedAddress,
+                  solanaPrivateKey,
+                  evmPrivateKey,
                 })}
-                disabled={!agreedToTerms || !hlApiKey || !hlApiSecret}
+                disabled={!agreedToTerms || !hlApiKey || !hlApiSecret || !connectedAddress}
                 className="px-6 py-2 text-xs font-mono font-bold bg-emerald-500/20 border border-emerald-500/50 rounded text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                ACTIVATE AGENT
+                {!connectedAddress ? 'CONNECT WALLET FIRST' : 'ACTIVATE AGENT'}
               </button>
             )}
           </div>
@@ -876,6 +918,8 @@ function AgentDashboard({
     solanaRpc: string;
     ethRpc: string;
     walletAddress: string | null;
+    solanaPrivateKey: string;
+    evmPrivateKey: string;
   }>;
 }) {
   const [perf, setPerf] = useState<AgentPerformance>(EMPTY_PERFORMANCE);
@@ -894,6 +938,7 @@ function AgentDashboard({
   const actionInProgressRef = useRef<string | null>(null);
   const [uptime, setUptime] = useState(0);
   const startedAtRef = useRef<number>(0);
+  const sessionTokenRef = useRef<string | null>(null);
 
   // Map API status string to local AgentStatus
   const mapApiStatus = useCallback((apiStatus: string): AgentStatus => {
@@ -910,9 +955,14 @@ function AgentDashboard({
   // Fetch data from API
   const fetchAgentData = useCallback(async (signal?: AbortSignal) => {
     try {
+      const addr = credentials.current?.walletAddress;
+      if (!addr) return; // No wallet connected, skip polling
+
+      const walletParam = encodeURIComponent(addr);
+      const tokenParam = sessionTokenRef.current ? `&sessionToken=${encodeURIComponent(sessionTokenRef.current)}` : '';
       const url = agentStatus === 'active'
-        ? '/api/agent/?include=trades'
-        : '/api/agent/';
+        ? `/api/agent/?walletAddress=${walletParam}&include=trades${tokenParam}`
+        : `/api/agent/?walletAddress=${walletParam}${tokenParam}`;
 
       const res = await fetch(url, { signal });
       if (!res.ok && res.status >= 500) throw new Error(`API returned ${res.status}`);
@@ -1004,7 +1054,7 @@ function AgentDashboard({
       setFetchError(err.message || 'Failed to fetch agent data');
       setLoading(false);
     }
-  }, [agentStatus, mapApiStatus, setAgentStatus]);
+  }, [agentStatus, mapApiStatus, setAgentStatus, credentials]);
 
   // Polling: 3s when running, 15s when stopped/paused
   useEffect(() => {
@@ -1039,10 +1089,24 @@ function AgentDashboard({
       const res = await fetch('/api/agent/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...extraBody }),
+        body: JSON.stringify({
+          action,
+          walletAddress: credentials.current?.walletAddress,
+          sessionToken: sessionTokenRef.current,
+          ...extraBody,
+        }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Action failed');
+
+      // SEC-02: Store session token from start response
+      if (action === 'start' && data.sessionToken) {
+        sessionTokenRef.current = data.sessionToken;
+      }
+      // Clear token on stop/emergency_stop/reset
+      if (['stop', 'emergency_stop', 'reset'].includes(action)) {
+        sessionTokenRef.current = null;
+      }
 
       // Update local status based on action
       switch (action) {
@@ -1059,7 +1123,7 @@ function AgentDashboard({
       setActionInProgress(null);
       actionInProgressRef.current = null;
     }
-  }, [setAgentStatus]);
+  }, [setAgentStatus, credentials]);
 
   const handleStart = useCallback(() => {
     const creds = credentials.current;
@@ -1079,6 +1143,8 @@ function AgentDashboard({
         solanaRpc: creds.solanaRpc,
         ethRpc: creds.ethRpc,
         walletAddress: creds.walletAddress,
+        solanaPrivateKey: creds.solanaPrivateKey || undefined,
+        evmPrivateKey: creds.evmPrivateKey || undefined,
       },
     });
   }, [executeAction, config, credentials]);
@@ -1604,6 +1670,8 @@ export default function TradingAgentPage() {
     solanaRpc: string;
     ethRpc: string;
     walletAddress: string | null;
+    solanaPrivateKey: string;
+    evmPrivateKey: string;
   }>({
     hlApiKey: '',
     hlApiSecret: '',
@@ -1611,6 +1679,8 @@ export default function TradingAgentPage() {
     solanaRpc: 'https://api.mainnet-beta.solana.com',
     ethRpc: 'https://eth.llamarpc.com',
     walletAddress: null,
+    solanaPrivateKey: '',
+    evmPrivateKey: '',
   });
 
   const handleComplete = async (credentials: {
@@ -1620,6 +1690,8 @@ export default function TradingAgentPage() {
     solanaRpc: string;
     ethRpc: string;
     walletAddress: string | null;
+    solanaPrivateKey: string;
+    evmPrivateKey: string;
   }) => {
     credentialsRef.current = credentials;
     setIsConfigured(true);
@@ -1631,6 +1703,7 @@ export default function TradingAgentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'start',
+          walletAddress: credentials.walletAddress,
           config: {
             testnet: credentials.hlTestnet,
             portfolioUSD: config.capitalAllocation.total,
@@ -1647,6 +1720,8 @@ export default function TradingAgentPage() {
             solanaRpc: credentials.solanaRpc,
             ethRpc: credentials.ethRpc,
             walletAddress: credentials.walletAddress,
+            solanaPrivateKey: credentials.solanaPrivateKey || undefined,
+            evmPrivateKey: credentials.evmPrivateKey || undefined,
           },
         }),
       });
@@ -1671,14 +1746,14 @@ export default function TradingAgentPage() {
       <div className="w-20 h-20 bg-[#1a1a2e] border border-orange-500/30 rounded-full flex items-center justify-center mb-6">
         <span className="text-4xl">🤖</span>
       </div>
-      <h2 className="text-2xl font-bold text-orange-500 mb-3">HACKER YIELDS — YHP ACCESS</h2>
+      <h2 className="text-2xl font-bold text-orange-500 mb-3">HACKER YIELDS</h2>
       <p className="text-[#e4e4e7]/50 text-sm text-center max-w-lg mb-2">
         AI Autonomous Trading Agent with multi-strategy execution, risk management, and real-time portfolio tracking.
       </p>
       <p className="text-[#e4e4e7]/40 text-xs text-center max-w-md mb-6">
-        Connect your ETH wallet and verify Yield Hacker Pass ownership to unlock full access.
+        Subscribe to the Hacker Yields plan ($149/mo) or connect your wallet and verify YHP ownership to unlock full access.
       </p>
-      <div className="text-[10px] text-orange-500/40 font-mono">REQUIRED: YIELD HACKER PASS NFT</div>
+      <div className="text-[10px] text-orange-500/40 font-mono">REQUIRED: HACKER YIELDS PLAN OR YIELD HACKER PASS NFT</div>
     </div>
   );
 

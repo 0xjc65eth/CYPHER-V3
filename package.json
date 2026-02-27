@@ -107,7 +107,7 @@
     "machinelearn": "^2.1.5",
     "ml-matrix": "^6.12.1",
     "msgpack-lite": "^0.1.26",
-    "next": "15.3.9",
+    "next": "^15.3.9",
     "next-auth": "^4.21.1",
     "next-themes": "^0.4.6",
     "node-sentiment": "^0.0.8",

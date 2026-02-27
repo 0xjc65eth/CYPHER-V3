@@ -1,33 +1,109 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit } from '@/lib/api-middleware';
-
-// Secure in-memory credential storage (never pollute process.env with user secrets)
-const secureCredentials = new Map<string, Record<string, string>>();
+import type { UserCredentials } from '@/agent/core/AgentOrchestrator';
+import crypto from 'crypto';
 
 // Rate limit: 10 actions per minute for agent control
 const agentRateLimit = rateLimit({ windowMs: 60000, maxRequests: 10 });
+
+// SEC-02: Session tokens — issued on 'start', required for all subsequent calls.
+// Prevents unauthorized access to another user's agent instance.
+const sessionTokens = new Map<string, { token: string; issuedAt: number }>();
+const SESSION_TOKEN_TTL = 24 * 60 * 60 * 1000; // 24h
+
+function issueSessionToken(walletAddress: string): string {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessionTokens.set(walletAddress, { token, issuedAt: Date.now() });
+  return token;
+}
+
+function validateSessionToken(walletAddress: string, token: string | null): boolean {
+  if (!token) return false;
+  const entry = sessionTokens.get(walletAddress);
+  if (!entry) return false;
+  if (Date.now() - entry.issuedAt > SESSION_TOKEN_TTL) {
+    sessionTokens.delete(walletAddress);
+    return false;
+  }
+  return crypto.timingSafeEqual(
+    Buffer.from(entry.token, 'hex'),
+    Buffer.from(token, 'hex')
+  );
+}
+
+function revokeSessionToken(walletAddress: string): void {
+  sessionTokens.delete(walletAddress);
+}
 
 // Lazy require to avoid webpack async chunk splitting issues
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 function getOrchestratorModule() {
   return require('@/agent/core/AgentOrchestrator') as {
-    getOrchestrator: (config?: any) => any;
-    resetOrchestrator: () => void;
+    getOrchestrator: (userId: string, config?: any, credentials?: UserCredentials) => any;
+    resetOrchestrator: (userId: string) => void;
+    getAllActiveUsers: () => string[];
   };
+}
+
+/**
+ * Extract walletAddress from request (body for POST, query param for GET)
+ */
+function extractWalletAddress(request: NextRequest, body?: any): string | null {
+  // POST: from body
+  if (body?.walletAddress) return body.walletAddress;
+  if (body?.credentials?.walletAddress) return body.credentials.walletAddress;
+  // GET: from query param
+  const url = new URL(request.url);
+  return url.searchParams.get('walletAddress');
+}
+
+/**
+ * Extract session token from request headers or query/body
+ */
+function extractSessionToken(request: NextRequest, body?: any): string | null {
+  // Header: Authorization: Bearer <token>
+  const authHeader = request.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  // Body or query param fallback
+  if (body?.sessionToken) return body.sessionToken;
+  const url = new URL(request.url);
+  return url.searchParams.get('sessionToken');
 }
 
 /**
  * GET /api/agent
  *
  * Returns agent state, positions, PnL, config, and optionally trade history.
+ * Requires sessionToken for authenticated access.
  *
  * Query params:
+ *   ?walletAddress=...&sessionToken=...
  *   ?include=trades  - include full trade history
  */
 export async function GET(request: NextRequest) {
   try {
+    const walletAddress = extractWalletAddress(request);
+    if (!walletAddress) {
+      return NextResponse.json(
+        { success: false, error: 'walletAddress query parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // SEC-02: Validate session token (if one exists for this wallet)
+    const token = extractSessionToken(request);
+    const hasActiveSession = sessionTokens.has(walletAddress);
+    if (hasActiveSession && !validateSessionToken(walletAddress, token)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid or expired session token' },
+        { status: 401 }
+      );
+    }
+
     const { getOrchestrator } = getOrchestratorModule();
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator(walletAddress);
     const state = orchestrator.getState();
     const config = orchestrator.getConfig();
     const performance = orchestrator.getPerformance();
@@ -59,7 +135,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('[Agent API] GET error:', error);
-    // If the orchestrator module fails to load or agent isn't configured, return a useful default
     const isModuleError = error instanceof Error && (
       error.message.includes('Cannot find module') ||
       error.message.includes('is not a function') ||
@@ -94,13 +169,13 @@ export async function GET(request: NextRequest) {
  * POST /api/agent
  *
  * Actions:
- *   { action: 'start', config?: Partial<AgentConfig>, credentials?: {...} }
- *   { action: 'stop' }
- *   { action: 'pause' }
- *   { action: 'resume' }
- *   { action: 'emergency_stop' }
- *   { action: 'config', config: Partial<AgentConfig> }
- *   { action: 'status' }
+ *   { action: 'start', config?, credentials?, walletAddress } → returns sessionToken
+ *   { action: 'stop', walletAddress, sessionToken }
+ *   { action: 'pause', walletAddress, sessionToken }
+ *   { action: 'resume', walletAddress, sessionToken }
+ *   { action: 'emergency_stop', walletAddress, sessionToken }
+ *   { action: 'config', config, walletAddress, sessionToken }
+ *   { action: 'status', walletAddress, sessionToken }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -129,38 +204,69 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const orchestrator = getOrchestrator();
+    // Extract walletAddress (required for user isolation)
+    const walletAddress = extractWalletAddress(request, body);
+    if (!walletAddress) {
+      return NextResponse.json(
+        { success: false, error: 'walletAddress is required' },
+        { status: 400 }
+      );
+    }
+
+    // SEC-02: For non-start actions, require a valid session token
+    if (action !== 'start') {
+      const token = extractSessionToken(request, body);
+      const hasActiveSession = sessionTokens.has(walletAddress);
+      if (hasActiveSession && !validateSessionToken(walletAddress, token)) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid or expired session token. Restart the agent.' },
+          { status: 401 }
+        );
+      }
+    }
 
     switch (action) {
       case 'start': {
-        // Store credentials securely in memory (never in process.env)
+        // Build per-user credentials from request body
+        const userCredentials: UserCredentials = {};
         if (credentials?.hyperliquid) {
-          secureCredentials.set('hyperliquid', {
+          userCredentials.hyperliquid = {
             agentKey: credentials.hyperliquid.agentKey,
             agentSecret: credentials.hyperliquid.agentSecret,
-            testnet: credentials.hyperliquid.testnet ? 'true' : 'false',
-          });
+          };
         }
-        if (credentials?.solanaRpc) {
-          secureCredentials.set('solana', { rpcUrl: credentials.solanaRpc });
-        }
-        if (credentials?.ethRpc) {
-          secureCredentials.set('ethereum', { rpcUrl: credentials.ethRpc });
-        }
+        if (credentials?.solanaPrivateKey) userCredentials.solanaPrivateKey = credentials.solanaPrivateKey;
+        if (credentials?.evmPrivateKey) userCredentials.evmPrivateKey = credentials.evmPrivateKey;
+        if (credentials?.solanaRpc) userCredentials.solanaRpcUrl = credentials.solanaRpc;
+        if (credentials?.ethRpc) userCredentials.ethRpcUrl = credentials.ethRpc;
 
-        if (config) {
-          orchestrator.updateConfig(config as any);
-        }
+        // CRITICAL FIX: Always reset before start to apply fresh credentials.
+        resetOrchestrator(walletAddress);
+
+        // Merge enableTrading into config so ConsensusEngine can use it
+        const mergedConfig = {
+          ...config,
+          enableTrading: config?.enableTrading ?? true,
+        };
+
+        const orchestrator = getOrchestrator(walletAddress, mergedConfig, userCredentials);
         await orchestrator.start();
+
+        // SEC-02: Issue session token — client must include this in all subsequent requests
+        const sessionToken = issueSessionToken(walletAddress);
+
         return NextResponse.json({
           success: true,
           message: 'Agent started',
+          sessionToken,
           state: orchestrator.getState(),
         });
       }
 
       case 'stop': {
+        const orchestrator = getOrchestrator(walletAddress);
         await orchestrator.stop();
+        revokeSessionToken(walletAddress);
         return NextResponse.json({
           success: true,
           message: 'Agent stopped',
@@ -169,6 +275,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'pause': {
+        const orchestrator = getOrchestrator(walletAddress);
         await orchestrator.pause();
         return NextResponse.json({
           success: true,
@@ -178,6 +285,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'resume': {
+        const orchestrator = getOrchestrator(walletAddress);
         await orchestrator.resume();
         return NextResponse.json({
           success: true,
@@ -187,7 +295,9 @@ export async function POST(request: NextRequest) {
       }
 
       case 'emergency_stop': {
+        const orchestrator = getOrchestrator(walletAddress);
         await orchestrator.emergencyStop();
+        revokeSessionToken(walletAddress);
         return NextResponse.json({
           success: true,
           message: 'Emergency stop executed - all positions closed',
@@ -202,6 +312,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
+        const orchestrator = getOrchestrator(walletAddress);
         orchestrator.updateConfig(config as any);
         return NextResponse.json({
           success: true,
@@ -211,7 +322,8 @@ export async function POST(request: NextRequest) {
       }
 
       case 'reset': {
-        resetOrchestrator();
+        resetOrchestrator(walletAddress);
+        revokeSessionToken(walletAddress);
         return NextResponse.json({
           success: true,
           message: 'Agent reset - new instance will be created on next call',
@@ -219,6 +331,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'status': {
+        const orchestrator = getOrchestrator(walletAddress);
         return NextResponse.json({
           success: true,
           state: orchestrator.getState(),

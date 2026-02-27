@@ -39,7 +39,7 @@ interface PremiumContextType {
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
 
 const PREMIUM_STORAGE_KEY = 'cypher_premium_status'
-const PREMIUM_CACHE_TTL = 60 * 60 * 1000 // 1 hour — premium localStorage cache lifetime
+const PREMIUM_CACHE_TTL = 5 * 60 * 1000 // 5 minutes — premium localStorage cache lifetime (NEVER trust longer)
 const SUBSCRIPTION_CACHE_KEY = 'cypher_subscription_cache'
 const SUBSCRIPTION_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -97,6 +97,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   const [isReverifying, setIsReverifying] = useState(false)
 
   // Restore premium status from localStorage on mount — with TTL guard
+  // SECURITY: localStorage is ONLY a display hint. isPremium stays false until server-side
+  // re-verification completes. NEVER trust super_admin from client-side cache.
   useEffect(() => {
     if (!isClient) return
     const saved = localStorage.getItem(PREMIUM_STORAGE_KEY)
@@ -111,12 +113,21 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
           return
         }
 
+        // SECURITY: NEVER restore super_admin from localStorage — must come from
+        // server-side verification (isSuperAdmin check against known ETH addresses)
+        const cachedTier = parsed.accessTier as AccessTier | undefined
+        if (cachedTier === 'super_admin') {
+          localStorage.removeItem(PREMIUM_STORAGE_KEY)
+          return
+        }
+
         if (parsed.isPremium) {
-          // Use cached values as a hint for instant UI, but flag re-verification
-          setIsPremiumRaw(true)
+          // Do NOT set isPremium=true from cache. Only store the hint data
+          // and trigger re-verification. isPremium stays false until verified.
           setPremiumCollection(parsed.premiumCollection ?? null)
           setEthAddress(parsed.ethAddress ?? null)
-          setAccessTier((parsed.accessTier as AccessTier) ?? 'premium')
+          // Cap restored tier at 'premium' (never 'super_admin' or 'vip' from cache)
+          setAccessTier(cachedTier === 'vip' ? 'premium' : cachedTier ?? 'premium')
           setIsReverifying(true)
         }
       } catch {
@@ -126,49 +137,53 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   }, [isClient])
 
   // Re-verify cached premium claim against on-chain / VIP data
+  // SECURITY: isPremium is false by default. Only set to true HERE after verification.
   useEffect(() => {
     if (!isReverifying || !isClient) return
 
     const reverify = async () => {
       setIsVerifying(true)
       try {
-        // Check BTC VIP list — this is a local check, no network needed
-        // We don't have the BTC address stored separately, so we rely on
-        // wallet reconnection events to re-establish BTC VIP status.
-        // For ETH / YHP holders, we need the ethAddress.
-
         let verified = false
+        let verifiedTier: AccessTier = 'free'
 
-        // If the cached accessTier is 'vip' or 'super_admin', check if it came
-        // from an ETH wallet we can verify locally (no reconnection needed).
-        if (accessTier === 'vip' || accessTier === 'super_admin') {
-          if (ethAddress && (isSuperAdmin(ethAddress) || isVIPEthWallet(ethAddress))) {
-            // ETH-based VIP/admin — can verify locally without wallet reconnection
+        // For 'premium' tier, try on-chain YHP NFT verification if we have ethAddress
+        if (ethAddress) {
+          // First check ETH VIP list (server-side known addresses)
+          if (isSuperAdmin(ethAddress)) {
             verified = true
+            verifiedTier = 'super_admin'
+          } else if (isVIPEthWallet(ethAddress)) {
+            verified = true
+            verifiedTier = 'vip'
+          } else {
+            // On-chain YHP NFT check
+            try {
+              const { JsonRpcProvider, Contract } = await import('ethers')
+              const provider = new JsonRpcProvider('https://cloudflare-eth.com')
+              const contract = new Contract(
+                YHP_CONTRACT_ADDRESS,
+                ['function balanceOf(address owner) view returns (uint256)'],
+                provider
+              )
+              const bal = await contract.balanceOf(ethAddress)
+              if (Number(bal) > 0) {
+                verified = true
+                verifiedTier = 'premium'
+              }
+            } catch {
+              // RPC failure — revoke to be safe
+              verified = false
+            }
           }
-          // Otherwise, BTC VIP requires wallet reconnection — revoke until reconnect
         }
 
-        // For YHP / 'premium' tier, try on-chain verification if we have ethAddress
-        if (accessTier === 'premium' && ethAddress) {
-          try {
-            const { JsonRpcProvider, Contract } = await import('ethers')
-            const provider = new JsonRpcProvider('https://cloudflare-eth.com')
-            const contract = new Contract(
-              YHP_CONTRACT_ADDRESS,
-              ['function balanceOf(address owner) view returns (uint256)'],
-              provider
-            )
-            const bal = await contract.balanceOf(ethAddress)
-            verified = Number(bal) > 0
-          } catch {
-            // RPC failure — revoke to be safe
-            verified = false
-          }
-        }
-
-        if (!verified) {
-          // Revoke cached premium — user must reconnect wallet
+        if (verified) {
+          // Server-side / on-chain verification succeeded — NOW set isPremium
+          setIsPremiumRaw(true)
+          setAccessTier(verifiedTier)
+        } else {
+          // Verification failed — revoke everything
           setIsPremiumRaw(false)
           setPremiumCollection(null)
           setAccessTier('free')
@@ -282,15 +297,13 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         fetchSubscriptionStatus(btcAddr)
       }
 
-      // Fallback: event says premium (e.g. YHP holder or super_admin ETH wallet)
+      // Fallback: event says premium (e.g. YHP holder)
+      // SECURITY: Never accept super_admin/vip tier from client events.
+      // Those tiers can only be set by server-side verification (isSuperAdmin/isVIPEthWallet).
       if (walletPremium) {
         setIsPremiumRaw(true)
         if (collection) setPremiumCollection(collection)
-        // Respect accessTier from event (super_admin, vip) or default to premium
-        const eventTier = event.detail?.accessTier as AccessTier | undefined
-        if (eventTier && (eventTier === 'super_admin' || eventTier === 'vip')) {
-          setAccessTier(eventTier)
-        } else if (accessTier === 'free') {
+        if (accessTier === 'free') {
           setAccessTier('premium')
         }
       }

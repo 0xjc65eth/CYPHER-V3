@@ -4,6 +4,8 @@
  * Non-custodial: uses agent wallet key (trading only, NO withdrawals)
  */
 
+import { ethers } from 'ethers';
+import * as msgpack from 'msgpack-lite';
 import { Candle, Order, Position } from '../core/types';
 import {
   BaseConnector,
@@ -19,7 +21,6 @@ export interface HyperliquidConfig {
   apiUrl: string;
   agentKey: string;
   agentSecret: string;
-  testnet: boolean;
 }
 
 export class HyperliquidConnector {
@@ -30,9 +31,7 @@ export class HyperliquidConnector {
   constructor(config: HyperliquidConfig) {
     this.config = {
       ...config,
-      apiUrl: config.testnet
-        ? 'https://api.hyperliquid-testnet.xyz'
-        : 'https://api.hyperliquid.xyz',
+      apiUrl: 'https://api.hyperliquid.xyz',
     };
     this.circuitBreaker = createAPICircuitBreaker('hyperliquid', {
       failureThreshold: 3,
@@ -92,15 +91,21 @@ export class HyperliquidConnector {
     if (!this.connected) return { success: false, error: 'Not connected' };
 
     try {
+      // For market orders, use IOC limit with aggressive slippage (0.5%)
+      const slippageMultiplier = params.type === 'market'
+        ? (params.side === 'buy' ? 1.005 : 0.995)
+        : 1;
+      const orderPrice = params.price * slippageMultiplier;
+
       const order = {
         a: this.getAssetIndex(params.pair),
         b: params.side === 'buy',
-        p: params.price.toFixed(1),
+        p: orderPrice.toFixed(1),
         s: params.size.toFixed(4),
         r: params.reduceOnly || false,
         t: params.type === 'limit'
           ? { limit: { tif: params.postOnly ? 'Alo' : 'Gtc' } }
-          : { trigger: { triggerPx: params.price.toFixed(1), isMarket: true, tpsl: 'tp' } },
+          : { limit: { tif: 'Ioc' } },
         c: params.clientId || `cypher_${Date.now()}`,
       };
 
@@ -278,28 +283,69 @@ export class HyperliquidConnector {
     }
   }
 
-  private async exchange(body: any): Promise<any> {
-    // EIP-712 signing for Hyperliquid agent wallet
-    // The agent key has trade-only permissions (no withdrawals)
-    try {
-      const timestamp = Date.now();
-      const nonce = timestamp;
+  /**
+   * Sign an L1 action using EIP-712 typed data (Hyperliquid phantom agent protocol).
+   * @param action The action object (order, cancel, etc.)
+   * @param nonce Timestamp nonce
+   * @param vaultAddress Optional vault address (null for agent wallet)
+   */
+  private async signL1Action(
+    action: any,
+    nonce: number,
+    vaultAddress: string | null,
+  ): Promise<{ r: string; s: string; v: number }> {
+    const wallet = new ethers.Wallet(this.config.agentSecret);
 
-      // Construct the payload with signature
-      // In production with ethers.js:
-      // const wallet = new ethers.Wallet(this.config.agentSecret);
-      // const domain = { name: 'Exchange', version: '1', chainId: 1337 };
-      // const types = { Agent: [{ name: 'source', type: 'string' }, { name: 'connectionId', type: 'bytes32' }] };
-      // const signature = await wallet.signTypedData(domain, types, { source: 'a', connectionId: ... });
+    // Encode action with msgpack
+    const actionBytes = msgpack.encode(action);
+
+    // Build connectionId: keccak256(actionBytes || nonce(8 bytes BE) || vaultAddress(20 bytes or zeros))
+    const nonceBytes = Buffer.alloc(8);
+    nonceBytes.writeBigUInt64BE(BigInt(nonce));
+
+    const vaultBytes = vaultAddress
+      ? Buffer.from(vaultAddress.replace('0x', ''), 'hex')
+      : Buffer.alloc(20);
+
+    const connectionId = ethers.keccak256(
+      Buffer.concat([actionBytes, nonceBytes, vaultBytes])
+    );
+
+    // EIP-712 domain and types for Hyperliquid mainnet (Arbitrum chain ID)
+    const domain = {
+      name: 'Exchange',
+      version: '1',
+      chainId: 42161,
+    };
+
+    const types = {
+      Agent: [
+        { name: 'source', type: 'string' },
+        { name: 'connectionId', type: 'bytes32' },
+      ],
+    };
+
+    const values = {
+      source: 'a', // 'a' = mainnet
+      connectionId,
+    };
+
+    const signature = await wallet.signTypedData(domain, types, values);
+    const { r, s, v } = ethers.Signature.from(signature);
+
+    return { r, s, v };
+  }
+
+  private async exchange(body: any): Promise<any> {
+    try {
+      const nonce = Date.now();
+
+      const signature = await this.signL1Action(body.action, nonce, null);
 
       const payload = {
         ...body,
         nonce,
-        signature: {
-          r: '0x0000000000000000000000000000000000000000000000000000000000000000',
-          s: '0x0000000000000000000000000000000000000000000000000000000000000000',
-          v: 27,
-        },
+        signature,
         vaultAddress: null,
       };
 

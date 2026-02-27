@@ -43,7 +43,17 @@ import { getAgentPersistence, AgentPersistenceService } from '../persistence';
 import { getSessionKeyManager, SessionKeyManager } from '../wallet';
 import { getAgentEventBus, AgentEventBus } from '../consensus/AgentEventBus';
 
+export interface UserCredentials {
+  hyperliquid?: { agentKey: string; agentSecret: string };
+  solanaPrivateKey?: string;
+  evmPrivateKey?: string;
+  solanaRpcUrl?: string;
+  ethRpcUrl?: string;
+  oneInchApiKey?: string;
+}
+
 export class AgentOrchestrator {
+  private userId: string;
   private config: AgentConfig;
   private state: AgentState;
   private isRunning: boolean = false;
@@ -65,6 +75,7 @@ export class AgentOrchestrator {
   private persistence: AgentPersistenceService;
   private sessionKeyManager: SessionKeyManager;
   private eventBus: AgentEventBus;
+  private credentials: UserCredentials;
   private configId: string | null = null;
 
   // Trade history (persists across cycles)
@@ -81,16 +92,17 @@ export class AgentOrchestrator {
   // could both pass the dedup check before either writes to the cache.
   private executionLock: Map<string, Promise<void>> = new Map();
 
-  constructor(config?: Partial<AgentConfig>, persistenceId?: string) {
+  constructor(userId: string, config?: Partial<AgentConfig>, credentials?: UserCredentials, persistenceId?: string) {
+    this.userId = userId;
+    this.credentials = credentials || {};
     this.config = { ...DEFAULT_AGENT_CONFIG, ...config };
     this.state = this.createInitialState();
 
     // Initialize Hyperliquid connector (default perp connector)
     const hlConfig: HyperliquidConfig = {
-      apiUrl: '',
-      agentKey: process.env.HYPERLIQUID_AGENT_KEY || '',
-      agentSecret: process.env.HYPERLIQUID_AGENT_SECRET || '',
-      testnet: process.env.HYPERLIQUID_TESTNET === 'true',
+      apiUrl: 'https://api.hyperliquid.xyz',
+      agentKey: this.credentials.hyperliquid?.agentKey || process.env.HYPERLIQUID_AGENT_KEY || '',
+      agentSecret: this.credentials.hyperliquid?.agentSecret || process.env.HYPERLIQUID_AGENT_SECRET || '',
     };
     this.connector = new HyperliquidConnector(hlConfig);
     this.connectors.set('hyperliquid', this.connector);
@@ -107,7 +119,10 @@ export class AgentOrchestrator {
     this.compounder = new AutoCompoundEngine(this.config.autoCompound);
 
     // Initialize consensus engine (multi-agent AI voting)
-    this.consensus = getConsensusEngine();
+    // Pass enableTrading from agent config so wizard can control auto-trade
+    this.consensus = getConsensusEngine({
+      enableTrading: this.config.enableTrading,
+    });
 
     // Initialize persistence layer (Supabase + in-memory fallback)
     this.persistence = getAgentPersistence();
@@ -171,7 +186,8 @@ export class AgentOrchestrator {
           name: exchange,
           chain: 'solana',
           testnet: false,
-          rpcUrl: process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+          rpcUrl: this.credentials.solanaRpcUrl || process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com',
+          sessionPrivateKey: this.credentials.solanaPrivateKey || process.env.SOLANA_PRIVATE_KEY || undefined,
         });
 
       case 'uniswap':
@@ -179,9 +195,10 @@ export class AgentOrchestrator {
           name: 'uniswap',
           chain: 'evm',
           testnet: false,
-          rpcUrl: process.env.ETH_RPC_URL || 'https://eth.llamarpc.com',
+          rpcUrl: this.credentials.ethRpcUrl || process.env.ETH_RPC_URL || 'https://eth.llamarpc.com',
           chainId: parseInt(process.env.ETH_CHAIN_ID || '1'),
-          oneInchApiKey: process.env.ONEINCH_API_KEY,
+          sessionPrivateKey: this.credentials.evmPrivateKey || process.env.EVM_PRIVATE_KEY || undefined,
+          oneInchApiKey: this.credentials.oneInchApiKey || process.env.ONEINCH_API_KEY,
         });
 
       // Alpaca removed (KYC required) - stocks/forex/commodities trade as synth perps on Hyperliquid
@@ -243,7 +260,7 @@ export class AgentOrchestrator {
 
       // Save config to database
       if (!this.configId) {
-        this.configId = await this.persistence.saveConfig(this.config, 'default');
+        this.configId = await this.persistence.saveConfig(this.config, this.userId);
       }
 
       // Reconcile positions: check exchange for orphaned positions from previous session
@@ -1297,6 +1314,10 @@ export class AgentOrchestrator {
     return [...this.tradeHistory];
   }
 
+  getUserId(): string {
+    return this.userId;
+  }
+
   // ========================================================================
   // Event System
   // ========================================================================
@@ -1437,19 +1458,26 @@ export class AgentOrchestrator {
   }
 }
 
-// Singleton
-let orchestratorInstance: AgentOrchestrator | null = null;
+// Per-user registry (replaces singleton)
+const orchestratorRegistry = new Map<string, AgentOrchestrator>();
 
-export function getOrchestrator(config?: Partial<AgentConfig>): AgentOrchestrator {
-  if (!orchestratorInstance) {
-    orchestratorInstance = new AgentOrchestrator(config);
+export function getOrchestrator(userId: string, config?: Partial<AgentConfig>, credentials?: UserCredentials): AgentOrchestrator {
+  let instance = orchestratorRegistry.get(userId);
+  if (!instance) {
+    instance = new AgentOrchestrator(userId, config, credentials);
+    orchestratorRegistry.set(userId, instance);
   }
-  return orchestratorInstance;
+  return instance;
 }
 
-export function resetOrchestrator(): void {
-  if (orchestratorInstance) {
-    orchestratorInstance.stop().catch(() => {});
-    orchestratorInstance = null;
+export function resetOrchestrator(userId: string): void {
+  const instance = orchestratorRegistry.get(userId);
+  if (instance) {
+    instance.stop().catch(() => {});
+    orchestratorRegistry.delete(userId);
   }
+}
+
+export function getAllActiveUsers(): string[] {
+  return Array.from(orchestratorRegistry.keys());
 }

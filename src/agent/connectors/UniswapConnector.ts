@@ -4,6 +4,7 @@
  * Non-custodial: uses session wallet (ethers.Wallet) for signing
  */
 
+import { ethers } from 'ethers';
 import { Candle, Position, LPPosition } from '../core/types';
 import {
   BaseConnector,
@@ -307,14 +308,73 @@ export class UniswapConnector extends BaseConnector {
     const contracts = UNISWAP_CONTRACTS[this.chainId];
     if (!contracts) throw new Error(`Uniswap not deployed on chain ${this.chainId}`);
 
-    // In production: encode NonfungiblePositionManager.mint() call
-    // Parameters: token0, token1, fee, tickLower, tickUpper, amount0Desired, amount1Desired,
-    //             amount0Min, amount1Min, recipient, deadline
+    const provider = new ethers.JsonRpcProvider(this.rpcUrl);
+    const wallet = new ethers.Wallet(this.sessionKey, provider);
+    const walletAddress = wallet.address;
 
-    const position: LPPosition = {
-      id: `uni_lp_${this.chainId}_${Date.now()}`,
+    const tokens = TOKEN_ADDRESSES[this.chainId] || {};
+    const token0Addr = tokens[params.token0] || params.token0;
+    const token1Addr = tokens[params.token1] || params.token1;
+
+    // Fee tier mapping: 0.003 -> 3000 (Uniswap uses basis points * 100)
+    const fee = Math.round(params.feeTier * 1_000_000);
+    const deadline = Math.floor(Date.now() / 1000) + 600; // 10 minutes
+
+    const decimals0 = this.getTokenDecimals(token0Addr);
+    const decimals1 = this.getTokenDecimals(token1Addr);
+    const amount0Desired = ethers.parseUnits(params.amount0.toFixed(decimals0), decimals0);
+    const amount1Desired = ethers.parseUnits(params.amount1.toFixed(decimals1), decimals1);
+    // 1% slippage tolerance for LP
+    const amount0Min = amount0Desired * 99n / 100n;
+    const amount1Min = amount1Desired * 99n / 100n;
+
+    // Approve tokens for NonfungiblePositionManager (skip for native ETH)
+    const erc20Abi = ['function approve(address spender, uint256 amount) returns (bool)'];
+    for (const [addr, amount] of [[token0Addr, amount0Desired], [token1Addr, amount1Desired]] as const) {
+      if (addr !== '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE') {
+        const tokenContract = new ethers.Contract(addr, erc20Abi, wallet);
+        const approveTx = await tokenContract.approve(contracts.positionManager, amount);
+        await approveTx.wait(1);
+      }
+    }
+
+    // Call NonfungiblePositionManager.mint()
+    const npmAbi = [
+      'function mint((address token0, address token1, uint24 fee, int24 tickLower, int24 tickUpper, uint256 amount0Desired, uint256 amount1Desired, uint256 amount0Min, uint256 amount1Min, address recipient, uint256 deadline)) payable returns (uint256 tokenId, uint128 liquidity, uint256 amount0, uint256 amount1)',
+    ];
+    const npm = new ethers.Contract(contracts.positionManager, npmAbi, wallet);
+
+    const mintParams = {
+      token0: token0Addr < token1Addr ? token0Addr : token1Addr,
+      token1: token0Addr < token1Addr ? token1Addr : token0Addr,
+      fee,
+      tickLower: params.tickLower,
+      tickUpper: params.tickUpper,
+      amount0Desired: token0Addr < token1Addr ? amount0Desired : amount1Desired,
+      amount1Desired: token0Addr < token1Addr ? amount1Desired : amount0Desired,
+      amount0Min: token0Addr < token1Addr ? amount0Min : amount1Min,
+      amount1Min: token0Addr < token1Addr ? amount1Min : amount0Min,
+      recipient: walletAddress,
+      deadline,
+    };
+
+    const value = token0Addr === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ? amount0Desired
+      : token1Addr === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' ? amount1Desired
+      : 0n;
+
+    const tx = await npm.mint(mintParams, { value });
+    const receipt = await tx.wait(1);
+
+    // Parse tokenId from the Transfer event
+    const transferLog = receipt.logs.find(
+      (log: any) => log.address.toLowerCase() === contracts.positionManager.toLowerCase()
+    );
+    const tokenId = transferLog ? BigInt(transferLog.topics[3]).toString() : `uni_lp_${Date.now()}`;
+
+    return {
+      id: `uni_lp_${this.chainId}_${tokenId}`,
       pair: `${params.token0}/${params.token1}`,
-      protocol: 'uniswap-v4',
+      protocol: 'uniswap-v3',
       tickLower: params.tickLower,
       tickUpper: params.tickUpper,
       liquidity: params.amount0 + params.amount1,
@@ -328,19 +388,55 @@ export class UniswapConnector extends BaseConnector {
       createdAt: Date.now(),
       lastRebalance: Date.now(),
     };
-
-    return position;
   }
 
   async collectLPFees(positionId: string): Promise<LPCollectResult> {
-    // In production: call NonfungiblePositionManager.collect()
-    return {
-      token0: 0,
-      token1: 0,
-      token0Symbol: 'ETH',
-      token1Symbol: 'USDC',
-      valueUSD: 0,
-    };
+    if (!this.sessionKey) {
+      return { token0: 0, token1: 0, token0Symbol: 'ETH', token1Symbol: 'USDC', valueUSD: 0 };
+    }
+
+    try {
+      const contracts = UNISWAP_CONTRACTS[this.chainId];
+      if (!contracts) throw new Error(`Uniswap not deployed on chain ${this.chainId}`);
+
+      const provider = new ethers.JsonRpcProvider(this.rpcUrl);
+      const wallet = new ethers.Wallet(this.sessionKey, provider);
+
+      // Extract tokenId from our position ID format: uni_lp_{chainId}_{tokenId}
+      const parts = positionId.split('_');
+      const tokenId = parts[parts.length - 1];
+
+      const MAX_UINT128 = (1n << 128n) - 1n;
+
+      const npmAbi = [
+        'function collect((uint256 tokenId, address recipient, uint128 amount0Max, uint128 amount1Max)) payable returns (uint256 amount0, uint256 amount1)',
+      ];
+      const npm = new ethers.Contract(contracts.positionManager, npmAbi, wallet);
+
+      const tx = await npm.collect({
+        tokenId: BigInt(tokenId),
+        recipient: wallet.address,
+        amount0Max: MAX_UINT128,
+        amount1Max: MAX_UINT128,
+      });
+      const receipt = await tx.wait(1);
+
+      // Parse collected amounts from event logs
+      const collectEvent = receipt.logs[0];
+      const amount0 = collectEvent ? Number(BigInt(collectEvent.data.slice(0, 66))) / 1e18 : 0;
+      const amount1 = collectEvent ? Number(BigInt('0x' + collectEvent.data.slice(66))) / 1e6 : 0;
+
+      return {
+        token0: amount0,
+        token1: amount1,
+        token0Symbol: 'ETH',
+        token1Symbol: 'USDC',
+        valueUSD: 0, // Would need price oracle
+      };
+    } catch (error) {
+      console.error('[Uniswap] collectLPFees error:', error);
+      return { token0: 0, token1: 0, token0Symbol: 'ETH', token1Symbol: 'USDC', valueUSD: 0 };
+    }
   }
 
   // Private helpers
@@ -352,8 +448,7 @@ export class UniswapConnector extends BaseConnector {
 
   private getAddressFromSession(): string {
     if (!this.sessionKey) return '';
-    // In production: new ethers.Wallet(this.sessionKey).address
-    return this.config.apiKey || '';
+    return new ethers.Wallet(this.sessionKey).address;
   }
 
   private getTokenDecimals(address: string): number {
@@ -373,38 +468,41 @@ export class UniswapConnector extends BaseConnector {
     if (!this.sessionKey) return null;
 
     try {
-      // In production:
-      // const wallet = new ethers.Wallet(this.sessionKey, provider);
-      // const txResponse = await wallet.sendTransaction(tx);
-      // await txResponse.wait();
-      // return txResponse.hash;
+      const provider = new ethers.JsonRpcProvider(this.rpcUrl);
+      const wallet = new ethers.Wallet(this.sessionKey, provider);
 
-      // For now, construct and send raw transaction via RPC
-      const response = await fetch(this.rpcUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'eth_sendTransaction',
-          params: [{
-            from: this.getAddressFromSession(),
-            to: tx.to,
-            data: tx.data,
-            value: tx.value || '0x0',
-            gas: tx.gasLimit,
-            gasPrice: tx.gasPrice,
-          }],
-        }),
-      });
-      const data = await response.json();
+      const txRequest: ethers.TransactionRequest = {
+        to: tx.to,
+        data: tx.data,
+        value: tx.value || '0x0',
+      };
 
-      if (data.error) {
-        console.error('[Uniswap] TX error:', data.error);
+      // Use EIP-1559 gas pricing if available, fall back to legacy
+      try {
+        const feeData = await provider.getFeeData();
+        if (feeData.maxFeePerGas) {
+          txRequest.maxFeePerGas = feeData.maxFeePerGas;
+          txRequest.maxPriorityFeePerGas = feeData.maxPriorityFeePerGas;
+        } else {
+          txRequest.gasPrice = tx.gasPrice ? BigInt(tx.gasPrice) : feeData.gasPrice;
+        }
+      } catch {
+        if (tx.gasPrice) txRequest.gasPrice = BigInt(tx.gasPrice);
+      }
+
+      if (tx.gasLimit) {
+        txRequest.gasLimit = BigInt(tx.gasLimit);
+      }
+
+      const txResponse = await wallet.sendTransaction(txRequest);
+      const receipt = await txResponse.wait(1);
+
+      if (!receipt || receipt.status === 0) {
+        console.error('[Uniswap] TX reverted:', txResponse.hash);
         return null;
       }
 
-      return data.result;
+      return txResponse.hash;
     } catch (error) {
       console.error('[Uniswap] signAndSend error:', error);
       return null;
