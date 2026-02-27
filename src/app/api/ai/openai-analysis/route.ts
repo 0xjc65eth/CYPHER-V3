@@ -3,6 +3,13 @@ import { API_KEYS } from '@/config/professionalApis';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!API_KEYS.OPENAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'Service unavailable', message: 'OpenAI API key not configured' },
+        { status: 503 }
+      );
+    }
+
     const { query, model = 'gpt-4-turbo', context = 'bitcoin_trading' } = await request.json();
 
     if (!query) {

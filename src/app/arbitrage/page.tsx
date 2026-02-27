@@ -85,9 +85,12 @@ interface ArbitrageApiData {
   timestamp: number;
 }
 
+const SUPPORTED_PAIRS = ['ALL', 'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT', 'DOGE/USDT'] as const;
+
 export default function ArbitragePage() {
-  const [minSpread, setMinSpread] = useState(5);
+  const [minSpread, setMinSpread] = useState(0);
   const [selectedAssetType, setSelectedAssetType] = useState<'all' | 'ordinals' | 'runes' | 'tokens'>('all');
+  const [selectedPair, setSelectedPair] = useState<string>('ALL');
   const [selectedOpportunity, setSelectedOpportunity] = useState<any>(null);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
   const [newOpportunityCount, setNewOpportunityCount] = useState(0);
@@ -111,11 +114,12 @@ export default function ArbitragePage() {
     lastUpdate,
     totalSpread,
     avgSpread
-  } = useArbitrage(minSpread, selectedAssetType);
+  } = useArbitrage(minSpread, selectedAssetType, selectedPair);
 
   const fetchArbPrices = useCallback(async () => {
     try {
-      const res = await fetch('/api/arbitrage/prices/');
+      const pairParam = selectedPair !== 'ALL' ? `?pair=${encodeURIComponent(selectedPair)}` : '';
+      const res = await fetch(`/api/arbitrage/prices/${pairParam}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: ArbitrageApiData = await res.json();
       if (data.exchanges) {
@@ -131,7 +135,7 @@ export default function ArbitragePage() {
       setArbLastUpdate(new Date());
       setCountdown(15);
     }
-  }, []);
+  }, [selectedPair]);
 
   const fetchTriangularOpportunities = useCallback(async () => {
     try {
@@ -352,6 +356,18 @@ export default function ArbitragePage() {
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span>LIVE</span>
               </div>
+              {/* Pair Selector */}
+              <select
+                value={selectedPair}
+                onChange={(e) => setSelectedPair(e.target.value)}
+                className="bg-[#1a1a2e] border border-[#2a2a3e] text-orange-400 font-mono text-xs px-3 py-1.5 rounded-lg focus:border-orange-500 focus:outline-none cursor-pointer"
+              >
+                {SUPPORTED_PAIRS.map(pair => (
+                  <option key={pair} value={pair} className="bg-[#0a0a0f] text-orange-400">
+                    {pair === 'ALL' ? 'ALL PAIRS' : pair}
+                  </option>
+                ))}
+              </select>
               <div className="text-xs text-gray-500 bg-[#1a1a2e] px-3 py-1.5 rounded-lg border border-[#2a2a3e]">
                 Refresh in {countdown}s
               </div>
@@ -462,16 +478,15 @@ export default function ArbitragePage() {
                     <Info className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
                     <div>
                       <h3 className="text-blue-400 font-semibold mb-2 flex items-center gap-2">
-                        Why Are Profits Negative or Zero?
+                        Real-Time 8-Exchange Arbitrage Scanner
                       </h3>
                       <p className="text-sm text-gray-300 leading-relaxed">
-                        Cryptocurrency markets are highly efficient. Current spreads between exchanges (0.01-0.10%)
-                        are typically smaller than combined trading fees (0.5-3%), making arbitrage unprofitable.
-                        When profitable opportunities briefly appear due to price divergence, they are captured within
-                        seconds by automated trading bots with direct exchange connections and lower fees.
+                        Live {selectedPair === 'ALL' ? 'multi-pair' : selectedPair} prices from Binance, Coinbase, Kraken, Bybit, OKX, Bitfinex, KuCoin, and Gate.io.
+                        Spreads are typically 0.01-0.10% — smaller than combined fees (0.2-1%). Green rows indicate
+                        net-profitable opportunities after fees. Most spreads are captured within seconds by HFT bots.
                       </p>
                       <div className="mt-3 flex items-center gap-2 text-xs text-blue-300">
-                        <span className="font-mono">Profitable when: Spread &gt; (Buy Fee + Sell Fee + Network Fee)</span>
+                        <span className="font-mono">Net Profit = Spread% - BuyFee% - SellFee% - NetworkFee%</span>
                       </div>
                     </div>
                   </div>
@@ -480,7 +495,7 @@ export default function ArbitragePage() {
                 {/* Controls */}
                 <div className="flex items-center justify-between">
                   <div className="text-sm text-gray-400">
-                    Live BTC/USDT prices from {arbData?.exchangeCount || 0} exchanges
+                    Live {selectedPair === 'ALL' ? 'BTC/USDT' : selectedPair} prices from {arbData?.exchangeCount || 0} exchanges
                     {arbData?.errors && arbData.errors.length > 0 && (
                       <span className="ml-2 text-yellow-400 text-xs">
                         ({arbData.errors.length} exchange{arbData.errors.length > 1 ? 's' : ''} failed)
@@ -642,9 +657,9 @@ export default function ArbitragePage() {
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="text-2xl font-bold text-purple-400">
-                          {opportunities.filter(o => o.spread >= 10).length}
+                          {opportunities.filter(o => o.spread >= 0.05).length}
                         </div>
-                        <div className="text-sm text-gray-400">Spreads &gt; 10%</div>
+                        <div className="text-sm text-gray-400">Spreads &gt; 0.05%</div>
                       </div>
                       <Zap className="h-8 w-8 text-purple-400" />
                     </div>
@@ -659,7 +674,7 @@ export default function ArbitragePage() {
                     <Filter className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-400">Min spread:</span>
                     <div className="flex gap-1">
-                      {[3, 5, 10, 15].map(value => (
+                      {[0, 0.01, 0.05, 0.1].map(value => (
                         <Button
                           key={value}
                           size="sm"
@@ -667,7 +682,7 @@ export default function ArbitragePage() {
                           className={minSpread === value ? 'bg-orange-600' : 'border-[#2a2a3e] hover:border-orange-500'}
                           onClick={() => setMinSpread(value)}
                         >
-                          {value}%
+                          {value === 0 ? 'All' : `${value}%`}
                         </Button>
                       ))}
                     </div>
@@ -714,7 +729,7 @@ export default function ArbitragePage() {
                     <CardHeader>
                       <CardTitle className="text-orange-400 flex items-center gap-2">
                         <Brain className="h-5 w-5" />
-                        Arbitrage Opportunities - Spread &gt;= {minSpread}%
+                        Arbitrage Opportunities {minSpread > 0 ? `- Spread ≥ ${minSpread}%` : '- All Spreads'}
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -1106,6 +1121,17 @@ export default function ArbitragePage() {
                 <PaperTradingPanel
                   initialBalance={10000}
                   onTradeExecuted={() => {}}
+                  opportunities={opportunities.map(o => ({
+                    id: o.id,
+                    symbol: o.symbol,
+                    buySource: o.buySource,
+                    sellSource: o.sellSource,
+                    buyPrice: o.buyPrice,
+                    sellPrice: o.sellPrice,
+                    spread: o.spread,
+                    netProfitPercent: o.netProfitPercent,
+                    estimatedProfitPer1BTC: o.estimatedProfitPer1BTC,
+                  }))}
                 />
               </PremiumContent>
             </TabsContent>

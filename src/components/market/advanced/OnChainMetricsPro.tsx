@@ -365,6 +365,7 @@ export function OnChainMetricsPro({ refreshTrigger = 0 }: OnChainMetricsProProps
             </div>
           </div>
 
+          <div className="overflow-x-auto">
           <table className="w-full text-[10px]">
             <thead className="text-[9px] text-[#e4e4e7]/40 border-b border-[#1a1a2e]">
               <tr>
@@ -386,6 +387,7 @@ export function OnChainMetricsPro({ refreshTrigger = 0 }: OnChainMetricsProProps
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 

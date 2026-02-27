@@ -66,9 +66,12 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
 
   if (!isOpen || !collection) return null;
 
-  // Format BTC values
-  const formatBTC = (sats: number) => {
-    return (sats / 1e8).toFixed(8);
+  // Format BTC values - data is already in BTC from the API, NOT in satoshis
+  const formatBTC = (value: number) => {
+    if (value >= 1) return value.toFixed(4);
+    if (value >= 0.01) return value.toFixed(6);
+    if (value >= 0.0001) return value.toFixed(6);
+    return value.toFixed(8);
   };
 
   // Format large numbers
@@ -175,25 +178,32 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
                 <PriceChange value={collection.priceChange24h} showIcon={false} />
               </div>
 
-              {/* 24h Volume */}
+              {/* 24h Volume (falls back to Total Volume when 24h is 0) */}
               <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4 text-gray-500" />
-                  <div className="text-xs text-gray-500 font-semibold">24H VOLUME</div>
+                  <div className="text-xs text-gray-500 font-semibold">
+                    {collection.volume24h > 0 ? '24H VOLUME' : 'TOTAL VOLUME'}
+                  </div>
                 </div>
                 <div className="text-xl font-mono font-bold text-white">
-                  {formatBTC(collection.volume24h)} BTC
+                  {formatBTC(collection.volume24h > 0 ? collection.volume24h : (collection.totalVolume ?? 0))} BTC
                 </div>
               </div>
 
-              {/* 7d Volume */}
+              {/* 7d Volume (falls back to Listed count when 7d is 0) */}
               <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4 text-gray-500" />
-                  <div className="text-xs text-gray-500 font-semibold">7D VOLUME</div>
+                  <div className="text-xs text-gray-500 font-semibold">
+                    {collection.volume7d > 0 ? '7D VOLUME' : 'LISTED'}
+                  </div>
                 </div>
                 <div className="text-xl font-mono font-bold text-white">
-                  {formatBTC(collection.volume7d)} BTC
+                  {collection.volume7d > 0
+                    ? `${formatBTC(collection.volume7d)} BTC`
+                    : formatNumber(collection.listed)
+                  }
                 </div>
               </div>
 
@@ -251,7 +261,7 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
                   <div className="text-xs text-gray-500 font-semibold">LISTED %</div>
                 </div>
                 <div className="text-lg font-mono font-bold text-white">
-                  {((collection.listed / collection.supply) * 100).toFixed(2)}%
+                  {collection.supply > 0 ? ((collection.listed / collection.supply) * 100).toFixed(2) : '0.00'}%
                 </div>
               </div>
             </div>

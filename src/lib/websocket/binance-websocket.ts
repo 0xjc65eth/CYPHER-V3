@@ -110,16 +110,21 @@ class BinanceWebSocket {
    * Connect to Binance WebSocket
    */
   private async connect(): Promise<void> {
+    if (typeof WebSocket === 'undefined') {
+      logger.warn('WebSocket not available in this environment, Binance real-time data disabled');
+      return;
+    }
+
     try {
       logger.info(`🔌 Connecting to Binance WebSocket: ${this.config.baseUrl}`);
-      
+
       this.ws = new WebSocket(this.config.baseUrl);
-      
+
       this.ws.onopen = () => this.handleOpen();
       this.ws.onmessage = (event) => this.handleMessage(event);
       this.ws.onclose = (event) => this.handleClose(event);
       this.ws.onerror = (error) => this.handleError(error);
-      
+
     } catch (error) {
       logger.error(error instanceof Error ? error : new Error(String(error)), '❌ Failed to create Binance WebSocket connection');
       this.scheduleReconnect();

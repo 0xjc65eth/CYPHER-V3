@@ -5,12 +5,14 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // TODO: Integrate with real data sources:
-    // - ETF flow data: Bloomberg Terminal API, Fidelity API
-    // - Corporate treasury: bitcointreasuries.net API
-    // Note: Current data is representative estimates based on Feb 2026 market conditions
+    // Data is simulated estimates based on publicly reported Feb 2026 figures.
+    // Real-time ETF flow data requires Bloomberg Terminal API or similar paid subscription.
+    // Corporate treasury data sourced from public filings (approximate).
 
     const data = {
+      simulated: true,
+      source: 'estimated-public-filings',
+      note: 'Institutional flow data is estimated from public reports. Real-time data requires Bloomberg Terminal API subscription.',
       etfFlows: {
         daily: 245_000_000, // Daily net flow in USD
         weekly: 1_823_000_000,

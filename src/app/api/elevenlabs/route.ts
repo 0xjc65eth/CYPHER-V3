@@ -5,7 +5,10 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 export async function POST(request: NextRequest) {
   try {
     if (!ELEVENLABS_API_KEY) {
-      throw new Error('ElevenLabs API key not found');
+      return NextResponse.json(
+        { error: 'Service unavailable', message: 'ElevenLabs API key not configured' },
+        { status: 503 }
+      );
     }
 
     const body = await request.json();

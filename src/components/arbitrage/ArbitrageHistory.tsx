@@ -62,17 +62,46 @@ export default function ArbitrageHistory() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/arbitrage/performance/?period=${timeframe}&strategy=all`);
+      // Fetch from the new history endpoint that returns actual opportunity snapshots
+      const response = await fetch(`/api/arbitrage/history/?timeframe=${timeframe}`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const data: PerformanceMetrics = await response.json();
-      setMetrics(data);
+      const data = await response.json();
 
-      // If there's real execution data, it comes from the database via the performance endpoint
-      // The performance endpoint returns aggregate metrics, not individual trades
-      // So history items remain empty until trades are actually executed
-      setHistoryData([]);
+      if (data.success && data.history) {
+        setHistoryData(data.history.map((h: any) => ({
+          id: h.id,
+          symbol: h.symbol,
+          type: h.type || 'tokens',
+          detectedAt: h.detectedAt,
+          spread: h.spread,
+          potentialProfit: h.potentialProfit || h.estimatedProfit,
+          estimatedProfit: h.estimatedProfit,
+          buySource: h.buySource,
+          sellSource: h.sellSource,
+          status: h.status,
+          expiresAt: h.expiresAt,
+          baseCurrency: h.baseCurrency || 'USD',
+        })));
+
+        // Set metrics from history stats
+        setMetrics({
+          totalTrades: data.stats?.totalOpportunities || 0,
+          totalProfit: data.stats?.totalProfit || 0,
+          winRate: data.stats?.winRate || 0,
+          avgWin: 0,
+          avgLoss: 0,
+          profitFactor: 0,
+          sharpeRatio: 0,
+          maxDrawdown: 0,
+          strategy: 'all',
+          period: timeframe,
+        });
+      } else {
+        setHistoryData([]);
+        setMetrics(null);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch history';
       console.error('[ArbitrageHistory] Error:', message);

@@ -138,6 +138,16 @@ const navigationItems: NavItem[] = [
     category: 'Tools'
   },
   {
+    id: 'pricing',
+    label: 'Pricing',
+    href: '/pricing',
+    icon: NavigationIcons['/pricing'].icon,
+    description: 'Subscription plans & pricing',
+    badge: 'NEW',
+    badgeType: 'new',
+    category: 'Tools'
+  },
+  {
     id: 'bug-report',
     label: 'Report Bug',
     href: '/bug-report',

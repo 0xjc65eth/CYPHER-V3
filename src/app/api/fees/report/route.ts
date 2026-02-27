@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFeeReportFromDatabase } from '@/lib/database/legacy-database';
+import { validateAdminAuth } from '@/lib/middleware/admin-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = validateAdminAuth(request);
+    if (!auth.ok) return auth.response;
     const searchParams = request.nextUrl.searchParams;
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');

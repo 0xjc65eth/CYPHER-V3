@@ -3,6 +3,13 @@ import { API_KEYS } from '@/config/professionalApis';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!(API_KEYS as any).ASSEMBLYAI_API_KEY) {
+      return NextResponse.json(
+        { error: 'Service unavailable', message: 'AssemblyAI API key not configured' },
+        { status: 503 }
+      );
+    }
+
     const formData = await request.formData();
     const audioFile = formData.get('audio') as File;
     const language = formData.get('language') as string || 'en';

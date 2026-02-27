@@ -50,7 +50,15 @@ export async function GET(request: NextRequest) {
     }
     
     if (!CMC_API_KEY) {
-      throw new Error('CoinMarketCap API key not found');
+      const requestedSymbols = symbols.split(',').map((s: string) => s.trim());
+      return NextResponse.json({
+        success: true,
+        data: getFallbackData(requestedSymbols),
+        source: 'Fallback - API key not configured',
+        timestamp: new Date().toISOString(),
+        warning: FALLBACK_WARNING,
+        isFallback: true,
+      });
     }
 
     // Get current quotes

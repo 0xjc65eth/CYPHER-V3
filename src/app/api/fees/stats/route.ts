@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cypherRevenueTracker } from '@/lib/revenueTracking';
 import { cypherFeeDistributor } from '@/lib/feeDistribution';
 import { NetworkType } from '@/lib/feeManager';
+import { validateAdminAuth } from '@/lib/middleware/admin-auth';
 
 /**
  * GET /api/fees/stats
@@ -14,6 +15,8 @@ import { NetworkType } from '@/lib/feeManager';
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = validateAdminAuth(request);
+    if (!auth.ok) return auth.response;
     const searchParams = request.nextUrl.searchParams;
     const period = searchParams.get('period');
     const network = searchParams.get('network') as NetworkType | null;
@@ -119,6 +122,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const auth = validateAdminAuth(request);
+    if (!auth.ok) return auth.response;
+
     const body = await request.json();
     const { format = 'csv', period, network } = body;
 

@@ -23,6 +23,19 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const kind = searchParams.get('kind') || '';
 
+    // Validate 'kind' parameter against allowlist to prevent parameter injection
+    const VALID_KINDS = ['listing', 'sale', 'cancel_listing', 'buying_broadcasted'];
+    if (kind && !VALID_KINDS.includes(kind)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid kind parameter',
+          validKinds: VALID_KINDS
+        },
+        { status: 400 }
+      );
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
@@ -107,10 +120,51 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fallback 2: Use Hiro recent inscriptions as activity proxy
+    // Fallback 2: Try OKX marketplace activity
     if (!data || data.length === 0) {
       const controller3 = new AbortController();
       const timeout3 = setTimeout(() => controller3.abort(), 10000);
+      try {
+        const okxRes = await fetch(
+          `https://www.okx.com/api/v5/mktplace/nft/ordinals/trade-activities?limit=${limit}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'CYPHER-ORDi-Future-V3',
+            },
+            signal: controller3.signal,
+          }
+        );
+        if (okxRes.ok) {
+          const okxData = await okxRes.json();
+          const activities = okxData.data?.activities || okxData.data || [];
+          if (Array.isArray(activities) && activities.length > 0) {
+            data = activities.map((item: Record<string, unknown>) => ({
+              kind: item.type || item.action || 'sale',
+              tokenId: item.inscriptionId || item.inscription_id || item.nftId || '',
+              inscriptionNumber: item.inscriptionNumber || item.number || null,
+              collectionSymbol: String(item.collectionSymbol || item.slug || ''),
+              listedPrice: item.price ? Math.round(Number(item.price) * 1e8) : null,
+              price: item.price ? Math.round(Number(item.price) * 1e8) : null,
+              seller: String(item.from || item.seller || ''),
+              buyer: String(item.to || item.buyer || ''),
+              createdAt: item.timestamp ? new Date(Number(item.timestamp)).toISOString() : new Date().toISOString(),
+              txId: item.txId || item.txHash || '',
+            }));
+            source = 'okx';
+          }
+        }
+      } catch (error) {
+        console.error('[Marketplace API] OKX fallback error:', error);
+      } finally {
+        clearTimeout(timeout3);
+      }
+    }
+
+    // Fallback 3: Use Hiro recent inscriptions as activity proxy
+    if (!data || data.length === 0) {
+      const controller4 = new AbortController();
+      const timeout4 = setTimeout(() => controller4.abort(), 10000);
       try {
         const hiroHeaders: Record<string, string> = {
           'Accept': 'application/json',
@@ -124,20 +178,19 @@ export async function GET(request: Request) {
           `https://api.hiro.so/ordinals/v1/inscriptions?limit=${limit}&order=desc&order_by=genesis_block_height`,
           {
             headers: hiroHeaders,
-            signal: controller3.signal,
+            signal: controller4.signal,
           }
         );
         if (hiroRes.ok) {
           const hiroData = await hiroRes.json();
           data = (Array.isArray(hiroData.results) ? hiroData.results : []).map((item: Record<string, unknown>) => ({
-            kind: 'listing',
+            kind: 'inscription',
             tokenId: item.id,
             inscription_id: item.id,
             number: item.number,
             inscriptionNumber: item.number,
             content_type: item.content_type,
             genesis_block_height: item.genesis_block_height,
-            // Hiro returns genesis_timestamp as UNIX seconds
             createdAt: typeof item.genesis_timestamp === 'number'
               ? new Date((item.genesis_timestamp as number) < 1e12 ? (item.genesis_timestamp as number) * 1000 : (item.genesis_timestamp as number)).toISOString()
               : undefined,
@@ -152,14 +205,23 @@ export async function GET(request: Request) {
       } catch (error) {
         console.error('[Marketplace API] Hiro fallback error:', error);
       } finally {
-        clearTimeout(timeout3);
+        clearTimeout(timeout4);
       }
     }
 
+    // Return empty array with 200 instead of 502 when all sources fail
+    // This allows the frontend to show "No recent activity" instead of an error
     if (!data || data.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No activity data available from any source' },
-        { status: 502, headers: { 'Cache-Control': 'no-cache' } }
+        {
+          success: true,
+          data: [],
+          total: 0,
+          timestamp: Date.now(),
+          source: 'none',
+          message: 'No activity data available from any source at this time',
+        },
+        { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } }
       );
     }
 

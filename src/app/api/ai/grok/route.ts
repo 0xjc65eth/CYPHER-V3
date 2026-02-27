@@ -56,7 +56,10 @@ Return ONLY valid JSON:
 export async function POST(request: NextRequest) {
   try {
     if (!GROK_API_KEY || GROK_API_KEY.includes('your_')) {
-      return NextResponse.json({ success: false, error: 'GROK_API_KEY not configured' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Service unavailable', message: 'Grok API key not configured' },
+        { status: 503 }
+      );
     }
 
     const body = await request.json();

@@ -362,7 +362,7 @@ export default function RareSatsPage() {
                 </div>
               </div>
 
-              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg overflow-hidden">
+              <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg overflow-hidden overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-[#2a2a3e]">

@@ -3,7 +3,7 @@ import {
   Gem, Coins, CircleDollarSign, Diamond, ArrowLeftRight,
   TrendingUp, Briefcase, Brain, Users, Cpu, LineChart,
   GraduationCap, Plug, FileText, Bell, Wrench,
-  Database, Network, Activity, Zap, Shield, Bug
+  Database, Network, Activity, Zap, Shield, Bug, CreditCard
 } from 'lucide-react';
 
 type IconEntry = { icon: React.ElementType; color: string };
@@ -31,6 +31,7 @@ export const NavigationIcons: Record<string, IconEntry> = {
   '/tools':         { icon: Wrench,          color: '#78716C' },
   '/hacker-yields': { icon: Zap,             color: '#F59E0B' },
   '/bug-report':    { icon: Bug,             color: '#EF4444' },
+  '/pricing':       { icon: CreditCard,     color: '#FBBF24' },
 };
 
 export const DashboardIcons = {

@@ -9,6 +9,7 @@ import { FeeMonitoringDashboard } from '@/components/admin/FeeMonitoringDashboar
 export default function AdminFeesPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [password, setPassword] = useState('')
+  const [adminToken, setAdminToken] = useState<string | null>(null)
 
   const handleAuth = async () => {
     try {
@@ -18,13 +19,23 @@ export default function AdminFeesPage() {
         body: JSON.stringify({ password }),
       })
       if (res.ok) {
+        const data = await res.json()
+        if (data.token) {
+          setAdminToken(data.token)
+        }
         setIsAuthenticated(true)
+        setPassword('')
       } else {
         alert('Senha incorreta')
       }
     } catch {
       alert('Erro ao verificar autenticação')
     }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    setAdminToken(null)
   }
 
   if (!isAuthenticated) {
@@ -80,9 +91,9 @@ export default function AdminFeesPage() {
                 <p className="text-gray-400">CYPHER ORDI FUTURE - Sistema de Monitoramento</p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setIsAuthenticated(false)}
+            <Button
+              variant="outline"
+              onClick={handleLogout}
               className="border-gray-700 hover:bg-gray-800"
             >
               <Lock className="w-4 h-4 mr-2" />

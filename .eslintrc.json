@@ -1,8 +1,7 @@
 {
   "extends": [
     "next/core-web-vitals",
-    "@typescript-eslint/recommended",
-    "plugin:@typescript-eslint/recommended-requiring-type-checking"
+    "plugin:@typescript-eslint/recommended"
   ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
@@ -11,8 +10,7 @@
     "sourceType": "module"
   },
   "plugins": [
-    "@typescript-eslint",
-    "react-hooks"
+    "@typescript-eslint"
   ],
   "rules": {
     "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],

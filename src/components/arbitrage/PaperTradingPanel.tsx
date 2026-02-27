@@ -46,20 +46,58 @@ interface Position {
   unrealizedPnLPercent: number;
 }
 
+interface LiveOpportunity {
+  id: string;
+  symbol: string;
+  buySource: string;
+  sellSource: string;
+  buyPrice: number;
+  sellPrice: number;
+  spread: number;
+  netProfitPercent?: number;
+  estimatedProfitPer1BTC?: number;
+}
+
 interface PaperTradingPanelProps {
   initialBalance?: number;
   onTradeExecuted?: (trade: PaperTrade) => void;
+  opportunities?: LiveOpportunity[];
+}
+
+const STORAGE_KEY = 'cypher_paper_trading';
+
+function loadFromStorage(): { trades: PaperTrade[]; positions: Position[]; balance: number; metrics: any } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    // Restore Date objects
+    if (data.trades) {
+      data.trades = data.trades.map((t: any) => ({ ...t, timestamp: new Date(t.timestamp) }));
+    }
+    return data;
+  } catch { return null; }
+}
+
+function saveToStorage(data: { trades: PaperTrade[]; positions: Position[]; balance: number; metrics: any }): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch { /* quota exceeded, etc */ }
 }
 
 export function PaperTradingPanel({
   initialBalance = 10000,
-  onTradeExecuted
+  onTradeExecuted,
+  opportunities = []
 }: PaperTradingPanelProps) {
   const [isActive, setIsActive] = useState(false);
-  const [balance, setBalance] = useState(initialBalance);
+  const stored = loadFromStorage();
+  const [balance, setBalance] = useState(stored?.balance ?? initialBalance);
   const [startingBalance] = useState(initialBalance);
-  const [trades, setTrades] = useState<PaperTrade[]>([]);
-  const [positions, setPositions] = useState<Position[]>([]);
+  const [trades, setTrades] = useState<PaperTrade[]>(stored?.trades ?? []);
+  const [positions, setPositions] = useState<Position[]>(stored?.positions ?? []);
 
   // Trade form state
   const [tradeForm, setTradeForm] = useState({
@@ -71,7 +109,7 @@ export function PaperTradingPanel({
   });
 
   // Performance metrics
-  const [metrics, setMetrics] = useState({
+  const [metrics, setMetrics] = useState(stored?.metrics ?? {
     totalTrades: 0,
     winningTrades: 0,
     losingTrades: 0,
@@ -81,6 +119,11 @@ export function PaperTradingPanel({
     profitFactor: 0,
     roi: 0
   });
+
+  // Persist to localStorage on changes
+  useEffect(() => {
+    saveToStorage({ trades, positions, balance, metrics });
+  }, [trades, positions, balance, metrics]);
 
   // Calculate total portfolio value
   const portfolioValue = balance + positions.reduce((sum, pos) =>
@@ -216,6 +259,84 @@ export function PaperTradingPanel({
     }
   };
 
+  // Execute a paper arbitrage trade from a live opportunity
+  const executeArbitrageTrade = (opp: LiveOpportunity) => {
+    if (!isActive) {
+      alert('Please start paper trading session first');
+      return;
+    }
+
+    // Simulate: buy on buySource at buyPrice, sell on sellSource at sellPrice
+    const amount = Math.min(0.01, balance / opp.buyPrice); // Conservative 0.01 units or max affordable
+    if (amount <= 0) {
+      alert('Insufficient balance');
+      return;
+    }
+
+    const buyFee = opp.buyPrice * amount * 0.001;
+    const sellFee = opp.sellPrice * amount * 0.001;
+    const buyCost = opp.buyPrice * amount + buyFee;
+    const sellProceeds = opp.sellPrice * amount - sellFee;
+    const profit = sellProceeds - buyCost;
+
+    if (buyCost > balance) {
+      alert('Insufficient balance for this trade');
+      return;
+    }
+
+    // Create buy trade
+    const buyTrade: PaperTrade = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      type: 'buy',
+      exchange: opp.buySource,
+      symbol: opp.symbol,
+      price: opp.buyPrice,
+      amount,
+      fee: buyFee,
+      total: buyCost,
+      status: 'filled',
+    };
+
+    // Create sell trade
+    const sellTrade: PaperTrade = {
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+      type: 'sell',
+      exchange: opp.sellSource,
+      symbol: opp.symbol,
+      price: opp.sellPrice,
+      amount,
+      fee: sellFee,
+      total: sellProceeds,
+      status: 'filled',
+    };
+
+    // Update balance (buy + immediate sell = net profit/loss)
+    setBalance(prev => prev + profit);
+
+    // Add both trades to history
+    setTrades(prev => [sellTrade, buyTrade, ...prev].slice(0, 50));
+
+    // Update metrics
+    setMetrics(prev => {
+      const isWin = profit > 0;
+      const totalTrades = prev.totalTrades + 1;
+      const winningTrades = prev.winningTrades + (isWin ? 1 : 0);
+      const losingTrades = prev.losingTrades + (isWin ? 0 : 1);
+      const totalProfit = prev.totalProfit + (isWin ? profit : 0);
+      const totalLoss = prev.totalLoss + (isWin ? 0 : Math.abs(profit));
+      const winRate = (winningTrades / totalTrades) * 100;
+      const profitFactor = totalLoss > 0 ? totalProfit / totalLoss : totalProfit > 0 ? Infinity : 0;
+      const roi = ((balance + profit - startingBalance) / startingBalance) * 100;
+      return { totalTrades, winningTrades, losingTrades, totalProfit, totalLoss, winRate, profitFactor, roi };
+    });
+
+    if (onTradeExecuted) {
+      onTradeExecuted(buyTrade);
+    }
+  };
+
   const resetSession = () => {
     if (confirm('Reset paper trading session? This will clear all trades and positions.')) {
       setBalance(startingBalance);
@@ -232,6 +353,9 @@ export function PaperTradingPanel({
         roi: 0
       });
       setIsActive(false);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
   };
 
@@ -366,6 +490,46 @@ export function PaperTradingPanel({
           </div>
         </CardContent>
       </Card>
+
+      {/* Live Opportunities - Quick Execute */}
+      {opportunities.length > 0 && (
+        <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
+          <CardHeader>
+            <CardTitle className="text-[#00ff88] text-sm flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Live Opportunities ({opportunities.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+              {opportunities.slice(0, 10).map((opp) => (
+                <div
+                  key={opp.id}
+                  className="flex items-center justify-between bg-[#0d0d1a] rounded px-3 py-2 border border-[#2a2a3e]"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono text-xs text-orange-400">{opp.symbol}</span>
+                    <span className="text-xs text-gray-400">
+                      {opp.buySource} → {opp.sellSource}
+                    </span>
+                    <span className={`text-xs font-mono font-bold ${(opp.netProfitPercent ?? 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {opp.spread.toFixed(4)}%
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 h-6 text-xs px-3"
+                    disabled={!isActive}
+                    onClick={() => executeArbitrageTrade(opp)}
+                  >
+                    Execute
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Open Positions */}
       <Card className="bg-[#1a1a2e] border-[#2a2a3e]">

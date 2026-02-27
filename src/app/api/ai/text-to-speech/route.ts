@@ -3,6 +3,13 @@ import { API_KEYS } from '@/config/professionalApis';
 
 export async function POST(request: NextRequest) {
   try {
+    if (!API_KEYS.ELEVENLABS_API_KEY) {
+      return NextResponse.json(
+        { error: 'Service unavailable', message: 'ElevenLabs API key not configured' },
+        { status: 503 }
+      );
+    }
+
     const { text, voice_id = 'professional_male', model_id = 'eleven_multilingual_v2' } = await request.json();
 
     if (!text) {

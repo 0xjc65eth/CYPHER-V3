@@ -46,8 +46,8 @@ class BitcoinWebSocketManager extends EventEmitter {
     if (this.isConnected || this.isDestroyed) return;
 
     try {
-      // Only connect in browser environment
-      if (typeof window === 'undefined') {
+      // Only connect in browser environment with WebSocket support
+      if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
         return;
       }
       

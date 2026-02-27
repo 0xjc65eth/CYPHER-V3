@@ -40,7 +40,7 @@
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "*"
+          "value": "https://cypherordifuture.xyz, https://cypher-v3.vercel.app"
         },
         {
           "key": "Access-Control-Allow-Methods",

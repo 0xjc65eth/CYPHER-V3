@@ -197,7 +197,25 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
     const btcBalance = btcSatoshi / 1e8
 
     const inscriptionCount = hiroInscriptions.data?.total || inscriptions.data?.total || 0
-    const collectionsCount = Array.isArray(collections.data) ? collections.data.length : (collections.data?.data?.assets?.length || collections.data?.collections?.length || 0)
+
+    // Count unique collections from multiple sources:
+    // 1. From /api/portfolio response (if it has collections/assets)
+    // 2. From Hiro inscriptions grouped by collection metadata
+    let collectionsCount = Array.isArray(collections.data) ? collections.data.length : (collections.data?.data?.assets?.length || collections.data?.collections?.length || 0)
+
+    // If no collections from portfolio endpoint, derive from Hiro inscription data
+    // by grouping inscriptions that belong to known collections
+    if (collectionsCount === 0 && hiroInscriptions.data?.results) {
+      const uniqueCollections = new Set<string>()
+      for (const insc of hiroInscriptions.data.results) {
+        // Hiro inscriptions may have collection info in metadata
+        const collName = insc.collection_name || insc.collection?.name || insc.collection_symbol
+        if (collName) {
+          uniqueCollections.add(collName)
+        }
+      }
+      collectionsCount = uniqueCollections.size
+    }
     const brc20Count = Array.isArray(brc20Data) ? brc20Data.length : (brc20Data?.detail?.length || brc20Summary.data?.total || 0)
 
     // Calculate total portfolio value

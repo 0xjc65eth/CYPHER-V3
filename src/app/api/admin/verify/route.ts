@@ -27,7 +27,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    return NextResponse.json({ success: true });
+    // Issue a signed JWT so subsequent admin API calls are authenticated server-side
+    const jwtSecret = process.env.ADMIN_JWT_SECRET;
+    if (!jwtSecret) {
+      console.error('[AUTH] ADMIN_JWT_SECRET is not configured');
+      return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
+    }
+
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { adminId: 'admin', username: 'admin', role: 'admin' },
+      jwtSecret,
+      { expiresIn: '4h' }
+    );
+
+    return NextResponse.json({ success: true, token });
   } catch {
     return NextResponse.json({ error: 'Authentication failed' }, { status: 500 });
   }

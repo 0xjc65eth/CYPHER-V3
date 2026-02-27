@@ -393,9 +393,9 @@ export const BloombergSMCAnalysis = React.memo(function BloombergSMCAnalysis() {
       </div>
 
       {/* SMC Opportunities Table - Bloomberg Style */}
-      <div className="bg-black border border-orange-500/30">
+      <div className="bg-black border border-orange-500/30 overflow-x-auto">
         {/* Header */}
-        <div className="grid grid-cols-12 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2">
+        <div className="grid grid-cols-12 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2 min-w-[800px]">
           <div className="col-span-2">ASSET</div>
           <div className="col-span-1">TYPE</div>
           <div className="col-span-1 text-center">CONF</div>
@@ -413,7 +413,7 @@ export const BloombergSMCAnalysis = React.memo(function BloombergSMCAnalysis() {
         {filteredOpportunities.map((opp) => (
           <div 
             key={opp.id} 
-            className="grid grid-cols-12 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5 transition-colors"
+            className="grid grid-cols-12 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5 transition-colors min-w-[800px]"
           >
             <div className="col-span-2">
               <div className="text-orange-500 font-bold">{opp.asset}</div>

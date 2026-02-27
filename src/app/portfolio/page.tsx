@@ -849,8 +849,8 @@ export default function PortfolioPage() {
                     />
                   </div>
                 </div>
-                <div className="overflow-hidden">
-                  <div className="grid grid-cols-10 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2">
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-10 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2 min-w-[900px]">
                     <div className="col-span-2">ASSET</div>
                     <div className="text-right">QUANTITY</div>
                     <div className="text-right">AVG COST</div>
@@ -863,7 +863,7 @@ export default function PortfolioPage() {
                   </div>
                   
                   {portfolioPnL ? Array.from(portfolioPnL.assetPnL.entries()).map(([asset, calc], index) => (
-                    <div key={index} className="grid grid-cols-10 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5">
+                    <div key={index} className="grid grid-cols-10 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5 min-w-[900px]">
                       <div className="col-span-2 flex items-center gap-2">
                         {getAssetIcon(calc.asset)}
                         <div>

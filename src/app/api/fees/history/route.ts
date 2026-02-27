@@ -9,9 +9,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllFeeRecords, getFeeStats } from '@/lib/feeCollector';
+import { validateAdminAuth } from '@/lib/middleware/admin-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const auth = validateAdminAuth(request);
+    if (!auth.ok) return auth.response;
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '20');
 
     const [records, stats] = await Promise.all([

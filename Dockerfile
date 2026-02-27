@@ -1,5 +1,5 @@
 # Ultra-simplified Dockerfile for Railway deployment
-FROM node:18-alpine
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /app
@@ -23,10 +23,10 @@ RUN npm run build
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=4444
 
 # Expose port
-EXPOSE 3000
+EXPOSE 4444
 
 # Start the application
 CMD ["npm", "start"]

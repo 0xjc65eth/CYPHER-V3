@@ -130,8 +130,8 @@ const MarketDataTable = React.memo(({ marketData }: { marketData: BloombergMarke
       <div className="border-b border-orange-500/30 p-3">
         <h3 className="text-sm font-bold text-orange-500 font-mono">MARKET DATA - MAJOR ASSETS</h3>
       </div>
-      <div className="overflow-hidden">
-        <div className="grid grid-cols-8 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2">
+      <div className="overflow-x-auto">
+        <div className="grid grid-cols-8 gap-0 text-[10px] font-mono text-orange-500/60 border-b border-orange-500/30 p-2 min-w-[700px]">
           <div>SYMBOL</div>
           <div className="text-right">LAST</div>
           <div className="text-right">CHG%</div>
@@ -143,7 +143,7 @@ const MarketDataTable = React.memo(({ marketData }: { marketData: BloombergMarke
         </div>
         
         {marketData.map((asset) => (
-          <div key={asset.symbol} className="grid grid-cols-8 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5">
+          <div key={asset.symbol} className="grid grid-cols-8 gap-0 text-xs font-mono border-b border-orange-500/10 p-2 hover:bg-orange-500/5 min-w-[700px]">
             <div className="text-orange-500 font-bold">{asset.symbol}</div>
             <div className="text-right text-orange-500">${asset.price.toLocaleString()}</div>
             <div className={`text-right ${asset.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>

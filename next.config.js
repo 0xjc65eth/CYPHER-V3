@@ -22,11 +22,11 @@ const nextConfig = {
   },
   serverExternalPackages: ['axios', '@supabase/supabase-js', 'ws', 'ioredis', 'nodemailer'],
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // TODO: Fix 2917 TS errors gradually, then remove this
     tsconfigPath: './tsconfig.json',
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: true, // TODO: Fix ESLint errors gradually, then remove this
   },
   onDemandEntries: {
     maxInactiveAge: 25 * 1000,

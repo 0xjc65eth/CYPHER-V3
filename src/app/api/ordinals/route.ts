@@ -217,13 +217,16 @@ async function fetchOrdinalsData(): Promise<unknown> {
       ? Math.round(rawOwners)
       : 0
 
+    // Proxy collection images through our image route to avoid CORS issues
+    const imageURI = `/api/ordinals/image/?url=${encodeURIComponent(info.image)}`
+
     return {
       name: info.name,
       symbol: c.symbol,
       floor: floorBTC,
       floorUSD: floorBTC * btcUsdRate,
       volume: totalVolumeBTC,   // all-time volume in BTC (from stat endpoint)
-      volume24h: 0,             // 24h volume requires activities calls which cause 429s - not available
+      volume24h: 0,             // will be enriched below from collection-stats
       volume7d: 0,
       volume30d: 0,
       volumeUSD24h: 0,
@@ -232,7 +235,7 @@ async function fetchOrdinalsData(): Promise<unknown> {
       listed,
       owners,
       supply,
-      imageURI: info.image,
+      imageURI,
       change: 0,
       change7d: 0,
       change30d: 0,
@@ -245,11 +248,69 @@ async function fetchOrdinalsData(): Promise<unknown> {
     }
   })
 
-  // Sort by all-time volume descending (since we don't have 24h volume)
-  trendingCollections.sort((a, b) => b.volume - a.volume)
+  // ─── Enrich with volume/price change from collection-stats endpoint ──────
+  // Uses BestInSlot -> OKX -> ME fallback chain (server-side, no CORS issues)
+  try {
+    const enrichBatchSize = 5
+    for (let i = 0; i < trendingCollections.length; i += enrichBatchSize) {
+      const batch = trendingCollections.slice(i, i + enrichBatchSize)
+      const enrichResults = await Promise.allSettled(
+        batch.map(async (col) => {
+          const statsUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:4444'}/api/ordinals/collection-stats/?symbol=${col.symbol}`
+          const res = await fetch(statsUrl, { signal: AbortSignal.timeout(8000) })
+          if (!res.ok) return null
+          const json = await res.json()
+          return json.success ? { symbol: col.symbol, stats: json.data } : null
+        })
+      )
+
+      for (const result of enrichResults) {
+        if (result.status !== 'fulfilled' || !result.value) continue
+        const { symbol, stats } = result.value
+        const col = trendingCollections.find(c => c.symbol === symbol)
+        if (!col) continue
+
+        col.volume24h = stats.volume24h || col.volume24h
+        col.volume7d = stats.volume7d || col.volume7d
+        col.volume30d = stats.volume30d || col.volume30d
+        col.volumeUSD24h = (stats.volume24h || 0) * btcUsdRate
+        col.volumeUSD7d = (stats.volume7d || 0) * btcUsdRate
+        col.volumeUSD30d = (stats.volume30d || 0) * btcUsdRate
+        col.change = stats.change24h || col.change
+        col.change7d = stats.change7d || col.change7d
+        col.change30d = stats.change30d || col.change30d
+        col.trades24h = stats.sales24h || col.trades24h
+        col.trades7d = stats.sales7d || col.trades7d
+        col.trades30d = stats.sales30d || col.trades30d
+        // Update floor if collection-stats source has a more recent value
+        if (stats.floorPrice && stats.floorPrice > 0) {
+          col.floor = stats.floorPrice
+          col.floorUSD = stats.floorPrice * btcUsdRate
+        }
+      }
+
+      // Small delay between batches
+      if (i + enrichBatchSize < trendingCollections.length) {
+        await new Promise(resolve => setTimeout(resolve, 300))
+      }
+    }
+  } catch (enrichError) {
+    console.warn('[Ordinals API] Collection stats enrichment failed (non-fatal):', enrichError)
+  }
+
+  // Sort by 24h volume descending (fallback to all-time volume)
+  trendingCollections.sort((a, b) => {
+    const aVol = a.volume24h > 0 ? a.volume24h : a.volume
+    const bVol = b.volume24h > 0 ? b.volume24h : b.volume
+    return bVol - aVol
+  })
 
   // Aggregate metrics
   const totalVolume = trendingCollections.reduce((sum, c) => sum + c.volume, 0)
+  const totalVolume24h = trendingCollections.reduce((sum, c) => sum + c.volume24h, 0)
+  const totalVolume7d = trendingCollections.reduce((sum, c) => sum + c.volume7d, 0)
+  const totalVolumeUsd24h = trendingCollections.reduce((sum, c) => sum + c.volumeUSD24h, 0)
+  const totalTrades24h = trendingCollections.reduce((sum, c) => sum + c.trades24h, 0)
   const avgFloorPrice =
     trendingCollections.length > 0
       ? trendingCollections.reduce((sum, c) => sum + c.floor, 0) / trendingCollections.length
@@ -259,22 +320,22 @@ async function fetchOrdinalsData(): Promise<unknown> {
 
   return {
     total_inscriptions: totalOwners > 0 ? totalOwners : null,
-    volume_24h: 0,  // Not available without activities calls
-    volume_7d: 0,
-    volume_usd_24h: 0,
-    total_volume: parseFloat(totalVolume.toFixed(4)), // all-time total volume
+    volume_24h: parseFloat(totalVolume24h.toFixed(4)),
+    volume_7d: parseFloat(totalVolume7d.toFixed(4)),
+    volume_usd_24h: parseFloat(totalVolumeUsd24h.toFixed(2)),
+    total_volume: parseFloat(totalVolume.toFixed(4)),
     floor_price: parseFloat(avgFloorPrice.toFixed(6)),
     collections_count: trendingCollections.length,
     total_listed: totalListed,
-    total_trades_24h: 0,
+    total_trades_24h: totalTrades24h,
     recent_sales: [],
     trending_collections: trendingCollections,
     data_quality: {
       real_data: true,
       fake_data: false,
       estimated_data: false,
-      source: 'magic_eden_stat_api',
-      note: 'volume field is all-time total volume; 24h volume not available (requires activities API which triggers rate limits)',
+      source: 'magic_eden_stat_api+collection_stats_enrichment',
+      note: 'Base data from ME stat API, enriched with volume/price changes from BestInSlot/OKX/ME collection-stats',
     },
   }
 }

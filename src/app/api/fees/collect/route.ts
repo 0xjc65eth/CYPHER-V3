@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cypherFeeManager, Transaction, NetworkType } from '@/lib/feeManager';
 import { cypherFeeDistributor } from '@/lib/feeDistribution';
 import { cypherRevenueTracker } from '@/lib/revenueTracking';
+import { validateAdminAuth } from '@/lib/middleware/admin-auth';
 
 // Interface para request de coleta de taxa
 interface FeeCollectionRequest {
@@ -165,7 +166,10 @@ export async function POST(request: NextRequest) {
  * GET /api/fees/collect
  * Retorna informações sobre o sistema de coleta de taxas
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const auth = validateAdminAuth(request);
+  if (!auth.ok) return auth.response;
+
   try {
     const feeStats = await cypherFeeManager.getFeeStats();
     const distributionStats = cypherFeeDistributor.getDistributionStats();

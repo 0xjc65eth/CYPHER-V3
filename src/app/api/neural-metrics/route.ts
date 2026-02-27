@@ -51,10 +51,10 @@ export async function GET() {
     // Obter dados de Ordinals
     try {
       const apiKey = process.env.ORDISCAN_API_KEY
+      const ordHeaders: Record<string, string> = {}
+      if (apiKey) ordHeaders['X-API-KEY'] = apiKey
       const ordinalsResponse = await fetch(`https://ordiscan.com/api/v1/stats`, {
-        headers: {
-          'X-API-KEY': apiKey
-        },
+        headers: ordHeaders,
         cache: 'no-store'
       })
 

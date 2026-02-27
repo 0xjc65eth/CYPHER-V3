@@ -29,10 +29,18 @@ export function useMempoolWebSocket(): UseMempoolWebSocketReturn {
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptRef = useRef(0);
   const mountedRef = useRef(true);
+  const MAX_RECONNECT_ATTEMPTS = 5;
 
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (typeof WebSocket === 'undefined') return;
+
+    // Stop reconnecting after max attempts - degrade gracefully
+    if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.warn('[MempoolWS] Max reconnect attempts reached, disabling real-time blocks');
+      return;
+    }
 
     try {
       const ws = new WebSocket('wss://mempool.space/api/v1/ws');
@@ -69,6 +77,7 @@ export function useMempoolWebSocket(): UseMempoolWebSocketReturn {
       ws.onclose = () => {
         if (!mountedRef.current) return;
         setConnected(false);
+        if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) return;
         // Exponential backoff: 1s, 2s, 4s, 8s, 16s, max 30s
         const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 30000);
         reconnectAttemptRef.current++;
@@ -79,7 +88,8 @@ export function useMempoolWebSocket(): UseMempoolWebSocketReturn {
         // onclose will fire after onerror, which handles reconnection
       };
     } catch {
-      // Retry on connection failure
+      // WebSocket unavailable (e.g. serverless environment) - degrade gracefully
+      if (reconnectAttemptRef.current >= MAX_RECONNECT_ATTEMPTS) return;
       const delay = Math.min(1000 * Math.pow(2, reconnectAttemptRef.current), 30000);
       reconnectAttemptRef.current++;
       reconnectTimeoutRef.current = setTimeout(connect, delay);

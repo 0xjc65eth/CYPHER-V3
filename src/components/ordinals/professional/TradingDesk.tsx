@@ -232,6 +232,7 @@ export default function TradingDesk() {
       {/* Content Based on Active Tab */}
       {activeTab === 'buy' && (
         <Card variant="bordered" padding="none" className="bg-[#0a0a0f] border-[#2a2a3e] overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#1a1a2e] border-b border-[#2a2a3e]">
               <tr>
@@ -302,6 +303,7 @@ export default function TradingDesk() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
 
@@ -395,6 +397,7 @@ export default function TradingDesk() {
 
       {activeTab === 'history' && (
         <Card variant="bordered" padding="none" className="bg-[#0a0a0f] border-[#2a2a3e] overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#1a1a2e] border-b border-[#2a2a3e]">
               <tr>
@@ -464,6 +467,7 @@ export default function TradingDesk() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       )}
     </div>

@@ -40,6 +40,9 @@ export function useBinanceWebSocketTicker(symbols: string[] = DEFAULT_SYMBOLS) {
         callback: handleData,
       });
       subIdRef.current = subId;
+    }).catch(() => {
+      // WebSocket unavailable - component still works with empty tickers
+      console.warn('[BinanceWS] Failed to initialize, real-time tickers disabled');
     });
 
     return () => {

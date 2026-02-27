@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   AgentConfig,
@@ -863,11 +863,20 @@ function AgentDashboard({
   agentStatus,
   setAgentStatus,
   onReconfigure,
+  credentials,
 }: {
   config: AgentConfig;
   agentStatus: AgentStatus;
   setAgentStatus: (s: AgentStatus) => void;
   onReconfigure: () => void;
+  credentials: React.RefObject<{
+    hlApiKey: string;
+    hlApiSecret: string;
+    hlTestnet: boolean;
+    solanaRpc: string;
+    ethRpc: string;
+    walletAddress: string | null;
+  }>;
 }) {
   const [perf, setPerf] = useState<AgentPerformance>(EMPTY_PERFORMANCE);
   const [positions, setPositions] = useState<Position[]>([]);
@@ -882,6 +891,7 @@ function AgentDashboard({
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [showEmergencyDialog, setShowEmergencyDialog] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const actionInProgressRef = useRef<string | null>(null);
   const [uptime, setUptime] = useState(0);
   const startedAtRef = useRef<number>(0);
 
@@ -901,8 +911,8 @@ function AgentDashboard({
   const fetchAgentData = useCallback(async (signal?: AbortSignal) => {
     try {
       const url = agentStatus === 'active'
-        ? '/api/agent?include=trades'
-        : '/api/agent';
+        ? '/api/agent/?include=trades'
+        : '/api/agent/';
 
       const res = await fetch(url, { signal });
       if (!res.ok) throw new Error(`API returned ${res.status}`);
@@ -912,7 +922,7 @@ function AgentDashboard({
 
       // Update agent status from API
       const apiStatus = mapApiStatus(data.state.status);
-      if (apiStatus !== agentStatus && actionInProgress === null) {
+      if (apiStatus !== agentStatus && actionInProgressRef.current === null) {
         setAgentStatus(apiStatus);
       }
 
@@ -994,7 +1004,7 @@ function AgentDashboard({
       setFetchError(err.message || 'Failed to fetch agent data');
       setLoading(false);
     }
-  }, [agentStatus, mapApiStatus, setAgentStatus, actionInProgress]);
+  }, [agentStatus, mapApiStatus, setAgentStatus]);
 
   // Polling: 3s when running, 15s when stopped/paused
   useEffect(() => {
@@ -1024,6 +1034,7 @@ function AgentDashboard({
   // API action helper
   const executeAction = useCallback(async (action: string, extraBody?: Record<string, any>) => {
     setActionInProgress(action);
+    actionInProgressRef.current = action;
     try {
       const res = await fetch('/api/agent/', {
         method: 'POST',
@@ -1046,19 +1057,31 @@ function AgentDashboard({
       setFetchError(`Failed to execute ${action}`);
     } finally {
       setActionInProgress(null);
+      actionInProgressRef.current = null;
     }
   }, [setAgentStatus]);
 
   const handleStart = useCallback(() => {
+    const creds = credentials.current;
     executeAction('start', {
       config: {
-        testnet: true,
+        testnet: creds.hlTestnet,
         portfolioUSD: config.capitalAllocation.total,
         maxRiskPercent: config.riskLimits.maxDailyDrawdown * 100,
-        enableTrading: false,
+        enableTrading: !creds.hlTestnet,
+      },
+      credentials: {
+        hyperliquid: {
+          agentKey: creds.hlApiKey,
+          agentSecret: creds.hlApiSecret,
+          testnet: creds.hlTestnet,
+        },
+        solanaRpc: creds.solanaRpc,
+        ethRpc: creds.ethRpc,
+        walletAddress: creds.walletAddress,
       },
     });
-  }, [executeAction, config]);
+  }, [executeAction, config, credentials]);
 
   const handleStop = useCallback(() => executeAction('stop'), [executeAction]);
   const handlePause = useCallback(() => executeAction('pause'), [executeAction]);
@@ -1195,6 +1218,31 @@ function AgentDashboard({
 
       {!loading && (
         <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
+          {/* Agent Not Running Banner */}
+          {(agentStatus === 'off' || agentStatus === 'emergency_stop') && (
+            <div className="border border-orange-500/30 rounded-lg bg-[#0a0a0a] p-8 text-center">
+              <div className="text-orange-500 text-3xl font-mono font-bold mb-2">AGENT OFFLINE</div>
+              <p className="text-white/40 font-mono text-sm mb-4 max-w-lg mx-auto">
+                The AI Trading Agent is not running. Configure and start the agent to begin autonomous trading across Hyperliquid, Jupiter, and Uniswap.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={onReconfigure}
+                  className="px-5 py-2.5 text-xs font-mono font-bold bg-orange-500/20 border border-orange-500/50 rounded text-orange-400 hover:bg-orange-500/30 transition-colors"
+                >
+                  OPEN SETUP WIZARD
+                </button>
+                <button
+                  onClick={handleStart}
+                  disabled={actionInProgress !== null}
+                  className="px-5 py-2.5 text-xs font-mono font-bold bg-emerald-500/20 border border-emerald-500/50 rounded text-emerald-400 hover:bg-emerald-500/30 disabled:opacity-30 transition-colors"
+                >
+                  START AGENT
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Performance Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
@@ -1372,6 +1420,7 @@ function AgentDashboard({
                     </div>
                     <div>
                       <div className="text-white/30">Fees</div>
+                      {/* TODO: use dynamic price instead of hardcoded 190 */}
                       <div className="text-emerald-400">${(lp.unclaimedFees.token1 + lp.unclaimedFees.token0 * 190).toFixed(2)}</div>
                     </div>
                     <div>
@@ -1568,9 +1617,9 @@ export default function TradingAgentPage() {
     credentialsRef.current = credentials;
     setIsConfigured(true);
     setShowDashboard(true);
-    setAgentStatus('active');
+    // Don't set 'active' yet — wait for API confirmation
     try {
-      await fetch('/api/agent/', {
+      const res = await fetch('/api/agent/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1594,8 +1643,14 @@ export default function TradingAgentPage() {
           },
         }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || `API returned ${res.status}`);
+      }
+      setAgentStatus('active');
     } catch (err) {
       console.error('[Agent] Failed to start:', err);
+      setAgentStatus('error');
     }
   };
 
@@ -1641,6 +1696,7 @@ export default function TradingAgentPage() {
         agentStatus={agentStatus}
         setAgentStatus={setAgentStatus}
         onReconfigure={handleReconfigure}
+        credentials={credentialsRef}
       />
     </PremiumContent>
   );

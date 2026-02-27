@@ -690,15 +690,20 @@ function MarketLeadersTable() {
 
 function MiniSparkline({ change }: { change: number }) {
   const isUp = change >= 0;
+  // Decorative sparkline for UI only - uses deterministic values seeded from
+  // the change percentage so the shape is stable across re-renders.
   const points = useMemo(() => {
     const pts = [];
     let y = 12;
+    const seed = Math.abs(Math.round(change * 1000));
     for (let i = 0; i < 12; i++) {
-      y = Math.max(2, Math.min(22, y + (Math.random() - (isUp ? 0.35 : 0.65)) * 3));
+      // Deterministic pseudo-noise from seed + index (Knuth multiplicative hash)
+      const noise = ((((seed + i * 7 + 13) * 2654435761) >>> 0) % 100) / 100;
+      y = Math.max(2, Math.min(22, y + (noise - (isUp ? 0.35 : 0.65)) * 3));
       pts.push(`${i * 7},${isUp ? 24 - y : y}`);
     }
     return pts.join(' ');
-  }, [isUp]);
+  }, [isUp, change]);
 
   return (
     <svg width="80" height="24" className="inline-block">

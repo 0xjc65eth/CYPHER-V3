@@ -82,18 +82,22 @@ async function fetchBinance(pair: string): Promise<ExchangePrice> {
 
 async function fetchCoinbase(pair: string): Promise<ExchangePrice> {
   const symbol = mapSymbol(pair, 'coinbase');
-  const url = `https://api.coinbase.com/v2/prices/${symbol}/spot`;
-  const res = await fetchWithTimeout(url, FETCH_TIMEOUT);
-  if (!res.ok) throw new Error(`Coinbase HTTP ${res.status}`);
-  const data = await res.json();
-  const price = parseFloat(data.data.amount);
+  const [buyRes, sellRes] = await Promise.all([
+    fetchWithTimeout(`https://api.coinbase.com/v2/prices/${symbol}/buy`, FETCH_TIMEOUT),
+    fetchWithTimeout(`https://api.coinbase.com/v2/prices/${symbol}/sell`, FETCH_TIMEOUT),
+  ]);
+  if (!buyRes.ok || !sellRes.ok) throw new Error(`Coinbase HTTP ${buyRes.status}/${sellRes.status}`);
+  const buyData = await buyRes.json();
+  const sellData = await sellRes.json();
+  const ask = parseFloat(buyData.data.amount);  // buy price = ask
+  const bid = parseFloat(sellData.data.amount);  // sell price = bid
   return {
     exchange: 'coinbase',
     pair,
-    bid: price * 0.999, // approximate spread
-    ask: price * 1.001,
-    last: price,
-    volume: 0, // Coinbase spot endpoint doesn't include volume
+    bid,
+    ask,
+    last: (bid + ask) / 2,
+    volume: 0, // Coinbase price endpoints don't include volume
     timestamp: Date.now(),
   };
 }

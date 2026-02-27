@@ -385,6 +385,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
       {activeTab === 'brc20' && (
         brc20Holdings.length > 0 ? (
           <Card variant="bordered" padding="none" className="bg-[#0a0a0f] border-[#2a2a3e] overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-[#1a1a2e] border-b border-[#2a2a3e]">
                 <tr>
@@ -421,6 +422,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
         ) : (
           <Card variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">

@@ -2,9 +2,17 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   try {
+    const ordiscanKey = process.env.ORDISCAN_API_KEY;
+    if (!ordiscanKey) {
+      return NextResponse.json(
+        { error: 'Service unavailable', message: 'Ordiscan API key not configured' },
+        { status: 503 }
+      );
+    }
+
     const response = await fetch('https://api.ordiscan.com/v1/collections', {
       headers: {
-        Authorization: `Bearer ${process.env.ORDISCAN_API_KEY}`
+        Authorization: `Bearer ${ordiscanKey}`
       },
       cache: 'no-store'
     });

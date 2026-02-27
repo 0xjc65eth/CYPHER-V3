@@ -34,8 +34,8 @@ export class WebSocketManager extends EventEmitter {
   }
   
   private initializeConnections() {
-    // Only initialize in browser environment
-    if (typeof window === 'undefined') {
+    // Only initialize in browser environment with WebSocket support
+    if (typeof window === 'undefined' || typeof WebSocket === 'undefined') {
       return;
     }
     

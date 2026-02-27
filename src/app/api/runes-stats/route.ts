@@ -119,7 +119,10 @@ export async function GET() {
     if (runesData.length === 0) {
       try {
         const ordiscanApiKey = process.env.ORDISCAN_API_KEY
-        const ordiscanResponse = await fetch(`https://api.ordiscan.com/v1/runes?limit=20&key=${ordiscanApiKey}`, {
+        const ordiscanUrl = ordiscanApiKey
+          ? `https://api.ordiscan.com/v1/runes?limit=20&key=${ordiscanApiKey}`
+          : `https://api.ordiscan.com/v1/runes?limit=20`
+        const ordiscanResponse = await fetch(ordiscanUrl, {
           headers: {
             'Accept': 'application/json'
           },

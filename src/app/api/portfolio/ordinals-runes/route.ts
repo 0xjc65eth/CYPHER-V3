@@ -61,7 +61,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
               value: inscription.value || 10000, // satoshis
               sat: inscription.sat_ordinal,
               sat_rarity: inscription.sat_rarity,
-              content_url: `https://ordinals.com/content/${inscription.id}`
+              content_url: `https://ordinals.hiro.so/inscription/${inscription.id}/content`
             }));
           }
         })
@@ -92,7 +92,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
                 lastSalePrice: item.last_sale_price || 0,
                 rarity: item.rarity_rank ? 'Rare' : 'Common',
                 attributes: item.attributes || [],
-                image: `https://ordinals.com/content/${item.inscription_id}`,
+                image: `https://ordinals.hiro.so/inscription/${item.inscription_id}/content`,
                 listed: item.listed || false,
                 marketplace: item.marketplace || 'none'
               }));
@@ -247,6 +247,14 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Prevent ReDoS: check address length before running regex
+    if (address.length > 100) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid address'
+      }, { status: 400 });
+    }
+
     // Validate Bitcoin address format
     if (!address.match(/^(bc1|[13]|tb1|[mn2])[a-zA-HJ-NP-Z0-9]{25,62}$/)) {
       return NextResponse.json({
@@ -257,10 +265,13 @@ export async function GET(request: NextRequest) {
 
     const ordinalsData = await getOrdinalsData(address);
 
-    return NextResponse.json({
+    const response: Record<string, unknown> = {
       success: true,
       data: ordinalsData,
-      debug: {
+    };
+
+    if (process.env.NODE_ENV === 'development') {
+      response.debug = {
         address,
         timestamp: new Date().toISOString(),
         source: 'Real APIs: Hiro, Ordiscan, Mempool.space, OrdAPI',
@@ -272,8 +283,10 @@ export async function GET(request: NextRequest) {
           process.env.UNISAT_API_KEY ? 'unisat.io (runes)' : null
         ].filter(Boolean),
         note: 'Using real blockchain data from multiple sources'
-      }
-    });
+      };
+    }
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('❌ Ordinals/Runes API Error:', error);
