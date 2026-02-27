@@ -111,7 +111,25 @@ class DuneAnalyticsService {
     }
 
     this.requestTimestamps.push(Date.now());
-    return fetch(url, options);
+
+    // 45-second timeout via AbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45_000);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      return response;
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error(`Dune API request timed out after 45s: ${url}`);
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private getCached<T>(key: string): T | null {

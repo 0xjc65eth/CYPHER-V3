@@ -29,11 +29,13 @@ export default function PricingPage() {
   const { connected, address } = useLaserEyes()
   const { tier: currentTier, isActive } = useSubscription()
   const [loadingTier, setLoadingTier] = useState<SubscriptionTier | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   const handleSubscribe = async (tier: SubscriptionTier) => {
     if (!connected || !address) return
 
     setLoadingTier(tier)
+    setCheckoutError(null)
     try {
       const res = await fetch('/api/subscription/create-checkout', {
         method: 'POST',
@@ -43,9 +45,13 @@ export default function PricingPage() {
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
+      } else if (data.error) {
+        console.error('Checkout error:', data.error)
+        setCheckoutError(data.error)
       }
-    } catch {
-      // Error handling silently - user can retry
+    } catch (err) {
+      console.error('Checkout error:', err)
+      setCheckoutError('Failed to start checkout. Please try again.')
     } finally {
       setLoadingTier(null)
     }
@@ -182,6 +188,19 @@ export default function PricingPage() {
             )
           })}
         </div>
+
+        {/* Checkout error banner */}
+        {checkoutError && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
+            <p className="text-sm text-red-400 font-mono">{checkoutError}</p>
+            <button
+              onClick={() => setCheckoutError(null)}
+              className="mt-2 text-xs text-red-400/60 hover:text-red-400 font-mono underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Footer note */}
         <div className="text-center">

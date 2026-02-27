@@ -57,14 +57,37 @@ export function LaserEyesProvider({ children }: { children: ReactNode }) {
     walletDisconnect()
   }, [walletDisconnect])
 
-  const getOrdinals = useCallback(async (_address: string) => {
-    // Ordinals fetching is not part of WalletService — return empty for now
-    return []
+  const getOrdinals = useCallback(async (addr: string) => {
+    if (!addr) return [];
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_HIRO_API_URL || 'https://api.hiro.so';
+      const res = await fetch(
+        `${baseUrl}/ordinals/v1/inscriptions?address=${encodeURIComponent(addr)}&limit=60`,
+        {
+          headers: { Accept: 'application/json' },
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      // Map Hiro response to the shape expected by premium verification
+      return (data.results || []).map((ins: any) => ({
+        id: ins.id,
+        number: ins.number,
+        content_type: ins.content_type,
+        collection: ins.metadata?.collection?.name || '',
+      }));
+    } catch {
+      return [];
+    }
   }, [])
 
   const getInscriptions = useCallback(async () => {
-    return []
-  }, [])
+    // Use the connected ordinals address
+    const addr = walletInfo.ordinalsAddress?.address;
+    if (!addr) return [];
+    return getOrdinals(addr);
+  }, [getOrdinals, walletInfo.ordinalsAddress?.address])
 
   const value: LaserEyesContextType = {
     connect,

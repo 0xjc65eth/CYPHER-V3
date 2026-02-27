@@ -52,9 +52,13 @@ export function isVIPWallet(address: string): boolean {
   return VIP_WALLETS.FULL_ACCESS.includes(address)
 }
 
-/** @deprecated No super admin tier — all VIP wallets have equal access. */
-export function isSuperAdmin(_address: string): boolean {
-  return false
+/** CEO / Dev wallet — full super_admin access on both BTC and ETH. */
+const SUPER_ADMIN_ETH = [
+  '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+].map(a => a.toLowerCase())
+
+export function isSuperAdmin(address: string): boolean {
+  return SUPER_ADMIN_ETH.includes(address.toLowerCase())
 }
 
 /** Returns true when the tier grants premium benefits (0% fees). */

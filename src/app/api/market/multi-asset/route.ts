@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   fetchYahooQuotes,
+  fetchViaV8Chart,
   ALL_FOREX,
   ALL_INDEX_SYMBOLS,
   ALL_COMMODITY_SYMBOLS,
@@ -13,6 +14,7 @@ import {
   BATCH1_SYMBOLS,
   BATCH2_SYMBOLS,
 } from '@/services/twelvedata/TwelveDataService';
+import { FALLBACK_PRICES } from '@/config/api-keys';
 
 const COINGECKO_URL =
   'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=true&price_change_percentage=1h,24h,7d';
@@ -33,14 +35,68 @@ const FOREX_NAMES: Record<string, string> = {
   'USD/CAD': 'US Dollar / Canadian Dollar',
 };
 
+const COMMODITY_NAMES: Record<string, string> = {
+  'XAU/USD': 'Gold',
+  'XAG/USD': 'Silver',
+  'CL=F': 'Crude Oil WTI',
+  'NG=F': 'Natural Gas',
+  'PL=F': 'Platinum',
+  'HG=F': 'Copper',
+};
+
+const COMMODITY_UNITS: Record<string, string> = {
+  'XAU/USD': 'oz',
+  'XAG/USD': 'oz',
+  'CL=F': 'barrel',
+  'NG=F': 'MMBtu',
+  'PL=F': 'oz',
+  'HG=F': 'lb',
+};
+
 const ETF_TO_INDEX: Record<string, string> = { SPY: 'SPX', QQQ: 'NDX', DIA: 'DJI', IWM: 'RUT' };
+
+const TD_COMMODITY_ALTERNATIVES: Record<string, string> = {
+  'CL=F': 'USO',
+  'NG=F': 'UNG',
+  'PL=F': 'PPLT',
+  'HG=F': 'CPER',
+};
+
+// Static fallback prices for non-crypto symbols (last resort) — Feb 2026 values
+const STATIC_FALLBACK: Record<string, { price: number; name: string }> = {
+  'EUR/USD': { price: 1.05, name: 'Euro / US Dollar' },
+  'GBP/USD': { price: 1.25, name: 'British Pound / US Dollar' },
+  'USD/JPY': { price: 153.00, name: 'US Dollar / Japanese Yen' },
+  'AUD/USD': { price: 0.63, name: 'Australian Dollar / US Dollar' },
+  'USD/CHF': { price: 0.90, name: 'US Dollar / Swiss Franc' },
+  'USD/CAD': { price: 1.44, name: 'US Dollar / Canadian Dollar' },
+  'XAU/USD': { price: 2930, name: 'Gold' },
+  'XAG/USD': { price: 32.50, name: 'Silver' },
+  'CL=F': { price: 70, name: 'Crude Oil WTI' },
+  'NG=F': { price: 3.80, name: 'Natural Gas' },
+  'PL=F': { price: 970, name: 'Platinum' },
+  'HG=F': { price: 4.50, name: 'Copper' },
+  SPX: { price: 5950, name: 'S&P 500' },
+  NDX: { price: 19200, name: 'NASDAQ' },
+  DJI: { price: 43800, name: 'Dow Jones' },
+  RUT: { price: 2220, name: 'Russell 2000' },
+  AAPL: { price: 245, name: 'Apple Inc' },
+  NVDA: { price: 135, name: 'NVIDIA Corp' },
+  TSLA: { price: 340, name: 'Tesla Inc' },
+  MSFT: { price: 410, name: 'Microsoft Corp' },
+  GOOGL: { price: 185, name: 'Alphabet Inc' },
+  AMZN: { price: 225, name: 'Amazon.com Inc' },
+  META: { price: 700, name: 'Meta Platforms Inc' },
+};
 
 /**
  * Multi-asset market data endpoint.
  *
- * Data sources (in priority order):
- *   1. Yahoo Finance — all forex, indices, commodities, stocks in ONE request
- *   2. TwelveData (fallback) — staggered batches if Yahoo fails
+ * Data sources (4-level fallback cascade):
+ *   1. TwelveData batch (PRIMARY) — works reliably on Vercel
+ *   2. Yahoo Finance v8 chart API (no crumb) — for symbols missing from step 1
+ *   3. Yahoo Finance v7 (crumb auth) — only if fill rate < 70%
+ *   4. Static fallback prices — for anything still missing
  *
  * Crypto always comes from CoinGecko.
  *
@@ -51,35 +107,144 @@ export async function GET(request: NextRequest) {
     // --- Crypto from CoinGecko (always) ---
     const cryptoPromise = fetchCrypto();
 
-    // --- Non-crypto: Yahoo Finance first, TwelveData fallback ---
-    let yahooData: Record<string, YahooQuoteResult> | null = null;
-    try {
-      yahooData = await fetchYahooQuotes(ALL_YAHOO_SYMBOLS);
-      console.log(`[multi-asset] Yahoo Finance: ${Object.keys(yahooData).length}/${ALL_YAHOO_SYMBOLS.length} symbols`);
-    } catch (yahooErr) {
-      console.warn('[multi-asset] Yahoo Finance failed, falling back to TwelveData:', yahooErr);
+    // --- Non-crypto: 4-level fallback cascade ---
+    const allSymbols = ALL_YAHOO_SYMBOLS;
+    const combinedQuotes: Record<string, YahooQuoteResult> = {};
+    let source = 'static';
+
+    // Level 1: TwelveData (PRIMARY) — reliable on Vercel
+    const apiKey = process.env.TWELVEDATA_API_KEY || '';
+    if (apiKey) {
+      try {
+        const [batch1, batch2] = await Promise.all([
+          fetchTwelveDataBatch(BATCH1_SYMBOLS, apiKey),
+          fetchTwelveDataBatch(BATCH2_SYMBOLS, apiKey),
+        ]);
+        const tdQuotes = { ...batch1, ...batch2 };
+        const count = Object.keys(tdQuotes).length;
+        console.log(`[multi-asset] L1 TwelveData: ${count} symbols`);
+
+        // Convert TwelveData quotes to YahooQuoteResult format for uniform handling
+        for (const [sym, q] of Object.entries(tdQuotes)) {
+          const price = parseFloat(q.close) || 0;
+          if (price === 0) continue;
+          combinedQuotes[sym] = {
+            symbol: sym,
+            name: q.name || sym,
+            price,
+            change: parseFloat(q.change) || 0,
+            changePercent: parseFloat(q.percent_change) || 0,
+            previousClose: parseFloat(q.previous_close) || (price - (parseFloat(q.change) || 0)),
+            volume: parseInt(q.volume, 10) || 0,
+            marketState: q.is_market_open ? 'REGULAR' : 'CLOSED',
+          };
+        }
+        // Handle ETF->Index mapping from TwelveData
+        for (const [etf, idx] of Object.entries(ETF_TO_INDEX)) {
+          if (!combinedQuotes[idx] && tdQuotes[etf]) {
+            const q = tdQuotes[etf];
+            const price = parseFloat(q.close) || 0;
+            if (price > 0) {
+              combinedQuotes[idx] = {
+                symbol: idx,
+                name: INDEX_NAMES[idx] || idx,
+                price,
+                change: parseFloat(q.change) || 0,
+                changePercent: parseFloat(q.percent_change) || 0,
+                previousClose: parseFloat(q.previous_close) || (price - (parseFloat(q.change) || 0)),
+                volume: parseInt(q.volume, 10) || 0,
+                marketState: q.is_market_open ? 'REGULAR' : 'CLOSED',
+              };
+            }
+          }
+        }
+        // Handle commodity ETF->futures mapping from TwelveData
+        for (const [futures, etf] of Object.entries(TD_COMMODITY_ALTERNATIVES)) {
+          if (!combinedQuotes[futures] && tdQuotes[etf]) {
+            const q = tdQuotes[etf];
+            const price = parseFloat(q.close) || 0;
+            if (price > 0) {
+              combinedQuotes[futures] = {
+                symbol: futures,
+                name: COMMODITY_NAMES[futures] || futures,
+                price,
+                change: parseFloat(q.change) || 0,
+                changePercent: parseFloat(q.percent_change) || 0,
+                previousClose: parseFloat(q.previous_close) || (price - (parseFloat(q.change) || 0)),
+                volume: parseInt(q.volume, 10) || 0,
+                marketState: q.is_market_open ? 'REGULAR' : 'CLOSED',
+              };
+            }
+          }
+        }
+        if (count > 0) source = 'twelvedata';
+      } catch (tdErr) {
+        console.error('[multi-asset] L1 TwelveData failed:', tdErr);
+      }
     }
 
-    // If Yahoo returned nothing useful, try TwelveData
-    let twelveDataQuotes: Record<string, any> | null = null;
-    if (!yahooData || Object.keys(yahooData).length === 0) {
-      const apiKey = process.env.TWELVEDATA_API_KEY || '';
-      if (apiKey) {
-        try {
-          twelveDataQuotes = await fetchTwelveDataBatch([...BATCH1_SYMBOLS, ...BATCH2_SYMBOLS], apiKey);
-          console.log(`[multi-asset] TwelveData fallback: ${Object.keys(twelveDataQuotes).length} symbols`);
-        } catch (tdErr) {
-          console.error('[multi-asset] TwelveData fallback also failed:', tdErr);
+    // Level 2: Yahoo Finance v8 chart API (no crumb) — for missing symbols
+    const missingAfterTD = allSymbols.filter((s) => !combinedQuotes[s]);
+    if (missingAfterTD.length > 0) {
+      try {
+        const v8Data = await fetchViaV8Chart(missingAfterTD);
+        const count = Object.keys(v8Data).length;
+        console.log(`[multi-asset] L2 Yahoo v8: ${count}/${missingAfterTD.length} symbols`);
+        Object.assign(combinedQuotes, v8Data);
+        if (count > 0 && source === 'static') source = 'yahoo-v8';
+      } catch (v8Err) {
+        console.warn('[multi-asset] L2 Yahoo v8 failed:', v8Err);
+      }
+    }
+
+    // Level 3: Yahoo Finance v7 (with crumb) — only if fill rate < 70%
+    const missingAfterV8 = allSymbols.filter((s) => !combinedQuotes[s]);
+    const fillRate = (allSymbols.length - missingAfterV8.length) / allSymbols.length;
+    if (missingAfterV8.length > 0 && fillRate < 0.7) {
+      try {
+        const yahooData = await fetchYahooQuotes(allSymbols);
+        const count = Object.keys(yahooData).length;
+        console.log(`[multi-asset] L3 Yahoo v7: ${count}/${allSymbols.length} symbols`);
+        // Only fill missing symbols, don't overwrite existing data
+        for (const [sym, q] of Object.entries(yahooData)) {
+          if (!combinedQuotes[sym]) {
+            combinedQuotes[sym] = q;
+          }
         }
+        if (count > 0 && source === 'static') source = 'yahoo';
+      } catch (yahooErr) {
+        console.warn('[multi-asset] L3 Yahoo v7 failed:', yahooErr);
+      }
+    }
+
+    // Level 4: Static fallback — fill remaining gaps
+    const missingAfterAll = allSymbols.filter((s) => !combinedQuotes[s]);
+    if (missingAfterAll.length > 0) {
+      let staticFilled = 0;
+      for (const sym of missingAfterAll) {
+        const fb = STATIC_FALLBACK[sym];
+        if (fb) {
+          combinedQuotes[sym] = {
+            symbol: sym,
+            name: fb.name,
+            price: fb.price,
+            change: 0,
+            changePercent: 0,
+            previousClose: fb.price,
+            volume: 0,
+            marketState: 'CLOSED',
+          };
+          staticFilled++;
+        }
+      }
+      if (staticFilled > 0) {
+        console.log(`[multi-asset] L4 Static fallback: ${staticFilled} symbols`);
       }
     }
 
     const crypto = await cryptoPromise;
 
-    // Build response from whichever source succeeded
-    const data = yahooData && Object.keys(yahooData).length > 0
-      ? buildFromYahoo(yahooData, crypto)
-      : buildFromTwelveData(twelveDataQuotes || {}, crypto);
+    const data = buildFromCombined(combinedQuotes, crypto, source);
 
     const hasMarketData = data.forex.length > 0 || data.indices.length > 0 || data.stocks.length > 0;
 
@@ -124,10 +289,9 @@ async function fetchCrypto() {
   }
 }
 
-// --- Build response from Yahoo Finance data ---
+// --- Build response from combined quotes (any source) ---
 
-function buildFromYahoo(quotes: Record<string, YahooQuoteResult>, crypto: any[]) {
-  // Only include items with real data (price > 0)
+function buildFromCombined(quotes: Record<string, YahooQuoteResult>, crypto: any[], source: string) {
   const forex = ALL_FOREX
     .filter((sym) => quotes[sym]?.price > 0)
     .map((sym) => {
@@ -162,11 +326,11 @@ function buildFromYahoo(quotes: Record<string, YahooQuoteResult>, crypto: any[])
       const q = quotes[sym]!;
       return {
         symbol: sym,
-        name: q.name || sym,
+        name: q.name || COMMODITY_NAMES[sym] || sym,
         price: q.price,
         change: q.change,
         changePercent: q.changePercent,
-        unit: 'oz',
+        unit: COMMODITY_UNITS[sym] || 'unit',
         available: true,
       };
     });
@@ -192,107 +356,8 @@ function buildFromYahoo(quotes: Record<string, YahooQuoteResult>, crypto: any[])
     commodities,
     indices,
     stocks,
-    source: 'yahoo',
-    timestamp: Date.now(),
-  };
-}
-
-// --- Build response from TwelveData (fallback) ---
-
-function buildFromTwelveData(quotes: Record<string, any>, crypto: any[]) {
-  const forex = ALL_FOREX
-    .filter((sym) => {
-      const q = quotes[sym];
-      return q && parseFloat(q.close) > 0;
-    })
-    .map((sym) => {
-      const q = quotes[sym];
-      const price = parseFloat(q.close);
-      const change = parseFloat(q.change) || 0;
-      return {
-        pair: sym,
-        price,
-        change,
-        changePercent: parseFloat(q.percent_change) || 0,
-        previousClose: price - change,
-        available: true,
-      };
-    });
-
-  const indexETFs = ['SPY', 'QQQ', 'DIA', 'IWM'];
-  const indices = indexETFs
-    .filter((etf) => {
-      const q = quotes[etf];
-      return q && parseFloat(q.close) > 0;
-    })
-    .map((etf) => {
-      const q = quotes[etf];
-      const sym = ETF_TO_INDEX[etf] || etf;
-      return {
-        symbol: sym,
-        name: INDEX_NAMES[sym] || etf,
-        price: parseFloat(q.close),
-        change: parseFloat(q.change) || 0,
-        changePercent: parseFloat(q.percent_change) || 0,
-        available: true,
-      };
-    });
-
-  const goldQ = quotes['XAU/USD'];
-  const goldPrice = goldQ ? parseFloat(goldQ.close) || 0 : 0;
-  const goldChange = goldQ ? parseFloat(goldQ.change) || 0 : 0;
-  const goldPct = goldQ ? parseFloat(goldQ.percent_change) || 0 : 0;
-
-  const commodities: any[] = [];
-  if (goldPrice > 0) {
-    commodities.push({
-      symbol: 'XAU/USD',
-      name: goldQ?.name || 'Gold',
-      price: goldPrice,
-      change: goldChange,
-      changePercent: goldPct,
-      unit: 'oz',
-      available: true,
-    });
-    const silverPrice = parseFloat((goldPrice / 85).toFixed(2));
-    if (silverPrice > 0) {
-      commodities.push({
-        symbol: 'XAG/USD',
-        name: 'Silver',
-        price: silverPrice,
-        change: parseFloat((goldChange / 85).toFixed(2)),
-        changePercent: goldPct,
-        unit: 'oz',
-        available: true,
-      });
-    }
-  }
-
-  const stocks = ALL_STOCK_SYMBOLS
-    .filter((sym) => {
-      const q = quotes[sym];
-      return q && parseFloat(q.close) > 0;
-    })
-    .map((sym) => {
-      const q = quotes[sym];
-      return {
-        symbol: sym,
-        name: q.name || sym,
-        price: parseFloat(q.close),
-        change: parseFloat(q.change) || 0,
-        changePercent: parseFloat(q.percent_change) || 0,
-        volume: parseInt(q.volume, 10) || 0,
-        available: true,
-      };
-    });
-
-  return {
-    crypto,
-    forex,
-    commodities,
-    indices,
-    stocks,
-    source: 'twelvedata',
+    source,
+    isStale: source === 'static',
     timestamp: Date.now(),
   };
 }

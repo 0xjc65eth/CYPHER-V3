@@ -152,7 +152,9 @@ export function CorrelationMatrix({ loading: externalLoading, error: externalErr
                     {rowAsset}
                   </td>
                   {ASSETS.map((_, j) => {
-                    const val = matrix[i]?.[j] ?? 0;
+                    const raw = matrix[i]?.[j];
+                    const hasValue = raw != null && !isNaN(raw);
+                    const val = hasValue ? raw : 0;
                     const isDiag = i === j;
                     return (
                       <td key={j} className="p-0.5">
@@ -160,13 +162,13 @@ export function CorrelationMatrix({ loading: externalLoading, error: externalErr
                           className={`w-10 h-10 flex items-center justify-center rounded-sm transition-colors ${
                             isDiag ? 'border border-[#2a2a3e]/30' : 'hover:brightness-150 cursor-default'
                           }`}
-                          style={{ backgroundColor: correlationColor(val) }}
-                          title={`${rowAsset} vs ${ASSETS[j]}: ${val.toFixed(3)}`}
+                          style={{ backgroundColor: hasValue ? correlationColor(val) : 'rgba(228, 228, 231, 0.04)' }}
+                          title={hasValue ? `${rowAsset} vs ${ASSETS[j]}: ${val.toFixed(3)}` : `${rowAsset} vs ${ASSETS[j]}: N/A`}
                         >
                           <span
-                            className={`text-[9px] font-mono ${correlationTextColor(val)}`}
+                            className={`text-[9px] font-mono ${hasValue ? correlationTextColor(val) : 'text-[#e4e4e7]/20'}`}
                           >
-                            {isDiag ? '1.00' : val.toFixed(2)}
+                            {!hasValue ? '-' : isDiag ? '1.00' : val.toFixed(2)}
                           </span>
                         </div>
                       </td>
@@ -195,6 +197,16 @@ export function CorrelationMatrix({ loading: externalLoading, error: externalErr
               <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'rgba(0,255,136,0.5)' }} />
               <span className="text-[8px] font-mono text-[#e4e4e7]/30">Strong +</span>
             </div>
+          </div>
+
+          {/* Timestamp & Disclaimer */}
+          <div className="mt-2 pt-1.5 border-t border-[#2a2a3e]/20 text-center space-y-0.5">
+            <p className="text-[8px] font-mono text-[#e4e4e7]/25">
+              Last updated: {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+            </p>
+            <p className="text-[7px] font-mono text-[#e4e4e7]/20">
+              Estimated correlations — Updated monthly
+            </p>
           </div>
         </div>
       )}

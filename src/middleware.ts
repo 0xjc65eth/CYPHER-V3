@@ -107,9 +107,10 @@ export function middleware(request: NextRequest) {
     const origin = request.headers.get('origin');
     const allowedOrigins = [
       'https://cypherordifuture.xyz',
-      'http://localhost:4444',
-      'https://localhost:4444',
-      'http://127.0.0.1:4444',
+      // Localhost origins only in development (NODE_ENV !== 'production')
+      ...(process.env.NODE_ENV !== 'production'
+        ? ['http://localhost:4444', 'https://localhost:4444', 'http://127.0.0.1:4444']
+        : []),
       process.env.NEXTAUTH_URL,
       process.env.NEXT_PUBLIC_SITE_URL,
       process.env.NEXT_PUBLIC_APP_URL,

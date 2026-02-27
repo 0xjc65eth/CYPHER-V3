@@ -18,7 +18,7 @@ interface PremiumContentProps {
 
 export function PremiumContent({ children, fallback, requiredTier, requiredFeature }: PremiumContentProps) {
   const { connected, address } = useLaserEyes()
-  const { isPremium, isVerifying, accessTier, subscriptionTier, hasFeature } = usePremium()
+  const { isPremium, isVerifying, accessTier, subscriptionTier, hasFeature, ethAddress } = usePremium()
 
   // Derive effective premium from both context and direct BTC VIP check
   const btcTier = getWalletAccessTier(connected ? (address ?? null) : null)
@@ -27,8 +27,9 @@ export function PremiumContent({ children, fallback, requiredTier, requiredFeatu
 
   // If wallet is not connected and a specific tier or feature is required, deny access.
   // This prevents stale localStorage from granting premium to disconnected users.
+  // Check both BTC (LaserEyes) and ETH wallet — either satisfies the requirement.
   const walletRequired = requiredTier !== undefined || requiredFeature !== undefined
-  const walletDisconnected = !connected
+  const walletDisconnected = !connected && !ethAddress
 
   // Subscription-based tier check
   const hasTierAccess = requiredTier ? tierHasAccess(subscriptionTier, requiredTier) : null

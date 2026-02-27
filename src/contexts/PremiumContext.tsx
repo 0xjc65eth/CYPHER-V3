@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { getWalletAccessTier, hasPremiumAccess, type AccessTier } from '@/config/vip-wallets'
+import { getWalletAccessTier, hasPremiumAccess, isSuperAdmin, isVIPEthWallet, type AccessTier } from '@/config/vip-wallets'
 import { YHP_CONTRACT_ADDRESS } from '@/config/premium-collections'
 import { useClientOnly } from '@/hooks/useClientOnly'
 import { type SubscriptionTier, tierHasFeature } from '@/lib/stripe/config'
@@ -139,13 +139,14 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
         let verified = false
 
-        // If the cached accessTier is 'vip' or 'super_admin', the user must
-        // reconnect their BTC wallet to re-prove it. We can't verify without
-        // the address, so revoke until wallet reconnects.
+        // If the cached accessTier is 'vip' or 'super_admin', check if it came
+        // from an ETH wallet we can verify locally (no reconnection needed).
         if (accessTier === 'vip' || accessTier === 'super_admin') {
-          // VIP status requires wallet reconnection — can't verify from cache alone
-          // Revoke and let the walletConnected event re-grant it
-          verified = false
+          if (ethAddress && (isSuperAdmin(ethAddress) || isVIPEthWallet(ethAddress))) {
+            // ETH-based VIP/admin — can verify locally without wallet reconnection
+            verified = true
+          }
+          // Otherwise, BTC VIP requires wallet reconnection — revoke until reconnect
         }
 
         // For YHP / 'premium' tier, try on-chain verification if we have ethAddress
@@ -281,11 +282,17 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         fetchSubscriptionStatus(btcAddr)
       }
 
-      // Fallback: event says premium (e.g. YHP holder)
+      // Fallback: event says premium (e.g. YHP holder or super_admin ETH wallet)
       if (walletPremium) {
         setIsPremiumRaw(true)
         if (collection) setPremiumCollection(collection)
-        if (accessTier === 'free') setAccessTier('premium')
+        // Respect accessTier from event (super_admin, vip) or default to premium
+        const eventTier = event.detail?.accessTier as AccessTier | undefined
+        if (eventTier && (eventTier === 'super_admin' || eventTier === 'vip')) {
+          setAccessTier(eventTier)
+        } else if (accessTier === 'free') {
+          setAccessTier('premium')
+        }
       }
     }
 
@@ -311,11 +318,11 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
 
     const handleEthWalletDisconnected = () => {
       setEthAddress(null)
-      // Only clear premium if it came from ETH wallet (YHP)
-      if (premiumCollection === 'YIELD HACKER PASS') {
+      // Clear premium if it came from ETH wallet (YHP or SUPER ADMIN)
+      if (premiumCollection === 'YIELD HACKER PASS' || premiumCollection === 'SUPER ADMIN') {
         setIsPremiumRaw(false)
         setPremiumCollection(null)
-        if (accessTier === 'premium') setAccessTier('free')
+        setAccessTier('free')
       }
     }
 

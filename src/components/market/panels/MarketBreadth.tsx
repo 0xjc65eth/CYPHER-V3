@@ -48,6 +48,7 @@ interface CategoryStats {
   category: Category;
   avgChange: number;
   count: number;
+  isStatic: boolean;
 }
 
 function SkeletonContent() {
@@ -104,7 +105,8 @@ export function MarketBreadth({ data, loading }: MarketBreadthProps) {
         const items = flat.filter((a) => a.category === cat);
         if (items.length === 0) return null;
         const avg = items.reduce((s, a) => s + a.changePercent, 0) / items.length;
-        return { category: cat, avgChange: avg, count: items.length };
+        const allStatic = items.every((a) => a.changePercent === 0);
+        return { category: cat, avgChange: avg, count: items.length, isStatic: allStatic };
       })
       .filter(Boolean) as CategoryStats[];
 
@@ -257,11 +259,10 @@ export function MarketBreadth({ data, loading }: MarketBreadthProps) {
                     </div>
                     <span
                       className={`text-[9px] font-mono font-bold w-12 text-right ${
-                        isPos ? 'text-[#00ff88]' : 'text-[#ff3366]'
+                        stat.isStatic ? 'text-[#e4e4e7]/30' : isPos ? 'text-[#00ff88]' : 'text-[#ff3366]'
                       }`}
                     >
-                      {isPos ? '+' : ''}
-                      {stat.avgChange.toFixed(2)}%
+                      {stat.isStatic ? 'N/A' : `${isPos ? '+' : ''}${stat.avgChange.toFixed(2)}%`}
                     </span>
                   </div>
                 );

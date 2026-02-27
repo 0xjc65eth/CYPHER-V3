@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { JsonRpcProvider, Contract } from 'ethers'
 import { YHP_CONTRACT_ADDRESS, YHP_COLLECTION_NAME } from '@/config/premium-collections'
-import { isVIPEthWallet } from '@/config/vip-wallets'
+import { isVIPEthWallet, isSuperAdmin } from '@/config/vip-wallets'
 
 // Minimal ERC721 ABI — only balanceOf
 const ERC721_ABI = ['function balanceOf(address owner) view returns (uint256)']
@@ -19,6 +19,22 @@ export function useYHPVerification(address: string | null) {
   const verify = useCallback(async (addr: string) => {
     setLoading(true)
     try {
+      // Super admin ETH wallets get highest access tier
+      if (isSuperAdmin(addr)) {
+        setBalance(1)
+        setIsHolder(true)
+        window.dispatchEvent(new CustomEvent('walletConnected', {
+          detail: {
+            address: addr,
+            connected: true,
+            isPremium: true,
+            premiumCollection: 'SUPER ADMIN',
+            accessTier: 'super_admin',
+          }
+        }))
+        return true
+      }
+
       // VIP ETH wallets get instant access — no contract call needed
       if (isVIPEthWallet(addr)) {
         setBalance(1)

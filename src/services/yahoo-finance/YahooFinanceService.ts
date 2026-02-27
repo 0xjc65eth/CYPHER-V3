@@ -3,9 +3,10 @@
  *
  * Primary data source for forex, indices, commodities, and stocks.
  * Uses Yahoo Finance v7 quote API with crumb authentication.
+ * Falls back to v8 chart API (no crumb needed) when v7 auth fails.
  * No rate-limit batching needed — Yahoo supports all symbols in one request.
  *
- * Falls back to TwelveData if Yahoo fails.
+ * Falls back to TwelveData if Yahoo fails entirely.
  */
 
 // --- Symbol mapping: our display symbols ↔ Yahoo Finance tickers ---
@@ -21,6 +22,10 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
   // Commodities
   'XAU/USD': 'GC=F',
   'XAG/USD': 'SI=F',
+  'CL=F': 'CL=F',
+  'NG=F': 'NG=F',
+  'PL=F': 'PL=F',
+  'HG=F': 'HG=F',
   // Indices (real indices, not ETF proxies!)
   'SPX': '^GSPC',
   'NDX': '^IXIC',
@@ -38,7 +43,40 @@ const USER_AGENT =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 const YAHOO_BASE = 'https://query2.finance.yahoo.com';
-const TIMEOUT_MS = 12000;
+const TIMEOUT_MS = 8000;
+
+// --- Yahoo v7 crumb auth circuit breaker ---
+// After 2 consecutive crumb failures, block v7 for 5 minutes.
+
+let yahooBlocked = false;
+let yahooBlockedUntil = 0;
+let consecutiveCrumbFailures = 0;
+const MAX_CRUMB_FAILURES = 5;
+const BLOCK_DURATION_MS = 2 * 60 * 1000;
+
+function markCrumbFailure(): void {
+  consecutiveCrumbFailures++;
+  if (consecutiveCrumbFailures >= MAX_CRUMB_FAILURES) {
+    yahooBlocked = true;
+    yahooBlockedUntil = Date.now() + BLOCK_DURATION_MS;
+    console.warn(`[Yahoo] v7 blocked for 2 minutes after ${consecutiveCrumbFailures} consecutive crumb failures`);
+  }
+}
+
+function markCrumbSuccess(): void {
+  consecutiveCrumbFailures = 0;
+  yahooBlocked = false;
+}
+
+function isYahooV7Blocked(): boolean {
+  if (!yahooBlocked) return false;
+  if (Date.now() >= yahooBlockedUntil) {
+    yahooBlocked = false;
+    consecutiveCrumbFailures = 0;
+    return false;
+  }
+  return true;
+}
 
 // --- Crumb cache (survives within serverless instance lifetime) ---
 
@@ -97,7 +135,7 @@ export interface YahooQuoteResult {
 
 export const ALL_FOREX = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF', 'USD/CAD'];
 export const ALL_INDEX_SYMBOLS = ['SPX', 'NDX', 'DJI', 'RUT'];
-export const ALL_COMMODITY_SYMBOLS = ['XAU/USD', 'XAG/USD'];
+export const ALL_COMMODITY_SYMBOLS = ['XAU/USD', 'XAG/USD', 'CL=F', 'NG=F', 'PL=F', 'HG=F'];
 export const ALL_STOCK_SYMBOLS = ['AAPL', 'NVDA', 'TSLA', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 
 export const ALL_YAHOO_SYMBOLS = [
@@ -108,17 +146,30 @@ export const ALL_YAHOO_SYMBOLS = [
 ];
 
 /**
- * Fetch batch quotes from Yahoo Finance.
+ * Fetch batch quotes from Yahoo Finance v7 (crumb auth).
  * Returns only symbols that have real data (no placeholders).
+ * Respects the circuit breaker — throws if v7 is blocked.
  */
 export async function fetchYahooQuotes(
   symbols: string[]
 ): Promise<Record<string, YahooQuoteResult>> {
+  if (isYahooV7Blocked()) {
+    throw new Error('Yahoo v7 blocked (circuit breaker active)');
+  }
+
   // Map our symbols to Yahoo tickers
   const yahooTickers = symbols.map((s) => YAHOO_SYMBOL_MAP[s] || s);
   const symbolParam = yahooTickers.join(',');
 
-  const { cookie, crumb } = await getYahooCrumb();
+  let crumbData: { cookie: string; crumb: string };
+  try {
+    crumbData = await getYahooCrumb();
+  } catch (err) {
+    markCrumbFailure();
+    throw err;
+  }
+
+  const { cookie, crumb } = crumbData;
 
   const url = `${YAHOO_BASE}/v7/finance/quote?symbols=${encodeURIComponent(symbolParam)}&crumb=${encodeURIComponent(crumb)}`;
 
@@ -136,6 +187,7 @@ export async function fetchYahooQuotes(
     // Invalidate crumb cache on auth errors so next call retries
     if (response.status === 401 || response.status === 403) {
       cachedCrumb = null;
+      markCrumbFailure();
     }
     throw new Error(`Yahoo Finance HTTP ${response.status}`);
   }
@@ -146,6 +198,8 @@ export async function fetchYahooQuotes(
   if (!Array.isArray(quotes)) {
     throw new Error('Yahoo Finance: unexpected response structure');
   }
+
+  markCrumbSuccess();
 
   const results: Record<string, YahooQuoteResult> = {};
 
@@ -173,8 +227,81 @@ export async function fetchYahooQuotes(
 }
 
 /**
+ * Fetch quotes via Yahoo v8 chart API (no crumb auth needed).
+ * Fetches each symbol individually via Promise.allSettled.
+ * Returns only symbols that have real data.
+ */
+export async function fetchViaV8Chart(
+  symbols: string[]
+): Promise<Record<string, YahooQuoteResult>> {
+  const results: Record<string, YahooQuoteResult> = {};
+  const BATCH_SIZE = 5;
+
+  for (let i = 0; i < symbols.length; i += BATCH_SIZE) {
+    const batch = symbols.slice(i, i + BATCH_SIZE);
+
+    const fetches = batch.map(async (sym) => {
+      const yahooTicker = YAHOO_SYMBOL_MAP[sym] || sym;
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooTicker)}?interval=1d&range=1d`;
+
+      const response = await fetch(url, {
+        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error(`v8 chart HTTP ${response.status} for ${yahooTicker}`);
+      }
+
+      const json = await response.json();
+      const meta = json?.chart?.result?.[0]?.meta;
+      if (!meta) throw new Error(`v8 chart: no meta for ${yahooTicker}`);
+
+      const price = meta.regularMarketPrice ?? 0;
+      if (price === 0) throw new Error(`v8 chart: zero price for ${yahooTicker}`);
+
+      const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? 0;
+      const change = prevClose > 0 ? price - prevClose : 0;
+      const changePct = prevClose > 0 ? (change / prevClose) * 100 : 0;
+
+      return {
+        ourSymbol: sym,
+        result: {
+          symbol: sym,
+          name: meta.longName || meta.shortName || sym,
+          price,
+          change,
+          changePercent: changePct,
+          previousClose: prevClose,
+          volume: meta.regularMarketVolume ?? 0,
+          marketState: meta.marketState || 'CLOSED',
+        } as YahooQuoteResult,
+      };
+    });
+
+    const settled = await Promise.allSettled(fetches);
+
+    for (const outcome of settled) {
+      if (outcome.status === 'fulfilled') {
+        results[outcome.value.ourSymbol] = outcome.value.result;
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * Invalidate the crumb cache (useful if caller detects auth failure).
  */
 export function invalidateYahooCrumb(): void {
   cachedCrumb = null;
+}
+
+/**
+ * Check if Yahoo v7 is currently blocked by the circuit breaker.
+ */
+export function isV7Blocked(): boolean {
+  return isYahooV7Blocked();
 }

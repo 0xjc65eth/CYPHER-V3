@@ -174,7 +174,9 @@ export function CypherAIInterface() {
         message: messageText
       });
 
-      // Fallback to enhancedCypherAI service
+      // Fallback to enhancedCypherAI service (with 10s timeout)
+      const fallbackController = new AbortController();
+      const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
       try {
         const context: CypherAIContext = {
           conversationHistory: messages.map(m => `${m.type}: ${m.content}`),
@@ -203,6 +205,8 @@ export function CypherAIInterface() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        clearTimeout(fallbackTimeout);
       }
     } finally {
       clearTimeout(timeoutId);

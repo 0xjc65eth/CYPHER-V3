@@ -5,14 +5,39 @@ import { getRedisClient } from '@/lib/cache/redis.config';
 const CACHE_KEY = 'market:economic-data';
 const CACHE_TTL = 3600; // 1 hour
 
+// In-memory fallback cache for when Redis is unavailable
+const memCache = new Map<string, { data: any; expiresAt: number }>();
+
+function memGet(key: string): any | null {
+  const entry = memCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { memCache.delete(key); return null; }
+  return entry.data;
+}
+
+function memSet(key: string, data: any, ttlSeconds: number): void {
+  memCache.set(key, { data, expiresAt: Date.now() + ttlSeconds * 1000 });
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const redis = getRedisClient();
+    // Check cache first (Redis with in-memory fallback)
+    let cached: string | null = null;
+    try {
+      const redis = getRedisClient();
+      cached = await redis.get(CACHE_KEY) as string | null;
+    } catch (redisErr) {
+      console.warn('[economic-data] Redis unavailable, trying memCache');
+      const memData = memGet(CACHE_KEY);
+      if (memData) {
+        return NextResponse.json(memData, {
+          headers: { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600' },
+        });
+      }
+    }
 
-    // Check cache first
-    const cached = await redis.get(CACHE_KEY);
     if (cached) {
-      return NextResponse.json(JSON.parse(cached as string), {
+      return NextResponse.json(JSON.parse(cached), {
         headers: { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600' },
       });
     }
@@ -63,8 +88,14 @@ export async function GET(request: NextRequest) {
       timestamp: Date.now(),
     };
 
-    // Cache the result
-    await redis.set(CACHE_KEY, JSON.stringify(data), 'EX', CACHE_TTL);
+    // Cache the result (Redis with in-memory fallback)
+    try {
+      const redis = getRedisClient();
+      await redis.set(CACHE_KEY, JSON.stringify(data), 'EX', CACHE_TTL);
+    } catch {
+      // Redis write failed, memory cache used as fallback below
+    }
+    memSet(CACHE_KEY, data, CACHE_TTL);
 
     return NextResponse.json(data, {
       headers: { 'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600' },

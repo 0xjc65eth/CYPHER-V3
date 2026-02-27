@@ -44,7 +44,7 @@ import {
 
 // Lista de coleções premium para verificação
 import { PREMIUM_COLLECTIONS } from '@/config/premium-collections'
-import { getWalletAccessTier, hasPremiumAccess, type AccessTier } from '@/config/vip-wallets'
+import { getWalletAccessTier, hasPremiumAccess, isSuperAdmin, type AccessTier } from '@/config/vip-wallets'
 import { useYHPVerification } from '@/hooks/useYHPVerification'
 import { usePremium } from '@/contexts/PremiumContext'
 
@@ -144,8 +144,14 @@ export function UnifiedNavbar() {
   useEffect(() => {
     if (isYHPHolder && evmAddress) {
       setIsPremium(true)
-      setPremiumCollection('YIELD HACKER PASS')
-      if (accessTier === 'free') setAccessTier('premium')
+      // Check if this ETH wallet is a super admin (CEO/dev)
+      if (isSuperAdmin(evmAddress)) {
+        setPremiumCollection('SUPER ADMIN')
+        setAccessTier('super_admin')
+      } else {
+        setPremiumCollection('YIELD HACKER PASS')
+        if (accessTier === 'free') setAccessTier('premium')
+      }
     }
   }, [isYHPHolder, evmAddress, setIsPremium, setPremiumCollection, accessTier, setAccessTier])
 
@@ -180,6 +186,13 @@ export function UnifiedNavbar() {
       setIsVerifying(false)
     }
   }
+
+  // Listen for 'openWalletConnect' custom events (e.g. from Pricing page)
+  useEffect(() => {
+    const handler = () => setIsModalOpen(true)
+    window.addEventListener('openWalletConnect', handler)
+    return () => window.removeEventListener('openWalletConnect', handler)
+  }, [])
 
   // Verificar acesso premium quando o endereço mudar
   useEffect(() => {

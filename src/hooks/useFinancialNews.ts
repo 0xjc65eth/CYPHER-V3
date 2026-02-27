@@ -16,7 +16,7 @@ export interface FinancialNewsData {
   timestamp: number;
 }
 
-export function useFinancialNews(refreshInterval = 900000) {
+export function useFinancialNews(refreshInterval = 1800000) {
   const [data, setData] = useState<FinancialNewsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
