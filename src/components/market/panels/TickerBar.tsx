@@ -72,29 +72,39 @@ function flattenAssets(data: TickerBarProps['data']): TickerAsset[] {
 
   const items: TickerAsset[] = [];
 
-  // Crypto
+  // Crypto — only with real price
   for (const c of data.crypto) {
-    items.push({ symbol: (c.symbol || '').toUpperCase(), price: c.price, change: c.change24h });
+    if (c.price > 0) {
+      items.push({ symbol: (c.symbol || '').toUpperCase(), price: c.price, change: c.change24h });
+    }
   }
 
-  // Forex
+  // Forex — only with real price
   for (const f of data.forex) {
-    items.push({ symbol: f.pair, price: f.price, change: f.changePercent });
+    if (f.price > 0) {
+      items.push({ symbol: f.pair, price: f.price, change: f.changePercent });
+    }
   }
 
-  // Commodities
+  // Commodities — only with real price
   for (const c of data.commodities) {
-    items.push({ symbol: (c.name || '').toUpperCase(), price: c.price, change: c.changePercent });
+    if (c.price > 0) {
+      items.push({ symbol: (c.name || '').toUpperCase(), price: c.price, change: c.changePercent });
+    }
   }
 
-  // Indices
+  // Indices — only with real price
   for (const i of data.indices) {
-    items.push({ symbol: i.symbol, price: i.price, change: i.changePercent });
+    if (i.price > 0) {
+      items.push({ symbol: i.symbol, price: i.price, change: i.changePercent });
+    }
   }
 
-  // Stocks
+  // Stocks — only with real price
   for (const s of data.stocks) {
-    items.push({ symbol: s.symbol, price: s.price, change: s.changePercent });
+    if (s.price > 0) {
+      items.push({ symbol: s.symbol, price: s.price, change: s.changePercent });
+    }
   }
 
   return items;
