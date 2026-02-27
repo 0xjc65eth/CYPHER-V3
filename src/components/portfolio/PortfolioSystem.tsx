@@ -410,7 +410,7 @@ export function PortfolioSystem() {
                 </p>
               </>
             ) : (
-              <p className="text-gray-500">No data</p>
+              <p className="text-gray-500 font-mono text-sm">--</p>
             )}
           </div>
 
@@ -430,7 +430,7 @@ export function PortfolioSystem() {
                 </p>
               </>
             ) : (
-              <p className="text-gray-500">No data</p>
+              <p className="text-gray-500 font-mono text-sm">--</p>
             )}
           </div>
         </div>

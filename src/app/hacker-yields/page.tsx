@@ -915,10 +915,10 @@ function AgentDashboard({
         : '/api/agent/';
 
       const res = await fetch(url, { signal });
-      if (!res.ok) throw new Error(`API returned ${res.status}`);
+      if (!res.ok && res.status >= 500) throw new Error(`API returned ${res.status}`);
 
       const data: AgentApiResponse = await res.json();
-      if (!data.success) throw new Error('API returned unsuccessful response');
+      if (!data.success && !data.state) throw new Error(data.error || 'API returned unsuccessful response');
 
       // Update agent status from API
       const apiStatus = mapApiStatus(data.state.status);
@@ -1244,33 +1244,40 @@ function AgentDashboard({
           )}
 
           {/* Performance Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {[
-              { label: 'PnL Today', value: perf.todayPnl, pct: perf.todayPnlPercent },
-              { label: 'PnL Week', value: perf.weekPnl, pct: perf.weekPnlPercent },
-              { label: 'PnL Month', value: perf.monthPnl, pct: perf.monthPnlPercent },
-              { label: 'Total PnL', value: perf.totalPnl, pct: perf.totalPnlPercent },
-            ].map(card => (
-              <div key={card.label} className="border border-orange-500/20 rounded-lg p-3 bg-[#0a0a0a]">
-                <div className="text-[10px] text-white/30 font-mono mb-1">{card.label.toUpperCase()}</div>
-                <div className={`text-lg font-mono font-bold ${card.value >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {card.value >= 0 ? '+' : ''}${card.value.toFixed(2)}
+          {perf.totalTrades === 0 && agentStatus !== 'active' ? (
+            <div className="border border-orange-500/20 rounded-lg p-6 bg-[#0a0a0a] text-center">
+              <div className="text-xs text-white/30 font-mono mb-1">PERFORMANCE</div>
+              <div className="text-sm text-white/20 font-mono">No trading history yet</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: 'PnL Today', value: perf.todayPnl, pct: perf.todayPnlPercent },
+                { label: 'PnL Week', value: perf.weekPnl, pct: perf.weekPnlPercent },
+                { label: 'PnL Month', value: perf.monthPnl, pct: perf.monthPnlPercent },
+                { label: 'Total PnL', value: perf.totalPnl, pct: perf.totalPnlPercent },
+              ].map(card => (
+                <div key={card.label} className="border border-orange-500/20 rounded-lg p-3 bg-[#0a0a0a]">
+                  <div className="text-[10px] text-white/30 font-mono mb-1">{card.label.toUpperCase()}</div>
+                  <div className={`text-lg font-mono font-bold ${card.value >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {card.value >= 0 ? '+' : ''}${card.value.toFixed(2)}
+                  </div>
+                  <div className={`text-xs font-mono ${card.value >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
+                    {card.value >= 0 ? '+' : ''}{card.pct.toFixed(2)}%
+                  </div>
                 </div>
-                <div className={`text-xs font-mono ${card.value >= 0 ? 'text-emerald-400/60' : 'text-red-400/60'}`}>
-                  {card.value >= 0 ? '+' : ''}{card.pct.toFixed(2)}%
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
-              { label: 'Win Rate', value: `${(perf.winRate * 100).toFixed(1)}%`, color: 'text-emerald-400' },
-              { label: 'Sharpe Ratio', value: perf.sharpeRatio.toFixed(2), color: 'text-orange-400' },
+              { label: 'Win Rate', value: perf.totalTrades === 0 ? '--' : `${(perf.winRate * 100).toFixed(1)}%`, color: perf.totalTrades === 0 ? 'text-white/20' : 'text-emerald-400' },
+              { label: 'Sharpe Ratio', value: perf.totalTrades === 0 ? '--' : perf.sharpeRatio.toFixed(2), color: perf.totalTrades === 0 ? 'text-white/20' : 'text-orange-400' },
               { label: 'Total Trades', value: perf.totalTrades.toString(), color: 'text-white' },
-              { label: 'Winning', value: `${perf.winningTrades} / ${perf.losingTrades}`, color: 'text-emerald-400' },
-              { label: 'Current DD', value: `${(perf.currentDrawdown * 100).toFixed(1)}%`, color: perf.currentDrawdown > 0.2 ? 'text-red-400' : perf.currentDrawdown > 0.1 ? 'text-yellow-400' : 'text-white/60' },
+              { label: 'Winning', value: perf.totalTrades === 0 ? '-- / --' : `${perf.winningTrades} / ${perf.losingTrades}`, color: perf.totalTrades === 0 ? 'text-white/20' : 'text-emerald-400' },
+              { label: 'Current DD', value: perf.totalTrades === 0 ? '--' : `${(perf.currentDrawdown * 100).toFixed(1)}%`, color: perf.totalTrades === 0 ? 'text-white/20' : perf.currentDrawdown > 0.2 ? 'text-red-400' : perf.currentDrawdown > 0.1 ? 'text-yellow-400' : 'text-white/60' },
             ].map(stat => (
               <div key={stat.label} className="border border-white/10 rounded-lg p-3 bg-[#0a0a0a]">
                 <div className="text-[10px] text-white/30 font-mono">{stat.label.toUpperCase()}</div>

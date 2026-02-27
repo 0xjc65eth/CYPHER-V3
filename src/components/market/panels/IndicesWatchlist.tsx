@@ -299,7 +299,7 @@ export function IndicesWatchlist({ data, loading, error, onRetry }: IndicesWatch
       {/* Empty state */}
       {!loading && !error && (!data?.indices?.length && !data?.stocks?.length) && (
         <div className="px-3 py-4 text-center text-xs font-mono text-[#e4e4e7]/30">
-          No data available
+          Market data temporarily unavailable — external APIs may be rate-limited
         </div>
       )}
     </div>

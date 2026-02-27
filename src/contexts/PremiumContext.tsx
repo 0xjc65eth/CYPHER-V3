@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { getWalletAccessTier, hasPremiumAccess, type AccessTier } from '@/config/vip-wallets'
+import { YHP_CONTRACT_ADDRESS } from '@/config/premium-collections'
 import { useClientOnly } from '@/hooks/useClientOnly'
 import { type SubscriptionTier, tierHasFeature } from '@/lib/stripe/config'
 
@@ -38,6 +39,7 @@ interface PremiumContextType {
 const PremiumContext = createContext<PremiumContextType | undefined>(undefined)
 
 const PREMIUM_STORAGE_KEY = 'cypher_premium_status'
+const PREMIUM_CACHE_TTL = 60 * 60 * 1000 // 1 hour — premium localStorage cache lifetime
 const SUBSCRIPTION_CACHE_KEY = 'cypher_subscription_cache'
 const SUBSCRIPTION_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -91,18 +93,31 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Restore premium status from localStorage on mount
+  // Whether we are re-verifying a cached premium claim
+  const [isReverifying, setIsReverifying] = useState(false)
+
+  // Restore premium status from localStorage on mount — with TTL guard
   useEffect(() => {
     if (!isClient) return
     const saved = localStorage.getItem(PREMIUM_STORAGE_KEY)
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
+        const age = Date.now() - (parsed._ts ?? 0)
+
+        // If cache is expired or has no timestamp, clear and stay free
+        if (!parsed._ts || age > PREMIUM_CACHE_TTL) {
+          localStorage.removeItem(PREMIUM_STORAGE_KEY)
+          return
+        }
+
         if (parsed.isPremium) {
+          // Use cached values as a hint for instant UI, but flag re-verification
           setIsPremiumRaw(true)
           setPremiumCollection(parsed.premiumCollection ?? null)
           setEthAddress(parsed.ethAddress ?? null)
           setAccessTier((parsed.accessTier as AccessTier) ?? 'premium')
+          setIsReverifying(true)
         }
       } catch {
         localStorage.removeItem(PREMIUM_STORAGE_KEY)
@@ -110,7 +125,66 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
   }, [isClient])
 
-  // Persist premium status whenever it changes
+  // Re-verify cached premium claim against on-chain / VIP data
+  useEffect(() => {
+    if (!isReverifying || !isClient) return
+
+    const reverify = async () => {
+      setIsVerifying(true)
+      try {
+        // Check BTC VIP list — this is a local check, no network needed
+        // We don't have the BTC address stored separately, so we rely on
+        // wallet reconnection events to re-establish BTC VIP status.
+        // For ETH / YHP holders, we need the ethAddress.
+
+        let verified = false
+
+        // If the cached accessTier is 'vip' or 'super_admin', the user must
+        // reconnect their BTC wallet to re-prove it. We can't verify without
+        // the address, so revoke until wallet reconnects.
+        if (accessTier === 'vip' || accessTier === 'super_admin') {
+          // VIP status requires wallet reconnection — can't verify from cache alone
+          // Revoke and let the walletConnected event re-grant it
+          verified = false
+        }
+
+        // For YHP / 'premium' tier, try on-chain verification if we have ethAddress
+        if (accessTier === 'premium' && ethAddress) {
+          try {
+            const { JsonRpcProvider, Contract } = await import('ethers')
+            const provider = new JsonRpcProvider('https://cloudflare-eth.com')
+            const contract = new Contract(
+              YHP_CONTRACT_ADDRESS,
+              ['function balanceOf(address owner) view returns (uint256)'],
+              provider
+            )
+            const bal = await contract.balanceOf(ethAddress)
+            verified = Number(bal) > 0
+          } catch {
+            // RPC failure — revoke to be safe
+            verified = false
+          }
+        }
+
+        if (!verified) {
+          // Revoke cached premium — user must reconnect wallet
+          setIsPremiumRaw(false)
+          setPremiumCollection(null)
+          setAccessTier('free')
+          localStorage.removeItem(PREMIUM_STORAGE_KEY)
+        }
+      } finally {
+        setIsVerifying(false)
+        setIsReverifying(false)
+      }
+    }
+
+    reverify()
+  // Only run once when isReverifying becomes true
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReverifying, isClient])
+
+  // Persist premium status whenever it changes (with timestamp for TTL)
   useEffect(() => {
     if (!isClient) return
     if (isPremium || hasPremiumAccess(accessTier)) {
@@ -119,11 +193,12 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
         premiumCollection,
         ethAddress,
         accessTier,
+        _ts: Date.now(),
       }))
     } else {
       localStorage.removeItem(PREMIUM_STORAGE_KEY)
     }
-  }, [isPremium, premiumCollection, ethAddress, accessTier])
+  }, [isPremium, premiumCollection, ethAddress, accessTier, isClient])
 
   // Fetch subscription status from API
   const fetchSubscriptionStatus = useCallback(async (walletAddress: string) => {
@@ -171,8 +246,9 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
   }, [isClient])
 
   // Determine effective tier: VIP/NFT wallets get hacker_yields override
+  // But only trust accessTier if we are NOT currently re-verifying a stale cache
   const effectiveSubscriptionTier: SubscriptionTier = (() => {
-    if (hasPremiumAccess(accessTier)) return 'hacker_yields'
+    if (!isReverifying && hasPremiumAccess(accessTier)) return 'hacker_yields'
     return subscriptionTier
   })()
 

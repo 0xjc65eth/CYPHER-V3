@@ -113,7 +113,7 @@ export function TopMoversCard() {
         </div>
       ) : topMovers.length === 0 ? (
         <div className="text-center py-6">
-          <Text className="text-gray-400">No data available</Text>
+          <Text className="text-gray-400 font-mono text-sm">Market data temporarily unavailable — external APIs may be rate-limited</Text>
         </div>
       ) : (
         <div className="space-y-3">

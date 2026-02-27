@@ -60,7 +60,7 @@ export function StatsBar({
       <div className="h-4 w-px bg-gray-700" />
       <StatItem icon={Activity} label="Events/min" value={eventsPerMin.toString()} />
       <StatItem icon={Radio} label="Active Runes" value={activeRunes.toString()} />
-      <StatItem icon={Zap} label="Vol (1h)" value={`${volumeBtc.toFixed(2)} BTC`} />
+      <StatItem icon={Zap} label="Vol (1h)" value={`${(typeof volumeBtc === 'number' && !isNaN(volumeBtc)) ? volumeBtc.toFixed(2) : '0.00'} BTC`} />
       <StatItem
         icon={Fish}
         label="Whale Alerts"

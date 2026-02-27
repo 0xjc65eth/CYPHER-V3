@@ -81,7 +81,7 @@ export function FedIndicatorsPanel({ data, loading, error }: FedIndicatorsPanelP
         <div className="py-6 text-center text-[10px] text-[#ff3366] font-mono">{error}</div>
       ) : !data ? (
         <div className="py-6 text-center text-[10px] text-[#e4e4e7]/30 font-mono">
-          No data available
+          Market data temporarily unavailable — external APIs may be rate-limited
         </div>
       ) : (
         <div className="space-y-4">

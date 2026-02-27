@@ -52,6 +52,9 @@ interface RuneEntry {
 
 import { formatSupply, timeAgoFromString as timeAgo, truncateTxId } from '@/lib/utils/runes-formatters';
 
+const safeFixed = (value: any, decimals = 2): string =>
+  (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0';
+
 function isOpenMint(rune: RuneEntry): boolean {
   return !!(
     rune.mint_terms &&
@@ -187,7 +190,7 @@ export default function EtchingsPro() {
                 : 'text-gray-300'
             }`}
           >
-            {premineP.toFixed(1)}%
+            {safeFixed(premineP, 1)}%
           </span>
         );
       },
@@ -206,7 +209,7 @@ export default function EtchingsPro() {
             <div className="flex items-center gap-1.5">
               <Progress value={progress} className="h-1.5 w-16 bg-gray-700" />
               <span className="text-[10px] text-gray-500">
-                {progress.toFixed(0)}%
+                {safeFixed(progress, 0)}%
               </span>
             </div>
           </div>
@@ -309,7 +312,7 @@ export default function EtchingsPro() {
         />
         <MetricsCard
           title="Avg Premine"
-          value={`${stats.avgPremine.toFixed(1)}%`}
+          value={`${safeFixed(stats.avgPremine, 1)}%`}
           icon={BarChart3}
           iconColor="text-orange-400"
         />

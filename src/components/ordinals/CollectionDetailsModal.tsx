@@ -67,7 +67,9 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
   if (!isOpen || !collection) return null;
 
   // Format BTC values - data is already in BTC from the API, NOT in satoshis
-  const formatBTC = (value: number) => {
+  // Returns "N/A" for zero/undefined to distinguish "no data" from "actually zero"
+  const formatBTC = (value: number | undefined | null) => {
+    if (value == null || value === 0) return 'N/A';
     if (value >= 1) return value.toFixed(4);
     if (value >= 0.01) return value.toFixed(6);
     if (value >= 0.0001) return value.toFixed(6);
@@ -173,7 +175,7 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
                   <div className="text-xs text-gray-500 font-semibold">FLOOR PRICE</div>
                 </div>
                 <div className="text-xl font-mono font-bold text-white mb-1">
-                  {formatBTC(collection.floorPrice)} BTC
+                  {collection.floorPrice ? `${formatBTC(collection.floorPrice)} BTC` : 'N/A'}
                 </div>
                 <PriceChange value={collection.priceChange24h} showIcon={false} />
               </div>
@@ -187,7 +189,10 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
                   </div>
                 </div>
                 <div className="text-xl font-mono font-bold text-white">
-                  {formatBTC(collection.volume24h > 0 ? collection.volume24h : (collection.totalVolume ?? 0))} BTC
+                  {(() => {
+                    const vol = collection.volume24h > 0 ? collection.volume24h : (collection.totalVolume ?? 0);
+                    return vol > 0 ? `${formatBTC(vol)} BTC` : 'N/A';
+                  })()}
                 </div>
               </div>
 
@@ -214,7 +219,7 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
                   <div className="text-xs text-gray-500 font-semibold">MARKET CAP</div>
                 </div>
                 <div className="text-xl font-mono font-bold text-white">
-                  {formatBTC(collection.marketCap)} BTC
+                  {collection.marketCap ? `${formatBTC(collection.marketCap)} BTC` : 'N/A'}
                 </div>
               </div>
             </div>

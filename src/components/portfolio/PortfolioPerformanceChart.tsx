@@ -266,7 +266,7 @@ export function PortfolioPerformanceChart({ address }: PortfolioPerformanceChart
           </ResponsiveContainer>
         ) : (
           <div className="h-96 flex items-center justify-center">
-            <p className="text-gray-400">No data available</p>
+            <p className="text-gray-400 font-mono text-sm">No trading history yet — connect a wallet to track performance</p>
           </div>
         )}
       </div>

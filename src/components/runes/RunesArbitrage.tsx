@@ -16,6 +16,9 @@ import {
 import { ExportButton } from '@/components/common/ExportButton';
 import { spreadColor, profitColor } from '@/lib/utils/runes-formatters';
 
+const safeFixed = (value: any, decimals = 2): string =>
+  (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0.00';
+
 import type { ArbitrageOpportunity, SortKey } from './arbitrage/types';
 import { MARKETPLACES, REFRESH_INTERVAL, FEE_TOTAL } from './arbitrage/types';
 import { generateOpportunities } from './arbitrage/fetch-prices';
@@ -133,9 +136,9 @@ export default function RunesArbitrage() {
   const stats = {
     active: filtered.length,
     avgSpread: filtered.length > 0
-      ? (filtered.reduce((s, o) => s + o.spread, 0) / filtered.length).toFixed(2) : '0.00',
+      ? safeFixed(filtered.reduce((s, o) => s + o.spread, 0) / filtered.length) : '0.00',
     bestSpread: filtered.length > 0
-      ? Math.max(...filtered.map((o) => o.spread)).toFixed(2) : '0.00',
+      ? safeFixed(Math.max(...filtered.map((o) => o.spread))) : '0.00',
     highProfitCount: filtered.filter((o) => o.netProfit > 5).length,
     avgConfidence: filtered.length > 0
       ? Math.round(filtered.reduce((s, o) => s + o.confidence, 0) / filtered.length) : 0,
@@ -316,7 +319,7 @@ export default function RunesArbitrage() {
                     </TableCell>
                     <TableCell className="py-2 px-3 text-right text-xs text-gray-300 font-mono">{opp.magicEdenPrice.toLocaleString()}</TableCell>
                     <TableCell className="py-2 px-3 text-right text-xs text-gray-300 font-mono">{opp.uniSatPrice.toLocaleString()}</TableCell>
-                    <TableCell className={`py-2 px-3 text-right text-xs font-bold font-mono ${spreadColor(opp.spread)}`}>{opp.spread.toFixed(2)}%</TableCell>
+                    <TableCell className={`py-2 px-3 text-right text-xs font-bold font-mono ${spreadColor(opp.spread)}`}>{safeFixed(opp.spread)}%</TableCell>
                     <TableCell className="py-2 px-3">
                       <Badge className="bg-blue-900/40 text-blue-400 border-blue-700 text-[10px] px-1.5 py-0">{opp.bestBuy}</Badge>
                     </TableCell>
@@ -324,7 +327,7 @@ export default function RunesArbitrage() {
                       <Badge className="bg-purple-900/40 text-purple-400 border-purple-700 text-[10px] px-1.5 py-0">{opp.bestSell}</Badge>
                     </TableCell>
                     <TableCell className={`py-2 px-3 text-right text-xs font-bold font-mono ${profitColor(opp.netProfit)}`}>
-                      {opp.netProfit > 0 ? '+' : ''}{opp.netProfit.toFixed(2)}%
+                      {opp.netProfit > 0 ? '+' : ''}{safeFixed(opp.netProfit)}%
                     </TableCell>
                     <TableCell className="py-2 px-3 text-center">{liquidityBadge(opp.liquidity)}</TableCell>
                     <TableCell className="py-2 px-3 text-center">{difficultyBadge(opp.executionDifficulty)}</TableCell>

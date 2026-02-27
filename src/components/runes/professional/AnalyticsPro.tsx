@@ -61,8 +61,9 @@ export default function AnalyticsPro() {
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data = await res.json();
 
-      if (data.success && data.data) {
-        const enriched = data.data.map((r: any, index: number) => {
+      const dataItems = Array.isArray(data?.data) ? data.data : [];
+      if (data.success && dataItems.length > 0) {
+        const enriched = dataItems.map((r: any, index: number) => {
           const ageInDays = r.timestamp
             ? Math.floor((Date.now() - new Date(r.timestamp).getTime()) / (1000 * 60 * 60 * 24))
             : null;
@@ -189,13 +190,16 @@ export default function AnalyticsPro() {
     const turboCount = runes.filter(r => r.turbo).length;
     const avgHolders = Math.round(totalHolders / runes.length);
     const top10Holders = runes.slice(0, 10).reduce((sum, r) => sum + (r.holders || 0), 0);
-    const holderConcentration = totalHolders > 0 ? ((top10Holders / totalHolders) * 100).toFixed(1) : '0.0';
+    const concVal = totalHolders > 0 ? (top10Holders / totalHolders) * 100 : 0;
+    const holderConcentration = (typeof concVal === 'number' && !isNaN(concVal)) ? concVal.toFixed(1) : '0.0';
+
+    const turboPctVal = runes.length > 0 ? (turboCount / runes.length) * 100 : 0;
 
     return {
       totalHolders,
       avgHolders,
       turboCount,
-      turboPercent: runes.length > 0 ? ((turboCount / runes.length) * 100).toFixed(1) : '0.0',
+      turboPercent: (typeof turboPctVal === 'number' && !isNaN(turboPctVal)) ? turboPctVal.toFixed(1) : '0.0',
       holderConcentration
     };
   }, [runes]);

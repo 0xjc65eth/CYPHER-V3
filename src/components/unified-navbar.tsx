@@ -60,6 +60,7 @@ const navItems = [
   { name: "Análise", href: "/analytics", icon: RiPulseLine },
   { name: "Aprendizagem Neural", href: "/neural-learning", icon: RiBrainLine },
   { name: "Portfólio", href: "/portfolio", icon: RiWalletLine },
+  { name: "Pricing", href: "/pricing", icon: RiVipCrownLine },
   { name: "Configurações", href: "/settings", icon: RiSettings4Line },
   { name: "Recursos", href: "/resources", icon: RiFileTextLine },
   { name: "Status", href: "/status", icon: RiShieldLine },

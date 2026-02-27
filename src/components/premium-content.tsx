@@ -25,6 +25,11 @@ export function PremiumContent({ children, fallback, requiredTier, requiredFeatu
   const effectivePremium = isPremium || hasPremiumAccess(btcTier)
   const effectiveTier = btcTier !== 'free' ? btcTier : accessTier
 
+  // If wallet is not connected and a specific tier or feature is required, deny access.
+  // This prevents stale localStorage from granting premium to disconnected users.
+  const walletRequired = requiredTier !== undefined || requiredFeature !== undefined
+  const walletDisconnected = !connected
+
   // Subscription-based tier check
   const hasTierAccess = requiredTier ? tierHasAccess(subscriptionTier, requiredTier) : null
   const hasFeatureAccess = requiredFeature ? hasFeature(requiredFeature) : null
@@ -58,6 +63,11 @@ export function PremiumContent({ children, fallback, requiredTier, requiredFeatu
         </p>
       </div>
     )
+  }
+
+  // If wallet is disconnected and premium features are required, always show locked
+  if (walletRequired && walletDisconnected) {
+    return fallback || defaultFallback
   }
 
   // When requiredTier is set, check subscription tier access

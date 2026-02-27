@@ -96,7 +96,8 @@ export function ProfessionalCharts({
       const data = await response.json();
 
       // Binance klines format: [openTime, open, high, low, close, volume, closeTime, ...]
-      return data.map((kline: any) => ({
+      const klines = Array.isArray(data) ? data : [];
+      return klines.map((kline: any) => ({
         time: Math.floor(kline[0] / 1000), // Convert to seconds
         open: parseFloat(kline[1]),
         high: parseFloat(kline[2]),
@@ -113,6 +114,7 @@ export function ProfessionalCharts({
 
   // Generate sample SMC zones
   const generateSMCZones = (candles: Candle[]): SMCZone[] => {
+    if (!Array.isArray(candles) || candles.length === 0) return [];
     const zones: SMCZone[] = [];
 
     // Add some sample Order Blocks
@@ -125,22 +127,26 @@ export function ProfessionalCharts({
         time: candles[20].time
       });
 
-      zones.push({
-        type: 'order_block',
-        direction: 'bearish',
-        high: candles[50].high,
-        low: candles[50].low,
-        time: candles[50].time
-      });
+      if (candles.length > 50) {
+        zones.push({
+          type: 'order_block',
+          direction: 'bearish',
+          high: candles[50].high,
+          low: candles[50].low,
+          time: candles[50].time
+        });
+      }
 
       // Add Fair Value Gap
-      zones.push({
-        type: 'fair_value_gap',
-        direction: 'bullish',
-        high: candles[70].high + 100,
-        low: candles[70].low - 100,
-        time: candles[70].time
-      });
+      if (candles.length > 70) {
+        zones.push({
+          type: 'fair_value_gap',
+          direction: 'bullish',
+          high: candles[70].high + 100,
+          low: candles[70].low - 100,
+          time: candles[70].time
+        });
+      }
     }
 
     return zones;
@@ -213,31 +219,38 @@ export function ProfessionalCharts({
         return;
       }
 
-      const candleData: CandlestickData[] = candles.map(c => ({
-        time: c.time as Time,
-        open: c.open,
-        high: c.high,
-        low: c.low,
-        close: c.close,
-      }));
+      try {
+        const safeCandles = Array.isArray(candles) ? candles : [];
 
-      const volumeData: HistogramData[] = candles.map(c => ({
-        time: c.time as Time,
-        value: c.volume,
-        color: c.close >= c.open ? '#00ff8833' : '#ff444433',
-      }));
+        const candleData: CandlestickData[] = safeCandles.map(c => ({
+          time: c.time as Time,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        }));
 
-      candlestickSeries.setData(candleData);
-      volumeSeries.setData(volumeData);
+        const volumeData: HistogramData[] = safeCandles.map(c => ({
+          time: c.time as Time,
+          value: c.volume,
+          color: c.close >= c.open ? '#00ff8833' : '#ff444433',
+        }));
 
-      // Add SMC overlays if enabled
-      if (showSMC && smcOverlays) {
-        const zones = generateSMCZones(candles);
-        addSMCOverlays(chart, zones, candles);
+        candlestickSeries.setData(candleData);
+        volumeSeries.setData(volumeData);
+
+        // Add SMC overlays if enabled
+        if (showSMC && smcOverlays) {
+          const zones = generateSMCZones(safeCandles);
+          addSMCOverlays(chart, zones, safeCandles);
+        }
+
+        // Fit content
+        chart.timeScale().fitContent();
+      } catch (err) {
+        console.error('Failed to render chart:', err);
+        setError('Chart data unavailable');
       }
-
-      // Fit content
-      chart.timeScale().fitContent();
 
       setLoading(false);
     };
@@ -264,6 +277,7 @@ export function ProfessionalCharts({
 
   // Add SMC overlays to chart
   const addSMCOverlays = (chart: IChartApi, zones: SMCZone[], candles: Candle[]) => {
+    if (!Array.isArray(zones) || zones.length === 0 || !Array.isArray(candles) || candles.length === 0) return;
     zones.forEach(zone => {
       // Create line series for zone boundaries (v5 API)
       const topLine = chart.addSeries(LineSeries, {

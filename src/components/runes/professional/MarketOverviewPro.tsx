@@ -20,6 +20,9 @@ import { Button } from '@/components/ui/button';
 import { ExportButton } from '@/components/common/ExportButton';
 import { useRunesMarketOverview, EnrichedRune, MarketStats } from '@/hooks/useRunesMarketOverview';
 
+const safeFixed = (value: any, decimals = 2): string =>
+  (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0.00';
+
 export default function MarketOverviewPro() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
 
@@ -109,11 +112,11 @@ export default function MarketOverviewPro() {
       format: (_value, rune) => (
         <div className="flex flex-col">
           <span className="text-white text-sm font-mono">
-            {rune.floorPrice ? `${(rune.floorPrice / 100_000_000).toFixed(8)} BTC` : '—'}
+            {rune.floorPrice ? `${safeFixed(rune.floorPrice / 100_000_000, 8)} BTC` : '—'}
           </span>
           {rune.floorPrice && (
             <span className="text-xs text-gray-500">
-              ${((rune.floorPrice / 100_000_000) * 65000).toFixed(2)}
+              ${safeFixed((rune.floorPrice / 100_000_000) * 65000, 2)}
             </span>
           )}
         </div>
@@ -126,11 +129,11 @@ export default function MarketOverviewPro() {
       format: (_value, rune) => (
         <div className="flex flex-col">
           <span className="text-white text-sm font-mono">
-            {rune.volume24h ? `${(rune.volume24h / 100_000_000).toFixed(4)} BTC` : '—'}
+            {rune.volume24h ? `${safeFixed(rune.volume24h / 100_000_000, 4)} BTC` : '—'}
           </span>
           {rune.volume24h && (
             <span className="text-xs text-gray-500">
-              ${((rune.volume24h / 100_000_000) * 65000).toFixed(0)}
+              ${safeFixed((rune.volume24h / 100_000_000) * 65000, 0)}
             </span>
           )}
         </div>
@@ -161,11 +164,11 @@ export default function MarketOverviewPro() {
       label: 'Supply',
       sortable: true,
       format: (_value, rune) => {
-        const supply = parseFloat(rune.supply);
+        const supply = parseFloat(rune.supply) || 0;
         const formatted = supply >= 1_000_000_000
-          ? `${(supply / 1_000_000_000).toFixed(2)}B`
+          ? `${safeFixed(supply / 1_000_000_000, 2)}B`
           : supply >= 1_000_000
-          ? `${(supply / 1_000_000).toFixed(2)}M`
+          ? `${safeFixed(supply / 1_000_000, 2)}M`
           : supply.toLocaleString();
 
         return (
@@ -233,14 +236,14 @@ export default function MarketOverviewPro() {
         />
         <MetricsCard
           title="24h Volume"
-          value={`${(stats.totalVolume24h / 100_000_000).toFixed(2)} BTC`}
+          value={`${safeFixed(stats.totalVolume24h / 100_000_000, 2)} BTC`}
           subtitle={`$${((stats.totalVolume24h / 100_000_000) * 65000).toLocaleString()}`}
           icon={DollarSign}
           iconColor="text-green-500"
         />
         <MetricsCard
           title="Market Cap"
-          value={`${(stats.totalMarketCap / 100_000_000).toFixed(2)} BTC`}
+          value={`${safeFixed(stats.totalMarketCap / 100_000_000, 2)} BTC`}
           subtitle={`${stats.activeListings.toLocaleString()} active listings`}
           icon={BarChart3}
           iconColor="text-purple-500"

@@ -110,6 +110,9 @@ export function CypherAIInterface() {
     setInputText('');
     setIsProcessing(true);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     try {
       // Call the multi-agent API directly to get agent metadata
       const body: Record<string, unknown> = {
@@ -125,6 +128,7 @@ export function CypherAIInterface() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
 
       const data = await res.json();
@@ -151,6 +155,19 @@ export function CypherAIInterface() {
       });
 
     } catch (error) {
+      // Handle timeout with a friendly message
+      if (error instanceof Error && error.name === 'AbortError') {
+        const timeoutMessage: Message = {
+          id: crypto.randomUUID(),
+          type: 'ai',
+          content: 'AI is taking too long to respond. Please try again.',
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, timeoutMessage]);
+        setIsProcessing(false);
+        return;
+      }
+
       ErrorReporter.report(error as Error, {
         component: 'CypherAIInterface',
         action: 'sendMessage',
@@ -188,6 +205,7 @@ export function CypherAIInterface() {
         setMessages(prev => [...prev, errorMessage]);
       }
     } finally {
+      clearTimeout(timeoutId);
       setIsProcessing(false);
     }
   };

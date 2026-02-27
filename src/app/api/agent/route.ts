@@ -59,9 +59,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response);
   } catch (error) {
     console.error('[Agent API] GET error:', error);
+    // If the orchestrator module fails to load or agent isn't configured, return a useful default
+    const isModuleError = error instanceof Error && (
+      error.message.includes('Cannot find module') ||
+      error.message.includes('is not a function') ||
+      error.message.includes('getState')
+    );
     return NextResponse.json(
-      { success: false, error: 'Failed to get agent state' },
-      { status: 500 }
+      {
+        success: false,
+        error: isModuleError
+          ? 'Agent not configured. Complete the setup wizard to initialize the trading agent.'
+          : 'Failed to get agent state',
+        state: {
+          status: 'stopped',
+          uptime: 0,
+          startedAt: null,
+          positions: [],
+          lpPositions: [],
+          openOrders: [],
+          recentTrades: [],
+          errors: [],
+          lastCompound: null,
+        },
+        performance: null,
+        config: null,
+      },
+      { status: isModuleError ? 200 : 500 }
     );
   }
 }
@@ -211,9 +235,18 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('[Agent API] POST error:', error instanceof Error ? error.message : 'Unknown');
+    const isModuleError = error instanceof Error && (
+      error.message.includes('Cannot find module') ||
+      error.message.includes('is not a function')
+    );
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
+      {
+        success: false,
+        error: isModuleError
+          ? 'Agent not configured. Complete the setup wizard first.'
+          : 'Internal server error',
+      },
+      { status: isModuleError ? 400 : 500 }
     );
   }
 }

@@ -3,6 +3,9 @@
 import { TrendingUp, DollarSign, Zap, Clock, Shield, ArrowRight, ExternalLink } from 'lucide-react';
 import type { ArbitrageOpportunity } from './types';
 
+const safeFixed = (value: any, decimals = 2): string =>
+  (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0.00';
+
 function getMarketplaceUrl(marketplace: string, rune: string): string {
   const encoded = encodeURIComponent(rune);
   switch (marketplace) {
@@ -125,7 +128,7 @@ export function DetailPanel({ opp }: { opp: ArbitrageOpportunity }) {
             <span>
               Net result:{' '}
               <span className={opp.netProfit > 0 ? 'text-green-400' : 'text-red-400'}>
-                {opp.netProfit > 0 ? '+' : ''}{opp.netProfit.toFixed(2)}% after all fees
+                {opp.netProfit > 0 ? '+' : ''}{safeFixed(opp.netProfit)}% after all fees
               </span>
             </span>
           </div>

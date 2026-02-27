@@ -16,6 +16,7 @@ import {
   RiWalletLine,
   RiSettings4Line,
   RiBrainLine,
+  RiVipCrownLine,
 } from 'react-icons/ri'
 
 const navItems = [
@@ -29,6 +30,7 @@ const navItems = [
   { name: "Neural Learning", href: "/neural-learning", icon: RiBrainLine },
   { name: "Alerts", href: "/alerts", icon: RiNotification3Line },
   { name: "Portfolio", href: "/portfolio", icon: RiWalletLine },
+  { name: "Pricing", href: "/pricing", icon: RiVipCrownLine },
   { name: "Settings", href: "/settings", icon: RiSettings4Line },
 ]
 

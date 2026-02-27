@@ -24,7 +24,7 @@ interface ChatRequest {
 /**
  * Call Gemini API directly via REST (no SDK dependency)
  */
-async function callGemini(userMessage: string, systemPrompt: string): Promise<string> {
+async function callGemini(userMessage: string, systemPrompt: string, signal?: AbortSignal): Promise<string> {
   const body = {
     system_instruction: {
       parts: [{ text: systemPrompt }],
@@ -50,6 +50,7 @@ async function callGemini(userMessage: string, systemPrompt: string): Promise<st
       'x-goog-api-key': GEMINI_API_KEY,
     },
     body: JSON.stringify(body),
+    signal,
   });
 
   if (!res.ok) {
@@ -92,20 +93,25 @@ export async function POST(request: NextRequest) {
     // Route to the best agent
     const agent = routeToAgent(message, agentHint);
 
-    // Fetch agent-specific real-time data in parallel
+    // Abort controller for the entire request (25s server-side timeout)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
+
+    try {
+
+    // Fetch agent-specific real-time data in parallel (using allSettled for resilience)
     const dataSources: string[] = [];
-    const fetchedParts = await Promise.all(
+    const fetchResults = await Promise.allSettled(
       agent.dataFetchers.map(async (name) => {
         const fn = dataFetcherMap[name];
         if (!fn) return '';
-        try {
-          dataSources.push(name);
-          return await fn();
-        } catch {
-          return '';
-        }
+        dataSources.push(name);
+        return await fn();
       })
     );
+    const fetchedParts = fetchResults
+      .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
+      .map(r => r.value);
     const liveDataContext = fetchedParts.filter(Boolean).join('\n\n');
 
     // Build client market context if provided
@@ -139,7 +145,7 @@ export async function POST(request: NextRequest) {
     let source = 'gemini-2.0-flash';
 
     try {
-      response = await callGemini(enhancedMessage, systemPrompt);
+      response = await callGemini(enhancedMessage, systemPrompt, controller.signal);
     } catch (error) {
       console.error('Gemini call failed:', error);
       response = `**${agent.name}** is temporarily unavailable. The CYPHER Terminal AI system encountered an error connecting to the language model. Please try again in a moment.`;
@@ -160,6 +166,18 @@ export async function POST(request: NextRequest) {
       dataSources,
       timestamp: new Date().toISOString(),
     });
+
+    } catch (innerError) {
+      if (innerError instanceof Error && innerError.name === 'AbortError') {
+        return NextResponse.json(
+          { error: 'Request timed out. Please try again.' },
+          { status: 504 }
+        );
+      }
+      throw innerError;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   } catch (error) {
     console.error('Chat API Error:', error);
     return NextResponse.json(

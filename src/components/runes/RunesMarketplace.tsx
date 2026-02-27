@@ -18,6 +18,9 @@ import { ExportButton } from '@/components/common/ExportButton';
 
 import { magicEdenRunesService } from '@/services/magicEdenRunesService';
 
+const safeFixed = (value: any, decimals = 2): string =>
+  (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0'.padEnd(decimals > 0 ? decimals + 2 : 1, '0');
+
 // Types
 interface RuneListing {
   id: string;
@@ -61,8 +64,11 @@ export default function RunesMarketplace() {
       const unisatAuctions = auctionsRes.ok ? await auctionsRes.json() : { list: [] };
       const topRunes = runesRes.ok ? await runesRes.json() : { list: [] };
 
+      const auctionList = Array.isArray(unisatAuctions?.list) ? unisatAuctions.list : [];
+      const runeList = Array.isArray(topRunes?.list) ? topRunes.list : [];
+
       // Convert UniSat auctions to listings
-      const unisatListings: RuneListing[] = unisatAuctions.list.map((auction: any) => {
+      const unisatListings: RuneListing[] = auctionList.map((auction: any) => {
         const unitPrice = parseFloat(auction.unitPrice || '0');
         const amount = parseFloat(auction.amount || '0');
 
@@ -83,7 +89,7 @@ export default function RunesMarketplace() {
       // Fetch Magic Eden orders for popular runes
       const magicEdenListings: RuneListing[] = [];
 
-      for (const rune of topRunes.list.slice(0, 20)) {
+      for (const rune of runeList.slice(0, 20)) {
         try {
           const orders = await magicEdenRunesService.getRuneOrders({
             rune: rune.spacedRune,
@@ -91,7 +97,8 @@ export default function RunesMarketplace() {
             limit: 20
           });
 
-          const meListings = (orders?.orders || []).map((order: any, orderIdx: number) => ({
+          const orderList = Array.isArray(orders?.orders) ? orders.orders : [];
+          const meListings = orderList.map((order: any, orderIdx: number) => ({
             id: order.id || `me-${Date.now()}-${orderIdx}`,
             rune: rune.rune,
             runeName: rune.spacedRune,
@@ -199,7 +206,7 @@ export default function RunesMarketplace() {
             {listing.unitPrice.toLocaleString()} sats
           </span>
           <span className="text-xs text-gray-500">
-            ${(listing.unitPrice * 0.00000065).toFixed(6)}
+            ${safeFixed(listing.unitPrice * 0.00000065, 6)}
           </span>
         </div>
       ),
@@ -211,10 +218,10 @@ export default function RunesMarketplace() {
       format: (_value, listing) => (
         <div className="flex flex-col">
           <span className="text-white text-sm font-mono">
-            {(listing.totalPrice / 100_000_000).toFixed(8)} BTC
+            {safeFixed(listing.totalPrice / 100_000_000, 8)} BTC
           </span>
           <span className="text-xs text-gray-500">
-            ${((listing.totalPrice / 100_000_000) * 65000).toFixed(2)}
+            ${safeFixed((listing.totalPrice / 100_000_000) * 65000, 2)}
           </span>
         </div>
       ),
@@ -325,7 +332,7 @@ export default function RunesMarketplace() {
         />
         <MetricsCard
           title="24h Volume"
-          value={`${(stats.totalVolume24h / 100_000_000).toFixed(2)} BTC`}
+          value={`${safeFixed(stats.totalVolume24h / 100_000_000, 2)} BTC`}
           subtitle={`$${((stats.totalVolume24h / 100_000_000) * 65000).toLocaleString()}`}
           icon={DollarSign}
           iconColor="text-green-500"
@@ -339,7 +346,7 @@ export default function RunesMarketplace() {
         />
         <MetricsCard
           title="Avg Price"
-          value={`${(stats.avgPrice / 100_000_000).toFixed(8)} BTC`}
+          value={`${safeFixed(stats.avgPrice / 100_000_000, 8)} BTC`}
           subtitle="Per listing"
           icon={TrendingUp}
           iconColor="text-purple-500"
