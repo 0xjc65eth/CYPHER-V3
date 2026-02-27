@@ -1326,7 +1326,7 @@ export function PortfolioRefined() {
                 <div className="bg-gray-900 rounded-lg p-4">
                   <p className="text-sm text-gray-400 mb-1">Portfolio Beta</p>
                   <p className="text-2xl font-bold text-white">
-                    {analytics.riskMetrics.beta.toFixed(2)}
+                    {analytics.riskMetrics.beta?.toFixed(2) ?? 'N/A'}
                   </p>
                   <p className="text-xs text-gray-500">Correlation to Bitcoin</p>
                 </div>

@@ -56,17 +56,18 @@ interface SentimentAlert {
 export class SentimentAnalysisEngine {
   private cache: Map<string, { data: SentimentData; timestamp: number }>;
   private readonly CACHE_TTL = 2 * 60 * 1000; // 2 minutes for real-time sentiment
-  private readonly API_ENDPOINTS = {
-    twitter: 'https://api.twitter.com/2',
-    reddit: 'https://api.reddit.com',
-    news: 'https://api.newsapi.org/v2',
-    fearGreed: 'https://api.alternative.me/fng',
-    whale: 'https://api.whale-alert.io/v1'
-  };
+  private monitoringIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.cache = new Map();
     this.startRealTimeMonitoring();
+  }
+
+  destroy(): void {
+    if (this.monitoringIntervalId) {
+      clearInterval(this.monitoringIntervalId);
+      this.monitoringIntervalId = null;
+    }
   }
 
   /**
@@ -129,105 +130,118 @@ export class SentimentAnalysisEngine {
   }
 
   /**
-   * Analyze Twitter/X sentiment
+   * Twitter/X sentiment - not connected (requires paid API)
    */
   private async analyzeTwitterSentiment(asset: string): Promise<SentimentSource> {
-    // Simulate Twitter API integration
-    const keywords = this.getAssetKeywords(asset);
-    const tweets = await this.fetchSimulatedTweets(keywords);
-    
     return {
-      score: this.calculateTextSentiment(tweets),
-      volume: 1500 + Math.random() * 3000, // Tweet volume
-      trend: Math.random() > 0.5 ? 'UP' : 'DOWN',
-      topKeywords: ['bitcoin', 'btc', 'bullish', 'moon', 'hodl'],
-      sampleTexts: [
-        'Bitcoin breaking new resistance levels! 🚀',
-        'BTC looking strong on the charts',
-        'Just bought more sats, feeling bullish'
-      ],
-      reliability: 75 + Math.random() * 20
+      score: 0,
+      volume: 0,
+      trend: 'STABLE',
+      topKeywords: [],
+      sampleTexts: ['Twitter/X API not connected'],
+      reliability: 0
     };
   }
 
   /**
-   * Analyze Reddit sentiment
+   * Reddit sentiment - not connected (requires API credentials)
    */
   private async analyzeRedditSentiment(asset: string): Promise<SentimentSource> {
-    // Simulate Reddit API integration
-    const subreddits = ['Bitcoin', 'CryptoCurrency', 'BitcoinBeginners', 'Ordinals'];
-    
     return {
-      score: (Math.random() - 0.3) * 1.5, // Slightly bearish bias for realism
-      volume: 800 + Math.random() * 1200,
-      trend: Math.random() > 0.6 ? 'UP' : 'DOWN',
-      topKeywords: ['discussion', 'analysis', 'technical', 'fundamentals'],
-      sampleTexts: [
-        'Detailed technical analysis shows strong support at $105K',
-        'Long-term hodlers are accumulating during this dip',
-        'Market sentiment seems mixed but fundamentals remain strong'
-      ],
-      reliability: 80 + Math.random() * 15
+      score: 0,
+      volume: 0,
+      trend: 'STABLE',
+      topKeywords: [],
+      sampleTexts: ['Reddit API not connected'],
+      reliability: 0
     };
   }
 
   /**
-   * Analyze news sentiment
+   * Analyze news sentiment from real CryptoCompare headlines
    */
   private async analyzeNewsSentiment(asset: string): Promise<SentimentSource> {
-    // Simulate news API integration
-    return {
-      score: (Math.random() - 0.2) * 1.2,
-      volume: 50 + Math.random() * 100,
-      trend: Math.random() > 0.4 ? 'UP' : 'STABLE',
-      topKeywords: ['institutional', 'adoption', 'regulation', 'etf'],
-      sampleTexts: [
-        'Major institution announces Bitcoin treasury allocation',
-        'Regulatory clarity improving in key markets',
-        'Bitcoin ETF sees record inflows this week'
-      ],
-      reliability: 90 + Math.random() * 10
-    };
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=popular', { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      const headlines: string[] = (data?.Data || []).slice(0, 20).map((item: any) => item.title);
+      const score = this.calculateTextSentiment(headlines);
+
+      // Extract common keywords
+      const allWords = headlines.join(' ').toLowerCase().split(/\s+/);
+      const keywordCounts = new Map<string, number>();
+      const stopWords = new Set(['the', 'a', 'an', 'is', 'are', 'in', 'to', 'for', 'of', 'and', 'on', 'at', 'by', 'with', 'as']);
+      allWords.filter(w => w.length > 3 && !stopWords.has(w)).forEach(w => {
+        keywordCounts.set(w, (keywordCounts.get(w) || 0) + 1);
+      });
+      const topKeywords = [...keywordCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([word]) => word);
+
+      return {
+        score,
+        volume: headlines.length,
+        trend: score > 0.1 ? 'UP' : score < -0.1 ? 'DOWN' : 'STABLE',
+        topKeywords,
+        sampleTexts: headlines.slice(0, 3),
+        reliability: 85,
+      };
+    } catch {
+      return this.getDefaultSource();
+    }
   }
 
   /**
-   * Analyze whale movements sentiment
+   * Whale movements - not connected (requires Whale Alert API key)
    */
   private async analyzeWhaleMovements(asset: string): Promise<SentimentSource> {
-    // Simulate whale tracking
-    const movements = Math.random() * 10; // Number of large movements
-    const netFlow = (Math.random() - 0.5) * 2; // Net flow sentiment
-    
     return {
-      score: netFlow,
-      volume: movements,
-      trend: netFlow > 0 ? 'UP' : 'DOWN',
-      topKeywords: ['whale', 'large-transfer', 'accumulation', 'distribution'],
-      sampleTexts: [
-        '2,500 BTC moved from exchange to cold storage',
-        'Whale wallet accumulated 1,200 BTC in last 24h',
-        'Large holder distribution event detected'
-      ],
-      reliability: 95
+      score: 0,
+      volume: 0,
+      trend: 'STABLE',
+      topKeywords: [],
+      sampleTexts: ['Whale tracking not connected'],
+      reliability: 0
     };
   }
 
   /**
-   * Get Fear & Greed Index
+   * Get Fear & Greed Index from alternative.me API
    */
   private async getFearGreedIndex(): Promise<SentimentSource> {
-    // Simulate Fear & Greed API
-    const fearGreedValue = 20 + Math.random() * 60; // 20-80 range
-    const normalizedScore = (fearGreedValue - 50) / 50; // Convert to -1,1 range
-    
-    return {
-      score: normalizedScore,
-      volume: 1, // Single metric
-      trend: Math.random() > 0.5 ? 'UP' : 'DOWN',
-      topKeywords: ['fear', 'greed', 'market-sentiment', 'psychology'],
-      sampleTexts: [`Current Fear & Greed Index: ${fearGreedValue.toFixed(0)}`],
-      reliability: 85
-    };
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('https://api.alternative.me/fng/', { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data?.data?.[0]) {
+        const entry = data.data[0];
+        const fearGreedValue = parseInt(entry.value, 10);
+        const normalizedScore = (fearGreedValue - 50) / 50;
+
+        return {
+          score: normalizedScore,
+          volume: 1,
+          trend: fearGreedValue > 50 ? 'UP' : fearGreedValue < 50 ? 'DOWN' : 'STABLE',
+          topKeywords: ['fear', 'greed', 'market-sentiment', entry.value_classification.toLowerCase()],
+          sampleTexts: [`Fear & Greed Index: ${fearGreedValue} (${entry.value_classification})`],
+          reliability: 85,
+        };
+      }
+    } catch {
+      // Fall through to default
+    }
+
+    return this.getDefaultSource();
   }
 
   /**
@@ -357,26 +371,6 @@ export class SentimentAnalysisEngine {
   /**
    * Helper methods
    */
-  private getAssetKeywords(asset: string): string[] {
-    const keywords = {
-      'BTC': ['bitcoin', 'btc', '#bitcoin', '$btc', 'sats'],
-      'ETH': ['ethereum', 'eth', '#ethereum', '$eth'],
-      'ORDI': ['ordinals', 'ordi', '#ordinals', 'ordinal', 'inscription']
-    };
-    return keywords[asset as keyof typeof keywords] || ['bitcoin'];
-  }
-
-  private async fetchSimulatedTweets(keywords: string[]): Promise<string[]> {
-    // Simulate tweet content
-    return [
-      'Bitcoin hitting new highs! Time to accumulate more 🚀',
-      'BTC chart looking bullish, breaking resistance',
-      'Market sentiment shifting positive, hodlers unite',
-      'Just DCA into Bitcoin, feeling confident',
-      'Technical analysis shows strong support levels'
-    ];
-  }
-
   private calculateTextSentiment(texts: string[]): number {
     // Simplified sentiment calculation
     const positiveWords = ['bullish', 'moon', 'pump', 'buy', 'hodl', 'strong', 'up'];
@@ -460,7 +454,7 @@ export class SentimentAnalysisEngine {
    */
   private startRealTimeMonitoring(): void {
     // Monitor major assets every 2 minutes
-    setInterval(async () => {
+    this.monitoringIntervalId = setInterval(async () => {
       const assets = ['BTC', 'ETH', 'ORDI'];
       
       try {

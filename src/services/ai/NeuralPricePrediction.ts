@@ -67,10 +67,38 @@ export class NeuralPricePrediction {
   private cache: Map<string, { data: PredictionResult; timestamp: number }>;
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+  private priceCache: Map<string, { price: number; ts: number }> = new Map();
+  private readonly PRICE_CACHE_TTL = 30_000;
+
   constructor() {
     this.apiKey = process.env.NEURAL_API_KEY || '';
     this.baseUrl = 'https://api.cypher-neural.io/v1';
     this.cache = new Map();
+  }
+
+  /**
+   * Fetch real price from Binance with 30s cache
+   */
+  private async fetchCurrentPrice(asset: string): Promise<number> {
+    const cached = this.priceCache.get(asset);
+    if (cached && Date.now() - cached.ts < this.PRICE_CACHE_TTL) return cached.price;
+
+    const symbolMap: Record<string, string> = { BTC: 'BTCUSDT', ETH: 'ETHUSDT', ORDI: 'ORDIUSDT' };
+    const symbol = symbolMap[asset] || `${asset}USDT`;
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const price = parseFloat(data.price);
+      this.priceCache.set(asset, { price, ts: Date.now() });
+      return price;
+    } catch {
+      return cached?.price ?? 0;
+    }
   }
 
   /**
@@ -136,78 +164,176 @@ export class NeuralPricePrediction {
   }
 
   /**
-   * Technical analysis factors
+   * Technical analysis factors - fetches real Binance klines and computes RSI/MACD/BB
    */
   private async getTechnicalFactors(asset: string): Promise<TechnicalFactors> {
-    // Simulate advanced technical analysis
-    const basePrice = asset === 'BTC' ? 107000 : 50000;
-    const volatility = 0.02 + Math.random() * 0.03;
+    try {
+      const symbolMap: Record<string, string> = { BTC: 'BTCUSDT', ETH: 'ETHUSDT', ORDI: 'ORDIUSDT' };
+      const symbol = symbolMap[asset] || `${asset}USDT`;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=100`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const klines = await res.json();
 
-    return {
-      rsi: 30 + Math.random() * 40, // 30-70 range
-      macd: (Math.random() - 0.5) * 1000,
-      bollinger: {
-        upper: basePrice * (1 + volatility),
-        middle: basePrice,
-        lower: basePrice * (1 - volatility)
-      },
-      support: basePrice * (0.95 + Math.random() * 0.03),
-      resistance: basePrice * (1.02 + Math.random() * 0.03),
-      volume: 1000000 + Math.random() * 5000000,
-      volatility: volatility * 100
-    };
+      const closes: number[] = klines.map((k: any[]) => parseFloat(k[4]));
+      const volumes: number[] = klines.map((k: any[]) => parseFloat(k[5]));
+      const currentPrice = closes[closes.length - 1];
+
+      // RSI (14-period)
+      let rsi = 50;
+      if (closes.length >= 15) {
+        let gains = 0, losses = 0;
+        for (let i = closes.length - 14; i < closes.length; i++) {
+          const diff = closes[i] - closes[i - 1];
+          if (diff > 0) gains += diff; else losses -= diff;
+        }
+        const avgGain = gains / 14;
+        const avgLoss = losses / 14;
+        rsi = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+      }
+
+      // MACD (12/26/9 EMA)
+      const ema = (data: number[], period: number) => {
+        const k = 2 / (period + 1);
+        const result = [data[0]];
+        for (let i = 1; i < data.length; i++) result.push(data[i] * k + result[i - 1] * (1 - k));
+        return result;
+      };
+      const ema12 = ema(closes, 12);
+      const ema26 = ema(closes, 26);
+      const macdLine = ema12.map((v, i) => v - ema26[i]);
+      const macd = macdLine[macdLine.length - 1];
+
+      // Bollinger Bands (20-period, 2 std)
+      const bb20 = closes.slice(-20);
+      const bbMean = bb20.reduce((a, b) => a + b, 0) / 20;
+      const bbStd = Math.sqrt(bb20.reduce((a, b) => a + (b - bbMean) ** 2, 0) / 20);
+
+      // Avg volume
+      const avgVol = volumes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+
+      // Volatility as % standard deviation of last 20 closes
+      const volatility = (bbStd / bbMean) * 100;
+
+      // Support/resistance from recent lows/highs
+      const recentHighs = klines.slice(-24).map((k: any[]) => parseFloat(k[2]));
+      const recentLows = klines.slice(-24).map((k: any[]) => parseFloat(k[3]));
+      const support = Math.min(...recentLows);
+      const resistance = Math.max(...recentHighs);
+
+      return {
+        rsi,
+        macd,
+        bollinger: { upper: bbMean + 2 * bbStd, middle: bbMean, lower: bbMean - 2 * bbStd },
+        support,
+        resistance,
+        volume: avgVol,
+        volatility,
+      };
+    } catch (error) {
+      logger.warn(`[NEURAL] getTechnicalFactors failed for ${asset}, using defaults`);
+      return this.getDefaultTechnical();
+    }
   }
 
   /**
-   * Social sentiment analysis
+   * Sentiment factors - fetches real Fear & Greed index
    */
   private async getSentimentFactors(asset: string): Promise<SentimentFactors> {
-    // Simulate sentiment analysis from multiple sources
-    return {
-      twitterSentiment: (Math.random() - 0.5) * 2, // -1 to 1
-      redditSentiment: (Math.random() - 0.5) * 2,
-      newsImpact: Math.random() * 100,
-      fearGreedIndex: 20 + Math.random() * 60, // 20-80 range
-      whaleActivity: Math.random() * 100
-    };
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch('https://api.alternative.me/fng/', { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const fngValue = data?.data?.[0] ? parseInt(data.data[0].value, 10) : 50;
+
+      // Derive a normalized score from Fear & Greed
+      const normalizedFng = (fngValue - 50) / 50; // -1 to 1
+
+      return {
+        twitterSentiment: 0, // Not connected
+        redditSentiment: 0,  // Not connected
+        newsImpact: fngValue,
+        fearGreedIndex: fngValue,
+        whaleActivity: 50, // Neutral default
+      };
+    } catch {
+      return this.getDefaultSentiment();
+    }
   }
 
   /**
-   * On-chain metrics analysis
+   * On-chain metrics - fetches real mempool.space data
    */
   private async getOnChainFactors(asset: string): Promise<OnChainFactors> {
-    return {
-      transactionCount: 300000 + Math.random() * 100000,
-      activeAddresses: 900000 + Math.random() * 200000,
-      hashRate: 500 + Math.random() * 100, // EH/s
-      difficulty: 70 + Math.random() * 10, // T
-      mempoolSize: 50 + Math.random() * 150, // MB
-      hodlerBehavior: 60 + Math.random() * 30 // % long-term holders
-    };
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+
+      // Fetch mempool stats and hashrate from mempool.space
+      const [mempoolRes, hashrateRes] = await Promise.allSettled([
+        fetch('https://mempool.space/api/mempool', { signal: controller.signal }),
+        fetch('https://mempool.space/api/v1/mining/hashrate/1w', { signal: controller.signal }),
+      ]);
+      clearTimeout(timer);
+
+      let mempoolSize = 80; // MB default
+      let txCount = 350000;
+      if (mempoolRes.status === 'fulfilled' && mempoolRes.value.ok) {
+        const mp = await mempoolRes.value.json();
+        mempoolSize = (mp.vsize || 0) / 1_000_000; // vbytes to MB approx
+        txCount = mp.count || 350000;
+      }
+
+      let hashRate = 600;
+      let difficulty = 75;
+      if (hashrateRes.status === 'fulfilled' && hashrateRes.value.ok) {
+        const hr = await hashrateRes.value.json();
+        if (hr.hashrates?.length > 0) {
+          const latest = hr.hashrates[hr.hashrates.length - 1];
+          hashRate = (latest.avgHashrate || 0) / 1e18; // Convert to EH/s
+        }
+        if (hr.difficulty?.length > 0) {
+          const latestDiff = hr.difficulty[hr.difficulty.length - 1];
+          difficulty = (latestDiff.difficulty || 0) / 1e12; // Convert to T
+        }
+      }
+
+      return {
+        transactionCount: txCount,
+        activeAddresses: 1000000, // Requires paid API, use neutral default
+        hashRate,
+        difficulty,
+        mempoolSize,
+        hodlerBehavior: 70, // Requires Glassnode/paid API, use neutral default
+      };
+    } catch {
+      return this.getDefaultOnChain();
+    }
   }
 
   /**
-   * Macroeconomic factors
+   * Macroeconomic factors - honest defaults (macro data requires paid API)
    */
   private async getMacroFactors(): Promise<MacroFactors> {
-    return {
-      dollarIndex: 100 + (Math.random() - 0.5) * 10,
-      inflationRate: 2 + Math.random() * 3,
-      interestRates: 4 + Math.random() * 2,
-      stockMarketCorrelation: 0.3 + Math.random() * 0.4,
-      goldCorrelation: -0.1 + Math.random() * 0.3
-    };
+    // Macro data (DXY, CPI, Fed rates) requires paid APIs like FRED or Bloomberg.
+    // Using reasonable neutral defaults that won't skew predictions.
+    return this.getDefaultMacro();
   }
 
   /**
    * Ensemble ML prediction combining multiple models
    */
   private async runEnsemblePrediction(
-    asset: string, 
-    factors: PredictionResult['factors'], 
+    asset: string,
+    factors: PredictionResult['factors'],
     timeframes: string[]
   ): Promise<PredictionResult['predictions']> {
-    const currentPrice = asset === 'BTC' ? 107000 : 50000;
+    const currentPrice = await this.fetchCurrentPrice(asset);
     const predictions: any = {};
 
     for (const timeframe of timeframes) {
@@ -424,7 +550,8 @@ export class NeuralPricePrediction {
    * Fallback prediction for errors
    */
   private getFallbackPrediction(asset: string): PredictionResult {
-    const currentPrice = asset === 'BTC' ? 107000 : 50000;
+    const cached = this.priceCache.get(asset);
+    const currentPrice = cached?.price ?? 0;
     
     return {
       asset,

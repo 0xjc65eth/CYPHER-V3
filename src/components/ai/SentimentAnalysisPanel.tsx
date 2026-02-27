@@ -5,35 +5,67 @@ import { useSentimentAnalysis } from '@/hooks/ai';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { MessageCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
-// Dados simulados de social media
-const mockSocialData = [
-  "Bitcoin is going to the moon! 🚀 Bullish AF!",
-  "BTC showing strong support at 58k, accumulation phase",
-  "Bearish divergence on the daily chart, be careful",
-  "Just bought more Bitcoin, this dip is a gift",
-  "Market crash incoming, sell everything!",
-  "Technical analysis shows breakout imminent",
-  "Bitcoin will hit 100k this year, mark my words",
-  "Weak hands selling, strong hands accumulating"
-];
+interface DashboardData {
+  fearGreed: { value: number; classification: string } | null;
+  news: Array<{ title: string; source: string; url: string; publishedOn: number }> | null;
+}
 
 export function SentimentAnalysisPanel() {
   const { aggregatedSentiment, loading, analyzeMultiple } = useSentimentAnalysis();
   const [analyzing, setAnalyzing] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    // Analisar sentimento inicial
-    const analyze = async () => {
-      setAnalyzing(true);
-      await analyzeMultiple(mockSocialData);
-      setAnalyzing(false);
+    let cancelled = false;
+
+    const fetchAndAnalyze = async () => {
+      try {
+        setFetching(true);
+        const res = await fetch('/api/cypher-ai/dashboard-data');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data: DashboardData = await res.json();
+
+        if (cancelled) return;
+
+        // Build text corpus from real headlines + Fear & Greed classification
+        const texts: string[] = [];
+
+        if (data.fearGreed) {
+          texts.push(`Market Fear & Greed Index is ${data.fearGreed.value} - ${data.fearGreed.classification}`);
+        }
+
+        if (data.news && data.news.length > 0) {
+          data.news.slice(0, 15).forEach((n) => texts.push(n.title));
+        }
+
+        if (texts.length === 0) {
+          setFetching(false);
+          return;
+        }
+
+        setFetching(false);
+        setAnalyzing(true);
+        await analyzeMultiple(texts);
+        if (!cancelled) {
+          setDataLoaded(true);
+          setAnalyzing(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setFetching(false);
+          setAnalyzing(false);
+        }
+      }
     };
-    
-    analyze();
-    
-    // Re-analisar a cada 30 segundos
-    const interval = setInterval(analyze, 30000);
-    return () => clearInterval(interval);
+
+    fetchAndAnalyze();
+
+    const interval = setInterval(fetchAndAnalyze, 60000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [analyzeMultiple]);
 
   const getSentimentIcon = (sentiment: string) => {
@@ -65,12 +97,36 @@ export function SentimentAnalysisPanel() {
     { name: 'Neutral', value: dist.neutral ?? 0, color: '#f59e0b' }
   ] : [];
 
+  if (fetching) {
+    return (
+      <div className="bg-gray-900 rounded-lg p-6 border border-orange-500/20">
+        <div className="flex items-center gap-3 mb-4">
+          <MessageCircle className="w-6 h-6 text-orange-500" />
+          <h2 className="text-xl font-semibold text-orange-500">Market Sentiment Analysis</h2>
+        </div>
+        <div className="text-sm text-gray-400">Loading sentiment data...</div>
+      </div>
+    );
+  }
+
+  if (!dataLoaded && !analyzing && !aggregatedSentiment?.overall) {
+    return (
+      <div className="bg-gray-900 rounded-lg p-6 border border-orange-500/20">
+        <div className="flex items-center gap-3 mb-4">
+          <MessageCircle className="w-6 h-6 text-orange-500" />
+          <h2 className="text-xl font-semibold text-orange-500">Market Sentiment Analysis</h2>
+        </div>
+        <div className="text-sm text-gray-400">Awaiting data...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-900 rounded-lg p-6 border border-orange-500/20">
       <div className="flex items-center gap-3 mb-4">
         <MessageCircle className="w-6 h-6 text-orange-500" />
         <h2 className="text-xl font-semibold text-orange-500">Market Sentiment Analysis</h2>
-        {(loading || analyzing) && <div className="ml-auto text-xs text-gray-400">Analisando...</div>}
+        {(loading || analyzing) && <div className="ml-auto text-xs text-gray-400">Analyzing...</div>}
       </div>
 
       {aggregatedSentiment?.overall && (
@@ -78,7 +134,7 @@ export function SentimentAnalysisPanel() {
           <div>
             <div className="bg-black/40 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Sentimento Geral</span>
+                <span className="text-sm text-gray-400">Overall Sentiment</span>
                 {getSentimentIcon(aggregatedSentiment.overall.sentiment ?? 'neutral')}
               </div>
               <div className="text-2xl font-bold capitalize" style={{
@@ -87,12 +143,12 @@ export function SentimentAnalysisPanel() {
                 {aggregatedSentiment.overall.sentiment ?? 'neutral'}
               </div>
               <div className="text-xs text-gray-500 mt-1">
-                {((aggregatedSentiment.overall.confidence ?? 0) * 100).toFixed(1)}% confiança
+                {((aggregatedSentiment.overall.confidence ?? 0) * 100).toFixed(1)}% confidence
               </div>
             </div>
 
             <div className="bg-black/40 rounded-lg p-4">
-              <div className="text-sm text-gray-400 mb-2">Tendência</div>
+              <div className="text-sm text-gray-400 mb-2">Trend</div>
               <div className="flex items-center gap-2">
                 <div className={`text-lg font-semibold capitalize ${
                   aggregatedSentiment.trend === 'improving' ? 'text-green-500' :
@@ -131,7 +187,7 @@ export function SentimentAnalysisPanel() {
 
       {(aggregatedSentiment?.overall?.keywords?.length ?? 0) > 0 && (
         <div className="mt-4">
-          <div className="text-sm text-gray-400 mb-2">Palavras-chave Detectadas</div>
+          <div className="text-sm text-gray-400 mb-2">Detected Keywords</div>
           <div className="flex flex-wrap gap-2">
             {aggregatedSentiment.overall.keywords.map((keyword: string, index: number) => (
               <span
@@ -146,7 +202,7 @@ export function SentimentAnalysisPanel() {
       )}
 
       <div className="mt-4 text-xs text-gray-500">
-        * Análise baseada em {mockSocialData.length} posts de redes sociais
+        * Analysis based on Fear & Greed Index + CryptoCompare News
       </div>
     </div>
   );

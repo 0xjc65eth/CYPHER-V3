@@ -905,14 +905,8 @@ export class WalletSecurityManager {
   private async persistToDatabase(table: string, data: Record<string, any>): Promise<void> {
     try {
       const { dbService } = await import('@/lib/database/db-service');
-      const columns = Object.keys(data);
-      const values = Object.values(data);
-      const placeholders = columns.map((_, i) => `$${i + 1}`);
-
-      await dbService.query(
-        `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders.join(', ')})`,
-        values
-      );
+      const client = dbService.getClient();
+      await client.from(table).insert(data);
     } catch (error) {
       // Don't crash on DB failure - in-memory still works as fallback
     }

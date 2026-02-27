@@ -113,8 +113,8 @@ export class SmartResponseGenerator {
       `📊 Análise técnica atual do Bitcoin:`,
       `• Preço: $${price.toLocaleString('pt-BR')}`,
       `• Variação 24h: ${change > 0 ? '+' : ''}${change.toFixed(2)}%`,
-      `• Suporte próximo: $${(price * 0.95).toLocaleString('pt-BR')}`,
-      `• Resistência: $${(price * 1.05).toLocaleString('pt-BR')}`,
+      `• Suporte próximo: $${(price * 0.95).toLocaleString('pt-BR')} (estimated ±5%)`,
+      `• Resistência: $${(price * 1.05).toLocaleString('pt-BR')} (estimated ±5%)`,
       `• RSI: ${this.generateRSI(change)}`,
       `• Tendência: ${this.analyzeTrend(change)}`,
       '',
@@ -209,7 +209,7 @@ export class SmartResponseGenerator {
       mining: `⛏️ Mineração de Bitcoin:\n` +
               `• Valida transações\n` +
               `• Cria novos blocos\n` +
-              `• Recompensa atual: 6.25 BTC/bloco\n` +
+              `• Recompensa atual: 3.125 BTC/bloco\n` +
               `• Dificuldade ajusta a cada 2016 blocos\n` +
               `• Consome muita energia`
     };
@@ -312,11 +312,9 @@ export class SmartResponseGenerator {
   }
 
   // Helper methods
-  private generateRSI(change: number): string {
-    const rsi = 50 + (change * 5);
-    if (rsi > 70) return `${rsi.toFixed(0)} (Sobrecomprado)`;
-    if (rsi < 30) return `${rsi.toFixed(0)} (Sobrevendido)`;
-    return `${rsi.toFixed(0)} (Neutro)`;
+  private generateRSI(_change: number): string {
+    // Real RSI requires 14+ periods of price data; without it, report unavailable
+    return 'RSI unavailable (insufficient price history)';
   }
 
   private analyzeTrend(change: number): string {

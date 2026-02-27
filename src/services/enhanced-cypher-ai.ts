@@ -206,20 +206,24 @@ export class EnhancedCypherAI {
   }
 
   private generateTradeResponse(input: string, marketContext: any): CypherAIResponse {
-    const btcPrice = marketContext?.market?.data?.BTC?.quote?.USD?.price || 43000;
+    const btcPrice = marketContext?.market?.data?.BTC?.quote?.USD?.price || 0;
     const change = marketContext?.market?.data?.BTC?.quote?.USD?.percent_change_24h || 0;
     
     const mood = change > 0 ? 'bullish' : change < -5 ? 'bearish' : 'neutral';
     const emojis = change > 5 ? ['🚀', '💰', '🔥'] : change < -5 ? ['📉', '⚠️', '🔴'] : ['📊', '🤔', '💭'];
 
+    const priceText = btcPrice > 0 ? `$${btcPrice.toLocaleString()}` : 'price unavailable';
+
     return {
-      text: `Ow mano! 🔥 Bitcoin tá em $${btcPrice.toLocaleString()} agora. ${
-        change > 0 ? 
+      text: `Ow mano! 🔥 Bitcoin tá em ${priceText} agora. ${
+        btcPrice === 0 ?
+        'Não consegui pegar o preço no momento. Tenta de novo em alguns segundos!' :
+        change > 0 ?
         `Subiu ${change.toFixed(2)}% nas últimas 24h! Tá voando! 🚀 Se tu quer entrar, é uma boa hora, mas sempre com stop loss, né?` :
         change < -5 ?
         `Desceu ${Math.abs(change).toFixed(2)}%... Tá meio sangrado. 📉 Pode ser uma oportunidade de compra, mas cuidado!` :
         `Tá meio lateral, ${change.toFixed(2)}%. Hora de aguardar um sinal mais claro! 🤔`
-      } Quer que eu ative o bot automático pra aproveitar essas oscilações?`,
+      }${btcPrice > 0 ? ' Quer que eu ative o bot automático pra aproveitar essas oscilações?' : ''}`,
       confidence: 0.85,
       action: 'trade',
       tradingData: { symbol: 'BTC', price: btcPrice, change },
@@ -229,18 +233,20 @@ export class EnhancedCypherAI {
   }
 
   private generatePriceResponse(input: string, marketContext: any): CypherAIResponse {
-    const btcPrice = marketContext?.market?.data?.BTC?.quote?.USD?.price || 43000;
-    const ethPrice = marketContext?.market?.data?.ETH?.quote?.USD?.price || 2600;
-    const solPrice = marketContext?.market?.data?.SOL?.quote?.USD?.price || 85;
+    const btcPrice = marketContext?.market?.data?.BTC?.quote?.USD?.price || 0;
+    const ethPrice = marketContext?.market?.data?.ETH?.quote?.USD?.price || 0;
+    const solPrice = marketContext?.market?.data?.SOL?.quote?.USD?.price || 0;
+
+    const fmt = (p: number) => p > 0 ? `$${p.toLocaleString()}` : 'unavailable';
 
     return {
       text: `Olha só os preços do momento, king! 👑
-      
-🟡 Bitcoin: $${btcPrice.toLocaleString()}
-🟣 Ethereum: $${ethPrice.toLocaleString()}  
-🟢 Solana: $${solPrice.toFixed(2)}
 
-Tudo em tempo real direto das exchanges! 📡 Se liga que o mercado tá sempre mexendo, hein!`,
+🟡 Bitcoin: ${fmt(btcPrice)}
+🟣 Ethereum: ${fmt(ethPrice)}
+🟢 Solana: ${fmt(solPrice)}
+
+${btcPrice > 0 ? 'Tudo em tempo real direto das exchanges! 📡 Se liga que o mercado tá sempre mexendo, hein!' : 'Alguns preços não estão disponíveis no momento. Tenta de novo em breve!'}`,
       confidence: 0.95,
       action: 'info',
       mood: 'confident',
@@ -325,19 +331,7 @@ Conecta tua wallet aqui que eu te mostro tudo em detalhes!`,
    * Transcreve áudio usando ElevenLabs ou Web Speech API
    */
   private async transcribeAudio(audioFile: File): Promise<string> {
-    try {
-      // Simular transcrição (em produção, usar ElevenLabs ou OpenAI Whisper)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock transcription - replace with real API
-      return "qual é o preço do bitcoin agora?";
-    } catch (error) {
-      ErrorReporter.report(error as Error, {
-        component: 'EnhancedCypherAI',
-        action: 'transcribeAudio'
-      });
-      throw error;
-    }
+    throw new Error('Speech-to-Text API not configured');
   }
 
   /**
@@ -366,17 +360,24 @@ Conecta tua wallet aqui que eu te mostro tudo em detalhes!`,
         }
       );
 
-      // Em produção, salvar o audio blob e retornar URL
-      // Por enquanto, retornar URL mock
-      const audioUrl = `data:audio/mpeg;base64,${btoa('mock_audio_data')}`;
-      
-      EnhancedLogger.info('Audio generated successfully', {
-        component: 'EnhancedCypherAI',
-        textLength: text.length,
-        voiceId: this.VOICE_ID
-      });
+      if (response && typeof response.blob === 'function') {
+        const blob = await response.blob();
+        if (blob.size > 0) {
+          const buffer = await blob.arrayBuffer();
+          const base64 = Buffer.from(buffer).toString('base64');
+          const audioUrl = `data:audio/mpeg;base64,${base64}`;
 
-      return audioUrl;
+          EnhancedLogger.info('Audio generated successfully', {
+            component: 'EnhancedCypherAI',
+            textLength: text.length,
+            voiceId: this.VOICE_ID
+          });
+
+          return audioUrl;
+        }
+      }
+
+      return null;
     } catch (error) {
       EnhancedLogger.warn('Audio generation failed, continuing without audio', {
         component: 'EnhancedCypherAI',

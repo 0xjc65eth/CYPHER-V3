@@ -15,8 +15,8 @@ export interface RiskMetrics {
   maxDrawdown: number;
   valueAtRisk: number; // 95% VaR
   expectedShortfall: number; // 95% ES
-  beta: number; // vs Bitcoin
-  alpha: number; // vs Bitcoin
+  beta: number | null; // vs Bitcoin
+  alpha: number | null; // vs Bitcoin
   informationRatio: number;
   trackingError: number;
 }
@@ -554,37 +554,25 @@ class PortfolioAnalyticsService {
     return tailReturns.length > 0 ? tailReturns.reduce((sum, ret) => sum + ret, 0) / tailReturns.length : 0;
   }
   
-  private calculateBetaAlpha(assets: PnLCalculation[]): { beta: number; alpha: number } {
-    // Simplified beta/alpha calculation vs Bitcoin
-    const portfolioReturn = assets.reduce((sum, asset) => sum + asset.totalReturnPercent, 0) / assets.length / 100;
-    const benchmarkReturn = 0.5; // Assume 50% Bitcoin return
-    
-    const beta = 0.8; // Mock beta
-    const alpha = portfolioReturn - (beta * benchmarkReturn);
-    
-    return { beta, alpha };
-  }
-  
-  private calculateInformationRatio(assets: PnLCalculation[]): { informationRatio: number; trackingError: number } {
-    const trackingError = 0.15; // Mock tracking error
-    const excessReturn = 0.05; // Mock excess return
-    const informationRatio = trackingError > 0 ? excessReturn / trackingError : 0;
-    
-    return { informationRatio, trackingError };
-  }
-  
-  private getBenchmarkReturn(asset: string): number {
-    // Mock benchmark returns
-    switch (asset.toLowerCase()) {
-      case 'bitcoin':
-      case 'btc':
-        return 50;
-      case 'ethereum':
-      case 'eth':
-        return 80;
-      default:
-        return 30;
+  private calculateBetaAlpha(_assets: PnLCalculation[]): { beta: number | null; alpha: number | null } {
+    // Real beta/alpha requires correlated time-series data between portfolio and benchmark.
+    // Without sufficient price history, return null.
+    if (this.benchmarkHistory.length < 30) {
+      return { beta: null, alpha: null };
     }
+
+    // Would need aligned return series to compute — not yet available
+    return { beta: null, alpha: null };
+  }
+  
+  private calculateInformationRatio(_assets: PnLCalculation[]): { informationRatio: number; trackingError: number } {
+    // Requires aligned time-series with benchmark — insufficient data
+    return { informationRatio: 0, trackingError: 0 };
+  }
+  
+  private getBenchmarkReturn(_asset: string): number {
+    // No real benchmark return data available; return 0 to avoid fake attribution
+    return 0;
   }
   
   private calculateSectorBreakdown(assets: [string, PnLCalculation][]): PerformanceAttribution['sectorBreakdown'] {
@@ -643,8 +631,8 @@ class PortfolioAnalyticsService {
       return 0.5;
     }
     
-    // Simplified correlation calculation
-    return 0.6 + (Math.random() * 0.4 - 0.2); // Mock correlation between 0.4 and 0.8
+    // Insufficient overlapping price history to compute real correlation
+    return 0; // confidence: 0 — insufficient data
   }
   
   private getHighVolatilityAssets(portfolio: PortfolioPnL, percentage: number): { asset: string; amount: number }[] {
@@ -681,14 +669,41 @@ class PortfolioAnalyticsService {
   }
   
   private detectImbalance(portfolio: PortfolioPnL): { severity: number; actions: OptimizationSuggestion['actions'] } {
-    // Mock imbalance detection
-    const severity = Math.random() * 0.5; // Random severity between 0 and 0.5
-    
+    const assets = Array.from(portfolio.assetPnL.entries());
+    const totalValue = portfolio.totalValue || 1;
+    const assetCount = assets.length;
+
+    if (assetCount === 0) {
+      return { severity: 0, actions: {} };
+    }
+
+    // Target: equal weight allocation
+    const targetWeight = 1 / assetCount;
+    let totalDeviation = 0;
+
+    const overweight: { asset: string; amount: number }[] = [];
+    const underweight: { asset: string; amount: number }[] = [];
+
+    for (const [asset, calc] of assets) {
+      const actualWeight = calc.marketValue / totalValue;
+      const deviation = actualWeight - targetWeight;
+      totalDeviation += Math.abs(deviation);
+
+      if (deviation > 0.05) {
+        overweight.push({ asset, amount: Math.round(deviation * totalValue) });
+      } else if (deviation < -0.05) {
+        underweight.push({ asset, amount: Math.round(Math.abs(deviation) * totalValue) });
+      }
+    }
+
+    // Severity is mean absolute deviation from target
+    const severity = totalDeviation / assetCount;
+
     return {
       severity,
       actions: {
-        sell: [{ asset: 'BTC', amount: 5000 }],
-        buy: [{ asset: 'ETH', amount: 3000 }, { asset: 'SOL', amount: 2000 }]
+        sell: overweight.length > 0 ? overweight : undefined,
+        buy: underweight.length > 0 ? underweight : undefined
       }
     };
   }

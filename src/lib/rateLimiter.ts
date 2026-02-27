@@ -12,6 +12,7 @@ class RateLimiter {
     this.limits.set('blockchain-info', { maxRequests: 20, windowMs: 60000 }); // 20 requests per minute
     this.limits.set('lightning-api', { maxRequests: 10, windowMs: 60000 }); // 10 requests per minute
     this.limits.set('activity-feed', { maxRequests: 25, windowMs: 60000 }); // 25 requests per minute
+    this.limits.set('cypher-ai-chat', { maxRequests: 20, windowMs: 60000 }); // 20 requests per minute
   }
 
   canMakeRequest(api: string): boolean {
@@ -20,10 +21,10 @@ class RateLimiter {
 
     const now = Date.now();
     const requests = this.requests.get(api) || [];
-    
+
     // Clean old requests outside the window
     const validRequests = requests.filter(timestamp => now - timestamp < limit.windowMs);
-    
+
     if (validRequests.length >= limit.maxRequests) {
       return false; // Rate limit exceeded
     }
@@ -31,7 +32,26 @@ class RateLimiter {
     // Add current request
     validRequests.push(now);
     this.requests.set(api, validRequests);
-    
+
+    return true;
+  }
+
+  /** Rate-limit a specific key (e.g. per-IP) using the limits defined for `limitName`. */
+  canMakeRequestForKey(limitName: string, key: string): boolean {
+    const limit = this.limits.get(limitName);
+    if (!limit) return true;
+
+    const trackingKey = `${limitName}:${key}`;
+    const now = Date.now();
+    const requests = this.requests.get(trackingKey) || [];
+    const validRequests = requests.filter(ts => now - ts < limit.windowMs);
+
+    if (validRequests.length >= limit.maxRequests) {
+      return false;
+    }
+
+    validRequests.push(now);
+    this.requests.set(trackingKey, validRequests);
     return true;
   }
 

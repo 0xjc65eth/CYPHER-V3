@@ -3,19 +3,16 @@
 import React, { useMemo } from 'react';
 import { Grid3x3 } from 'lucide-react';
 
-interface AssetEntry {
-  symbol: string;
-  name?: string;
-  price?: number;
-  changePercent: number;
-}
+// Accept any shape from multi-asset hook - we extract what we need at runtime
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyAssetArray = any[];
 
 export interface MultiAssetData {
-  crypto?: AssetEntry[];
-  forex?: AssetEntry[];
-  commodities?: AssetEntry[];
-  indices?: AssetEntry[];
-  stocks?: AssetEntry[];
+  crypto?: AnyAssetArray;
+  forex?: AnyAssetArray;
+  commodities?: AnyAssetArray;
+  indices?: AnyAssetArray;
+  stocks?: AnyAssetArray;
 }
 
 interface AssetHeatmapProps {

@@ -37,34 +37,37 @@ export class SentimentAnalyzer {
    * Analyze sentiment from text
    */
   async analyzeText(text: string): Promise<SentimentResult> {
-    const words = text.toLowerCase().split(/\s+/);
+    const lowerText = text.toLowerCase();
     let positiveCount = 0;
     let negativeCount = 0;
     const foundKeywords: string[] = [];
 
-    // Count positive and negative keywords
-    words.forEach(word => {
-      if (this.positiveKeywords.includes(word)) {
+    // Count positive and negative keywords (using includes for multi-word keywords)
+    for (const keyword of this.positiveKeywords) {
+      if (lowerText.includes(keyword)) {
         positiveCount++;
-        foundKeywords.push(word);
+        foundKeywords.push(keyword);
       }
-      if (this.negativeKeywords.includes(word)) {
+    }
+    for (const keyword of this.negativeKeywords) {
+      if (lowerText.includes(keyword)) {
         negativeCount++;
-        foundKeywords.push(word);
+        foundKeywords.push(keyword);
       }
-    });
+    }
 
     const total = positiveCount + negativeCount;
     const score = total === 0 ? 0 : (positiveCount - negativeCount) / total;
-    const confidence = Math.min(total / words.length, 1);
+    const wordCount = lowerText.split(/\s+/).length;
+    const confidence = Math.min(total / wordCount, 1);
 
     return {
       score,
       confidence,
       sources: {
-        social: score * 0.8, // Simulated social sentiment
-        news: score * 0.7, // Simulated news sentiment
-        technical: score * 0.9 // Simulated technical sentiment
+        social: score,
+        news: score,
+        technical: score
       },
       keywords: foundKeywords,
       timestamp: new Date()
@@ -130,9 +133,9 @@ export class SentimentAnalyzer {
       score: avgScore,
       confidence: avgConfidence,
       sources: {
-        social: avgScore * 0.8,
-        news: avgScore * 0.7,
-        technical: avgScore * 0.9
+        social: avgScore,
+        news: avgScore,
+        technical: avgScore
       },
       keywords: uniqueKeywords.slice(0, 10), // Top 10 keywords
       timestamp: new Date()

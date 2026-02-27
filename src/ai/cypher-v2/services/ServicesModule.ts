@@ -235,10 +235,10 @@ export class ServicesModule extends EventEmitter {
         throw new Error('Security service is unavailable');
       }
 
-      // Simulate authentication
+      // PLACEHOLDER: Always returns valid for any non-empty token.
+      // TODO: Replace with real JWT/session validation before production use.
       await this.delay(100);
-      
-      // For demo purposes, accept any non-empty token
+
       if (token && token.length > 0) {
         return {
           userId: `user_${Date.now().toString(36)}`,
@@ -260,32 +260,32 @@ export class ServicesModule extends EventEmitter {
     }
   }
 
-  async encryptData(data: string): Promise<string> {
+  /** Base64 encoding (NOT encryption). Use a proper cipher (e.g. AES-GCM) for real security. */
+  async encodeData(data: string): Promise<string> {
     try {
       if (!this.healthStatus.get('security')) {
         throw new Error('Security service is unavailable');
       }
 
-      // Simple base64 encoding for demo (use proper encryption in production)
       return Buffer.from(data).toString('base64');
 
     } catch (error) {
-      console.error('Encryption failed:', error);
+      console.error('Encoding failed:', error);
       throw error;
     }
   }
 
-  async decryptData(encryptedData: string): Promise<string> {
+  /** Base64 decoding (NOT decryption). Counterpart to encodeData. */
+  async decodeData(encodedData: string): Promise<string> {
     try {
       if (!this.healthStatus.get('security')) {
         throw new Error('Security service is unavailable');
       }
 
-      // Simple base64 decoding for demo (use proper decryption in production)
-      return Buffer.from(encryptedData, 'base64').toString('utf-8');
+      return Buffer.from(encodedData, 'base64').toString('utf-8');
 
     } catch (error) {
-      console.error('Decryption failed:', error);
+      console.error('Decoding failed:', error);
       throw error;
     }
   }

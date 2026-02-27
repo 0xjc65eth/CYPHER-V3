@@ -800,7 +800,7 @@ export default function PortfolioPage() {
                     {portfolioPnL?.bestPerformer || 'N/A'}
                   </div>
                   <div className="text-xs text-green-400 font-mono">
-                    +{portfolioMetrics?.riskMetrics.alpha.toFixed(1) || '0.0'}% Alpha
+                    +{portfolioMetrics?.riskMetrics.alpha?.toFixed(1) || 'N/A'}% Alpha
                   </div>
                 </div>
 
@@ -1047,7 +1047,7 @@ export default function PortfolioPage() {
                         </div>
                         <div className="flex justify-between text-xs font-mono">
                           <span className="text-orange-500/60">Beta (vs BTC):</span>
-                          <span className="text-orange-500">{portfolioMetrics.riskMetrics.beta.toFixed(2)}</span>
+                          <span className="text-orange-500">{portfolioMetrics.riskMetrics.beta?.toFixed(2) ?? 'N/A'}</span>
                         </div>
                         <div className="flex justify-between text-xs font-mono">
                           <span className="text-orange-500/60">Sharpe Ratio:</span>

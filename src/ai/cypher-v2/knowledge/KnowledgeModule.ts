@@ -35,6 +35,11 @@ export class KnowledgeModule extends EventEmitter {
   }
 
   private startPeriodicUpdates(): void {
+    // Prevent double intervals (memory leak)
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
     // Update market data every 30 seconds
     this.updateInterval = setInterval(async () => {
       try {
@@ -145,51 +150,34 @@ export class KnowledgeModule extends EventEmitter {
   }
   
   private getSimulatedEthereumData(): any {
-    const basePrice = 3500;
-    const randomChange = (Math.random() - 0.5) * 8;
-    const currentPrice = basePrice + (basePrice * randomChange / 100);
-    
     return {
-      price: Math.round(currentPrice),
-      change24h: +(randomChange).toFixed(2),
-      volume24h: Math.round(12000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-      marketCap: Math.round(currentPrice * 120000000),
-      source: 'simulated'
+      price: null,
+      change24h: null,
+      volume24h: null,
+      marketCap: null,
+      source: 'unavailable',
+      note: 'ETH data fetch failed'
     };
   }
 
   private async fetchFromMempool(): Promise<any> {
-    // Mempool.space é uma fonte descentralizada confiável
+    // Mempool.space is a reliable decentralized source (price only, no 24h change)
     const response = await fetch('https://mempool.space/api/v1/prices');
     const data = await response.json();
-    
+
     return {
       price: Math.round(data.USD),
-      change24h: +(Math.random() * 10 - 5).toFixed(2), // Estimativa
-      volume24h: Math.round(25000000000 * (1 + (Math.random() - 0.5) * 0.3)),
+      change24h: null, // mempool.space does not provide 24h change
+      volume24h: null, // mempool.space does not provide volume
       marketCap: Math.round(data.USD * 19700000),
-      dominance: +(42 + Math.random() * 6).toFixed(1),
+      dominance: null, // not available from this source
       source: 'mempool.space'
     };
   }
 
   private async fetchFromBlockstream(): Promise<any> {
-    // Blockstream é outra fonte Bitcoin confiável
-    const response = await fetch('https://blockstream.info/api/blocks/tip/height');
-    const height = await response.json();
-    
-    // Estimativa baseada na altura do bloco (dados simulados para preço)
-    const estimatedPrice = 95000 + (height % 1000);
-    
-    return {
-      price: estimatedPrice,
-      change24h: +(Math.random() * 8 - 4).toFixed(2),
-      volume24h: Math.round(25000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-      marketCap: Math.round(estimatedPrice * 19700000),
-      dominance: +(42 + Math.random() * 6).toFixed(1),
-      blockHeight: height,
-      source: 'blockstream.info'
-    };
+    // Blockstream only provides block data, not price — skip as a price source
+    throw new Error('Blockstream does not provide price data');
   }
 
   private async fetchFromCoinGecko(): Promise<any> {
@@ -234,9 +222,9 @@ export class KnowledgeModule extends EventEmitter {
       return {
         price: Math.round(data.bitcoin.usd),
         change24h: +(data.bitcoin.usd_24h_change || 0).toFixed(2),
-        volume24h: Math.round(25000000000 * (1 + (Math.random() - 0.5) * 0.3)),
+        volume24h: null, // CoinGecko simple/price endpoint does not return volume
         marketCap: Math.round(data.bitcoin.usd * 19700000),
-        dominance: +(42 + Math.random() * 6).toFixed(1),
+        dominance: null, // not available from this endpoint
         source: 'coingecko',
         lastUpdated: new Date()
       };
@@ -247,102 +235,105 @@ export class KnowledgeModule extends EventEmitter {
   }
 
   private async fetchFromDEXAggregator(): Promise<any> {
-    // Simula dados de DEX agregadas (Uniswap, SushiSwap, etc.)
-    // Em produção, usaria APIs como 1inch, ParaSwap, etc.
-    return {
-      price: Math.round(95000 + (Math.random() - 0.5) * 2000),
-      change24h: +(Math.random() * 8 - 4).toFixed(2),
-      volume24h: Math.round(25000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-      marketCap: Math.round(95000 * 19700000),
-      dominance: +(42 + Math.random() * 6).toFixed(1),
-      source: 'dex-aggregator',
-      dexPrices: {
-        uniswap: 95100,
-        sushiswap: 94950,
-        curve: 95050
-      }
-    };
+    // No real DEX aggregator integration configured
+    throw new Error('DEX aggregator not configured');
   }
 
   private getSimulatedBitcoinData(): any {
-    const basePrice = 95000;
-    const randomChange = (Math.random() - 0.5) * 10;
-    const currentPrice = basePrice + (basePrice * randomChange / 100);
-    
     return {
-      price: Math.round(currentPrice),
-      change24h: +(randomChange).toFixed(2),
-      volume24h: Math.round(25000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-      marketCap: Math.round(currentPrice * 19700000),
-      dominance: +(42 + Math.random() * 6).toFixed(1),
-      source: 'simulated'
+      price: null,
+      change24h: null,
+      volume24h: null,
+      marketCap: null,
+      dominance: null,
+      source: 'unavailable',
+      note: 'All BTC price sources failed'
     };
   }
 
   private async fetchEthereumData(): Promise<any> {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        const basePrice = 3500;
-        const randomChange = (Math.random() - 0.5) * 8; // ±4% max
-        const currentPrice = basePrice + (basePrice * randomChange / 100);
-        
-        resolve({
-          price: Math.round(currentPrice),
-          change24h: +(randomChange).toFixed(2),
-          volume24h: Math.round(12000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-          marketCap: Math.round(currentPrice * 120000000) // ~120M ETH supply
-        });
-      }, 150);
-    });
-  }
-
-  private async fetchMarketOverview(): Promise<any> {
     try {
-      // Skip CoinMarketCap due to CORS - use simulated data
-      console.debug('Using simulated market overview data (CORS restrictions)');
-      
-      // Fallback to simulated data
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const response = await fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=ETHUSDT', {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error(`Binance API error: ${response.status}`);
+      const data = await response.json();
+
       return {
-        totalMarketCap: Math.round(2400000000000 * (1 + (Math.random() - 0.5) * 0.1)),
-        totalVolume: Math.round(85000000000 * (1 + (Math.random() - 0.5) * 0.4)),
-        fearGreedIndex: Math.round(35 + Math.random() * 30),
-        activeCryptocurrencies: 13500 + Math.round(Math.random() * 500),
-        source: 'simulated'
+        price: Math.round(parseFloat(data.lastPrice)),
+        change24h: +parseFloat(data.priceChangePercent).toFixed(2),
+        volume24h: Math.round(parseFloat(data.quoteVolume)),
+        marketCap: Math.round(parseFloat(data.lastPrice) * 120000000),
+        source: 'binance'
       };
     } catch (error) {
-      console.error('Erro ao buscar overview de mercado:', error);
-      return {
-        totalMarketCap: Math.round(2400000000000 * (1 + (Math.random() - 0.5) * 0.1)),
-        totalVolume: Math.round(85000000000 * (1 + (Math.random() - 0.5) * 0.4)),
-        fearGreedIndex: Math.round(35 + Math.random() * 30),
-        activeCryptocurrencies: 13500 + Math.round(Math.random() * 500),
-        source: 'fallback'
-      };
+      console.error('ETH data fetch failed:', error instanceof Error ? error.message : 'Unknown');
+      return this.getSimulatedEthereumData();
     }
   }
 
+  private async fetchMarketOverview(): Promise<any> {
+    const result: any = {
+      totalMarketCap: null,
+      totalVolume: null,
+      fearGreedIndex: null,
+      activeCryptocurrencies: null,
+      source: 'partial'
+    };
+
+    // Fetch Fear & Greed Index from alternative.me
+    try {
+      const controller1 = new AbortController();
+      const t1 = setTimeout(() => controller1.abort(), 5000);
+      const fgResponse = await fetch('https://api.alternative.me/fng/?limit=1', { signal: controller1.signal });
+      clearTimeout(t1);
+      if (fgResponse.ok) {
+        const fgData = await fgResponse.json();
+        if (fgData?.data?.[0]) {
+          result.fearGreedIndex = parseInt(fgData.data[0].value, 10);
+        }
+      }
+    } catch (error) {
+      console.debug('Fear & Greed fetch failed:', error instanceof Error ? error.message : 'Unknown');
+    }
+
+    // Fetch global market data from CoinGecko proxy
+    try {
+      const controller2 = new AbortController();
+      const t2 = setTimeout(() => controller2.abort(), 5000);
+      const globalResponse = await fetch('/api/coingecko/global', { signal: controller2.signal });
+      clearTimeout(t2);
+      if (globalResponse.ok) {
+        const globalData = await globalResponse.json();
+        if (globalData?.data) {
+          result.totalMarketCap = Math.round(globalData.data.total_market_cap?.usd || 0);
+          result.totalVolume = Math.round(globalData.data.total_volume?.usd || 0);
+          result.activeCryptocurrencies = globalData.data.active_cryptocurrencies || null;
+        }
+      }
+    } catch (error) {
+      console.debug('CoinGecko global data fetch failed:', error instanceof Error ? error.message : 'Unknown');
+    }
+
+    return result;
+  }
+
   private async fetchOrdinalsData(): Promise<any> {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          floorPrice: +(0.001 + Math.random() * 0.01).toFixed(6), // 0.001-0.011 BTC
-          volume24h: Math.round(150 + Math.random() * 100), // BTC
-          sales24h: Math.round(1200 + Math.random() * 800)
-        });
-      }, 180);
-    });
+    return {
+      source: 'unavailable',
+      note: 'Real-time ordinals data requires API subscription'
+    };
   }
 
   private async fetchRunesData(): Promise<any> {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve({
-          totalSupply: Math.round(1000000000 + Math.random() * 500000000),
-          holders: Math.round(25000 + Math.random() * 15000),
-          transactions24h: Math.round(3500 + Math.random() * 2000)
-        });
-      }, 160);
-    });
+    return {
+      source: 'unavailable',
+      note: 'Real-time runes data requires API subscription'
+    };
   }
 
   private getFallbackMarketData(): MarketData {
@@ -350,50 +341,39 @@ export class KnowledgeModule extends EventEmitter {
   }
   
   private getEnhancedFallbackMarketData(): MarketData {
-    // Generate more realistic simulated data with some variance
-    const btcBasePrice = 95000;
-    const ethBasePrice = 3500;
-    const priceVariance = 0.02; // 2% variance
-    
-    const btcPrice = Math.round(btcBasePrice * (1 + (Math.random() - 0.5) * priceVariance));
-    const ethPrice = Math.round(ethBasePrice * (1 + (Math.random() - 0.5) * priceVariance));
-    
+    // Return null values instead of random data when all sources fail
     return {
       bitcoin: {
-        price: btcPrice,
-        change24h: +(Math.random() * 10 - 5).toFixed(2), // -5% to +5%
-        volume24h: Math.round(25000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-        marketCap: Math.round(btcPrice * 19700000),
-        dominance: +(42 + Math.random() * 6).toFixed(1), // 42-48%
-        source: 'simulated',
+        price: null,
+        change24h: null,
+        volume24h: null,
+        marketCap: null,
+        dominance: null,
+        source: 'unavailable',
         lastUpdated: new Date()
       },
       ethereum: {
-        price: ethPrice,
-        change24h: +(Math.random() * 8 - 4).toFixed(2), // -4% to +4%
-        volume24h: Math.round(12000000000 * (1 + (Math.random() - 0.5) * 0.3)),
-        marketCap: Math.round(ethPrice * 120000000),
-        source: 'simulated',
+        price: null,
+        change24h: null,
+        volume24h: null,
+        marketCap: null,
+        source: 'unavailable',
         lastUpdated: new Date()
       },
       market: {
-        totalMarketCap: Math.round(2400000000000 * (1 + (Math.random() - 0.5) * 0.1)),
-        totalVolume: Math.round(85000000000 * (1 + (Math.random() - 0.5) * 0.4)),
-        fearGreedIndex: Math.round(30 + Math.random() * 40), // 30-70
-        activeCryptocurrencies: 13500 + Math.round(Math.random() * 500),
-        source: 'simulated'
+        totalMarketCap: null,
+        totalVolume: null,
+        fearGreedIndex: null,
+        activeCryptocurrencies: null,
+        source: 'unavailable'
       },
       ordinals: {
-        floorPrice: +(0.005 + Math.random() * 0.01).toFixed(6),
-        volume24h: Math.round(150 + Math.random() * 100),
-        sales24h: Math.round(1200 + Math.random() * 800),
-        source: 'simulated'
+        source: 'unavailable',
+        note: 'Real-time ordinals data requires API subscription'
       },
       runes: {
-        totalSupply: Math.round(1000000000 + Math.random() * 500000000),
-        holders: Math.round(25000 + Math.random() * 15000),
-        transactions24h: Math.round(3500 + Math.random() * 2000),
-        source: 'simulated'
+        source: 'unavailable',
+        note: 'Real-time runes data requires API subscription'
       }
     };
   }

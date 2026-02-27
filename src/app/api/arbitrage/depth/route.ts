@@ -122,17 +122,14 @@ export async function GET(request: NextRequest) {
 
         // Store in database for historical analysis
         try {
-          await dbService.query(
-            `INSERT INTO order_book_snapshots (exchange, symbol, bids, asks, timestamp)
-             VALUES ($1, $2, $3, $4, to_timestamp($5 / 1000))`,
-            [
-              exchangeId,
-              symbol,
-              JSON.stringify(orderBook.bids.slice(0, 10)), // Store top 10 levels
-              JSON.stringify(orderBook.asks.slice(0, 10)),
-              orderBook.timestamp
-            ]
-          );
+          const client = dbService.getClient();
+          await client.from('order_book_snapshots').insert({
+            exchange: exchangeId,
+            symbol,
+            bids: orderBook.bids.slice(0, 10), // Store top 10 levels
+            asks: orderBook.asks.slice(0, 10),
+            timestamp: new Date(orderBook.timestamp).toISOString()
+          });
         } catch (dbError) {
           console.error('DB insert error:', dbError);
           // Continue even if DB fails

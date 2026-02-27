@@ -2,7 +2,7 @@
 import { devLogger } from '@/lib/logger';
 
 /**
- * CYPHER AI - Sistema de Inteligência Artificial Avançado (Simplified)
+ * CYPHER AI - SMA-crossover estimator, not a trained ML model.
  * Core do sistema de IA do CYPHER ORDI FUTURE v3.0.0
  */
 
@@ -128,9 +128,21 @@ export class CypherAI {
     const change = trend === 'bullish' ? 1.02 : 0.98;
     const predictedPrice = currentPrice * change;
     
+    // Derive confidence from price volatility: lower volatility = higher confidence
+    const recentPrices = prices.slice(-20);
+    const returns = [];
+    for (let i = 1; i < recentPrices.length; i++) {
+      returns.push((recentPrices[i] - recentPrices[i - 1]) / recentPrices[i - 1]);
+    }
+    const meanReturn = returns.length > 0 ? returns.reduce((a, b) => a + b, 0) / returns.length : 0;
+    const volatility = returns.length > 0
+      ? Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - meanReturn, 2), 0) / returns.length)
+      : 0.5;
+    const confidence = Math.max(0.3, Math.min(0.8, 1 - volatility * 10));
+
     return {
       price: predictedPrice,
-      confidence: 0.7 + Math.random() * 0.2, // 70-90% confidence
+      confidence,
       trend
     };
   }
@@ -220,10 +232,10 @@ export class CypherAI {
   /**
    * Get AI system status
    */
-  getStatus(): { initialized: boolean; accuracy: number; confidence: number } {
+  getStatus(): { initialized: boolean; accuracy: number | null; confidence: number } {
     return {
       initialized: this.isInitialized,
-      accuracy: 0.82, // Simulated accuracy
+      accuracy: null, // no verified accuracy metric available
       confidence: this.config.confidence
     };
   }

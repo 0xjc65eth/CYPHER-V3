@@ -266,55 +266,47 @@ class SMCDetector {
    */
   async saveSignals(orderBlocks: OrderBlock[], fairValueGaps: FairValueGap[]): Promise<void> {
     try {
+      const client = dbService.getClient();
+
       // Save Order Blocks
-      for (const ob of orderBlocks) {
-        await dbService.query(
-          `INSERT INTO smc_signals
-          (id, asset, timeframe, signal_type, direction, price, high, low, strength, volume, fill_probability, distance_percent, expires_at, created_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, to_timestamp($13 / 1000), to_timestamp($14 / 1000))
-          ON CONFLICT (id) DO NOTHING`,
-          [
-            ob.id,
-            ob.asset,
-            ob.timeframe,
-            'order_block',
-            ob.type,
-            ob.price,
-            ob.high,
-            ob.low,
-            ob.strength,
-            ob.volume,
-            ob.fillProbability,
-            ob.distancePercent,
-            ob.expiresAt,
-            ob.timestamp
-          ]
-        );
+      if (orderBlocks.length > 0) {
+        const obRecords = orderBlocks.map(ob => ({
+          id: ob.id,
+          asset: ob.asset,
+          timeframe: ob.timeframe,
+          signal_type: 'order_block',
+          direction: ob.type,
+          price: ob.price,
+          high: ob.high,
+          low: ob.low,
+          strength: ob.strength,
+          volume: ob.volume,
+          fill_probability: ob.fillProbability,
+          distance_percent: ob.distancePercent,
+          expires_at: new Date(ob.expiresAt).toISOString(),
+          created_at: new Date(ob.timestamp).toISOString()
+        }));
+
+        await client.from('smc_signals').upsert(obRecords, { onConflict: 'id' });
       }
 
       // Save Fair Value Gaps
-      for (const fvg of fairValueGaps) {
-        await dbService.query(
-          `INSERT INTO smc_signals
-          (id, asset, timeframe, signal_type, direction, price, high, low, fill_probability, created_at)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, to_timestamp($10 / 1000))
-          ON CONFLICT (id) DO NOTHING`,
-          [
-            fvg.id,
-            fvg.asset,
-            fvg.timeframe,
-            'fair_value_gap',
-            fvg.type,
-            (fvg.high + fvg.low) / 2,
-            fvg.high,
-            fvg.low,
-            fvg.fillProbability,
-            fvg.timestamp
-          ]
-        );
-      }
+      if (fairValueGaps.length > 0) {
+        const fvgRecords = fairValueGaps.map(fvg => ({
+          id: fvg.id,
+          asset: fvg.asset,
+          timeframe: fvg.timeframe,
+          signal_type: 'fair_value_gap',
+          direction: fvg.type,
+          price: (fvg.high + fvg.low) / 2,
+          high: fvg.high,
+          low: fvg.low,
+          fill_probability: fvg.fillProbability,
+          created_at: new Date(fvg.timestamp).toISOString()
+        }));
 
-      // Saved SMC signals to database
+        await client.from('smc_signals').upsert(fvgRecords, { onConflict: 'id' });
+      }
     } catch (error) {
       console.error('Error saving SMC signals:', error);
     }

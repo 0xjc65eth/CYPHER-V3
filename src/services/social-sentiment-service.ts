@@ -110,46 +110,17 @@ export class SocialSentimentService extends EventEmitter {
     const fngClassification = this.fngData?.classification ?? 'Neutral';
     const now = new Date().toISOString();
 
-    const sources = ['Twitter', 'Reddit', 'Telegram', 'Bloomberg', 'CoinDesk', 'Discord', 'YouTube'];
-    const topicSets: Record<string, string[]> = {
-      'Twitter': ['Bitcoin', 'Crypto Market', 'BRC-20'],
-      'Reddit': ['Bitcoin', 'Ordinals', 'Mining'],
-      'Telegram': ['Runes', 'NFTs', 'Arbitrage'],
-      'Bloomberg': ['Bitcoin', 'Crypto Market', 'Mining'],
-      'CoinDesk': ['Bitcoin', 'Ordinals', 'Runes'],
-      'Discord': ['NFTs', 'BRC-20', 'Ordinals'],
-      'YouTube': ['Bitcoin', 'Crypto Market', 'Runes']
-    };
-    const hashtagSets: Record<string, string[]> = {
-      'Twitter': ['#Bitcoin', '#BTC', '#Crypto', '#Web3'],
-      'Reddit': ['#Bitcoin', '#Ordinals', '#Mining', '#DeFi'],
-      'Telegram': ['#Runes', '#NFTs', '#Crypto'],
-      'Bloomberg': ['#Bitcoin', '#BTC', '#Crypto'],
-      'CoinDesk': ['#Bitcoin', '#Ordinals', '#Runes'],
-      'Discord': ['#NFTs', '#BRC20', '#Web3'],
-      'YouTube': ['#Bitcoin', '#Crypto', '#DeFi']
-    };
-
-    this.sentimentData = sources.map((source, idx) => {
-      // Vary sentiment slightly per source deterministically
-      const sourceOffset = (idx - 3) * 0.05;
-      const sentiment = Math.max(-1, Math.min(1, baseSentiment + sourceOffset));
-      // Volume scales with how extreme the sentiment is
-      const volume = 500 + Math.round(Math.abs(fngValue - 50) * 100);
-
-      return {
-        source,
-        timestamp: now,
-        sentiment,
-        volume,
-        topics: topicSets[source] || ['Bitcoin'],
-        hashtags: hashtagSets[source] || ['#Bitcoin'],
-        influencers: ['@saylor', '@VitalikButerin', '@aantonop'],
-        keywords: [fngClassification.toLowerCase(), 'market sentiment', 'bitcoin']
-      };
-    });
-
-    this.sentimentData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Single real data source: Fear & Greed Index
+    this.sentimentData = [{
+      source: 'Fear & Greed Index',
+      timestamp: now,
+      sentiment: baseSentiment,
+      volume: 1,
+      topics: ['Bitcoin', 'Crypto Market'],
+      hashtags: ['#Bitcoin', '#Crypto'],
+      influencers: [],
+      keywords: [fngClassification.toLowerCase(), 'market sentiment', 'bitcoin']
+    }];
 
     this.buildTrendsFromData();
     this.buildInsightsFromData(fngValue, fngClassification);
@@ -224,12 +195,12 @@ export class SocialSentimentService extends EventEmitter {
       {
         id: 'insight-fng-3',
         timestamp: new Date().toISOString(),
-        source: 'Social Analysis',
-        insight: `Social media sentiment aligns with Fear & Greed Index at ${fngValue}. ${direction === 'positive' ? 'Bullish narratives dominate.' : 'Bearish narratives dominate.'}`,
-        sentiment,
-        confidence: 80,
-        topics: ['Bitcoin', 'NFTs', 'BRC-20'],
-        relatedAssets: ['Bitcoin', 'BRC-20']
+        source: 'Fear & Greed Index',
+        insight: `Only one data source active (Fear & Greed Index). Additional sources (Twitter, Reddit, on-chain) are not connected.`,
+        sentiment: 0,
+        confidence: 50,
+        topics: ['Bitcoin'],
+        relatedAssets: ['Bitcoin']
       }
     ];
   }

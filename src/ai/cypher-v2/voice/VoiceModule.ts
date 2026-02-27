@@ -22,6 +22,7 @@ export class VoiceModule extends EventEmitter {
   private mediaStream: MediaStream | null = null;
   private aiOrchestrator: AIOrchestrator;
   private analyser: AnalyserNode | null = null;
+  private animationFrameId: number | null = null;
 
   constructor(config: CypherAIConfig) {
     super();
@@ -195,7 +196,7 @@ export class VoiceModule extends EventEmitter {
         this.emit('amplitude', amplitude);
       }
       
-      requestAnimationFrame(checkAmplitude);
+      this.animationFrameId = requestAnimationFrame(checkAmplitude);
     };
 
     checkAmplitude();
@@ -227,10 +228,18 @@ export class VoiceModule extends EventEmitter {
         throw error;
       }
       
-      // Return a mock stream for compatibility
+      // Return a mock stream for compatibility with cleanup support
+      const listeners: Array<{ event: string; callback: (...args: any[]) => void }> = [];
       return {
         on: (event: string, callback: (...args: any[]) => void) => {
+          listeners.push({ event, callback });
           this.on(event, callback);
+        },
+        removeAllListeners: () => {
+          for (const { event, callback } of listeners) {
+            this.removeListener(event, callback);
+          }
+          listeners.length = 0;
         }
       };
     } catch (error) {
@@ -249,6 +258,10 @@ export class VoiceModule extends EventEmitter {
   }
 
   async stopListening(): Promise<void> {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
     if (this.recognition && this.isListeningActive) {
       this.recognition.stop();
     }
@@ -636,6 +649,11 @@ export class VoiceModule extends EventEmitter {
   }
 
   async destroy(): Promise<void> {
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+
     if (this.isListeningActive) {
       await this.stopListening();
     }

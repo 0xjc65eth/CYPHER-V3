@@ -192,25 +192,26 @@ export class FeeSystem {
       // Dynamic import to avoid circular dependencies
       const { dbService } = await import('@/lib/database/db-service');
 
-      await dbService.query(
-        `INSERT INTO fee_records (id, amount, percentage, exchange, trading_pair, user_id, timestamp, status, original_trade, net_trade, fee_type, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-         ON CONFLICT (id) DO UPDATE SET status = $8`,
-        [
-          feeRecord.id,
-          feeRecord.amount,
-          feeRecord.percentage,
-          feeRecord.exchange,
-          feeRecord.tradingPair,
-          feeRecord.userId || null,
-          new Date(feeRecord.timestamp).toISOString(),
-          feeRecord.status,
-          feeRecord.metadata.originalTrade,
-          feeRecord.metadata.netTrade,
-          feeRecord.metadata.feeType,
-          new Date().toISOString()
-        ]
-      );
+      await dbService.insertFeeRecord({
+        id: feeRecord.id,
+        protocol: 'evm_dex',
+        chain: 'bitcoin',
+        from_token: feeRecord.tradingPair.split('/')[0] || 'BTC',
+        to_token: feeRecord.tradingPair.split('/')[1] || 'USDT',
+        trade_amount_usd: feeRecord.metadata.originalTrade,
+        fee_amount: feeRecord.amount,
+        fee_token: feeRecord.tradingPair.split('/')[1] || 'USDT',
+        fee_usd: feeRecord.amount,
+        fee_bps: Math.round(feeRecord.percentage * 10000),
+        fee_wallet: '',
+        user_address: feeRecord.userId || 'unknown',
+        status: feeRecord.status === 'collected' ? 'confirmed' : feeRecord.status === 'failed' ? 'failed' : 'pending',
+        metadata: {
+          exchange: feeRecord.exchange,
+          feeType: feeRecord.metadata.feeType,
+          netTrade: feeRecord.metadata.netTrade,
+        },
+      });
     } catch (dbError) {
       // If DB fails, log but don't crash - fee record is still in memory
       EnhancedLogger.warn('Failed to persist fee record to database, keeping in memory', {

@@ -300,47 +300,41 @@ class PerformanceTracker {
    * Fetch trade records from database
    */
   private async fetchTrades(strategy: string, period: '24h' | '7d' | '30d' | 'all'): Promise<TradeRecord[]> {
-    let whereClause = 'WHERE status = $1';
-    const params: any[] = ['completed'];
-
-    // Add time filter
-    if (period !== 'all') {
-      const hours = period === '24h' ? 24 : period === '7d' ? 168 : 720; // 30d = 720h
-      whereClause += ` AND completed_at >= NOW() - INTERVAL '${hours} hours'`;
-    }
-
-    const query = `
-      SELECT
-        id,
-        completed_at as timestamp,
-        'cex-dex' as type,
-        'BTC/USDT' as symbol,
-        amount,
-        actual_profit as net_profit,
-        0 as fees,
-        started_at,
-        completed_at
-      FROM arbitrage_executions
-      ${whereClause}
-      ORDER BY completed_at ASC
-    `;
-
     try {
-      const result = await dbService.query(query, params);
+      const client = dbService.getClient();
+      let queryBuilder = client
+        .from('arbitrage_executions')
+        .select('id, completed_at, amount, actual_profit, started_at')
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true });
 
-      return result.rows.map((row: any) => ({
+      // Add time filter
+      if (period !== 'all') {
+        const hours = period === '24h' ? 24 : period === '7d' ? 168 : 720;
+        const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
+        queryBuilder = queryBuilder.gte('completed_at', since);
+      }
+
+      const { data, error } = await queryBuilder;
+
+      if (error || !data) {
+        console.error('Error fetching trades:', error?.message);
+        return [];
+      }
+
+      return data.map((row: any) => ({
         id: row.id,
-        timestamp: new Date(row.timestamp),
-        type: row.type,
-        symbol: row.symbol,
-        entryPrice: 0, // Not stored in current schema
+        timestamp: new Date(row.completed_at),
+        type: 'cex-dex' as const,
+        symbol: 'BTC/USDT',
+        entryPrice: 0,
         exitPrice: 0,
         amount: parseFloat(row.amount),
-        profit: parseFloat(row.net_profit),
-        fees: parseFloat(row.fees),
-        netProfit: parseFloat(row.net_profit),
-        executionTime: 60, // Default
-        successful: parseFloat(row.net_profit) > 0
+        profit: parseFloat(row.actual_profit),
+        fees: 0,
+        netProfit: parseFloat(row.actual_profit),
+        executionTime: 60,
+        successful: parseFloat(row.actual_profit) > 0
       }));
     } catch (error) {
       console.error('Error fetching trades:', error);
@@ -353,42 +347,23 @@ class PerformanceTracker {
    */
   private async saveMetrics(metrics: PerformanceMetrics): Promise<void> {
     try {
-      await dbService.query(
-        `INSERT INTO performance_metrics
-        (strategy, period, sharpe_ratio, sortino_ratio, calmar_ratio, max_drawdown, current_drawdown,
-         win_rate, profit_factor, avg_win, avg_loss, total_trades, total_profit, snapshot_date)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-        ON CONFLICT (strategy, period, snapshot_date) DO UPDATE SET
-          sharpe_ratio = EXCLUDED.sharpe_ratio,
-          sortino_ratio = EXCLUDED.sortino_ratio,
-          calmar_ratio = EXCLUDED.calmar_ratio,
-          max_drawdown = EXCLUDED.max_drawdown,
-          current_drawdown = EXCLUDED.current_drawdown,
-          win_rate = EXCLUDED.win_rate,
-          profit_factor = EXCLUDED.profit_factor,
-          avg_win = EXCLUDED.avg_win,
-          avg_loss = EXCLUDED.avg_loss,
-          total_trades = EXCLUDED.total_trades,
-          total_profit = EXCLUDED.total_profit`,
-        [
-          metrics.strategy,
-          metrics.period,
-          metrics.sharpeRatio,
-          metrics.sortinoRatio,
-          metrics.calmarRatio,
-          metrics.maxDrawdown,
-          metrics.currentDrawdown,
-          metrics.winRate,
-          metrics.profitFactor,
-          metrics.avgWin,
-          metrics.avgLoss,
-          metrics.totalTrades,
-          metrics.totalProfit,
-          metrics.snapshotDate
-        ]
-      );
-
-      // Performance metrics saved to database
+      const client = dbService.getClient();
+      await client.from('performance_metrics').upsert({
+        strategy: metrics.strategy,
+        period: metrics.period,
+        sharpe_ratio: metrics.sharpeRatio,
+        sortino_ratio: metrics.sortinoRatio,
+        calmar_ratio: metrics.calmarRatio,
+        max_drawdown: metrics.maxDrawdown,
+        current_drawdown: metrics.currentDrawdown,
+        win_rate: metrics.winRate,
+        profit_factor: metrics.profitFactor,
+        avg_win: metrics.avgWin,
+        avg_loss: metrics.avgLoss,
+        total_trades: metrics.totalTrades,
+        total_profit: metrics.totalProfit,
+        snapshot_date: metrics.snapshotDate
+      }, { onConflict: 'strategy,period,snapshot_date' });
     } catch (error) {
       console.error('Error saving metrics:', error);
     }

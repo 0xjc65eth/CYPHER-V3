@@ -1,4 +1,7 @@
 /**
+ * @deprecated Use src/agent/ architecture instead (AgentOrchestrator + strategies).
+ * This legacy agent is kept only because useMultiAgentSystem.ts imports TradingSignal from it.
+ *
  * 🤖 AGENT_024: Trading Intelligence
  * AI-powered market analysis and signal generation
  */

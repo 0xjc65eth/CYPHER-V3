@@ -1,4 +1,7 @@
 /**
+ * @deprecated Use src/agent/ architecture instead (AgentOrchestrator + strategies).
+ * This legacy agent is kept only because multiAgentSystem.ts imports from it.
+ *
  * 🤖 AGENT_025: Auto-Trading Engine
  * 24/7 automated trade execution with risk management
  */

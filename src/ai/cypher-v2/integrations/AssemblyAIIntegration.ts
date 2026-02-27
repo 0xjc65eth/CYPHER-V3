@@ -58,7 +58,8 @@ export class AssemblyAIIntegration {
 
   async initialize(): Promise<void> {
     if (!this.apiKey) {
-      throw new Error('AssemblyAI API key é necessária');
+      // Graceful degradation: skip initialization silently when no key
+      return;
     }
 
     try {
@@ -114,17 +115,11 @@ export class AssemblyAIIntegration {
 
       const { token } = await tokenResponse.json();
 
-      // Connect to WebSocket
-      const wsUrl = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=${params.sampleRate || 16000}`;
+      // Connect to WebSocket using token in URL
+      const wsUrl = `wss://api.assemblyai.com/v2/realtime/ws?sample_rate=${params.sampleRate || 16000}&token=${token}`;
       this.websocket = new WebSocket(wsUrl);
 
       this.websocket.onopen = () => {
-        
-        // Authenticate
-        this.websocket?.send(JSON.stringify({
-          token
-        }));
-
         // Configure session
         if (params.wordBoost) {
           this.websocket?.send(JSON.stringify({
@@ -167,8 +162,15 @@ export class AssemblyAIIntegration {
       return {
         sendAudio: (audioData: ArrayBuffer) => {
           if (this.websocket?.readyState === WebSocket.OPEN) {
-            // Convert to base64 for WebSocket transmission
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(audioData)));
+            // Convert to base64 in chunks to avoid call stack overflow on large buffers
+            const bytes = new Uint8Array(audioData);
+            const chunkSize = 8192;
+            let binary = '';
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+              const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+              binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+            }
+            const base64 = btoa(binary);
             this.websocket.send(JSON.stringify({
               audio_data: base64
             }));

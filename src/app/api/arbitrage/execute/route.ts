@@ -134,21 +134,18 @@ export async function POST(request: NextRequest) {
 
     // Insert into database
     try {
-      await dbService.query(
-        `INSERT INTO arbitrage_executions
-        (id, opportunity_id, user_wallet, amount, status, actual_profit, slippage, started_at, completed_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)`,
-        [
-          executionId,
-          body.opportunityId || null,
-          body.userWallet,
-          body.amount,
-          execution.status,
-          execution.actualProfit || null,
-          execution.slippage,
-          mode === 'paper' ? new Date() : null
-        ]
-      );
+      const client = dbService.getClient();
+      await client.from('arbitrage_executions').insert({
+        id: executionId,
+        opportunity_id: body.opportunityId || null,
+        user_wallet: body.userWallet,
+        amount: body.amount,
+        status: execution.status,
+        actual_profit: execution.actualProfit || null,
+        slippage: execution.slippage,
+        started_at: new Date().toISOString(),
+        completed_at: mode === 'paper' ? new Date().toISOString() : null
+      });
     } catch (dbError) {
       console.error('Database error:', dbError);
       // Continue even if DB insert fails - don't block execution
@@ -210,43 +207,45 @@ export async function GET(request: NextRequest) {
     const executionId = searchParams.get('id');
     const userWallet = searchParams.get('wallet');
 
+    const client = dbService.getClient();
+
     if (executionId) {
       // Fetch specific execution
-      const result = await dbService.query(
-        'SELECT * FROM arbitrage_executions WHERE id = $1',
-        [executionId]
-      );
+      const { data, error: fetchError } = await client
+        .from('arbitrage_executions')
+        .select('*')
+        .eq('id', executionId)
+        .single();
 
-      if (result.rows.length === 0) {
+      if (fetchError || !data) {
         return NextResponse.json({ error: 'Execution not found' }, { status: 404 });
       }
 
-      return NextResponse.json({ execution: result.rows[0] });
+      return NextResponse.json({ execution: data });
     } else if (userWallet) {
       // Fetch user's executions
-      const result = await dbService.query(
-        `SELECT * FROM arbitrage_executions
-         WHERE user_wallet = $1
-         ORDER BY created_at DESC
-         LIMIT 50`,
-        [userWallet]
-      );
+      const { data, error: fetchError } = await client
+        .from('arbitrage_executions')
+        .select('*')
+        .eq('user_wallet', userWallet)
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       return NextResponse.json({
-        executions: result.rows,
-        count: result.rows.length
+        executions: data || [],
+        count: data?.length || 0
       });
     } else {
       // Fetch recent executions (admin view)
-      const result = await dbService.query(
-        `SELECT * FROM arbitrage_executions
-         ORDER BY created_at DESC
-         LIMIT 100`
-      );
+      const { data, error: fetchError } = await client
+        .from('arbitrage_executions')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       return NextResponse.json({
-        executions: result.rows,
-        count: result.rows.length
+        executions: data || [],
+        count: data?.length || 0
       });
     }
 

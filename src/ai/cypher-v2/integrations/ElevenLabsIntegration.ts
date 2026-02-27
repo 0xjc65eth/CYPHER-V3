@@ -29,6 +29,7 @@ export class ElevenLabsIntegration {
   };
   private isInitialized: boolean = false;
   private voices: ElevenLabsVoice[] = [];
+  private audioContext: AudioContext | null = null;
 
   constructor(config: CypherAIConfig) {
     this.apiKey = config.apiKeys?.elevenlabs || '';
@@ -44,12 +45,7 @@ export class ElevenLabsIntegration {
     try {
       // Fetch available voices
       await this.fetchVoices();
-      
-      // Test text-to-speech
-      const testAudio = await this.synthesize('Teste de voz', 'neutral');
-      if (testAudio) {
-        this.isInitialized = true;
-      }
+      this.isInitialized = true;
     } catch (error) {
       console.error('❌ Erro ao inicializar ElevenLabs:', error);
       throw error;
@@ -229,20 +225,16 @@ export class ElevenLabsIntegration {
       .replace(/! /g, '!.. ')
       .replace(/: /g, ':.. ');
     
-    // Add emotion-specific markers
-    switch (emotion) {
-      case 'excited':
-        processedText = `<speak><prosody rate="110%" pitch="+5%">${processedText}</prosody></speak>`;
-        break;
-      case 'concerned':
-        processedText = `<speak><prosody rate="95%" pitch="-3%">${processedText}</prosody></speak>`;
-        break;
-      case 'confident':
-        processedText = `<speak><prosody rate="105%" pitch="+2%">${processedText}</prosody></speak>`;
-        break;
-    }
+    // ElevenLabs does not support SSML — emotion is controlled via voice_settings
     
     return processedText;
+  }
+
+  private getAudioContext(): AudioContext {
+    if (!this.audioContext || this.audioContext.state === 'closed') {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    }
+    return this.audioContext;
   }
 
   async playAudio(audioBuffer: ArrayBuffer): Promise<void> {
@@ -251,20 +243,28 @@ export class ElevenLabsIntegration {
     }
 
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const audioBufferDecoded = await audioContext.decodeAudioData(audioBuffer);
-      const source = audioContext.createBufferSource();
-      
+      const ctx = this.getAudioContext();
+      const audioBufferDecoded = await ctx.decodeAudioData(audioBuffer);
+      const source = ctx.createBufferSource();
+
       source.buffer = audioBufferDecoded;
-      source.connect(audioContext.destination);
+      source.connect(ctx.destination);
       source.start(0);
-      
+
       return new Promise((resolve) => {
         source.onended = () => resolve();
       });
     } catch (error) {
       console.error('Erro ao reproduzir áudio:', error);
     }
+  }
+
+  async dispose(): Promise<void> {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      await this.audioContext.close();
+    }
+    this.audioContext = null;
+    this.isInitialized = false;
   }
 
   getAvailableVoices(): ElevenLabsVoice[] {

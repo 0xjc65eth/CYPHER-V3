@@ -46,54 +46,60 @@ export class AIOrchestrator {
     assemblyai: false
   };
 
+  private retryCount: Record<string, number> = {};
+  private static readonly MAX_RETRIES = 3;
+
   constructor(config: CypherAIConfig) {
     this.config = config;
     this.smartResponse = new SmartResponseGenerator();
-    
-    // Initialize all available APIs
-    this.initializeAPIs();
+  }
+
+  async initialize(): Promise<void> {
+    await this.initializeAPIs();
+  }
+
+  private async initializeAPIWithRetry(
+    name: string,
+    initFn: () => Promise<void>
+  ): Promise<boolean> {
+    const maxRetries = AIOrchestrator.MAX_RETRIES;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await initFn();
+        this.retryCount[name] = 0;
+        return true;
+      } catch {
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        }
+      }
+    }
+    return false;
   }
 
   private async initializeAPIs(): Promise<void> {
-    
     // Initialize OpenAI
     if (this.config.apiKeys?.openai) {
-      try {
-        this.openai = new OpenAIIntegration(this.config);
-        await this.openai.initialize();
-        this.apiStatus.openai = true;
-      } catch (error) {
-      }
+      this.openai = new OpenAIIntegration(this.config);
+      this.apiStatus.openai = await this.initializeAPIWithRetry('openai', () => this.openai!.initialize());
     }
 
     // Initialize Gemini
     if (this.config.apiKeys?.gemini) {
-      try {
-        this.gemini = new GeminiIntegration(this.config);
-        await this.gemini.initialize();
-        this.apiStatus.gemini = true;
-      } catch (error) {
-      }
+      this.gemini = new GeminiIntegration(this.config);
+      this.apiStatus.gemini = await this.initializeAPIWithRetry('gemini', () => this.gemini!.initialize());
     }
 
     // Initialize ElevenLabs
     if (this.config.apiKeys?.elevenlabs) {
-      try {
-        this.elevenlabs = new ElevenLabsIntegration(this.config);
-        await this.elevenlabs.initialize();
-        this.apiStatus.elevenlabs = true;
-      } catch (error) {
-      }
+      this.elevenlabs = new ElevenLabsIntegration(this.config);
+      this.apiStatus.elevenlabs = await this.initializeAPIWithRetry('elevenlabs', () => this.elevenlabs!.initialize());
     }
 
     // Initialize AssemblyAI
     if (this.config.apiKeys?.assemblyai) {
-      try {
-        this.assemblyai = new AssemblyAIIntegration(this.config);
-        await this.assemblyai.initialize();
-        this.apiStatus.assemblyai = true;
-      } catch (error) {
-      }
+      this.assemblyai = new AssemblyAIIntegration(this.config);
+      this.apiStatus.assemblyai = await this.initializeAPIWithRetry('assemblyai', () => this.assemblyai!.initialize());
     }
 
     this.isInitialized = true;
@@ -137,14 +143,17 @@ export class AIOrchestrator {
           metadata: response.metadata
         };
       } catch (error) {
-        this.apiStatus.openai = false;
+        this.retryCount['openai'] = (this.retryCount['openai'] || 0) + 1;
+        if (this.retryCount['openai'] >= AIOrchestrator.MAX_RETRIES) {
+          this.apiStatus.openai = false;
+        }
       }
     }
 
     // Fallback to Gemini
     if (this.apiStatus.gemini && this.gemini?.isReady) {
       try {
-        
+
         const response = await this.gemini.generateResponse(
           prompt,
           context || this.buildContextString(intent, marketData)
@@ -158,7 +167,10 @@ export class AIOrchestrator {
           metadata: {}
         };
       } catch (error) {
-        this.apiStatus.gemini = false;
+        this.retryCount['gemini'] = (this.retryCount['gemini'] || 0) + 1;
+        if (this.retryCount['gemini'] >= AIOrchestrator.MAX_RETRIES) {
+          this.apiStatus.gemini = false;
+        }
       }
     }
 
@@ -195,7 +207,10 @@ export class AIOrchestrator {
           };
         }
       } catch (error) {
-        this.apiStatus.elevenlabs = false;
+        this.retryCount['elevenlabs'] = (this.retryCount['elevenlabs'] || 0) + 1;
+        if (this.retryCount['elevenlabs'] >= AIOrchestrator.MAX_RETRIES) {
+          this.apiStatus.elevenlabs = false;
+        }
       }
     }
 
@@ -278,7 +293,10 @@ export class AIOrchestrator {
           source: 'assemblyai'
         };
       } catch (error) {
-        this.apiStatus.assemblyai = false;
+        this.retryCount['assemblyai'] = (this.retryCount['assemblyai'] || 0) + 1;
+        if (this.retryCount['assemblyai'] >= AIOrchestrator.MAX_RETRIES) {
+          this.apiStatus.assemblyai = false;
+        }
       }
     }
 

@@ -29,10 +29,21 @@ export function PerformanceMetrics({
   avgWinRate, 
   bestDay 
 }: PerformanceMetricsProps) {
+  if (data.length === 0) {
+    return (
+      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+        <h3 className="text-lg font-semibold text-white mb-4">Performance Analytics</h3>
+        <div className="text-center py-12">
+          <p className="text-gray-400 text-sm">No performance data yet -- connect trading agent to track</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
       <h3 className="text-lg font-semibold text-white mb-4">Performance Analytics</h3>
-      
+
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gray-900/50 rounded-lg p-4">

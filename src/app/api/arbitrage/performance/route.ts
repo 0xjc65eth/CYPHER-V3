@@ -37,29 +37,24 @@ export async function GET(request: NextRequest) {
     const periodMs = periodMap[period] || periodMap['24h'];
     const startTime = new Date(Date.now() - periodMs);
 
-    // Fetch real execution data from database
-    let query = `
-      SELECT
-        id,
-        strategy,
-        profit_usd,
-        profit_percent,
-        executed_at,
-        status
-      FROM arbitrage_executions
-      WHERE executed_at >= $1
-    `;
-    const params: any[] = [startTime];
+    // Fetch real execution data from database using Supabase client
+    const client = dbService.getClient();
+    let queryBuilder = client
+      .from('arbitrage_executions')
+      .select('id, strategy, profit_usd, profit_percent, executed_at, status')
+      .gte('executed_at', startTime.toISOString())
+      .order('executed_at', { ascending: false })
+      .limit(1000);
 
     if (strategy !== 'all') {
-      params.push(strategy);
-      query += ` AND strategy = $\${params.length}`;
+      queryBuilder = queryBuilder.eq('strategy', strategy);
     }
 
-    query += ` ORDER BY executed_at DESC LIMIT 1000`;
-
-    const result = await dbService.query(query, params);
-    const executions = result.rows;
+    const { data: executions, error: queryError } = await queryBuilder;
+    if (queryError) {
+      console.warn('Performance query error:', queryError.message);
+      throw queryError;
+    }
 
     // If no executions found, return zero metrics
     if (executions.length === 0) {

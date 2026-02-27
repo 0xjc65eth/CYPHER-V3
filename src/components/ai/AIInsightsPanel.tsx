@@ -91,10 +91,10 @@ export function AIInsightsPanel() {
     return () => clearInterval(interval);
   }, [fetchDuneData]);
 
-  const getInsightIcon = (type: string) => {
+  const getInsightIcon = (type: string, insight?: typeof insights[number]) => {
     switch (type) {
       case 'price':
-        return insights[0]?.prediction?.direction === 'up' ?
+        return insight?.prediction?.direction === 'up' ?
           <TrendingUp className="w-5 h-5 text-green-500" /> :
           <TrendingDown className="w-5 h-5 text-red-500" />;
       case 'pattern':
@@ -143,7 +143,7 @@ export function AIInsightsPanel() {
               className="p-4 bg-black/40 rounded-lg border border-gray-800"
             >
               <div className="flex items-start gap-3">
-                {getInsightIcon(insight.type)}
+                {getInsightIcon(insight.type, insight)}
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-300 capitalize">
@@ -156,7 +156,9 @@ export function AIInsightsPanel() {
                   <p className="text-sm text-gray-400">{insight.reasoning}</p>
                   {insight.prediction && (
                     <div className="mt-2 text-xs text-orange-500">
-                      Prediction: {JSON.stringify(insight.prediction)}
+                      Prediction: {insight.prediction.direction === 'up' ? 'Bullish' : 'Bearish'}
+                      {insight.prediction.price != null && ` — Target: $${Number(insight.prediction.price).toLocaleString()}`}
+                      {insight.prediction.confidence != null && ` (${(insight.prediction.confidence * 100).toFixed(0)}%)`}
                     </div>
                   )}
                 </div>

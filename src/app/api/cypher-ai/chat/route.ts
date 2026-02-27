@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { routeToAgent, agents } from '@/lib/agents/gemini-agents';
 import { dataFetcherMap } from '@/lib/agents/agent-data-fetchers';
+import { rateLimiter } from '@/lib/rateLimiter';
 
 // Gemini configuration
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-if (!GEMINI_API_KEY) {
-}
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 interface ChatRequest {
   message: string;
@@ -46,7 +45,10 @@ async function callGemini(userMessage: string, systemPrompt: string): Promise<st
 
   const res = await fetch(GEMINI_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': GEMINI_API_KEY,
+    },
     body: JSON.stringify(body),
   });
 
@@ -67,10 +69,24 @@ async function callGemini(userMessage: string, systemPrompt: string): Promise<st
 // POST handler
 export async function POST(request: NextRequest) {
   try {
+    if (!GEMINI_API_KEY) {
+      console.warn('GEMINI_API_KEY not configured');
+      return NextResponse.json({ error: 'AI chat service not configured' }, { status: 503 });
+    }
+
+    const clientIp = request.headers.get('x-forwarded-for') || 'anonymous';
+    if (!rateLimiter.canMakeRequestForKey('cypher-ai-chat', clientIp)) {
+      return NextResponse.json({ error: 'Too many requests. Please wait a moment.' }, { status: 429 });
+    }
+
     const { message, language, agentHint, marketContext }: ChatRequest = await request.json();
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+
+    if (message.length > 2000) {
+      return NextResponse.json({ error: 'Message too long (max 2000 characters)' }, { status: 400 });
     }
 
     // Route to the best agent
@@ -147,10 +163,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Chat API Error:', error);
     return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

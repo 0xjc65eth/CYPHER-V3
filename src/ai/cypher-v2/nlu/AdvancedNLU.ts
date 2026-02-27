@@ -208,7 +208,9 @@ export class AdvancedNLU extends EventEmitter {
     return text
       .toLowerCase()
       .trim()
-      .replace(/[.,!?;]+/g, ' ')
+      // Remove punctuation but preserve decimal separators within numbers (e.g. "$42,500.00")
+      .replace(/(?<!\d)[.,!?;]+|[!?;]+/g, ' ')
+      .replace(/[.,](?!\d)/g, ' ')
       .replace(/\s+/g, ' ');
   }
 

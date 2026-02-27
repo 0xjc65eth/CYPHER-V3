@@ -472,21 +472,6 @@ export class ConversationModule extends EventEmitter {
     return suggestions;
   }
   
-  private isGenericResponse(response: string): boolean {
-    // Check if response contains generic patterns
-    const genericPatterns = [
-      'interessante! sobre',
-      'vários ângulos que podemos explorar',
-      'posso te dar uma visão completa',
-      'você tem algum aspecto específico',
-      'tema importante no mundo cripto',
-      'ótima pergunta!'
-    ];
-    
-    const lowerResponse = response.toLowerCase();
-    return genericPatterns.some(pattern => lowerResponse.includes(pattern));
-  }
-  
   private getTimeBasedGreeting(): string {
     const hour = new Date().getHours();
     

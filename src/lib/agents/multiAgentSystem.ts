@@ -1,4 +1,7 @@
 /**
+ * @deprecated Use src/agent/ architecture instead (AgentOrchestrator + strategies).
+ * This legacy coordinator is kept only because useMultiAgentSystem.ts still imports it.
+ *
  * 🧠 Multi-Agent System Coordinator
  * Orchestrates all AI agents for CYPHER ORDI FUTURE
  */

@@ -1,4 +1,7 @@
 /**
+ * @deprecated Use src/agent/ architecture instead (AgentOrchestrator + strategies).
+ * This legacy multi-agent system is kept only because useMultiAgent.ts still imports it.
+ *
  * 🤖 CYPHER ORDI FUTURE - Sistema Multi-Agente v3.1.0
  * 23 Agentes Especializados para Análise Bitcoin/Ordinals/Runes
  */

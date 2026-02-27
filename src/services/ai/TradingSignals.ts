@@ -61,6 +61,9 @@ export class TradingSignalsEngine {
   private activeSessions: Map<string, TradingSession>;
   private alertCallbacks: Array<(alert: SignalAlert) => void>;
   private readonly SIGNAL_TTL = 30 * 60 * 1000; // 30 minutes
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private priceCache: Map<string, { price: number; ts: number }> = new Map();
+  private readonly PRICE_CACHE_TTL = 30_000;
 
   constructor() {
     this.activeSignals = new Map();
@@ -70,12 +73,22 @@ export class TradingSignalsEngine {
     this.startSignalGeneration();
   }
 
+  destroy(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
+  }
+
   /**
    * Generate comprehensive trading signal for asset
    */
   async generateSignal(asset: string, timeHorizon: '1H' | '4H' | '1D' | '1W' = '4H'): Promise<AITradeSignal> {
     try {
       logger.info(`[SIGNALS] Generating trading signal for ${asset} - ${timeHorizon}`);
+
+      // Pre-fetch current price into cache
+      await this.fetchCurrentPrice(asset);
 
       // Gather AI analysis data
       const [prediction, sentiment] = await Promise.all([
@@ -89,6 +102,10 @@ export class TradingSignalsEngine {
       // Store and track the signal
       this.activeSignals.set(signal.signalId, signal);
       this.signalHistory.push(signal);
+      // Cap history at 1000 entries
+      if (this.signalHistory.length > 1000) {
+        this.signalHistory.shift();
+      }
 
       // Send alert for high confidence signals
       if (signal.confidence > 75 || signal.urgency === 'CRITICAL') {
@@ -401,16 +418,35 @@ export class TradingSignalsEngine {
   }
 
   /**
-   * Get current price for asset
+   * Get current price for asset from Binance with 30s cache
    */
+  private async fetchCurrentPrice(asset: string): Promise<number> {
+    const cached = this.priceCache.get(asset);
+    if (cached && Date.now() - cached.ts < this.PRICE_CACHE_TTL) return cached.price;
+
+    const symbolMap: Record<string, string> = { BTC: 'BTCUSDT', ETH: 'ETHUSDT', ORDI: 'ORDIUSDT' };
+    const symbol = symbolMap[asset] || `${asset}USDT`;
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const price = parseFloat(data.price);
+      this.priceCache.set(asset, { price, ts: Date.now() });
+      return price;
+    } catch {
+      // Fallback to cached or 0
+      return cached?.price ?? 0;
+    }
+  }
+
   private getCurrentPrice(asset: string): number {
-    // Simulate current price - in production this would fetch real data
-    const prices: { [key: string]: number } = {
-      'BTC': 107000,
-      'ETH': 4000,
-      'ORDI': 50
-    };
-    return prices[asset] || 50000;
+    // Synchronous accessor for cached price; returns last known or 0
+    const cached = this.priceCache.get(asset);
+    return cached?.price ?? 0;
   }
 
   /**
@@ -418,7 +454,7 @@ export class TradingSignalsEngine {
    */
   private startSignalGeneration(): void {
     // Generate signals for major assets every 5 minutes
-    setInterval(async () => {
+    this.intervalId = setInterval(async () => {
       const assets = ['BTC', 'ETH', 'ORDI'];
       const timeframes: Array<'1H' | '4H' | '1D' | '1W'> = ['1H', '4H', '1D'];
       

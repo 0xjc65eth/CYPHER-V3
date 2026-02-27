@@ -5,7 +5,7 @@
  * with comprehensive Bitcoin, Ordinals, and Runes functionality.
  */
 
-import { WalletType, WalletAccount, WalletBalance, WalletProvider, WalletConnectionState, WalletError } from '../types/wallet';
+import { WalletType, WalletAccount, WalletBalance, WalletProvider, WalletConnectionState } from '../types/wallet';
 
 export interface WalletCapabilities {
   bitcoin: boolean;
@@ -619,7 +619,6 @@ export class WalletIntegrationService {
   }
 }
 
-// Custom error class for wallet operations
 class WalletError extends Error {
   constructor(
     message: string,

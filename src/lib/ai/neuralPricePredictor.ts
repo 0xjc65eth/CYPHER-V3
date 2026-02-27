@@ -2,8 +2,8 @@
 import { devLogger } from '@/lib/logger';
 
 /**
- * Neural Price Prediction Model (Simplified without TensorFlow)
- * Modelo especializado para previsão de preços do Bitcoin
+ * Technical Price Estimator (SMA-based, not a neural network)
+ * Estimates future Bitcoin prices using simple moving averages
  */
 
 export interface PricePrediction {
@@ -16,12 +16,12 @@ export interface PricePrediction {
   };
 }
 
-export class NeuralPricePredictor {
-  private historyLength = 60; // 60 pontos de dados históricos
-  private predictionHorizon = 24; // Prever próximas 24 horas
-  
+export class TechnicalPriceEstimator {
+  private historyLength = 60; // 60 data points
+  private predictionHorizon = 24; // Predict next 24 hours
+
   constructor() {
-    devLogger.log('NEURAL', 'Neural Price Predictor inicializado (simplified version)');
+    devLogger.log('TECHNICAL', 'Technical Price Estimator initialized');
   }
 
   /**
@@ -36,21 +36,21 @@ export class NeuralPricePredictor {
       // Simple moving averages
       const sma20 = this.calculateSMA(priceData, 20);
       const sma50 = this.calculateSMA(priceData, 50);
-      
+
       // Calculate trend
       const currentPrice = priceData[priceData.length - 1];
       const priceChange = (currentPrice - priceData[priceData.length - 2]) / priceData[priceData.length - 2];
-      
+
       // Simple prediction based on trend and moving averages
       const trendFactor = sma20 > sma50 ? 1.02 : 0.98; // 2% up or down based on trend
       const momentumFactor = 1 + (priceChange * 0.5); // Half of recent momentum
-      
+
       const predictedPrice = currentPrice * trendFactor * momentumFactor;
-      
+
       // Calculate confidence based on volatility
       const volatility = this.calculateVolatility(priceData.slice(-20));
       const confidence = Math.max(0.3, Math.min(0.9, 1 - volatility));
-      
+
       // Calculate range
       const range = {
         min: predictedPrice * (1 - volatility * 2),
@@ -64,18 +64,9 @@ export class NeuralPricePredictor {
         range
       };
     } catch (error) {
-      devLogger.error('NEURAL', 'Erro na previsão', error);
+      devLogger.error('TECHNICAL', 'Prediction error', error);
       throw error;
     }
-  }
-
-  /**
-   * Train model with historical data (simplified)
-   */
-  async train(historicalData: any[]): Promise<void> {
-    devLogger.log('NEURAL', 'Training model with historical data (simplified)');
-    // In a real implementation, this would train a neural network
-    // For now, we just log the training
   }
 
   /**
@@ -92,39 +83,28 @@ export class NeuralPricePredictor {
    */
   private calculateVolatility(data: number[]): number {
     if (data.length < 2) return 0.1;
-    
+
     const returns = [];
     for (let i = 1; i < data.length; i++) {
       returns.push((data[i] - data[i - 1]) / data[i - 1]);
     }
-    
+
     const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
     const variance = returns.reduce((sum, r) => sum + Math.pow(r - mean, 2), 0) / returns.length;
     return Math.sqrt(variance);
   }
 
   /**
-   * Get model accuracy (simplified)
+   * Get model accuracy
    */
-  getAccuracy(): number {
-    // Return a simulated accuracy
-    return 0.82; // 82% accuracy
-  }
-
-  /**
-   * Save model (no-op in simplified version)
-   */
-  async saveModel(path: string): Promise<void> {
-    devLogger.log('NEURAL', `Model would be saved to ${path}`);
-  }
-
-  /**
-   * Load model (no-op in simplified version)
-   */
-  async loadModel(path: string): Promise<void> {
-    devLogger.log('NEURAL', `Model would be loaded from ${path}`);
+  getAccuracy(): null {
+    return null; // no verified accuracy metric available
   }
 }
 
+// Backward-compatible aliases
+export const NeuralPricePredictor = TechnicalPriceEstimator;
+
 // Singleton instance
-export const neuralPricePredictor = new NeuralPricePredictor();
+export const technicalPriceEstimator = new TechnicalPriceEstimator();
+export const neuralPricePredictor = technicalPriceEstimator;

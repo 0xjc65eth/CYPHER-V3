@@ -59,7 +59,7 @@ export function CypherAIInterface() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [currentAudio, setCurrentAudio] = useState<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -69,6 +69,15 @@ export function CypherAIInterface() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    return () => {
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio.src = '';
+      }
+    };
+  }, [currentAudio]);
 
   useEffect(() => {
     const welcomeMessage: Message = {
@@ -90,7 +99,7 @@ export function CypherAIInterface() {
     if (!inputText.trim() || isProcessing) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       type: 'user',
       content: inputText,
       timestamp: new Date()
@@ -125,7 +134,7 @@ export function CypherAIInterface() {
       }
 
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         type: 'ai',
         content: data.response || 'No response received.',
         timestamp: new Date(),
@@ -156,7 +165,7 @@ export function CypherAIInterface() {
         };
         const response = await enhancedCypherAI.processTextInput(messageText, context);
         const aiMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           type: 'ai',
           content: response.text,
           audioUrl: response.audioUrl,
@@ -171,7 +180,7 @@ export function CypherAIInterface() {
         }
       } catch {
         const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
+          id: crypto.randomUUID(),
           type: 'ai',
           content: 'Connection error. Please try again.',
           timestamp: new Date(),
@@ -224,7 +233,7 @@ export function CypherAIInterface() {
       const audioFile = new File([audioBlob], 'audio.wav', { type: 'audio/wav' });
 
       const userMessage: Message = {
-        id: Date.now().toString(),
+        id: crypto.randomUUID(),
         type: 'user',
         content: 'Audio message',
         timestamp: new Date()
@@ -235,7 +244,7 @@ export function CypherAIInterface() {
       const response = await enhancedCypherAI.processAudioInput(audioFile);
 
       const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
+        id: crypto.randomUUID(),
         type: 'ai',
         content: response.text,
         audioUrl: response.audioUrl,
@@ -260,15 +269,15 @@ export function CypherAIInterface() {
     }
   };
 
-  const playAudio = (audioUrl: string) => {
+  const playAudio = (audioUrl: string, messageId?: string) => {
     try {
       if (currentAudio) {
         currentAudio.pause();
       }
       const audio = new Audio(audioUrl);
-      audio.onplay = () => setIsPlaying(true);
-      audio.onended = () => setIsPlaying(false);
-      audio.onerror = () => setIsPlaying(false);
+      audio.onplay = () => setPlayingMessageId(messageId ?? null);
+      audio.onended = () => setPlayingMessageId(null);
+      audio.onerror = () => setPlayingMessageId(null);
       setCurrentAudio(audio);
       audio.play();
     } catch (error: any) {
@@ -282,7 +291,7 @@ export function CypherAIInterface() {
   const stopAudio = () => {
     if (currentAudio) {
       currentAudio.pause();
-      setIsPlaying(false);
+      setPlayingMessageId(null);
     }
   };
 
@@ -292,7 +301,11 @@ export function CypherAIInterface() {
   };
 
   const copyMessage = (content: string) => {
-    navigator.clipboard.writeText(content);
+    try {
+      navigator.clipboard.writeText(content);
+    } catch {
+      // Clipboard API not available (e.g. non-HTTPS context)
+    }
   };
 
   const getAgentBorderColor = (agent?: AgentMeta) => {
@@ -323,6 +336,7 @@ export function CypherAIInterface() {
                   variant="ghost"
                   onClick={() => setAudioEnabled(!audioEnabled)}
                   className="text-orange-500 hover:bg-orange-500/10"
+                  aria-label={audioEnabled ? 'Mute audio' : 'Enable audio'}
                 >
                   {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </Button>
@@ -332,6 +346,7 @@ export function CypherAIInterface() {
                   variant="ghost"
                   onClick={clearChat}
                   className="text-orange-500 hover:bg-orange-500/10"
+                  aria-label="Clear chat"
                 >
                   <RotateCcw className="w-4 h-4" />
                 </Button>
@@ -415,10 +430,11 @@ export function CypherAIInterface() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => isPlaying ? stopAudio() : playAudio(message.audioUrl!)}
+                          onClick={() => playingMessageId === message.id ? stopAudio() : playAudio(message.audioUrl!, message.id)}
                           className="h-6 w-6 p-0"
+                          aria-label={playingMessageId === message.id ? 'Pause audio' : 'Play audio'}
                         >
-                          {isPlaying ?
+                          {playingMessageId === message.id ?
                             <Pause className="w-3 h-3" /> :
                             <Play className="w-3 h-3" />
                           }
@@ -430,6 +446,7 @@ export function CypherAIInterface() {
                         variant="ghost"
                         onClick={() => copyMessage(message.content)}
                         className="h-6 w-6 p-0"
+                        aria-label="Copy message"
                       >
                         <Copy className="w-3 h-3" />
                       </Button>
@@ -481,6 +498,7 @@ export function CypherAIInterface() {
                   onClick={handleSendMessage}
                   disabled={!inputText.trim() || isProcessing}
                   className="bg-orange-500 hover:bg-orange-600 text-white"
+                  aria-label="Send message"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
@@ -490,6 +508,7 @@ export function CypherAIInterface() {
                   disabled={isProcessing}
                   variant={isRecording ? "destructive" : "outline"}
                   className={isRecording ? "animate-pulse" : ""}
+                  aria-label={isRecording ? 'Stop recording' : 'Start recording'}
                 >
                   {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                 </Button>

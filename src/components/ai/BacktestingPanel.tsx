@@ -1,19 +1,127 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBacktesting } from '@/hooks/useBacktesting';
 import { strategies } from '@/lib/backtesting/strategies';
 import { Play, Square, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
+function computeRSI(prices: number[], period = 14): number[] {
+  const rsi: number[] = [];
+  for (let i = 0; i < prices.length; i++) {
+    if (i < period) { rsi.push(50); continue; }
+    let gains = 0, losses = 0;
+    for (let j = i - period + 1; j <= i; j++) {
+      const diff = prices[j] - prices[j - 1];
+      if (diff > 0) gains += diff; else losses -= diff;
+    }
+    const avgGain = gains / period;
+    const avgLoss = losses / period;
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    rsi.push(100 - 100 / (1 + rs));
+  }
+  return rsi;
+}
+
+function computeEMA(prices: number[], period: number): number[] {
+  const k = 2 / (period + 1);
+  const ema: number[] = [prices[0]];
+  for (let i = 1; i < prices.length; i++) {
+    ema.push(prices[i] * k + ema[i - 1] * (1 - k));
+  }
+  return ema;
+}
+
 export default function BacktestingPanel() {
-  const [selectedStrategy, setSelectedStrategy] = useState(strategies[0]);
+  const [selectedStrategy, setSelectedStrategy] = useState(strategies[0] ?? null);
   const { runBacktest, results, isRunning, progress, error, stop } = useBacktesting();
+  const [klineData, setKlineData] = useState<any[] | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const fetchData = async () => {
+      try {
+        setLoadingData(true);
+        const res = await fetch('/api/cypher-ai/dashboard-data');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+        if (cancelled || !data.klines) return;
+
+        const klines: number[][] = data.klines;
+        const closes = klines.map(k => parseFloat(String(k[4])));
+        const opens = klines.map(k => parseFloat(String(k[1])));
+        const highs = klines.map(k => parseFloat(String(k[2])));
+        const lows = klines.map(k => parseFloat(String(k[3])));
+        const volumes = klines.map(k => parseFloat(String(k[5])));
+
+        // Compute indicators
+        const rsi = computeRSI(closes);
+        const ema12 = computeEMA(closes, 12);
+        const ema26 = computeEMA(closes, 26);
+        const macd = ema12.map((v, i) => v - ema26[i]);
+        const signal = computeEMA(macd, 9);
+        const histogram = macd.map((v, i) => v - signal[i]);
+
+        // SMA 20 / 50
+        const sma = (prices: number[], p: number) => prices.map((_, i) => {
+          if (i < p - 1) return prices[i];
+          const slice = prices.slice(i - p + 1, i + 1);
+          return slice.reduce((a, b) => a + b, 0) / p;
+        });
+        const ma20 = sma(closes, 20);
+        const ma50 = sma(closes, 50);
+
+        // Bollinger Bands (20-period, 2 std dev)
+        const bb = closes.map((_, i) => {
+          if (i < 19) return { upper: closes[i] * 1.02, lower: closes[i] * 0.98 };
+          const slice = closes.slice(i - 19, i + 1);
+          const mean = slice.reduce((a, b) => a + b, 0) / 20;
+          const std = Math.sqrt(slice.reduce((a, b) => a + (b - mean) ** 2, 0) / 20);
+          return { upper: mean + 2 * std, lower: mean - 2 * std };
+        });
+
+        // Volume MA
+        const volumeMA = sma(volumes, 20);
+
+        const formatted = klines.map((k, i) => ({
+          timestamp: k[0],
+          open: opens[i],
+          high: highs[i],
+          low: lows[i],
+          close: closes[i],
+          volume: volumes[i],
+          ma20: ma20[i],
+          ma50: ma50[i],
+          rsi: rsi[i],
+          macd: macd[i],
+          signal: signal[i],
+          histogram: histogram[i],
+          upperBand: bb[i].upper,
+          lowerBand: bb[i].lower,
+          volumeMA: volumeMA[i],
+        }));
+
+        setKlineData(formatted);
+        setLoadingData(false);
+      } catch {
+        if (!cancelled) setLoadingData(false);
+      }
+    };
+
+    fetchData();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleRunBacktest = async () => {
-    // Mock historical data - in production, fetch real data
-    const mockData = generateMockData(1000);
-    await runBacktest(selectedStrategy, mockData);
+    if (!klineData || !selectedStrategy) return;
+    await runBacktest(selectedStrategy, klineData);
   };
+
+  if (!selectedStrategy) {
+    return (
+      <div className="text-sm text-gray-400">No strategies available.</div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -42,9 +150,12 @@ export default function BacktestingPanel() {
       <div className="flex gap-2">
         <button
           onClick={isRunning ? stop : handleRunBacktest}
+          disabled={loadingData || !klineData}
           className={`flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors ${
-            isRunning 
-              ? 'bg-red-600 hover:bg-red-700' 
+            isRunning
+              ? 'bg-red-600 hover:bg-red-700'
+              : loadingData
+              ? 'bg-zinc-600 cursor-not-allowed'
               : 'bg-orange-600 hover:bg-orange-700'
           }`}
         >
@@ -53,6 +164,8 @@ export default function BacktestingPanel() {
               <Square className="w-4 h-4" />
               Stop Backtest
             </>
+          ) : loadingData ? (
+            'Loading data...'
           ) : (
             <>
               <Play className="w-4 h-4" />
@@ -70,7 +183,7 @@ export default function BacktestingPanel() {
             <span>{progress.toFixed(1)}%</span>
           </div>
           <div className="w-full bg-zinc-800 rounded-full h-2">
-            <div 
+            <div
               className="bg-orange-600 h-2 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
@@ -145,45 +258,12 @@ export default function BacktestingPanel() {
               <span className="text-red-500">-${results.averageLoss.toFixed(2)}</span>
             </div>
           </div>
+
+          <div className="text-xs text-gray-500 pt-2">
+            * Backtested on real Binance BTCUSDT hourly data (168 candles)
+          </div>
         </div>
       )}
     </div>
   );
-}
-
-// Generate mock historical data for testing
-function generateMockData(count: number): any[] {
-  const data = [];
-  let price = 50000;
-  let ma20 = price;
-  let ma50 = price;
-  
-  for (let i = 0; i < count; i++) {
-    // Random walk
-    price = price * (1 + (Math.random() - 0.5) * 0.02);
-    
-    // Update moving averages
-    ma20 = ma20 * 0.95 + price * 0.05;
-    ma50 = ma50 * 0.98 + price * 0.02;
-    
-    data.push({
-      timestamp: Date.now() - (count - i) * 60000,
-      open: price * 0.99,
-      high: price * 1.01,
-      low: price * 0.98,
-      close: price,
-      volume: Math.random() * 1000000,
-      ma20,
-      ma50,
-      rsi: 30 + Math.random() * 40,
-      macd: (ma20 - ma50) / 100,
-      signal: (ma20 - ma50) / 100 * 0.9,
-      histogram: (ma20 - ma50) / 100 * 0.1,
-      upperBand: price * 1.02,
-      lowerBand: price * 0.98,
-      volumeMA: 500000
-    });
-  }
-  
-  return data;
 }

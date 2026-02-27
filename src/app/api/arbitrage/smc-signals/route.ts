@@ -16,25 +16,6 @@ export async function GET(request: NextRequest) {
     const signalType = searchParams.get('type'); // 'order_block', 'fair_value_gap', etc.
     const activeOnly = searchParams.get('active') !== 'false'; // Default true
 
-    // Build query
-    let query = `
-      SELECT * FROM smc_signals
-      WHERE asset = $1 AND timeframe = $2
-    `;
-    const params: any[] = [asset, timeframe];
-
-    if (signalType) {
-      params.push(signalType);
-      query += ` AND signal_type = $${params.length}`;
-    }
-
-    if (activeOnly) {
-      query += ` AND is_active = true`;
-      query += ` AND (expires_at IS NULL OR expires_at > NOW())`;
-    }
-
-    query += ` ORDER BY created_at DESC LIMIT 100`;
-
     // Check cache first
     const cacheKey = `smc:${asset}:${timeframe}:${signalType || 'all'}:${activeOnly}`;
     try {
@@ -50,17 +31,37 @@ export async function GET(request: NextRequest) {
       // Cache unavailable, continue without cache
     }
 
-    // Query database (gracefully handle missing table)
-    let result: { rows: any[] } = { rows: [] };
+    // Query database using Supabase client (gracefully handle missing table)
+    let dbRows: any[] = [];
     try {
-      result = await dbService.query(query, params);
+      const client = dbService.getClient();
+      let queryBuilder = client
+        .from('smc_signals')
+        .select('*')
+        .eq('asset', asset)
+        .eq('timeframe', timeframe)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (signalType) {
+        queryBuilder = queryBuilder.eq('signal_type', signalType);
+      }
+
+      if (activeOnly) {
+        queryBuilder = queryBuilder.eq('is_active', true).or('expires_at.is.null,expires_at.gt.' + new Date().toISOString());
+      }
+
+      const { data, error: dbError } = await queryBuilder;
+      if (!dbError && data) {
+        dbRows = data;
+      }
     } catch (dbError) {
       // Table might not exist - fall through to real-time detection
       console.warn('SMC signals DB query failed (table may not exist):', dbError instanceof Error ? dbError.message : dbError);
     }
 
     // If no results, fetch candles and detect signals in real-time
-    if (result.rows.length === 0) {
+    if (dbRows.length === 0) {
       try {
         // No SMC signals in DB - fetch candlesticks and detect in real-time
 
@@ -174,7 +175,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Group by signal type
-    const grouped = result.rows.reduce((acc: any, signal: any) => {
+    const grouped = dbRows.reduce((acc: any, signal: any) => {
       const type = signal.signal_type;
       if (!acc[type]) acc[type] = [];
       acc[type].push({
@@ -207,7 +208,7 @@ export async function GET(request: NextRequest) {
       liquidityZones: grouped.liquidity_zone || [],
       marketStructure: grouped.market_structure || [],
       breakerBlocks: grouped.breaker_block || [],
-      totalSignals: result.rows.length,
+      totalSignals: dbRows.length,
       timestamp: Date.now()
     };
 

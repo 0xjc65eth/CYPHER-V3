@@ -2,7 +2,7 @@
 export { cypherAI, CypherAI } from './cypherAI';
 export type { AIInsight, CypherAIConfig } from './cypherAI';
 
-export { neuralPricePredictor, NeuralPricePredictor } from './neuralPricePredictor';
+export { technicalPriceEstimator, neuralPricePredictor, TechnicalPriceEstimator, NeuralPricePredictor } from './neuralPricePredictor';
 export type { PricePrediction } from './neuralPricePredictor';
 
 export { sentimentAnalyzer, SentimentAnalyzer } from './sentimentAnalyzer';

@@ -112,26 +112,28 @@ export class BacktestEngine {
     endDate: Date
   ): Promise<HistoricalCandle[]> {
     // Try to get from database first
-    const result = await dbService.query(`
-      SELECT
-        EXTRACT(EPOCH FROM timestamp) * 1000 AS timestamp,
-        open, high, low, close, volume
-      FROM exchange_prices
-      WHERE symbol = $1
-        AND timestamp >= $2
-        AND timestamp <= $3
-      ORDER BY timestamp ASC
-    `, [symbol, startDate, endDate]);
+    try {
+      const client = dbService.getClient();
+      const { data, error } = await client
+        .from('exchange_prices')
+        .select('timestamp, open, high, low, close, volume')
+        .eq('symbol', symbol)
+        .gte('timestamp', startDate.toISOString())
+        .lte('timestamp', endDate.toISOString())
+        .order('timestamp', { ascending: true });
 
-    if (result.rows && result.rows.length > 0) {
-      return result.rows.map((row: any) => ({
-        timestamp: parseInt(row.timestamp),
-        open: parseFloat(row.open),
-        high: parseFloat(row.high),
-        low: parseFloat(row.low),
-        close: parseFloat(row.close),
-        volume: parseFloat(row.volume)
-      }));
+      if (!error && data && data.length > 0) {
+        return data.map((row: any) => ({
+          timestamp: new Date(row.timestamp).getTime(),
+          open: parseFloat(row.open),
+          high: parseFloat(row.high),
+          low: parseFloat(row.low),
+          close: parseFloat(row.close),
+          volume: parseFloat(row.volume)
+        }));
+      }
+    } catch (dbError) {
+      console.warn('Failed to fetch historical data from DB:', dbError);
     }
 
     // If no historical data, generate sample data
@@ -569,26 +571,31 @@ export class BacktestEngine {
    */
   private async saveBacktestResult(result: BacktestResult): Promise<void> {
     try {
-      await dbService.query(`
-        INSERT INTO backtest_results (
-          strategy_name, symbol, start_date, end_date,
-          initial_capital, final_capital, total_return, total_return_percent,
-          total_trades, winning_trades, losing_trades, win_rate,
-          profit_factor, sharpe_ratio, max_drawdown, max_drawdown_percent,
-          average_win, average_loss, largest_win, largest_loss,
-          equity_curve, trades_data, created_at
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-          $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, NOW()
-        )
-      `, [
-        result.strategyName, result.symbol, result.startDate, result.endDate,
-        result.initialCapital, result.finalCapital, result.totalReturn, result.totalReturnPercent,
-        result.totalTrades, result.winningTrades, result.losingTrades, result.winRate,
-        result.profitFactor, result.sharpeRatio, result.maxDrawdown, result.maxDrawdownPercent,
-        result.averageWin, result.averageLoss, result.largestWin, result.largestLoss,
-        JSON.stringify(result.equityCurve), JSON.stringify(result.trades)
-      ]);
+      const client = dbService.getClient();
+      await client.from('backtest_results').insert({
+        strategy_name: result.strategyName,
+        symbol: result.symbol,
+        start_date: result.startDate.toISOString(),
+        end_date: result.endDate.toISOString(),
+        initial_capital: result.initialCapital,
+        final_capital: result.finalCapital,
+        total_return: result.totalReturn,
+        total_return_percent: result.totalReturnPercent,
+        total_trades: result.totalTrades,
+        winning_trades: result.winningTrades,
+        losing_trades: result.losingTrades,
+        win_rate: result.winRate,
+        profit_factor: result.profitFactor,
+        sharpe_ratio: result.sharpeRatio,
+        max_drawdown: result.maxDrawdown,
+        max_drawdown_percent: result.maxDrawdownPercent,
+        average_win: result.averageWin,
+        average_loss: result.averageLoss,
+        largest_win: result.largestWin,
+        largest_loss: result.largestLoss,
+        equity_curve: result.equityCurve,
+        trades_data: result.trades
+      });
     } catch (error) {
       console.error('Error saving backtest result:', error);
     }
