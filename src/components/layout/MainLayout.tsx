@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-  Home, Cpu, Zap, Bitcoin, Sparkles, LineChart, 
+import {
+  Home, Cpu, Zap, Bitcoin, Sparkles, LineChart,
   Briefcase, TrendingUp, Menu, X, Bell, Settings,
-  User, LogOut, Moon, Sun, Wallet
+  User, LogOut, Moon, Sun, Wallet, CreditCard
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,7 +31,8 @@ const navigation: NavItem[] = [
   { name: 'Runes', href: '/runes', icon: Sparkles, color: 'text-green-500' },
   { name: 'Analytics', href: '/analytics', icon: LineChart, color: 'text-blue-500' },
   { name: 'Portfolio', href: '/portfolio', icon: Briefcase, color: 'text-indigo-500' },
-  { name: 'Trading', href: '/trading', icon: TrendingUp, color: 'text-red-500' }
+  { name: 'Trading', href: '/trading', icon: TrendingUp, color: 'text-red-500' },
+  { name: 'Pricing', href: '/pricing', icon: CreditCard, color: 'text-yellow-500' }
 ]
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {

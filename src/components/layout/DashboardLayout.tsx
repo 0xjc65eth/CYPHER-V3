@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
+import {
   Menu, X, Home, Bot, TrendingUp, Bitcoin, Crown, Gem, Search,
   BarChart3, Briefcase, Activity, ChevronRight, ChevronLeft,
   Zap, Shield, Settings, HelpCircle, Wifi, WifiOff, Diamond,
-  Command, Terminal, Gauge, Database, Server, Users, Grid3X3
+  Command, Terminal, Gauge, Database, Server, Users, Grid3X3,
+  CreditCard
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -65,27 +66,40 @@ const navigation = [
 ]
 
 const bottomNavigation = [
+  { name: 'Pricing', href: '/pricing', icon: CreditCard },
   { name: 'Settings', href: '/settings', icon: Settings },
   { name: 'Help', href: '/documentation', icon: HelpCircle },
 ]
 
 // PWA Status Component
 function PWAStatus() {
-  const [isOnline, setIsOnline] = useState(true)
-  
+  const [isOnline, setIsOnline] = useState<boolean | null>(null)
+
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true)
     const handleOffline = () => setIsOnline(false)
-    
+
+    // Set initial state from navigator on client side only
+    setIsOnline(navigator.onLine)
+
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
-    setIsOnline(navigator.onLine)
-    
+
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
   }, [])
+
+  // Prevent hydration mismatch by not rendering until client-side state is set
+  if (isOnline === null) {
+    return (
+      <div className="flex items-center gap-1 text-xs text-gray-500">
+        <Wifi className="h-3 w-3" />
+        <span>...</span>
+      </div>
+    )
+  }
 
   return (
     <div className={cn(
