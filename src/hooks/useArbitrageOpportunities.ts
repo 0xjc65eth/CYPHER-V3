@@ -1,28 +1,74 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
-interface ArbitrageOpportunity {
+export interface ArbitrageOpportunity {
   id: string;
   type: 'ordinals' | 'runes' | 'rare-sats';
   asset: string;
   collection?: string;
+  symbol: string;
   buyMarketplace: string;
   sellMarketplace: string;
+  buyExchange: string;
+  sellExchange: string;
   buyPrice: number;
   sellPrice: number;
+  spread: number;
+  spreadPercent: number;
   fees: {
     buyFee: number;
     sellFee: number;
     networkFee: number;
+    transferFee: number;
   };
   profitAmount: number;
   profitPercent: number;
+  netProfit: number;
+  netProfitPercent: number;
+  estimatedProfit: number;
+  executionTime: number;
   volume24h: number;
   liquidity: string;
+  liquidityScore: number;
   confidence: number;
   riskLevel: 'low' | 'medium' | 'high';
+  riskScore: number;
   timestamp: Date;
+  lastUpdated: number;
+  status: 'active' | 'expired' | 'executed' | 'monitoring';
   buyLink: string;
   sellLink: string;
+}
+
+export interface ArbitrageMetrics {
+  totalOpportunities: number;
+  activeOpportunities: number;
+  averageSpread: number;
+  totalPotentialProfit: number;
+  averageExecutionTime: number;
+  successRate: number;
+  totalExecuted: number;
+  totalProfit: number;
+}
+
+export interface SpreadHistoryEntry {
+  timestamp: string;
+  averageSpread: number;
+  maxSpread: number;
+}
+
+export interface ExchangeData {
+  name: string;
+  opportunities: number;
+  avgSpread: number;
+  reliability: number;
+  volume: number;
+  color: string;
+}
+
+interface ArbitrageOptions {
+  minSpread?: number;
+  maxRisk?: number;
+  activeOnly?: boolean;
 }
 
 const MARKETPLACE_FEES: Record<string, number> = {
@@ -69,7 +115,7 @@ interface UniSatAuctionItem {
   status: string;
 }
 
-export function useArbitrageOpportunities() {
+export function useArbitrageOpportunities(_symbol?: string, _options?: ArbitrageOptions) {
   const [opportunities, setOpportunities] = useState<ArbitrageOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

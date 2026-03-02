@@ -151,10 +151,16 @@ export class EnhancedCypherAI {
    */
   private async getMarketContext(): Promise<any> {
     try {
-      const [marketData, hyperliquidData] = await Promise.allSettled([
+      // Hard 5s timeout to prevent hanging the chat
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Market context timeout')), 5000)
+      );
+      const dataFetch = Promise.allSettled([
         apiServices.coinMarketCap.getQuotes(['BTC', 'ETH', 'SOL']),
         hyperliquidService.getMarketData(['BTC', 'ETH', 'SOL'])
       ]);
+
+      const [marketData, hyperliquidData] = await Promise.race([dataFetch, timeout]);
 
       return {
         market: marketData.status === 'fulfilled' ? marketData.value : null,
@@ -164,7 +170,7 @@ export class EnhancedCypherAI {
     } catch (error) {
       EnhancedLogger.warn('Failed to get market context', {
         component: 'EnhancedCypherAI',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       return {};
     }
@@ -381,7 +387,7 @@ Conecta tua wallet aqui que eu te mostro tudo em detalhes!`,
     } catch (error) {
       EnhancedLogger.warn('Audio generation failed, continuing without audio', {
         component: 'EnhancedCypherAI',
-        error: error.message
+        error: error instanceof Error ? error.message : String(error)
       });
       return null;
     }

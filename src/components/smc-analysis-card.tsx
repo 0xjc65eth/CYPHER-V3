@@ -6,10 +6,50 @@ import { useEffect, useState } from 'react'
 import { useMarketData } from '@/hooks/useMarketData'
 import { useSmartMoneyConcepts } from '@/hooks/ai/useSmartMoneyConcepts'
 
+interface LiquidityLevel {
+  name: string
+  price: number
+  strength: string
+  type: string
+}
+
+interface OrderBlock {
+  name: string
+  price: string
+  status: string
+  probability: string
+}
+
+interface FairValueGap {
+  name: string
+  price: string
+  status: string
+  probability: string
+}
+
+interface AdditionalInsights {
+  equilibrium: boolean
+  liquiditySweep: boolean
+  volumeProfile: string
+  keyLevel: number
+  takeProfitLevel: number
+  stopLossLevel: number
+  riskRewardRatio: string
+  dataSource: string
+}
+
+interface SmcData {
+  liquidityLevels: LiquidityLevel[]
+  orderBlocks: OrderBlock[]
+  fairValueGaps: FairValueGap[]
+  marketStructure: string
+  additionalInsights?: AdditionalInsights
+}
+
 export function SmcAnalysisCard() {
   const marketData = useMarketData()
   const [isLoading, setIsLoading] = useState(true)
-  const [smcData, setSmcData] = useState({
+  const [smcData, setSmcData] = useState<SmcData>({
     liquidityLevels: [],
     orderBlocks: [],
     fairValueGaps: [],
@@ -35,12 +75,13 @@ export function SmcAnalysisCard() {
 
   useEffect(() => {
     // Only calculate SMC data when we have real market data
-    if (marketData?.btcPrice) {
+    if (marketData?.btcPrice && marketData?.btcChange24h !== undefined) {
       const currentPrice = marketData.btcPrice
+      const btcChange24h = marketData.btcChange24h
 
       // Use actual market data to calculate more accurate levels
       // Get recent high and low based on actual price movement
-      const priceChange = marketData.btcChange24h / 100
+      const priceChange = btcChange24h / 100
       const volatility = Math.max(Math.abs(priceChange) * 2, 0.03) // At least 3% volatility for calculations
 
       // Calculate recent high and low based on actual market data
@@ -64,17 +105,17 @@ export function SmcAnalysisCard() {
       // Determine market structure based on price change, volume, and technical indicators
       let marketStructure = 'Neutral Bias'
 
-      if (marketData.btcChange24h >= 3) {
+      if (btcChange24h >= 3) {
         marketStructure = 'Bullish Continuation'
-      } else if (marketData.btcChange24h >= 1.5 && marketData.btcChange24h < 3) {
+      } else if (btcChange24h >= 1.5 && btcChange24h < 3) {
         marketStructure = 'Bullish Retest'
-      } else if (marketData.btcChange24h > 0 && marketData.btcChange24h < 1.5) {
+      } else if (btcChange24h > 0 && btcChange24h < 1.5) {
         marketStructure = 'Bullish Bias'
-      } else if (marketData.btcChange24h <= -3) {
+      } else if (btcChange24h <= -3) {
         marketStructure = 'Bearish Continuation'
-      } else if (marketData.btcChange24h <= -1.5 && marketData.btcChange24h > -3) {
+      } else if (btcChange24h <= -1.5 && btcChange24h > -3) {
         marketStructure = 'Bearish Retest'
-      } else if (marketData.btcChange24h < 0 && marketData.btcChange24h > -1.5) {
+      } else if (btcChange24h < 0 && btcChange24h > -1.5) {
         marketStructure = 'Bearish Bias'
       }
 
@@ -92,25 +133,25 @@ export function SmcAnalysisCard() {
       const bearishFVGHigh = Math.round(minorResistance * 1.01)
 
       // Determine market conditions based on actual price action
-      const equilibrium = Math.abs(marketData.btcChange24h) < 1.5
-      const liquiditySweep = Math.abs(marketData.btcChange24h) > 3 && Math.abs(marketData.btcChange24h) < 5
+      const equilibrium = Math.abs(btcChange24h) < 1.5
+      const liquiditySweep = Math.abs(btcChange24h) > 3 && Math.abs(btcChange24h) < 5
 
       // Volume analysis - critical for SMC
-      const volumeProfile = marketData.btcChange24h > 0
-        ? marketData.btcChange24h > 2 ? 'Strong Buying' : 'Moderate Buying'
-        : marketData.btcChange24h < -2 ? 'Strong Selling' : 'Moderate Selling'
+      const volumeProfile = btcChange24h > 0
+        ? btcChange24h > 2 ? 'Strong Buying' : 'Moderate Buying'
+        : btcChange24h < -2 ? 'Strong Selling' : 'Moderate Selling'
 
       // Key level - important price point to watch
-      const keyLevel = marketData.btcChange24h >= 0
+      const keyLevel = btcChange24h >= 0
         ? Math.round(fib236) // Next resistance if bullish
         : Math.round(fib618) // Next support if bearish
 
       // Calculate optimal take profit and stop loss levels based on SMC principles
-      const takeProfitLevel = marketData.btcChange24h >= 0
+      const takeProfitLevel = btcChange24h >= 0
         ? Math.round(recentHigh * 1.03) // TP above recent high if bullish
         : Math.round(fib382) // TP at 0.382 fib if bearish
 
-      const stopLossLevel = marketData.btcChange24h >= 0
+      const stopLossLevel = btcChange24h >= 0
         ? Math.round(fib500) // SL at 0.5 fib if bullish
         : Math.round(recentHigh * 1.02) // SL above recent high if bearish
 

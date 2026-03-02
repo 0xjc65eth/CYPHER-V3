@@ -357,13 +357,22 @@ export class HyperliquidConnector {
   }
 
   private getAssetIndex(pair: string): number {
-    // Common Hyperliquid asset indices
+    // Hyperliquid asset indices - must match exchange metadata
     const indices: Record<string, number> = {
       'BTC-PERP': 0, 'ETH-PERP': 1, 'SOL-PERP': 5,
       'ARB-PERP': 11, 'DOGE-PERP': 4, 'AVAX-PERP': 6,
       'MATIC-PERP': 7, 'LINK-PERP': 8, 'UNI-PERP': 9,
+      'OP-PERP': 10, 'APT-PERP': 12, 'WLD-PERP': 13,
+      'INJ-PERP': 14, 'SUI-PERP': 15, 'SEI-PERP': 16,
+      'TIA-PERP': 17, 'BLUR-PERP': 18, 'STX-PERP': 19,
+      'ORDI-PERP': 20, 'PEPE-PERP': 21, 'WIF-PERP': 22,
+      'JUP-PERP': 23, 'STRK-PERP': 24, 'BONK-PERP': 25,
     };
-    return indices[pair] ?? 0;
+    const index = indices[pair];
+    if (index === undefined) {
+      throw new Error(`Unknown Hyperliquid asset: ${pair}. Refusing to default to BTC index. Add the pair to getAssetIndex().`);
+    }
+    return index;
   }
 
   getCapabilities(): ConnectorCapabilities {

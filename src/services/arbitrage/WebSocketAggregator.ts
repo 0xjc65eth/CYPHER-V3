@@ -436,5 +436,6 @@ export async function initializeWebSocketFeeds(
     await wsAggregator.connectAll(symbols);
   } catch (error) {
     console.error('[WebSocketAggregator] Failed to initialize:', error);
+
   }
 }

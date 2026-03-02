@@ -16,11 +16,56 @@
  */
 
 import { EventEmitter } from 'events';
-import { MarketData, MarketPrediction, MarketTrend } from '@/types/market';
-import { MempoolData } from '@/types/mempool';
 
 // TensorFlow.js imports
-import * as tf from '@tensorflow/tfjs-node';
+let tf: any;
+try {
+  tf = require('@tensorflow/tfjs-node');
+} catch {
+  try {
+    tf = require('@tensorflow/tfjs');
+  } catch {
+    // TensorFlow not available - will use fallback
+    tf = null;
+  }
+}
+
+// Local type definitions for market/mempool data used by this service
+interface MarketData {
+  price: number;
+  volume24h: number;
+  marketCap: number;
+  priceChange24h: number;
+  priceChange7d?: number;
+  priceChange30d?: number;
+  timestamp: string;
+  lastUpdated?: string;
+}
+
+interface MarketPrediction {
+  id: string;
+  timestamp: string;
+  targetTimestamp: string;
+  timeframe: string;
+  predictedPrice: number;
+  predictedPriceRange: [number, number];
+  confidence: number;
+  factors: { name: string; impact: number; description: string }[];
+  modelId: string;
+  modelAccuracy: number;
+  previousPredictions: any[];
+  metadata: Record<string, any>;
+}
+
+type MarketTrend = 'bullish' | 'bearish' | 'neutral';
+
+interface MempoolData {
+  pendingTransactions: number;
+  averageFeeRate: number;
+  mempoolSize: number;
+  timestamp: string;
+  lastUpdated?: string;
+}
 
 // Temporary type definitions until proper types are created
 type OrdinalData = any;
@@ -30,7 +75,7 @@ type RuneMarketData = any;
 type SmcTradeSetup = any;
 type TradingStats = any;
 
-import { cacheService, cacheConfigs } from '@/lib/cache';
+import { cacheService } from '@/lib/cache';
 
 // Enhanced neural model interface with TensorFlow.js integration
 export interface EnhancedNeuralModel {
@@ -283,7 +328,13 @@ class EnhancedNeuralLearningService extends EventEmitter {
   private realTimeLearningEnabled: boolean = true;
   private cloudSyncEnabled: boolean = true;
   private adaptiveLearningRateEnabled: boolean = true;
-  
+  private isInitialized: boolean = false;
+  private retryAttempts: Map<string, number> = new Map();
+  private maxRetryAttempts: number = 3;
+  private modelPersistence: ModelPersistence;
+  private dataPreprocessor: DataPreprocessor;
+  private performanceMonitor: PerformanceMonitor;
+
   constructor() {
     super();
     this.setupErrorHandling();

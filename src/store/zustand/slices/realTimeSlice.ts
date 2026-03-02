@@ -158,7 +158,7 @@ const initialRealTimeState: RealTimeState = {
 
 export const createRealTimeSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   RealTimeSlice
 > = (set, get) => ({

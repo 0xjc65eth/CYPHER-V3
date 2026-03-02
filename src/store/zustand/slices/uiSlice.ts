@@ -249,7 +249,7 @@ const initialUIState: UIState = {
 
 export const createUISlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   UISlice
 > = (set, get) => ({

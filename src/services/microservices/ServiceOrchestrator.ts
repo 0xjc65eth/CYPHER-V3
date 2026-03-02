@@ -839,4 +839,4 @@ export class ServiceRegistry {
 }
 
 // Export types and utilities
-export { ServiceConfig, ServiceInstance, ServiceMetrics, LoadBalancer, CircuitBreaker };
+export type { ServiceConfig, ServiceInstance, ServiceMetrics, LoadBalancer, CircuitBreaker };

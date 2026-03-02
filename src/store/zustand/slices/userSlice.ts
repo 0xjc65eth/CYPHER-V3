@@ -46,7 +46,7 @@ const initialUserState: UserState = {
 
 export const createUserSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   UserSlice
 > = (set) => ({

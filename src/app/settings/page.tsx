@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Settings,
   Bell,
@@ -23,6 +23,7 @@ import {
   CreditCard,
   ExternalLink,
   Loader2,
+  CheckCircle,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -47,19 +48,52 @@ function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () =>
   );
 }
 
-export default function SettingsPage() {
+function SettingsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { tier, status, isActive, endDate } = useSubscription();
   const { connected, address } = useLaserEyes();
   const [cancelLoading, setCancelLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
+  const [cancelError, setCancelError] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
   const tierConfig = SUBSCRIPTION_TIERS[tier];
+
+  // Read query params for tab selection and checkout status
+  const defaultTab = searchParams.get('tab') || 'general';
+  const checkoutParam = searchParams.get('checkout');
+
+  // Show success banner after Stripe checkout redirect
+  useEffect(() => {
+    if (checkoutParam === 'success') {
+      setCheckoutSuccess(true);
+      // Clear subscription cache so fresh data is fetched from API
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('cypher_subscription_cache');
+        // Trigger subscription re-fetch by dispatching wallet event
+        // This causes PremiumContext to call fetchSubscriptionStatus again
+        const walletAddr = address
+          || (() => { try { return JSON.parse(localStorage.getItem('cypher_eth_wallet') || '{}').address } catch { return null } })();
+        if (walletAddr) {
+          window.dispatchEvent(new CustomEvent('walletConnected', {
+            detail: { address: walletAddr },
+          }));
+        }
+      }
+      // Clean up URL params without triggering navigation
+      const url = new URL(window.location.href);
+      url.searchParams.delete('checkout');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [checkoutParam, address]);
 
   const handleManageBilling = async () => {
     if (!address) return;
     setPortalLoading(true);
+    setPortalError(null);
     try {
       const res = await fetch('/api/subscription/portal', {
         method: 'POST',
@@ -69,9 +103,11 @@ export default function SettingsPage() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.error) {
+        setPortalError(data.error);
       }
     } catch {
-      // silently fail
+      setPortalError('Failed to open billing portal. Please try again.');
     } finally {
       setPortalLoading(false);
     }
@@ -80,17 +116,24 @@ export default function SettingsPage() {
   const handleCancelSubscription = async () => {
     if (!address) return;
     setCancelLoading(true);
+    setCancelError(null);
     try {
-      await fetch('/api/subscription/cancel', {
+      const res = await fetch('/api/subscription/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ walletAddress: address }),
       });
+      const data = await res.json();
+      if (data.error) {
+        setCancelError(data.error);
+        return;
+      }
       setShowCancelConfirm(false);
-      // Refresh page to update subscription status
+      // Clear subscription cache and reload to reflect changes
+      localStorage.removeItem('cypher_subscription_cache');
       window.location.reload();
     } catch {
-      // silently fail
+      setCancelError('Failed to cancel subscription. Please try again.');
     } finally {
       setCancelLoading(false);
     }
@@ -145,7 +188,7 @@ export default function SettingsPage() {
           <p className="text-sm text-white/40 mt-1 font-mono">Configure your CYPHER experience</p>
         </div>
 
-        <Tabs defaultValue="general" className="w-full">
+        <Tabs defaultValue={defaultTab} className="w-full">
           <div className="border-b border-[#1a1a2e] mb-6">
             <TabsList className="bg-transparent border-0 p-0 h-auto">
               <TabsTrigger value="general" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#F7931A] data-[state=active]:bg-transparent data-[state=active]:text-[#F7931A] text-gray-500 px-4 py-2 text-sm font-mono">
@@ -523,6 +566,23 @@ export default function SettingsPage() {
           {/* === SUBSCRIPTION TAB === */}
           <TabsContent value="subscription">
             <div className="space-y-6">
+              {/* Checkout Success Banner */}
+              {checkoutSuccess && (
+                <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-green-400 font-mono font-medium">Subscription activated successfully!</p>
+                    <p className="text-xs text-green-400/60 font-mono mt-0.5">Your plan is now active. It may take a moment to update.</p>
+                  </div>
+                  <button
+                    onClick={() => setCheckoutSuccess(false)}
+                    className="text-xs text-green-400/40 hover:text-green-400 font-mono"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
+
               {/* Current Plan */}
               <div className="bg-[#0a0a14] border border-[#1a1a2e] rounded-xl p-6">
                 <h3 className="text-sm font-medium text-white/70 uppercase tracking-wider font-mono mb-4">Current Plan</h3>
@@ -629,6 +689,18 @@ export default function SettingsPage() {
                     </button>
                   </div>
 
+                  {/* Error messages */}
+                  {portalError && (
+                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      <p className="text-xs text-red-400 font-mono">{portalError}</p>
+                    </div>
+                  )}
+                  {cancelError && (
+                    <div className="mt-3 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                      <p className="text-xs text-red-400 font-mono">{cancelError}</p>
+                    </div>
+                  )}
+
                   {/* Cancel Confirmation Modal */}
                   {showCancelConfirm && (
                     <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
@@ -667,5 +739,22 @@ export default function SettingsPage() {
         </Tabs>
       </div>
     </main>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-[#0d0d1a] text-white">
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 bg-white/5 rounded" />
+            <div className="h-4 w-64 bg-white/5 rounded" />
+          </div>
+        </div>
+      </main>
+    }>
+      <SettingsPageContent />
+    </Suspense>
   );
 }

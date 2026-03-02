@@ -26,6 +26,7 @@ export interface AIInsight {
 export class CypherAI {
   private config: CypherAIConfig;
   private isInitialized = false;
+  private eventListeners: Map<string, Array<(...args: any[]) => void>> = new Map();
 
   constructor(config?: Partial<CypherAIConfig>) {
     this.config = {
@@ -227,6 +228,36 @@ export class CypherAI {
       volatility,
       score: volatility * 100
     };
+  }
+
+  /**
+   * Register an event listener
+   */
+  on(event: string, callback: (...args: any[]) => void): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, []);
+    }
+    this.eventListeners.get(event)!.push(callback);
+  }
+
+  /**
+   * Remove an event listener
+   */
+  off(event: string, callback: (...args: any[]) => void): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      this.eventListeners.set(event, listeners.filter(l => l !== callback));
+    }
+  }
+
+  /**
+   * Emit an event
+   */
+  protected emit(event: string, ...args: any[]): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => callback(...args));
+    }
   }
 
   /**

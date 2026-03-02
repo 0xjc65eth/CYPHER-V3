@@ -23,6 +23,13 @@ export interface OrdinalData {
   preview?: string;
   content?: string;
   metadata?: Record<string, any>;
+  // Market data properties (optional, populated when available)
+  volume24h?: number;
+  floorPrice?: number;
+  priceChange24h?: number;
+  marketCap?: number;
+  holders?: number;
+  listed?: number;
 }
 
 export interface OrdinalCollection {

@@ -1,11 +1,13 @@
+// Local imports for use within this file
+import type { DexQuote, OptimalRoute, TrustScore } from './quoteEngine';
+import type { GasEstimate } from './gasEstimation';
+import type { PriceImpactResult } from './priceImpactCalculator';
+
 // Quote Engine - Sistema principal de cotações
-export { QuoteEngine } from './quoteEngine';
 export type {
   DexQuote,
   OptimalRoute,
-  RouteStep,
-  QuoteRequest,
-  QuoteResponse
+  RouteStep
 } from './quoteEngine';
 
 // Routing Algorithm - Algoritmo inteligente de roteamento
@@ -258,6 +260,29 @@ export const QUOTE_ENGINE_CONSTANTS = {
     MIN_TRUST_SCORE: 50
   }
 };
+
+// QuoteEngine stub - placeholder for quote aggregation logic
+class QuoteEngine {
+  async getQuotes(_params: {
+    fromToken: string;
+    toToken: string;
+    amount: number;
+    network: string;
+    slippageTolerance: number;
+    includeFees: boolean;
+  }): Promise<DexQuote[]> {
+    return [];
+  }
+
+  findBestQuote(quotes: DexQuote[]): DexQuote {
+    if (quotes.length === 0) {
+      throw new Error('No quotes available');
+    }
+    return quotes.reduce((best, current) =>
+      current.amountOut > best.amountOut ? current : best
+    );
+  }
+}
 
 // Factory para criar instâncias pré-configuradas
 export class QuoteEngineFactory {

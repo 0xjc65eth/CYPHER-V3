@@ -33,40 +33,40 @@ export class EnhancedLogger {
     instance.writeLog(level, message, context);
   }
 
-  static debug(message: string, context?: LogContext): void {
-    EnhancedLogger.log('debug', message, context);
+  static debug(message: string, context?: LogContext | unknown): void {
+    EnhancedLogger.log('debug', message, context as LogContext);
   }
 
-  static info(message: string, context?: LogContext): void {
-    EnhancedLogger.log('info', message, context);
+  static info(message: string, context?: LogContext | unknown): void {
+    EnhancedLogger.log('info', message, context as LogContext);
   }
 
-  static warn(message: string, context?: LogContext): void {
-    EnhancedLogger.log('warn', message, context);
+  static warn(message: string, context?: LogContext | unknown): void {
+    EnhancedLogger.log('warn', message, context as LogContext);
   }
 
-  static error(message: string, context?: LogContext): void {
-    EnhancedLogger.log('error', message, context);
+  static error(message: string, context?: LogContext | unknown): void {
+    EnhancedLogger.log('error', message, context as LogContext);
   }
 
-  static performance(message: string, duration: number, context?: LogContext): void {
-    EnhancedLogger.log('performance', message, { ...context, duration });
+  static performance(message: string, duration: number, context?: LogContext | unknown): void {
+    EnhancedLogger.log('performance', message, { ...(context as LogContext), duration });
   }
 
   // Instance methods that delegate to writeLog (used by services that instantiate the logger)
-  info(message: string, context?: LogContext): void {
-    this.writeLog('info', message, context);
+  info(message: string, context?: LogContext | unknown): void {
+    this.writeLog('info', message, context as LogContext);
   }
 
-  debug(message: string, context?: LogContext): void {
-    this.writeLog('debug', message, context);
+  debug(message: string, context?: LogContext | unknown): void {
+    this.writeLog('debug', message, context as LogContext);
   }
 
-  warn(message: string, context?: LogContext): void {
-    this.writeLog('warn', message, context);
+  warn(message: string, context?: LogContext | unknown): void {
+    this.writeLog('warn', message, context as LogContext);
   }
 
-  error(messageOrError: string | Error, context?: LogContext | string): void {
+  error(messageOrError: string | Error, context?: LogContext | string | unknown): void {
     if (messageOrError instanceof Error) {
       const msg = typeof context === 'string' ? context : messageOrError.message;
       const ctx = typeof context === 'string' ? { error: messageOrError.message, stack: messageOrError.stack } : { ...context, error: messageOrError.message, stack: messageOrError.stack };

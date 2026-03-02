@@ -459,7 +459,9 @@ How can I assist you today?`;
       };
       const id = idMap[asset];
       if (id) {
-        const res = await fetch(`/api/coingecko/?endpoint=/simple/price&params=${encodeURIComponent(`ids=${id}&vs_currencies=usd`)}`
+        const res = await fetch(
+          `/api/coingecko/simple/price?ids=${id}&vs_currencies=usd`,
+          { signal: AbortSignal.timeout(8000) }
         );
         if (res.ok) {
           const data = await res.json();
@@ -467,6 +469,7 @@ How can I assist you today?`;
         }
       }
     } catch (error) {
+      // Silently fall back to static prices
     }
 
     // Static fallback prices (no randomness)
@@ -484,7 +487,9 @@ How can I assist you today?`;
       };
       const id = idMap[asset];
       if (id) {
-        const res = await fetch(`/api/coingecko/?endpoint=/simple/price&params=${encodeURIComponent(`ids=${id}&vs_currencies=usd&include_24hr_change=true`)}`
+        const res = await fetch(
+          `/api/coingecko/simple/price?ids=${id}&vs_currencies=usd&include_24hr_change=true`,
+          { signal: AbortSignal.timeout(8000) }
         );
         if (res.ok) {
           const data = await res.json();
@@ -492,6 +497,7 @@ How can I assist you today?`;
         }
       }
     } catch (error) {
+      // Silently fall back to 0
     }
 
     return 0; // No change data available
@@ -564,7 +570,7 @@ How can I assist you today?`;
     // Try to fetch Fear & Greed Index from a real source
     let fearGreedIndex = 50;
     try {
-      const res = await fetch('/api/coingecko/?endpoint=/global');
+      const res = await fetch('/api/coingecko/global', { signal: AbortSignal.timeout(8000) });
       if (res.ok) {
         const data = await res.json();
         // Use market cap change as a proxy for sentiment
@@ -730,23 +736,27 @@ Como posso ajudar você hoje?`,
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isProcessing) return;
-    
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || isProcessing) return;
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: text,
       timestamp: new Date()
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsProcessing(true);
-    
+
     try {
-      // Process with Cypher AI
-      const response = await cypherAI.current!.processNaturalLanguage(input);
+      // Process with Cypher AI (with 15s hard timeout to prevent freezing)
+      const processPromise = cypherAI.current!.processNaturalLanguage(text);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Processing timeout')), 15000)
+      );
+      const response = await Promise.race([processPromise, timeoutPromise]);
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -778,6 +788,8 @@ Como posso ajudar você hoje?`,
     }
   };
 
+  const handleSend = () => sendMessage(input);
+
   const handleVoiceInput = () => {
     if (!cypherAI.current) return;
     
@@ -788,10 +800,9 @@ Como posso ajudar você hoje?`,
       setIsListening(true);
       cypherAI.current.startListening(
         (finalText) => {
-          setInput(finalText);
           setIsListening(false);
-          // Auto-send after voice input
-          setTimeout(() => handleSend(), 500);
+          // Send the voice text directly (avoids stale state)
+          sendMessage(finalText);
         },
         (partialText) => {
           // Show partial results in real-time
@@ -860,10 +871,7 @@ Como posso ajudar você hoje?`,
               key={index}
               variant="outline"
               size="sm"
-              onClick={() => {
-                setInput(cmd.cmd);
-                setTimeout(() => handleSend(), 100);
-              }}
+              onClick={() => sendMessage(cmd.cmd)}
               className="h-7 text-xs border-gray-700 hover:border-purple-500"
             >
               {cmd.icon}
@@ -929,7 +937,6 @@ Como posso ajudar você hoje?`,
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Pergunte sobre trading, mercado, portfolio..."
             className="flex-1 bg-gray-800/50 border-gray-700 focus:border-purple-500"
-            disabled={isProcessing}
           />
           {micEnabled && (
             <Button

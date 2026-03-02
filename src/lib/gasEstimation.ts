@@ -1,4 +1,4 @@
-interface NetworkConfig {
+export interface NetworkConfig {
   name: string;
   chainId: number;
   nativeToken: string;
@@ -9,7 +9,7 @@ interface NetworkConfig {
   gasApiEndpoints?: string[];
 }
 
-interface GasPrice {
+export interface GasPrice {
   slow: number;
   standard: number;
   fast: number;
@@ -18,7 +18,7 @@ interface GasPrice {
   currency: string;
 }
 
-interface GasEstimate {
+export interface GasEstimate {
   networkName: string;
   gasLimit: number;
   gasPrice: GasPrice;
@@ -49,7 +49,7 @@ interface GasEstimate {
   };
 }
 
-interface SwapGasData {
+export interface SwapGasData {
   baseSwap: number;
   multiHop: number;
   approval: number;

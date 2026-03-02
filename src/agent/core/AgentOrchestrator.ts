@@ -1128,15 +1128,30 @@ export class AgentOrchestrator {
                   : midPrice * 1.05; // 5% above for shorts
                 const slSide = pos.direction === 'long' ? 'sell' : 'buy';
                 try {
-                  await (conn as any).placeOrder({
-                    pair: pos.pair,
-                    side: slSide,
-                    price: emergencySL,
-                    size: pos.size,
-                    type: 'limit',
-                    reduceOnly: true,
-                    clientId: `cypher_recovery_sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                  });
+                  try {
+                    await (conn as any).placeOrder({
+                      pair: pos.pair,
+                      side: slSide,
+                      price: emergencySL,
+                      size: pos.size,
+                      type: 'stop',
+                      triggerPrice: emergencySL,
+                      reduceOnly: true,
+                      clientId: `cypher_recovery_sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    });
+                  } catch {
+                    // Fallback to stop_limit if connector doesn't support stop-market
+                    await (conn as any).placeOrder({
+                      pair: pos.pair,
+                      side: slSide,
+                      price: emergencySL,
+                      size: pos.size,
+                      type: 'stop_limit',
+                      triggerPrice: emergencySL,
+                      reduceOnly: true,
+                      clientId: `cypher_recovery_sl_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+                    });
+                  }
                   this.addError(
                     `RECONCILIATION: Placed emergency SL for ${pos.pair} at ${emergencySL.toFixed(2)}`,
                     'reconciliation'

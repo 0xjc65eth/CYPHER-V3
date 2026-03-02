@@ -38,7 +38,7 @@ const initialMiningState: MiningState = {
 
 export const createMiningSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   MiningSlice
 > = (set) => ({

@@ -732,11 +732,11 @@ class QuickTradeAnalytics {
 export const quickTradeAnalytics = new QuickTradeAnalytics();
 
 // Export types
-export { 
-  PerformanceMetric, 
-  TradeAnalytics, 
-  SystemHealthMetrics, 
-  MarketAnalytics, 
+export type {
+  PerformanceMetric,
+  TradeAnalytics,
+  SystemHealthMetrics,
+  MarketAnalytics,
   RevenueAnalytics,
-  QuickTradeAnalytics 
 };
+export { QuickTradeAnalytics };

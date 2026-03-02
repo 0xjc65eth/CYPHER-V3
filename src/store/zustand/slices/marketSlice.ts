@@ -241,7 +241,7 @@ const initialMarketState: MarketState = {
 
 export const createMarketSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   MarketSlice
 > = (set, get) => ({

@@ -217,6 +217,17 @@ export class CacheService {
   }
 
   /**
+   * Get or compute with function (alias for getOrSet for compatibility)
+   */
+  async getOrCompute<T>(
+    key: string,
+    computeFn: () => Promise<T> | T,
+    ttlSeconds?: number
+  ): Promise<T> {
+    return this.getOrSet(key, computeFn, ttlSeconds !== undefined ? { ttl: ttlSeconds } : {});
+  }
+
+  /**
    * Batch get multiple keys
    */
   mget<T>(keys: string[], namespace?: string): (T | null)[] {

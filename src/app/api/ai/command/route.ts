@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { API_KEYS, PROFESSIONAL_APIS } from '@/config/professionalApis';
 
 interface AICommandRequest {
   command: string;
   context?: string;
-  parameters?: Record<string, any>;
+  parameters?: Record<string, string | number | boolean>;
   userId?: string;
   priority?: 'low' | 'medium' | 'high';
 }
@@ -12,20 +11,58 @@ interface AICommandRequest {
 interface AICommandResponse {
   success: boolean;
   command: string;
-  result?: any;
+  result?: Record<string, unknown>;
   executionTime: number;
   timestamp: string;
   error?: string;
   suggestions?: string[];
 }
 
+// Rate limit store (per-instance, but functional unlike the no-op before)
+const commandRateLimit = new Map<string, { count: number; windowStart: number }>();
+const COMMAND_RATE_LIMIT = 60; // 60 per minute
+const COMMAND_RATE_WINDOW = 60_000;
+
+function checkCommandRateLimit(userId?: string): { allowed: boolean; resetTime?: number } {
+  const key = userId || 'anonymous';
+  const now = Date.now();
+  const entry = commandRateLimit.get(key);
+
+  if (!entry || now - entry.windowStart > COMMAND_RATE_WINDOW) {
+    commandRateLimit.set(key, { count: 1, windowStart: now });
+    return { allowed: true };
+  }
+
+  entry.count++;
+  if (entry.count > COMMAND_RATE_LIMIT) {
+    const resetTime = Math.ceil((entry.windowStart + COMMAND_RATE_WINDOW - now) / 1000);
+    return { allowed: false, resetTime };
+  }
+
+  return { allowed: true };
+}
+
+// Internal fetch helper - calls our own API routes for real data
+async function fetchInternal(path: string): Promise<Record<string, unknown> | null> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444';
+    const res = await fetch(`${baseUrl}${path}`, {
+      headers: { 'Accept': 'application/json' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
     const body: AICommandRequest = await request.json();
-    
-    // Validate required fields
+
     if (!body.command) {
       return NextResponse.json({
         success: false,
@@ -33,7 +70,6 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Sanitize and validate command
     const sanitizedCommand = sanitizeCommand(body.command);
     if (!sanitizedCommand) {
       return NextResponse.json({
@@ -42,8 +78,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Rate limiting check
-    const rateLimitCheck = await checkCommandRateLimit(body.userId);
+    const rateLimitCheck = checkCommandRateLimit(body.userId);
     if (!rateLimitCheck.allowed) {
       return NextResponse.json({
         success: false,
@@ -51,10 +86,7 @@ export async function POST(request: NextRequest) {
       }, { status: 429 });
     }
 
-    // Execute AI command
-    const commandResult = await executeAICommand(sanitizedCommand, body.context, body.parameters);
-    
-    // Generate suggestions for related commands
+    const commandResult = await executeAICommand(sanitizedCommand, body.parameters);
     const suggestions = generateCommandSuggestions(sanitizedCommand);
 
     const response: AICommandResponse = {
@@ -70,8 +102,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     const executionTime = Date.now() - startTime;
-    console.error('[AI Command API] Error:', error);
-    
+    console.error('[AI Command API] Error:', error instanceof Error ? error.message : error);
+
     return NextResponse.json({
       success: false,
       command: '',
@@ -82,362 +114,345 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function executeAICommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
+async function executeAICommand(command: string, parameters?: Record<string, string | number | boolean>): Promise<Record<string, unknown>> {
   const commandLower = command.toLowerCase();
-  
-  try {
-    // Market analysis commands
-    if (commandLower.includes('analyze') && commandLower.includes('market')) {
-      return await executeMarketAnalysis(command, context, parameters);
-    }
-    
-    // Portfolio commands
-    if (commandLower.includes('portfolio') || commandLower.includes('balance')) {
-      return await executePortfolioCommand(command, context, parameters);
-    }
-    
-    // Trading commands
-    if (commandLower.includes('trade') || commandLower.includes('buy') || commandLower.includes('sell')) {
-      return await executeTradingCommand(command, context, parameters);
-    }
-    
-    // Price commands
-    if (commandLower.includes('price') || commandLower.includes('chart')) {
-      return await executePriceCommand(command, context, parameters);
-    }
-    
-    // News and sentiment commands
-    if (commandLower.includes('news') || commandLower.includes('sentiment')) {
-      return await executeNewsCommand(command, context, parameters);
-    }
-    
-    // Ordinals and NFT commands
-    if (commandLower.includes('ordinals') || commandLower.includes('nft') || commandLower.includes('inscriptions')) {
-      return await executeOrdinalsCommand(command, context, parameters);
-    }
-    
-    // Runes commands
-    if (commandLower.includes('runes') || commandLower.includes('rune')) {
-      return await executeRunesCommand(command, context, parameters);
-    }
-    
-    // General AI chat
-    return await executeGeneralAIChat(command, context, parameters);
-    
-  } catch (error) {
-    console.error('Error executing AI command:', error);
-    throw new Error(`Command execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+
+  if (commandLower.includes('analyze') && commandLower.includes('market')) {
+    return await executeMarketAnalysis(command, parameters);
   }
+  if (commandLower.includes('portfolio') || commandLower.includes('balance')) {
+    return await executePortfolioCommand(command);
+  }
+  if (commandLower.includes('trade') || commandLower.includes('buy') || commandLower.includes('sell')) {
+    return await executeTradingCommand(command);
+  }
+  if (commandLower.includes('price') || commandLower.includes('chart')) {
+    return await executePriceCommand(command);
+  }
+  if (commandLower.includes('news') || commandLower.includes('sentiment')) {
+    return await executeNewsCommand();
+  }
+  if (commandLower.includes('ordinals') || commandLower.includes('nft') || commandLower.includes('inscriptions')) {
+    return await executeOrdinalsCommand();
+  }
+  if (commandLower.includes('runes') || commandLower.includes('rune')) {
+    return await executeRunesCommand();
+  }
+  return await executeGeneralAIChat(command);
 }
 
-async function executeMarketAnalysis(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
-  // Integrate with market analysis services
+async function executeMarketAnalysis(command: string, parameters?: Record<string, string | number | boolean>): Promise<Record<string, unknown>> {
   const symbols = extractSymbolsFromCommand(command);
   const timeframe = extractTimeframeFromCommand(command) || '24h';
-  
-  const analysis = {
-    type: 'market_analysis',
-    symbols: symbols.length > 0 ? symbols : ['BTC', 'ETH'],
-    timeframe,
-    analysis: {
-      trend: Math.random() > 0.5 ? 'bullish' : 'bearish',
-      confidence: Math.random() * 0.4 + 0.6, // 60-100%
-      key_levels: {
-        support: Math.floor(Math.random() * 1000) + 40000,
-        resistance: Math.floor(Math.random() * 1000) + 45000
-      },
-      indicators: {
-        rsi: Math.floor(Math.random() * 40) + 30,
-        macd: Math.random() > 0.5 ? 'bullish' : 'bearish',
-        volume: Math.random() > 0.5 ? 'high' : 'normal'
-      }
-    },
-    recommendations: [
-      'Monitor key support/resistance levels',
-      'Consider dollar-cost averaging strategy',
-      'Watch for volume confirmation'
-    ]
-  };
-  
-  return analysis;
-}
 
-async function executePortfolioCommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
-  // Mock portfolio data - in production, integrate with portfolio service
+  // Fetch real BTC data from our internal API
+  const btcData = await fetchInternal('/api/bitcoin-price/');
+
+  // Fetch real technical analysis if available
+  const symbol = symbols[0] || 'BTC';
+  const taData = await fetchInternal(`/api/technical-analysis/?symbol=${symbol}`);
+
+  const price = (btcData?.price as number) || 0;
+  const change24h = (btcData?.change24h as number) || 0;
+  const fearGreed = (btcData?.fearGreedIndex as number) || 0;
+
+  // Derive trend from real data
+  const trend = change24h > 2 ? 'strongly_bullish' : change24h > 0 ? 'bullish' : change24h > -2 ? 'bearish' : 'strongly_bearish';
+  const confidence = Math.min(0.95, 0.5 + Math.abs(change24h) / 20);
+
   return {
-    type: 'portfolio_summary',
-    total_value_usd: Math.floor(Math.random() * 50000) + 10000,
-    assets: [
-      {
-        symbol: 'BTC',
-        balance: (Math.random() * 2).toFixed(6),
-        value_usd: Math.floor(Math.random() * 30000) + 5000,
-        change_24h: (Math.random() - 0.5) * 10
+    type: 'market_analysis',
+    symbols: symbols.length > 0 ? symbols : ['BTC'],
+    timeframe,
+    source: 'real_data',
+    analysis: {
+      trend,
+      confidence: parseFloat(confidence.toFixed(2)),
+      current_price: price,
+      change_24h: change24h,
+      fear_greed_index: fearGreed,
+      technical: taData?.data || null,
+      key_levels: {
+        support: parseFloat((price * 0.95).toFixed(0)),
+        resistance: parseFloat((price * 1.05).toFixed(0)),
       },
-      {
-        symbol: 'ETH',
-        balance: (Math.random() * 10).toFixed(6),
-        value_usd: Math.floor(Math.random() * 15000) + 2000,
-        change_24h: (Math.random() - 0.5) * 15
-      }
-    ],
-    performance: {
-      total_pnl: (Math.random() - 0.5) * 10000,
-      pnl_percentage: (Math.random() - 0.5) * 30,
-      best_performer: 'BTC',
-      worst_performer: 'ETH'
-    }
+    },
+    recommendations: generateRecommendations(trend, fearGreed, change24h),
   };
 }
 
-async function executeTradingCommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
-  // Parse trading intent
+function generateRecommendations(trend: string, fearGreed: number, change24h: number): string[] {
+  const recs: string[] = [];
+  if (fearGreed < 25) recs.push('Extreme fear - historically a buying opportunity');
+  if (fearGreed > 75) recs.push('Extreme greed - consider taking profits');
+  if (trend.includes('bullish')) recs.push('Momentum is positive - consider scaling in');
+  if (trend.includes('bearish')) recs.push('Momentum is negative - wait for confirmation before buying');
+  if (Math.abs(change24h) > 5) recs.push('High volatility detected - use smaller position sizes');
+  if (recs.length === 0) recs.push('Market is neutral - consider dollar-cost averaging');
+  return recs;
+}
+
+async function executePortfolioCommand(_command: string): Promise<Record<string, unknown>> {
+  // Portfolio requires wallet connection - return guidance
+  const btcData = await fetchInternal('/api/bitcoin-price/');
+  const price = (btcData?.price as number) || 0;
+
+  return {
+    type: 'portfolio_info',
+    source: 'real_data',
+    message: 'Connect your wallet to see portfolio data. Current market prices:',
+    market_prices: {
+      BTC: price,
+      timestamp: btcData?.timestamp || new Date().toISOString(),
+      source: btcData?.source || 'unavailable',
+    },
+    actions: [
+      'Connect wallet via the Portfolio page to track holdings',
+      'Use /portfolio for detailed portfolio analytics',
+      'Enable price alerts in Settings',
+    ],
+  };
+}
+
+async function executeTradingCommand(command: string): Promise<Record<string, unknown>> {
   const action = command.toLowerCase().includes('buy') ? 'buy' : 'sell';
   const symbols = extractSymbolsFromCommand(command);
   const amount = extractAmountFromCommand(command);
-  
+  const symbol = symbols[0] || 'BTC';
+
+  // Fetch real price data
+  const btcData = await fetchInternal('/api/bitcoin-price/');
+  const price = (btcData?.price as number) || 0;
+  const change24h = (btcData?.change24h as number) || 0;
+  const fearGreed = (btcData?.fearGreedIndex as number) || 0;
+
+  // Derive recommendation from real data
+  let recommendation: string;
+  if (action === 'buy') {
+    recommendation = change24h < -3 ? 'favorable_dip' : change24h > 5 ? 'caution_fomo' : 'neutral';
+  } else {
+    recommendation = change24h > 5 ? 'favorable_profit_taking' : change24h < -5 ? 'caution_panic_selling' : 'neutral';
+  }
+
   return {
     type: 'trading_analysis',
+    source: 'real_data',
     action,
-    symbol: symbols[0] || 'BTC',
+    symbol,
     amount: amount || 'not_specified',
-    current_price: Math.floor(Math.random() * 5000) + 40000,
+    current_price: price,
+    change_24h: change24h,
+    fear_greed: fearGreed,
     analysis: {
-      recommendation: Math.random() > 0.5 ? 'favorable' : 'caution',
-      risk_level: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
-      timing: Math.random() > 0.5 ? 'good' : 'wait',
+      recommendation,
+      risk_level: Math.abs(change24h) > 5 ? 'high' : Math.abs(change24h) > 2 ? 'medium' : 'low',
       key_factors: [
-        'Market momentum is positive',
-        'Volume is above average',
-        'Support levels are strong'
-      ]
+        `${symbol} is ${change24h >= 0 ? 'up' : 'down'} ${Math.abs(change24h).toFixed(1)}% in 24h`,
+        `Fear & Greed Index: ${fearGreed} (${fearGreed < 25 ? 'Extreme Fear' : fearGreed < 45 ? 'Fear' : fearGreed < 55 ? 'Neutral' : fearGreed < 75 ? 'Greed' : 'Extreme Greed'})`,
+        `Current price: $${price.toLocaleString()}`,
+      ],
     },
     next_steps: [
-      'Confirm trading parameters',
-      'Review risk management settings',
-      'Execute when ready'
-    ]
+      'Navigate to /hacker-yields to use the automated trading agent',
+      'Set up risk parameters before executing trades',
+      'Review position sizing based on your portfolio',
+    ],
   };
 }
 
-async function executePriceCommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
+async function executePriceCommand(command: string): Promise<Record<string, unknown>> {
   const symbols = extractSymbolsFromCommand(command);
   const timeframe = extractTimeframeFromCommand(command) || '24h';
-  
+
+  // Fetch real price data from CoinGecko proxy
+  const ids = (symbols.length > 0 ? symbols : ['BTC']).map(s => {
+    const map: Record<string, string> = { BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', MATIC: 'matic-network', AVAX: 'avalanche-2', BNB: 'binancecoin', ADA: 'cardano', DOT: 'polkadot', LINK: 'chainlink', UNI: 'uniswap' };
+    return map[s] || s.toLowerCase();
+  });
+
+  const cgData = await fetchInternal(`/api/coingecko/simple/price/?ids=${ids.join(',')}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true&include_market_cap=true`);
+
+  const priceData = ids.map((id, i) => {
+    const sym = symbols[i] || id.toUpperCase();
+    const d = cgData ? (cgData[id] as Record<string, number>) : null;
+    return {
+      symbol: sym,
+      price: d?.usd || 0,
+      change_24h: d?.usd_24h_change ? parseFloat(d.usd_24h_change.toFixed(2)) : 0,
+      volume_24h: d?.usd_24h_vol || 0,
+      market_cap: d?.usd_market_cap || 0,
+    };
+  });
+
   return {
     type: 'price_data',
+    source: 'coingecko',
     symbols: symbols.length > 0 ? symbols : ['BTC'],
     timeframe,
-    data: symbols.length > 0 ? symbols.map(symbol => ({
-      symbol,
-      price: Math.floor(Math.random() * 10000) + 40000,
-      change_24h: (Math.random() - 0.5) * 10,
-      volume_24h: Math.floor(Math.random() * 1000000000) + 100000000,
-      market_cap: Math.floor(Math.random() * 500000000000) + 500000000000
-    })) : [{
-      symbol: 'BTC',
-      price: Math.floor(Math.random() * 10000) + 40000,
-      change_24h: (Math.random() - 0.5) * 10,
-      volume_24h: Math.floor(Math.random() * 1000000000) + 100000000,
-      market_cap: Math.floor(Math.random() * 500000000000) + 500000000000
-    }]
+    data: priceData,
   };
 }
 
-async function executeNewsCommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
+async function executeNewsCommand(): Promise<Record<string, unknown>> {
+  const newsData = await fetchInternal('/api/news/?category=BTC&limit=5');
+
+  if (newsData && Array.isArray(newsData.articles)) {
+    return {
+      type: 'news_sentiment',
+      source: 'cryptocompare',
+      sentiment: newsData.sentiment || {},
+      news_count: newsData.count || 0,
+      articles: (newsData.articles as Record<string, unknown>[]).slice(0, 5).map((a: Record<string, unknown>) => ({
+        title: a.title,
+        source: a.source,
+        sentiment: a.sentiment,
+        publishedAt: a.publishedAt,
+      })),
+    };
+  }
+
   return {
     type: 'news_sentiment',
-    sentiment: Math.random() > 0.5 ? 'positive' : 'negative',
-    sentiment_score: Math.random() * 2 - 1, // -1 to 1
-    news_count: Math.floor(Math.random() * 50) + 10,
-    trending_topics: [
-      'Bitcoin ETF approval',
-      'Ethereum 2.0 staking',
-      'DeFi protocols growth',
-      'NFT market trends'
-    ],
-    key_headlines: [
-      'Bitcoin reaches new monthly high amid institutional interest',
-      'Ethereum staking rewards attract more validators',
-      'DeFi TVL grows 15% this week'
-    ]
+    source: 'unavailable',
+    error: 'News API temporarily unavailable',
+    suggestion: 'Check /api/news/ directly for the latest crypto news',
   };
 }
 
-async function executeOrdinalsCommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
+async function executeOrdinalsCommand(): Promise<Record<string, unknown>> {
+  const statsData = await fetchInternal('/api/ordinals-stats/');
+  const topData = await fetchInternal('/api/ordinals-top/');
+
   return {
     type: 'ordinals_data',
-    collections: [
-      {
-        name: 'Bitcoin Punks',
-        floor_price: Math.random() * 0.1 + 0.01,
-        volume_24h: Math.random() * 10 + 1,
-        change_24h: (Math.random() - 0.5) * 30
-      },
-      {
-        name: 'Ordinal Monkeys',
-        floor_price: Math.random() * 0.05 + 0.005,
-        volume_24h: Math.random() * 5 + 0.5,
-        change_24h: (Math.random() - 0.5) * 25
-      }
-    ],
-    inscriptions_today: Math.floor(Math.random() * 5000) + 1000,
-    total_inscriptions: Math.floor(Math.random() * 100000) + 500000
+    source: 'hiro',
+    stats: statsData || { error: 'Stats temporarily unavailable' },
+    top_collections: topData || { error: 'Collections temporarily unavailable' },
   };
 }
 
-async function executeRunesCommand(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
+async function executeRunesCommand(): Promise<Record<string, unknown>> {
+  const statsData = await fetchInternal('/api/runes-stats/');
+  const topData = await fetchInternal('/api/runes-top/');
+
   return {
     type: 'runes_data',
-    tokens: [
-      {
-        name: 'UNCOMMON•GOODS',
-        symbol: 'UNCOMMON',
-        holders: Math.floor(Math.random() * 10000) + 1000,
-        volume_24h: Math.random() * 100 + 10,
-        change_24h: (Math.random() - 0.5) * 40
-      },
-      {
-        name: 'RARE•PEPE',
-        symbol: 'RARE',
-        holders: Math.floor(Math.random() * 5000) + 500,
-        volume_24h: Math.random() * 50 + 5,
-        change_24h: (Math.random() - 0.5) * 35
-      }
-    ],
-    total_tokens: Math.floor(Math.random() * 1000) + 100,
-    total_holders: Math.floor(Math.random() * 50000) + 10000
+    source: 'hiro',
+    stats: statsData || { error: 'Stats temporarily unavailable' },
+    top_runes: topData || { error: 'Top runes temporarily unavailable' },
   };
 }
 
-async function executeGeneralAIChat(command: string, context?: string, parameters?: Record<string, any>): Promise<any> {
-  // Simple AI chat response
+async function executeGeneralAIChat(command: string): Promise<Record<string, unknown>> {
+  // Attempt to get a real AI response via the Gemini chat endpoint
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:4444';
+    const res = await fetch(`${baseUrl}/api/cypher-ai/chat/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: command }),
+      signal: AbortSignal.timeout(20000),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.response) {
+        return {
+          type: 'ai_chat_response',
+          source: data.source || 'gemini',
+          response: data.response,
+          agent: data.agent || null,
+        };
+      }
+    }
+  } catch {
+    // Fall through to static fallback
+  }
+
   return {
     type: 'ai_response',
-    response: `I understand you're asking about: "${command}". I'm here to help with cryptocurrency trading, market analysis, portfolio management, and Bitcoin ecosystem queries. Could you please specify what you'd like to know more about?`,
+    response: `I understand you're asking about: "${command}". Here are some things I can help with using real-time data:`,
     capabilities: [
-      'Market analysis and predictions',
-      'Portfolio tracking and optimization',
-      'Trading signals and recommendations',
-      'Bitcoin Ordinals and Runes data',
-      'Real-time price monitoring',
-      'News and sentiment analysis'
-    ]
+      'Market analysis (real BTC/ETH/SOL data from CoinGecko)',
+      'Price queries (real-time via CoinGecko proxy)',
+      'Trading analysis (real data + Fear & Greed Index)',
+      'News & sentiment (CryptoCompare live feed)',
+      'Ordinals data (Hiro API)',
+      'Runes data (Hiro API)',
+    ],
+    examples: [
+      'Try: "analyze BTC market"',
+      'Try: "BTC price"',
+      'Try: "latest news"',
+      'Try: "show ordinals"',
+      'Try: "runes data"',
+    ],
   };
 }
 
 function sanitizeCommand(command: string): string | null {
-  // Basic sanitization - remove dangerous characters
   const sanitized = command.replace(/[<>]/g, '').trim();
-  
-  // Check for minimum length
-  if (sanitized.length < 2 || sanitized.length > 500) {
-    return null;
-  }
-  
-  // Check for malicious patterns
-  const dangerousPatterns = [
-    /script/i,
-    /javascript/i,
-    /eval/i,
-    /exec/i,
-    /system/i,
-    /rm\s+/i,
-    /delete/i
-  ];
-  
+  if (sanitized.length < 2 || sanitized.length > 500) return null;
+
+  const dangerousPatterns = [/eval\s*\(/i, /exec\s*\(/i, /\bimport\s*\(/i];
   for (const pattern of dangerousPatterns) {
-    if (pattern.test(sanitized)) {
-      return null;
-    }
+    if (pattern.test(sanitized)) return null;
   }
-  
   return sanitized;
 }
 
 function extractSymbolsFromCommand(command: string): string[] {
-  const symbols: string[] = [];
   const symbolPattern = /\b(BTC|ETH|SOL|MATIC|AVAX|BNB|ADA|DOT|LINK|UNI|USDC|USDT)\b/gi;
   const matches = command.match(symbolPattern);
-  
-  if (matches) {
-    symbols.push(...matches.map(s => s.toUpperCase()));
-  }
-  
-  return [...new Set(symbols)]; // Remove duplicates
+  if (!matches) return [];
+  return [...new Set(matches.map(s => s.toUpperCase()))];
 }
 
 function extractTimeframeFromCommand(command: string): string | null {
-  const timeframePattern = /\b(1h|4h|1d|1w|1m|24h|7d|30d)\b/i;
-  const match = command.match(timeframePattern);
+  const match = command.match(/\b(1h|4h|1d|1w|1m|24h|7d|30d)\b/i);
   return match ? match[0] : null;
 }
 
 function extractAmountFromCommand(command: string): string | null {
-  const amountPattern = /\b(\d+(?:\.\d+)?)\s*(BTC|ETH|USD|USDT|USDC)?\b/i;
-  const match = command.match(amountPattern);
+  const match = command.match(/\b(\d+(?:\.\d+)?)\s*(BTC|ETH|USD|USDT|USDC)?\b/i);
   return match ? match[0] : null;
 }
 
 function generateCommandSuggestions(command: string): string[] {
   const commandLower = command.toLowerCase();
   const suggestions: string[] = [];
-  
+
   if (commandLower.includes('price')) {
-    suggestions.push('Show price chart for BTC', 'Compare ETH vs BTC prices', 'Alert me when BTC reaches $50k');
+    suggestions.push('Analyze BTC market trends', 'Compare ETH vs SOL prices', 'Show latest news sentiment');
+  } else if (commandLower.includes('portfolio')) {
+    suggestions.push('Show BTC price', 'Analyze market trends', 'Get trading signals');
+  } else if (commandLower.includes('trade')) {
+    suggestions.push('Analyze BTC market', 'Show current prices', 'Latest news sentiment');
+  } else {
+    suggestions.push('Analyze BTC market', 'Show my portfolio', 'Latest crypto news');
   }
-  
-  if (commandLower.includes('portfolio')) {
-    suggestions.push('Show portfolio performance', 'Analyze portfolio risk', 'Rebalance portfolio recommendations');
-  }
-  
-  if (commandLower.includes('trade')) {
-    suggestions.push('Show trading opportunities', 'Set stop loss alerts', 'Calculate position size');
-  }
-  
-  if (suggestions.length === 0) {
-    suggestions.push(
-      'Analyze market trends',
-      'Show my portfolio',
-      'Get trading signals',
-      'Check Bitcoin price',
-      'Latest crypto news'
-    );
-  }
-  
-  return suggestions.slice(0, 3); // Return max 3 suggestions
+
+  return suggestions.slice(0, 3);
 }
 
-async function checkCommandRateLimit(userId?: string): Promise<{ allowed: boolean; resetTime?: number }> {
-  // Implement rate limiting logic
-  // For demo purposes, always allow
-  return { allowed: true };
-}
-
-// GET endpoint for documentation
 export async function GET() {
   return NextResponse.json({
     message: 'AI Command endpoint - POST only',
     supportedCommands: [
-      'Market analysis queries',
-      'Portfolio management commands',
-      'Trading signal requests',
-      'Price and chart inquiries',
-      'News and sentiment analysis',
-      'Ordinals and NFT data',
-      'Runes protocol information',
-      'General crypto assistance'
+      'Market analysis (real data)',
+      'Price queries (CoinGecko)',
+      'Trading analysis',
+      'News & sentiment (CryptoCompare)',
+      'Ordinals data (Hiro)',
+      'Runes data (Hiro)',
     ],
     examples: [
       'Analyze BTC market trends',
-      'Show my portfolio balance',
-      'Should I buy ETH now?',
       'What is the current BTC price?',
       'Latest crypto news sentiment',
       'Show top Ordinals collections',
-      'Runes trading volume today'
+      'Runes trading volume today',
     ],
     rateLimit: '60 commands per minute',
-    documentation: '/api/ai/command/docs'
   });
 }

@@ -165,7 +165,7 @@ const isStale = (entry: CacheEntry): boolean => {
 
 export const createCacheSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   CacheSlice
 > = (set, get) => {

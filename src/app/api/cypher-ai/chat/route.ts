@@ -67,13 +67,29 @@ async function callGemini(userMessage: string, systemPrompt: string, signal?: Ab
   return text;
 }
 
+/**
+ * Build a useful fallback response when Gemini is unavailable,
+ * incorporating any live data that was fetched.
+ */
+function buildFallbackResponse(agent: { name: string; role: string }, message: string, liveData: string): string {
+  const parts: string[] = [];
+  parts.push(`**${agent.name}** (${agent.role}) here.`);
+
+  if (liveData && liveData.trim().length > 20) {
+    parts.push(`\nHere is the latest data I have:\n\n${liveData}`);
+    parts.push(`\n*Note: AI language model is currently unavailable. Showing raw data for your query: "${message.slice(0, 100)}". Configure GEMINI_API_KEY for full AI analysis.*`);
+  } else {
+    parts.push(`\nI received your query: "${message.slice(0, 100)}"`);
+    parts.push(`\n*The AI language model is currently unavailable. Please configure GEMINI_API_KEY in your environment to enable full AI-powered responses. In the meantime, you can use specific commands like "BTC price", "analyze market", or "show runes" via the /api/ai/command endpoint.*`);
+  }
+
+  return parts.join('\n');
+}
+
 // POST handler
 export async function POST(request: NextRequest) {
   try {
-    if (!GEMINI_API_KEY) {
-      console.warn('GEMINI_API_KEY not configured');
-      return NextResponse.json({ error: 'AI chat service not configured' }, { status: 503 });
-    }
+    const geminiConfigured = !!GEMINI_API_KEY;
 
     const clientIp = request.headers.get('x-forwarded-for') || 'anonymous';
     if (!rateLimiter.canMakeRequestForKey('cypher-ai-chat', clientIp)) {
@@ -100,14 +116,12 @@ export async function POST(request: NextRequest) {
     try {
 
     // Fetch agent-specific real-time data in parallel (using allSettled for resilience)
-    const dataSources: string[] = [];
+    const validFetchers = agent.dataFetchers.filter((name) => dataFetcherMap[name]);
     const fetchResults = await Promise.allSettled(
-      agent.dataFetchers.map(async (name) => {
-        const fn = dataFetcherMap[name];
-        if (!fn) return '';
-        dataSources.push(name);
-        return await fn();
-      })
+      validFetchers.map((name) => dataFetcherMap[name]())
+    );
+    const dataSources = validFetchers.filter(
+      (_, i) => fetchResults[i].status === 'fulfilled'
     );
     const fetchedParts = fetchResults
       .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled')
@@ -140,16 +154,22 @@ export async function POST(request: NextRequest) {
       : '';
     const enhancedMessage = `${message}${clientContext}${languageHint}`;
 
-    // Call Gemini
+    // Call Gemini (or fallback if not configured)
     let response: string;
     let source = 'gemini-2.0-flash';
 
-    try {
-      response = await callGemini(enhancedMessage, systemPrompt, controller.signal);
-    } catch (error) {
-      console.error('Gemini call failed:', error);
-      response = `**${agent.name}** is temporarily unavailable. The CYPHER Terminal AI system encountered an error connecting to the language model. Please try again in a moment.`;
-      source = 'fallback';
+    if (!geminiConfigured) {
+      // Provide a useful fallback response using live data context
+      response = buildFallbackResponse(agent, message, liveDataContext);
+      source = 'local-fallback';
+    } else {
+      try {
+        response = await callGemini(enhancedMessage, systemPrompt, controller.signal);
+      } catch (error) {
+        console.error('Gemini call failed:', error);
+        response = buildFallbackResponse(agent, message, liveDataContext);
+        source = 'fallback';
+      }
     }
 
     return NextResponse.json({

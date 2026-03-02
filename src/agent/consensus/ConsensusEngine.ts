@@ -273,9 +273,11 @@ export class ConsensusEngine {
 // Singleton
 let consensusInstance: ConsensusEngine | null = null;
 
-export function getConsensusEngine(): ConsensusEngine {
+export function getConsensusEngine(config?: Partial<ConsensusConfig>): ConsensusEngine {
   if (!consensusInstance) {
-    consensusInstance = new ConsensusEngine();
+    consensusInstance = new ConsensusEngine(config);
+  } else if (config) {
+    consensusInstance.updateConfig(config);
   }
   return consensusInstance;
 }

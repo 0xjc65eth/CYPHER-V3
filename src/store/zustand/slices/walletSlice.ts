@@ -250,7 +250,7 @@ const initialWalletState: WalletState = {
 
 export const createWalletSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   WalletSlice
 > = (set, get) => ({

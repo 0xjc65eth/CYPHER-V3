@@ -10,6 +10,7 @@ import { useYHPVerification } from '@/hooks/useYHPVerification'
 import { usePremium } from '@/contexts/PremiumContext'
 import { hasPremiumAccess } from '@/config/vip-wallets'
 import { RiWallet3Line, RiVipCrownLine } from 'react-icons/ri'
+import { Zap } from 'lucide-react'
 import WalletConnect from '@/components/wallet/WalletConnect'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { injected } from 'wagmi/connectors'
@@ -31,7 +32,7 @@ const navigationItems: NavItem[] = [
   {
     id: 'home',
     label: 'Dashboard',
-    href: '/',
+    href: '/dashboard',
     icon: NavigationIcons['/'].icon,
     description: 'Professional Trading Terminal',
     category: 'Core'
@@ -199,6 +200,21 @@ function PremiumBadge() {
   )
 }
 
+function UpgradeCTA() {
+  const { isPremium, accessTier } = usePremium()
+  if (isPremium || hasPremiumAccess(accessTier)) return null
+
+  return (
+    <Link
+      href="/pricing"
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-lg text-black text-xs font-bold hover:opacity-90 transition-opacity"
+    >
+      <Zap className="w-3 h-3" />
+      <span>Get Premium</span>
+    </Link>
+  )
+}
+
 export function MainNavigation() {
   const pathname = usePathname()
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
@@ -320,8 +336,9 @@ export function MainNavigation() {
 
           {/* Wallet Buttons */}
           <div className="hidden md:flex items-center gap-2 ml-2">
-            {/* Premium/VIP Badge */}
+            {/* Premium/VIP Badge or Upgrade CTA */}
             <PremiumBadge />
+            <UpgradeCTA />
 
             {/* BTC Wallet */}
             <WalletConnect />

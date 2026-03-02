@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 /**
- * SECURITY: Rate limiter in-memory para middleware (Edge Runtime).
- * O Redis-based rate limiter existe nas routes individuais, mas a maioria das
- * 260+ API routes NÃO o aplica. Este rate limiter global garante proteção base.
+ * SECURITY: Global rate limiter for all API routes (Edge Runtime compatible).
  *
- * Usa sliding window counter por IP. Map limpa automaticamente entries velhos.
- * Em produção multi-instância, considerar usar Vercel KV ou Upstash Redis.
+ * Uses Upstash Redis when UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN are set.
+ * Falls back to in-memory Map otherwise (resets on cold start - not ideal for prod).
+ *
+ * To enable persistent rate limiting on Vercel:
+ * 1. Create free account at https://upstash.com
+ * 2. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Vercel env vars
  */
-const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minuto
-const RATE_LIMIT_MAX_REQUESTS = 200; // 200 req/min por IP (global)
-const RATE_LIMIT_MAX_REQUESTS_SENSITIVE = 20; // 20 req/min para endpoints sensíveis
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 200;
+const RATE_LIMIT_MAX_REQUESTS_SENSITIVE = 20;
 
-// Pattern match para endpoints sensíveis (trading, auth, AI)
 const SENSITIVE_PATHS = [
   '/api/trade',
   '/api/trading/',
@@ -28,11 +31,41 @@ const SENSITIVE_PATHS = [
   '/api/fees/collect',
 ];
 
-// In-memory rate limit store: IP -> { count, windowStart }
-const rateLimitStore = new Map<string, { count: number; windowStart: number }>();
+// Upstash rate limiters (persistent across Vercel instances)
+let upstashGlobalLimiter: Ratelimit | null = null;
+let upstashSensitiveLimiter: Ratelimit | null = null;
 
-// Limpa entries expirados periodicamente para evitar memory leak
+function getUpstashLimiters(): { global: Ratelimit; sensitive: Ratelimit } | null {
+  if (upstashGlobalLimiter && upstashSensitiveLimiter) {
+    return { global: upstashGlobalLimiter, sensitive: upstashSensitiveLimiter };
+  }
+
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return null;
+
+  try {
+    const redis = new Redis({ url, token });
+    upstashGlobalLimiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(RATE_LIMIT_MAX_REQUESTS, '1 m'),
+      prefix: 'rl:global',
+    });
+    upstashSensitiveLimiter = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(RATE_LIMIT_MAX_REQUESTS_SENSITIVE, '1 m'),
+      prefix: 'rl:sensitive',
+    });
+    return { global: upstashGlobalLimiter, sensitive: upstashSensitiveLimiter };
+  } catch {
+    return null;
+  }
+}
+
+// In-memory fallback rate limit store
+const rateLimitStore = new Map<string, { count: number; windowStart: number }>();
 let lastCleanup = Date.now();
+
 function cleanupRateLimitStore() {
   const now = Date.now();
   if (now - lastCleanup < RATE_LIMIT_WINDOW_MS * 2) return;
@@ -44,9 +77,18 @@ function cleanupRateLimitStore() {
   }
 }
 
-function checkRateLimit(ip: string, isSensitive: boolean): { allowed: boolean; remaining: number } {
-  cleanupRateLimitStore();
+async function checkRateLimit(ip: string, isSensitive: boolean): Promise<{ allowed: boolean; remaining: number }> {
+  // Try Upstash first (persistent, shared across instances)
+  const upstash = getUpstashLimiters();
+  if (upstash) {
+    const limiter = isSensitive ? upstash.sensitive : upstash.global;
+    const key = isSensitive ? `${ip}:sensitive` : ip;
+    const result = await limiter.limit(key);
+    return { allowed: result.success, remaining: result.remaining };
+  }
 
+  // Fallback to in-memory (resets on cold start)
+  cleanupRateLimitStore();
   const now = Date.now();
   const maxRequests = isSensitive ? RATE_LIMIT_MAX_REQUESTS_SENSITIVE : RATE_LIMIT_MAX_REQUESTS;
   const key = isSensitive ? `${ip}:sensitive` : ip;
@@ -65,7 +107,7 @@ function checkRateLimit(ip: string, isSensitive: boolean): { allowed: boolean; r
   return { allowed: true, remaining: maxRequests - entry.count };
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Redirect /quicktrade to canonical /quick-trade
   if (request.nextUrl.pathname === '/quicktrade' || request.nextUrl.pathname.startsWith('/quicktrade/')) {
     const url = request.nextUrl.clone();
@@ -79,7 +121,7 @@ export function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     const isSensitive = SENSITIVE_PATHS.some(p => pathname.startsWith(p));
 
-    const { allowed, remaining } = checkRateLimit(ip, isSensitive);
+    const { allowed } = await checkRateLimit(ip, isSensitive);
     if (!allowed) {
       return new Response(
         JSON.stringify({

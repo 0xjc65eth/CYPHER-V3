@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 import { getWalletAccessTier, hasPremiumAccess, isSuperAdmin, isVIPEthWallet, type AccessTier } from '@/config/vip-wallets'
 import { YHP_CONTRACT_ADDRESS } from '@/config/premium-collections'
 import { useClientOnly } from '@/hooks/useClientOnly'
@@ -261,6 +261,27 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
   }, [isClient])
 
+  // Auto-fetch subscription when a wallet address becomes available
+  // (handles auto-reconnect from localStorage where no walletConnected event fires)
+  const lastFetchedWallet = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isClient) return
+    // Detect wallet address from localStorage (BTC or ETH)
+    const btcWallet = localStorage.getItem('wallet-address') || null
+    const ethWallet = (() => {
+      try {
+        const raw = localStorage.getItem('cypher_eth_wallet')
+        if (raw) return JSON.parse(raw).address || null
+      } catch { /* ignore */ }
+      return null
+    })()
+    const walletAddr = ethWallet || btcWallet
+    if (walletAddr && walletAddr !== lastFetchedWallet.current) {
+      lastFetchedWallet.current = walletAddr
+      fetchSubscriptionStatus(walletAddr)
+    }
+  }, [isClient, fetchSubscriptionStatus])
+
   // Determine effective tier: VIP/NFT wallets get hacker_yields override
   // But only trust accessTier if we are NOT currently re-verifying a stale cache
   const effectiveSubscriptionTier: SubscriptionTier = (() => {
@@ -326,6 +347,8 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     const handleEthWalletConnected = (event: CustomEvent) => {
       if (event.detail?.address) {
         setEthAddress(event.detail.address)
+        // Also fetch subscription status for ETH wallet
+        fetchSubscriptionStatus(event.detail.address)
       }
     }
 

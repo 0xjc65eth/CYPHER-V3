@@ -402,7 +402,8 @@ export class WalletSecurityManager {
           address: '',
           error: 'Rate limit exceeded. Please try again later.',
           securityLevel: SecurityLevel.LOW,
-          warnings: ['Rate limit protection activated']
+          warnings: ['Rate limit protection activated'],
+          supportedFeatures: []
         };
       }
 

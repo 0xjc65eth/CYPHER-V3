@@ -1,4 +1,4 @@
-interface PoolData {
+export interface PoolData {
   address: string;
   token0: string;
   token1: string;
@@ -12,7 +12,7 @@ interface PoolData {
   lastUpdated: number;
 }
 
-interface PriceImpactResult {
+export interface PriceImpactResult {
   priceImpact: number; // Percentage
   amountOut: number;
   minimumAmountOut: number;
@@ -29,7 +29,7 @@ interface PriceImpactResult {
   };
 }
 
-interface AggregatedImpact {
+export interface AggregatedImpact {
   totalPriceImpact: number;
   weightedAverageImpact: number;
   bestSinglePool: PriceImpactResult;
@@ -42,7 +42,7 @@ interface AggregatedImpact {
   };
 }
 
-interface SlippageScenario {
+export interface SlippageScenario {
   slippageTolerance: number;
   expectedAmountOut: number;
   minimumAmountOut: number;

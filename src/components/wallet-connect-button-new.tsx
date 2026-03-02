@@ -345,10 +345,16 @@ export function WalletConnectButton() {
   // Verificar Inscriptions quando o usuário conectar a carteira
   useEffect(() => {
     if (connected && address) {
-      verifyInscriptions();
+      // Dispatch walletConnected immediately so PremiumContext can check VIP list
+      // right away (before inscription verification which can be slow/flaky).
+      // PremiumContext.handleWalletConnected checks getWalletAccessTier first.
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('walletConnected', {
+          detail: { address, connected: true, isPremium: false, premiumCollection: null }
+        }));
+      }
 
-      // Não emitimos o evento aqui, pois ele será emitido após a verificação
-      // para garantir que o status premium esteja correto
+      verifyInscriptions();
     } else {
       // Resetar o status premium
       setIsPremium(false);

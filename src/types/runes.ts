@@ -23,6 +23,13 @@ export interface RuneData {
   iconUrl?: string;
   verified: boolean;
   attributes?: Record<string, string>;
+  // Market data properties (optional, populated when available)
+  mintRate?: number;
+  volume24h?: number;
+  price?: number;
+  priceChange24h?: number;
+  marketCap?: number;
+  holders?: number;
 }
 
 export interface RuneBalance {

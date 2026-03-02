@@ -164,7 +164,6 @@ export function CypherAIInterface() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, timeoutMessage]);
-        setIsProcessing(false);
         return;
       }
 
@@ -174,15 +173,17 @@ export function CypherAIInterface() {
         message: messageText
       });
 
-      // Fallback to enhancedCypherAI service (with 10s timeout)
-      const fallbackController = new AbortController();
-      const fallbackTimeout = setTimeout(() => fallbackController.abort(), 10000);
+      // Fallback to enhancedCypherAI service with a hard timeout
       try {
         const context: CypherAIContext = {
           conversationHistory: messages.map(m => `${m.type}: ${m.content}`),
           timestamp: Date.now()
         };
-        const response = await enhancedCypherAI.processTextInput(messageText, context);
+        const fallbackPromise = enhancedCypherAI.processTextInput(messageText, context);
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Fallback timeout')), 10000)
+        );
+        const response = await Promise.race([fallbackPromise, timeoutPromise]);
         const aiMessage: Message = {
           id: crypto.randomUUID(),
           type: 'ai',
@@ -205,8 +206,6 @@ export function CypherAIInterface() {
           timestamp: new Date(),
         };
         setMessages(prev => [...prev, errorMessage]);
-      } finally {
-        clearTimeout(fallbackTimeout);
       }
     } finally {
       clearTimeout(timeoutId);

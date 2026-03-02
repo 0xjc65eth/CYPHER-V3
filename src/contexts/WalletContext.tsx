@@ -3,6 +3,17 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { walletService, type WalletInfo, type WalletType, type Transaction } from '@/services/WalletService'
 
+interface PortfolioData {
+  totalValue: number
+  totalCost: number
+  unrealizedPnL: number
+  realizedPnL: number
+  totalReturn: number
+  totalReturnPercent: number
+  assets: any[]
+  [key: string]: any
+}
+
 interface WalletContextValue {
   walletInfo: WalletInfo
   isConnecting: boolean
@@ -10,8 +21,15 @@ interface WalletContextValue {
   connect: (walletType?: WalletType) => Promise<void>
   disconnect: () => void
   refreshBalance: () => Promise<void>
+  refreshPortfolio: () => Promise<void>
   getTransactionHistory: () => Promise<Transaction[]>
   signMessage: (message: string) => Promise<string>
+  // Convenience accessors derived from walletInfo
+  address: string | null
+  isConnected: boolean
+  balance: number | null
+  loading: boolean
+  portfolioData: PortfolioData | null
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null)
@@ -71,6 +89,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     return await walletService.signMessage(message)
   }, [])
 
+  const refreshPortfolio = useCallback(async () => {
+    try {
+      await walletService.updateBalance()
+    } catch (err) {
+      console.error('Failed to refresh portfolio:', err)
+    }
+  }, [])
+
   const value: WalletContextValue = {
     walletInfo,
     isConnecting,
@@ -78,8 +104,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     connect,
     disconnect,
     refreshBalance,
+    refreshPortfolio,
     getTransactionHistory,
     signMessage,
+    // Convenience accessors
+    address: walletInfo.paymentAddress?.address ?? walletInfo.ordinalsAddress?.address ?? null,
+    isConnected: walletInfo.connected,
+    balance: walletInfo.balance?.confirmed ?? null,
+    loading: isConnecting,
+    portfolioData: null,
   }
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>

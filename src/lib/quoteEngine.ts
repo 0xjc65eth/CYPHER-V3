@@ -1,4 +1,4 @@
-interface DexMetrics {
+export interface DexMetrics {
   name: string;
   network: string;
   baseScore: number;
@@ -33,7 +33,7 @@ interface DexMetrics {
   lastUpdated: number;
 }
 
-interface TrustScore {
+export interface TrustScore {
   overall: number; // 0-100
   breakdown: {
     reliability: number;
@@ -48,7 +48,7 @@ interface TrustScore {
   riskLevel: 'very_low' | 'low' | 'medium' | 'high' | 'very_high';
 }
 
-interface DexRanking {
+export interface DexRanking {
   dex: string;
   network: string;
   trustScore: TrustScore;

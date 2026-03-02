@@ -500,4 +500,5 @@ class QuickTradeErrorHandler {
 export const quickTradeErrorHandler = new QuickTradeErrorHandler();
 
 // Export types and enums
-export { ErrorContext, RetryConfig, CircuitBreakerConfig, CircuitState, QuickTradeErrorHandler };
+export type { ErrorContext, RetryConfig, CircuitBreakerConfig };
+export { CircuitState, QuickTradeErrorHandler };

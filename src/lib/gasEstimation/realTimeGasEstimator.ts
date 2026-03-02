@@ -734,4 +734,5 @@ class RealTimeGasEstimator {
 export const realTimeGasEstimator = new RealTimeGasEstimator();
 
 // Export types
-export { NetworkGasData, GasEstimate, DEXGasProfile, SmartGasStrategy, RealTimeGasEstimator };
+export type { NetworkGasData, GasEstimate, DEXGasProfile, SmartGasStrategy };
+export { RealTimeGasEstimator };

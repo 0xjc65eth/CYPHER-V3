@@ -58,7 +58,7 @@ const initialAssetState: AssetState = {
 
 export const createAssetSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   AssetSlice
 > = (set) => ({

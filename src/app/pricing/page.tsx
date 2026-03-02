@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Zap, Crown, Rocket, Loader2 } from 'lucide-react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Check, Zap, Crown, Rocket, Loader2, AlertCircle } from 'lucide-react'
 import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
 import { useEthWallet } from '@/hooks/useEthWallet'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -26,12 +27,25 @@ const TIER_ACCENT: Record<string, string> = {
   hacker_yields: '#F7931A',
 }
 
-export default function PricingPage() {
+function PricingPageContent() {
+  const searchParams = useSearchParams()
   const { connected: btcConnected, address: btcAddress } = useLaserEyes()
   const { address: ethAddress, isConnected: ethConnected, connecting: ethConnecting, connectEth } = useEthWallet()
   const { tier: currentTier, isActive } = useSubscription()
   const [loadingTier, setLoadingTier] = useState<SubscriptionTier | null>(null)
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutCanceled, setCheckoutCanceled] = useState(false)
+
+  // Handle checkout=canceled query param
+  useEffect(() => {
+    if (searchParams.get('checkout') === 'canceled') {
+      setCheckoutCanceled(true)
+      // Clean up URL
+      const url = new URL(window.location.href)
+      url.searchParams.delete('checkout')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [searchParams])
 
   // User is "connected" if either BTC or ETH wallet is connected
   const isWalletConnected = btcConnected || ethConnected
@@ -211,6 +225,23 @@ export default function PricingPage() {
           })}
         </div>
 
+        {/* Checkout canceled banner */}
+        {checkoutCanceled && (
+          <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <AlertCircle className="w-4 h-4 text-yellow-400" />
+              <p className="text-sm text-yellow-400 font-mono">Checkout was canceled</p>
+            </div>
+            <p className="text-xs text-yellow-400/60 font-mono">No charges were made. You can try again anytime.</p>
+            <button
+              onClick={() => setCheckoutCanceled(false)}
+              className="mt-2 text-xs text-yellow-400/60 hover:text-yellow-400 font-mono underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Checkout error banner */}
         {checkoutError && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-center">
@@ -233,5 +264,22 @@ export default function PricingPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function PricingPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-[#0d0d1a] text-white">
+        <div className="max-w-6xl mx-auto px-4 py-12">
+          <div className="animate-pulse space-y-4 text-center">
+            <div className="h-8 w-56 bg-white/5 rounded mx-auto" />
+            <div className="h-4 w-80 bg-white/5 rounded mx-auto" />
+          </div>
+        </div>
+      </main>
+    }>
+      <PricingPageContent />
+    </Suspense>
   )
 }

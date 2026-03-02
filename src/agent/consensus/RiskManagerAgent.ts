@@ -103,22 +103,24 @@ export class RiskManagerAgent {
   // ============================================================================
 
   private checkDrawdown(portfolio: PortfolioContext): { passed: boolean; reason: string; severity: 'block' | 'warn' } {
-    const { currentDrawdown, maxDrawdown } = portfolio.performance;
+    const { currentDrawdown } = portfolio.performance;
     const limits = portfolio.riskLimits;
+    // currentDrawdown is a positive number (0 to 1) from MaxDrawdownProtection
+    const dd = Math.abs(currentDrawdown);
 
-    if (currentDrawdown <= -limits.closeAllOnDrawdown) {
-      return { passed: false, reason: `Drawdown ${(currentDrawdown * 100).toFixed(1)}% exceeds close-all threshold ${(limits.closeAllOnDrawdown * 100).toFixed(0)}%`, severity: 'block' };
+    if (dd >= limits.closeAllOnDrawdown) {
+      return { passed: false, reason: `Drawdown ${(dd * 100).toFixed(1)}% exceeds close-all threshold ${(limits.closeAllOnDrawdown * 100).toFixed(0)}%`, severity: 'block' };
     }
 
-    if (currentDrawdown <= -limits.pauseOnDrawdown) {
-      return { passed: false, reason: `Drawdown ${(currentDrawdown * 100).toFixed(1)}% exceeds pause threshold ${(limits.pauseOnDrawdown * 100).toFixed(0)}%`, severity: 'block' };
+    if (dd >= limits.pauseOnDrawdown) {
+      return { passed: false, reason: `Drawdown ${(dd * 100).toFixed(1)}% exceeds pause threshold ${(limits.pauseOnDrawdown * 100).toFixed(0)}%`, severity: 'block' };
     }
 
-    if (currentDrawdown <= -limits.maxDailyDrawdown) {
-      return { passed: false, reason: `Daily drawdown limit reached: ${(currentDrawdown * 100).toFixed(1)}%`, severity: 'warn' };
+    if (dd >= limits.maxDailyDrawdown) {
+      return { passed: false, reason: `Daily drawdown limit reached: ${(dd * 100).toFixed(1)}%`, severity: 'warn' };
     }
 
-    return { passed: true, reason: `Drawdown OK (${(currentDrawdown * 100).toFixed(1)}%)`, severity: 'block' };
+    return { passed: true, reason: `Drawdown OK (${(dd * 100).toFixed(1)}%)`, severity: 'block' };
   }
 
   private checkPositionSize(proposal: TradeProposal, portfolio: PortfolioContext): { passed: boolean; reason: string; severity: 'block' | 'warn' } {

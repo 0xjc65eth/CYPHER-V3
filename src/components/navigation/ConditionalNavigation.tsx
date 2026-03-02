@@ -19,9 +19,12 @@ export function ConditionalNavigation({ children }: ConditionalNavigationProps) 
     '/whitepaper'
   ];
 
+  // Landing page has its own navigation
+  const isLandingPage = pathname === '/';
+
   
   // Verificar se a rota atual deve ser excluída
-  const shouldExcludeNavigation = excludedRoutes.some(route => 
+  const shouldExcludeNavigation = isLandingPage || excludedRoutes.some(route =>
     pathname === route || pathname.startsWith(route)
   );
   

@@ -264,7 +264,7 @@ const initialSecurityState: SecurityState = {
 
 export const createSecuritySlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   SecuritySlice
 > = (set, get) => ({

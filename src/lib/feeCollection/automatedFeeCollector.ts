@@ -672,9 +672,9 @@ class AutomatedFeeCollector {
 export const automatedFeeCollector = new AutomatedFeeCollector();
 
 // Export types
-export { 
-  FeeCollectionRecord, 
-  SettlementBatch, 
-  CollectionConfig, 
-  AutomatedFeeCollector 
+export type {
+  FeeCollectionRecord,
+  SettlementBatch,
+  CollectionConfig,
 };
+export { AutomatedFeeCollector };

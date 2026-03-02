@@ -655,11 +655,11 @@ class AdvancedRouteOptimizer {
 export const advancedRouteOptimizer = new AdvancedRouteOptimizer();
 
 // Export types
-export { 
-  Token, 
-  Pool, 
-  RouteStep, 
-  OptimizedRoute, 
+export type {
+  Token,
+  Pool,
+  RouteStep,
+  OptimizedRoute,
   RouteOptimizationConfig,
-  AdvancedRouteOptimizer 
 };
+export { AdvancedRouteOptimizer };

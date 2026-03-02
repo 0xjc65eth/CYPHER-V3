@@ -465,6 +465,8 @@ class InMemoryStore {
 class DatabaseService {
   private fallback = new InMemoryStore()
   private _isConnected = false
+  private _connectionTested = false
+  private _connectionPromise: Promise<boolean> | null = null
 
   get isConnected(): boolean {
     return this._isConnected && isSupabaseConfigured()
@@ -475,22 +477,43 @@ class DatabaseService {
   }
 
   /**
+   * Auto-initialize: test connection on first use (lazy, singleton promise)
+   */
+  private async ensureConnection(): Promise<boolean> {
+    if (this._connectionTested) return this._isConnected
+    if (this._connectionPromise) return this._connectionPromise
+
+    this._connectionPromise = this.testConnection().finally(() => {
+      this._connectionTested = true
+      this._connectionPromise = null
+    })
+    return this._connectionPromise
+  }
+
+  /**
    * Test the database connection
    */
   async testConnection(): Promise<boolean> {
     if (!isSupabaseConfigured()) {
+      console.warn('[DB] Supabase not configured: NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing')
+      this._connectionTested = true
       return false
     }
 
     try {
       const { error } = await this.db.from('users').select('id').limit(1)
       if (error && error.code !== 'PGRST116') {
-        // PGRST116 = table doesn't exist yet, which is OK
+        console.warn(`[DB] Supabase connection test warning: ${error.message} (code: ${error.code})`)
       }
       this._isConnected = true
+      this._connectionTested = true
+      console.log('[DB] Supabase connected successfully')
       return true
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error(`[DB] Supabase connection failed: ${msg}. Using in-memory fallback.`)
       this._isConnected = false
+      this._connectionTested = true
       return false
     }
   }
@@ -1739,3 +1762,11 @@ class DatabaseService {
 
 // Singleton export
 export const dbService = new DatabaseService()
+
+// Auto-test connection on module load (async, non-blocking)
+// This ensures _isConnected is set before the first DB operation
+if (typeof globalThis !== 'undefined') {
+  dbService.testConnection().catch(() => {
+    // Silently fall back to in-memory - error already logged in testConnection()
+  })
+}

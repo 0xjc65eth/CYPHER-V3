@@ -36,7 +36,7 @@ const initialMempoolState: MempoolState = {
 
 export const createMempoolSlice: StateCreator<
   RootState,
-  [],
+  [['zustand/immer', never]],
   [],
   MempoolSlice
 > = (set) => ({

@@ -35,6 +35,10 @@ export function useEthWallet() {
             chainId: parsed.chainId ?? null,
             connecting: false,
           })
+          // Re-dispatch ethWalletConnected on restore so PremiumContext picks up the address
+          window.dispatchEvent(new CustomEvent('ethWalletConnected', {
+            detail: { address: parsed.address, chainId: parsed.chainId ?? null },
+          }))
         }
       } catch {
         localStorage.removeItem(STORAGE_KEY)
@@ -57,6 +61,10 @@ export function useEthWallet() {
         const newAddress = accounts[0]
         setState(prev => ({ ...prev, address: newAddress }))
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ address: newAddress, chainId: state.chainId }))
+        // Notify PremiumContext of the new address for YHP re-verification
+        window.dispatchEvent(new CustomEvent('ethWalletConnected', {
+          detail: { address: newAddress, chainId: state.chainId },
+        }))
       }
     }
 
@@ -121,6 +129,12 @@ export function useEthWallet() {
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ address, chainId }))
 
+      // Dispatch ethWalletConnected so PremiumContext can pick up the address
+      // and trigger YHP NFT verification
+      window.dispatchEvent(new CustomEvent('ethWalletConnected', {
+        detail: { address, chainId },
+      }))
+
       return address
     } catch (error) {
       setState(prev => ({ ...prev, connecting: false }))
@@ -137,6 +151,9 @@ export function useEthWallet() {
     })
 
     localStorage.removeItem(STORAGE_KEY)
+
+    // Notify PremiumContext to revoke ETH-based premium access
+    window.dispatchEvent(new CustomEvent('ethWalletDisconnected'))
   }, [])
 
   return {
