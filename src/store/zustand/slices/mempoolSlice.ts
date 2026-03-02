@@ -66,3 +66,27 @@ export const createMempoolSlice: StateCreator<
     })
   },
 })
+
+// Redux-style action creators for backward compatibility
+let storeInstance: any = null
+
+const getStore = () => {
+  if (!storeInstance && typeof window !== 'undefined') {
+    const { useStore } = require('../index')
+    storeInstance = useStore
+  }
+  return storeInstance
+}
+
+// Action creators that return functions (for Redux-style dispatch compatibility)
+export const setMempoolData = (data: Partial<MempoolState>) => () => {
+  getStore()?.getState().setMempoolData(data)
+}
+
+export const setMempoolLoading = (loading: boolean) => () => {
+  getStore()?.getState().setMempoolLoading(loading)
+}
+
+export const setMempoolError = (error: string) => () => {
+  getStore()?.getState().setMempoolError(error)
+}

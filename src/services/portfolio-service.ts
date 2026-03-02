@@ -8,6 +8,14 @@
 import { walletConnector, WalletInfo } from './wallet-connector';
 import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
 
+// Asset Type Enum
+export enum AssetType {
+  BITCOIN = 'bitcoin',
+  ORDINAL = 'ordinal',
+  RUNE = 'rune',
+  OTHER = 'other'
+}
+
 // Define Asset and Transaction types
 export interface Asset {
   asset: string;
@@ -104,6 +112,18 @@ export interface AssetAllocation {
   color: string;
 }
 
+export interface PortfolioSummary {
+  totalValue: number;
+  totalChange24h: number;
+  totalChange7d: number;
+  totalChange30d: number;
+  assets: Asset[];
+  transactions: Transaction[];
+  metrics: PortfolioMetrics;
+  assetAllocation: AssetAllocation[];
+  lastUpdated: string;
+}
+
 /**
  * Serviço de Portfólio
  */
@@ -119,17 +139,49 @@ class PortfolioService {
     btcPrice: number;
     assets: { type: string; value: number }[];
   }[] = [];
+  private listeners = new Map<string, Function[]>();
+
+  /**
+   * Register an event listener
+   */
+  on(event: string, callback: Function): void {
+    const existing = this.listeners.get(event) || [];
+    this.listeners.set(event, [...existing, callback]);
+  }
+
+  /**
+   * Unregister an event listener
+   */
+  off(event: string, callback: Function): void {
+    const existing = this.listeners.get(event) || [];
+    this.listeners.set(event, existing.filter(cb => cb !== callback));
+  }
+
+  /**
+   * Emit an event to all registered listeners
+   */
+  protected emit(event: string, ...args: any[]): void {
+    const callbacks = this.listeners.get(event) || [];
+    callbacks.forEach(cb => {
+      try {
+        cb(...args);
+      } catch (error) {
+        console.error(`Error in event listener for ${event}:`, error);
+      }
+    });
+  }
 
   /**
    * Inicializa o serviço de portfólio com o endereço da carteira
    */
   public async initialize(walletAddress: string): Promise<void> {
     if (this.isLoading) return;
-    
+
     try {
       this.isLoading = true;
       this.walletAddress = walletAddress;
-      
+      this.emit('sync_started');
+
       // Tentar carregar dados do cache primeiro
       const cachedData = await cacheService.get(
         `portfolio_${walletAddress}`,
@@ -139,19 +191,22 @@ class PortfolioService {
         },
         cacheConfigs.portfolioData
       );
-      
+
       if (cachedData) {
         this.portfolioData = cachedData;
+        this.emit('portfolio_updated', cachedData);
       }
-      
+
       this.isInitialized = true;
       this.lastSyncTime = new Date().toISOString();
-      
+
       // Carregar dados históricos
       await this.loadHistoricalData();
-      
+
+      this.emit('sync_completed');
     } catch (error) {
       console.error('Failed to initialize portfolio service:', error);
+      this.emit('portfolio_error', error);
       throw error;
     } finally {
       this.isLoading = false;
@@ -198,10 +253,14 @@ class PortfolioService {
         portfolioData,
         cacheConfigs.portfolioData
       );
-      
+
+      // Emit update event
+      this.emit('portfolio_updated', portfolioData);
+
       return portfolioData;
     } catch (error) {
       console.error('Failed to sync wallet data:', error);
+      this.emit('portfolio_error', error);
       throw error;
     }
   }
@@ -498,6 +557,103 @@ class PortfolioService {
    */
   public getTotalValue(): number {
     return this.portfolioData?.totalValue || 0;
+  }
+
+  /**
+   * Sincroniza o portfólio manualmente
+   */
+  public async syncPortfolio(): Promise<void> {
+    if (!this.walletAddress) {
+      throw new Error('Wallet address not set. Call initialize() first.');
+    }
+
+    if (this.isLoading) {
+      return; // Already syncing
+    }
+
+    try {
+      this.isLoading = true;
+      this.emit('sync_started');
+
+      const portfolioData = await this.syncWalletData();
+      this.portfolioData = portfolioData;
+      this.lastSyncTime = new Date().toISOString();
+
+      this.emit('sync_completed');
+      this.emit('portfolio_updated', portfolioData);
+    } catch (error) {
+      console.error('Failed to sync portfolio:', error);
+      this.emit('portfolio_error', error);
+      throw error;
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  /**
+   * Retorna as métricas do portfólio
+   */
+  public getMetrics(): PortfolioMetrics | null {
+    return this.portfolioData?.metrics || null;
+  }
+
+  /**
+   * Verifica se o serviço está carregando
+   */
+  public isLoadingData(): boolean {
+    return this.isLoading;
+  }
+
+  /**
+   * Retorna o tempo da última sincronização
+   */
+  public getLastSyncTime(): string | null {
+    return this.lastSyncTime;
+  }
+
+  /**
+   * Retorna um resumo completo do portfólio
+   */
+  public getPortfolioSummary(): PortfolioSummary | null {
+    if (!this.portfolioData) {
+      return null;
+    }
+
+    const { assets, transactions, metrics, totalValue, lastUpdated } = this.portfolioData;
+
+    // Calcular alocação de ativos
+    const assetAllocation: AssetAllocation[] = [
+      {
+        type: 'Bitcoin',
+        value: totalValue * (metrics.btcDominance / 100),
+        percentage: metrics.btcDominance,
+        color: '#F7931A'
+      },
+      {
+        type: 'Ordinals',
+        value: totalValue * (metrics.ordinalsDominance / 100),
+        percentage: metrics.ordinalsDominance,
+        color: '#FF6B35'
+      },
+      {
+        type: 'Runes',
+        value: totalValue * (metrics.runesDominance / 100),
+        percentage: metrics.runesDominance,
+        color: '#4ECDC4'
+      }
+    ];
+
+    return {
+      totalValue,
+      totalChange24h: metrics.totalChange24h,
+      totalChange7d: metrics.totalChange7d,
+      totalChange30d: metrics.totalChange30d,
+      assets,
+      transactions,
+      metrics,
+      assetAllocation,
+      lastUpdated
+    };
   }
 }
 

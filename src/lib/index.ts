@@ -3,6 +3,12 @@ import type { DexQuote, OptimalRoute, TrustScore } from './quoteEngine';
 import type { GasEstimate } from './gasEstimation';
 import type { PriceImpactResult } from './priceImpactCalculator';
 
+// Value imports for factory instantiation
+import { IntelligentRoutingEngine } from './routingAlgorithm';
+import { AdvancedGasEstimator } from './gasEstimation';
+import { AdvancedPriceImpactCalculator } from './priceImpactCalculator';
+import { DexTrustSystem } from './quoteEngine';
+
 // Quote Engine - Sistema principal de cotações
 export type {
   DexQuote,

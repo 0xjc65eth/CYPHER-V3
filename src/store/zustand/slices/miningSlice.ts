@@ -68,3 +68,27 @@ export const createMiningSlice: StateCreator<
     })
   },
 })
+
+// Redux-style action creators for backward compatibility
+let storeInstance: any = null
+
+const getStore = () => {
+  if (!storeInstance && typeof window !== 'undefined') {
+    const { useStore } = require('../index')
+    storeInstance = useStore
+  }
+  return storeInstance
+}
+
+// Action creators that return functions (for Redux-style dispatch compatibility)
+export const setMiningData = (data: Partial<MiningState>) => () => {
+  getStore()?.getState().setMiningData(data)
+}
+
+export const setMiningLoading = (loading: boolean) => () => {
+  getStore()?.getState().setMiningLoading(loading)
+}
+
+export const setMiningError = (error: string) => () => {
+  getStore()?.getState().setMiningError(error)
+}

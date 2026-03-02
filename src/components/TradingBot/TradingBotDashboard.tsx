@@ -29,7 +29,7 @@ import {
   Mic,
   MicOff
 } from 'lucide-react';
-import { AutomatedTradingBotService as tradingBot } from '@/services/AutomatedTradingBotService';
+import { automatedTradingBot as tradingBot } from '@/services/AutomatedTradingBotService';
 
 interface TradingBotDashboardProps {
   className?: string;

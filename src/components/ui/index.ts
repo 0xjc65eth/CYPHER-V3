@@ -95,25 +95,25 @@ export {
   type AspectRatioProps
 } from './ResponsiveLayouts';
 
-// Re-export existing UI components
-export { default as Alert } from './alert';
-export { default as Badge } from './badge';
-export { default as Button } from './button';
-export { default as Card } from './card';
-export { default as Dialog } from './dialog';
-export { default as DropdownMenu } from './dropdown-menu';
-export { default as Image } from './image';
-export { default as Input } from './input';
-export { default as Label } from './label';
-export { default as Progress } from './progress';
-export { default as ScrollArea } from './scroll-area';
-export { default as Select } from './select';
-export { default as Separator } from './separator';
-export { default as Slider } from './slider';
-export { default as Switch } from './switch';
+// Re-export existing UI components (named exports, shadcn style)
+export * from './alert';
+export * from './badge';
+export * from './button';
+export * from './card';
+export * from './dialog';
+export * from './dropdown-menu';
+export * from './image';
+export * from './input';
+export * from './label';
+export * from './progress';
+export * from './scroll-area';
+export * from './select';
+export * from './separator';
+export * from './slider';
+export * from './switch';
 export * from './table';
-export { default as Tabs } from './tabs';
-export { default as Tooltip } from './tooltip';
+export * from './tabs';
+export * from './tooltip';
 export { useToast } from './use-toast';
 
 // Error Boundaries

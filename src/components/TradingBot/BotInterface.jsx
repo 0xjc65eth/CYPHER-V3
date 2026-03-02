@@ -1,6 +1,6 @@
 // components/TradingBot/BotInterface.jsx
 import React, { useState, useEffect } from 'react';
-import { AutomatedTradingBotService } from '../../services/AutomatedTradingBotService';
+import { automatedTradingBot } from '../../services/AutomatedTradingBotService';
 import { VoiceInterface } from '../CypherAI/VoiceInterface';
 
 export const BotInterface = ({ wallet }) => {
@@ -16,8 +16,8 @@ export const BotInterface = ({ wallet }) => {
   const [stats, setStats] = useState(null);
   const [logs, setLogs] = useState([]);
   const [expandedView, setExpandedView] = useState(false);
-  
-  const bot = new AutomatedTradingBotService();
+
+  const bot = automatedTradingBot;
 
   useEffect(() => {
     const interval = setInterval(() => {

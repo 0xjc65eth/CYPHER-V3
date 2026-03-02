@@ -36,7 +36,7 @@ import {
   Volume2,
   VolumeX,
   Brain,
-  TrendingFlat,
+  Minus as TrendingFlat,
   Shield,
   Award,
   Flame,

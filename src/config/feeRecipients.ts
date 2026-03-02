@@ -135,12 +135,49 @@ export function generateSwapDeeplink(params: {
 }): string {
   const baseUrl = 'https://app.uniswap.org/#/swap';
   const searchParams = new URLSearchParams();
-  
+
   if (params.fromToken) searchParams.set('inputCurrency', params.fromToken);
   if (params.toToken) searchParams.set('outputCurrency', params.toToken);
   if (params.amount) searchParams.set('exactAmount', params.amount);
   if (params.fromChain) searchParams.set('chain', params.fromChain);
-  
+
   const query = searchParams.toString();
   return query ? `${baseUrl}?${query}` : baseUrl;
+}
+
+// Validate minimum transaction amount
+export function validateMinimumAmount(
+  tokenAmount: number,
+  tokenSymbol: string,
+  tokenPrice: number
+): { isValid: boolean; message?: string } {
+  const valueUSD = tokenAmount * tokenPrice;
+  const minUSD = FEE_CONFIG.minimumTransactionUSD;
+
+  if (valueUSD < minUSD) {
+    return {
+      isValid: false,
+      message: `Minimum transaction value is $${minUSD.toFixed(2)} USD`
+    };
+  }
+
+  return { isValid: true };
+}
+
+// Calculate fee amount based on transaction value
+export function calculateFeeAmount(
+  tokenAmount: number,
+  tokenPrice: number = 1
+): {
+  feeAmount: number;
+  feeUSD: number;
+  netAmount: number;
+} {
+  const { feeAmount, feeUSD } = calculateServiceFee(tokenAmount, tokenPrice);
+
+  return {
+    feeAmount,
+    feeUSD,
+    netAmount: tokenAmount - feeAmount
+  };
 }

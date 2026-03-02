@@ -33,7 +33,7 @@ import {
   Info,
   Copy,
   Bookmark,
-  TrendingFlat,
+  Minus as TrendingFlat,
   Volume2,
   VolumeX,
   Settings,

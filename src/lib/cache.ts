@@ -247,3 +247,11 @@ export const cacheKeys: Record<string, any> & {
   binance: (key: string) => `binance:${key}`,
   bitcoinPrice: () => 'bitcoin:price',
 };
+
+// Cache configuration presets used by API services
+export const cacheConfigs = {
+  short: { ttl: 30, staleWhileRevalidate: true },     // 30s - real-time data
+  medium: { ttl: 300, staleWhileRevalidate: true },    // 5min - market data
+  long: { ttl: 3600, staleWhileRevalidate: false },    // 1h - static data
+  day: { ttl: 86400, staleWhileRevalidate: false },    // 24h - rarely changing
+};

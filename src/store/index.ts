@@ -4,3 +4,7 @@
  */
 export { useStore, useStore as store } from './zustand'
 export type { RootState } from './zustand'
+
+// Export Redux-compatible hooks for backward compatibility
+export { useAppSelector, useAppDispatch } from './hooks'
+export type { AppDispatch } from './hooks'

@@ -371,3 +371,11 @@ export function getApiConfig(service: string) {
 export function isServiceAvailable(service: string): boolean {
   return validateApiKey(service) && Boolean(getApiConfig(service));
 }
+
+// Agent System Configuration
+export const AGENT_SYSTEM = {
+  AGENTS: PROFESSIONAL_APIS.aiAgents,
+  rateLimits: PROFESSIONAL_APIS.rateLimits,
+  getAgent: (id: string) => PROFESSIONAL_APIS.aiAgents.find(agent => agent.id === id),
+  getActiveAgents: () => PROFESSIONAL_APIS.aiAgents.filter(agent => agent.active),
+};

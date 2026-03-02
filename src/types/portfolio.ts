@@ -31,6 +31,20 @@ export interface Transaction {
   unrealizedPNL?: number;
 }
 
+export interface AssetPNL {
+  asset: string;
+  assetType: 'bitcoin' | 'ordinal' | 'rune' | 'brc20' | 'rare_sat';
+  totalCost: number;
+  currentValue: number;
+  unrealizedPNL: number;
+  unrealizedPNLPercentage: number;
+  realizedPNL: number;
+  totalPNL: number;
+  totalPNLPercentage: number;
+  dayChange: number;
+  dayChangePercentage: number;
+}
+
 export interface AssetHolding {
   id: string;
   asset: string;

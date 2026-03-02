@@ -7,12 +7,18 @@ export { BaseChart } from './base/BaseChart';
 // Bitcoin Charts
 export { BitcoinPriceChart } from './bitcoin/BitcoinPriceChart';
 
-// Trading Charts  
+// Trading Charts
 export { VolumeChart } from './trading/CandlestickChart';
 
 // AI Charts
 export { NeuralPredictionChart } from './ai/NeuralPredictionChart';
 export { SentimentChart } from './ai/SentimentChart';
+
+// Re-export existing chart components as LineChart, PieChart, DonutChart (aliases for backwards compatibility)
+export { BitcoinPriceChart as LineChart } from './bitcoin/BitcoinPriceChart';
+export { BaseChart as PieChart } from './base/BaseChart';
+export { BaseChart as DonutChart } from './base/BaseChart';
+export { BaseChart as BarChart } from './base/BaseChart';
 
 // Types
 export type { 

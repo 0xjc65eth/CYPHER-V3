@@ -11,11 +11,15 @@ export { OrdinalsArbitrageService, ordinalsArbitrageService } from './OrdinalsAr
 export { PortfolioAnalytics, portfolioAnalytics } from './PortfolioAnalytics';
 export { OrdinalsWebSocketManager, ordinalsWebSocketManager } from './WebSocketManager';
 
+// Legacy Ordinals Service (for backward compatibility)
+export { ordinalsService } from '../ordinals';
+
 // Marketplace API Integrations
 export * from './integrations';
 
 // Re-export types for easier importing
 export * from '@/types/ordinals-advanced';
+export type { OrdinalsCollection, OrdinalsInscription } from '@/types/ordinals-advanced';
 
 // Utility Functions
 export { OrdinalsDataConverter, OrdinalsMarketplaceFactory } from './integrations';

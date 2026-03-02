@@ -118,6 +118,9 @@ export interface TransactionData {
   description: string;
 }
 
+// Alias for backward compatibility with other components
+export type Transaction = TransactionData;
+
 export interface WalletInfo {
   address: string;
   balance: number;

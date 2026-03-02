@@ -167,43 +167,64 @@ export const formatCompactNumber = (
 export const formatRelativeTime = (timestamp: number): string => {
   const now = Date.now();
   const diff = now - timestamp;
-  
+
   // Menos de 1 minuto
   if (diff < 60000) {
     return 'just now';
   }
-  
+
   // Menos de 1 hora
   if (diff < 3600000) {
     const minutes = Math.floor(diff / 60000);
     return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
   }
-  
+
   // Menos de 1 dia
   if (diff < 86400000) {
     const hours = Math.floor(diff / 3600000);
     return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
   }
-  
+
   // Menos de 1 semana
   if (diff < 604800000) {
     const days = Math.floor(diff / 86400000);
     return `${days} ${days === 1 ? 'day' : 'days'} ago`;
   }
-  
+
   // Menos de 1 mês
   if (diff < 2592000000) {
     const weeks = Math.floor(diff / 604800000);
     return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
   }
-  
+
   // Menos de 1 ano
   if (diff < 31536000000) {
     const months = Math.floor(diff / 2592000000);
     return `${months} ${months === 1 ? 'month' : 'months'} ago`;
   }
-  
+
   // Mais de 1 ano
   const years = Math.floor(diff / 31536000000);
   return `${years} ${years === 1 ? 'year' : 'years'} ago`;
 };
+
+/**
+ * Formata um número com separadores de milhar
+ * @param value Valor a ser formatado
+ * @param decimals Número de casas decimais (padrão: 0)
+ * @returns String formatada
+ */
+export const formatNumber = (
+  value: number,
+  decimals: number = 0
+): string => {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(value);
+};
+
+/**
+ * Alias para formatPercentage para compatibilidade
+ */
+export const formatPercent = formatPercentage;

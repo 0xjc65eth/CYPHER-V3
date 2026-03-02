@@ -1,3 +1,6 @@
+// Re-export fee utilities from feeRecipients for convenience
+export { calculateServiceFee, FEE_CONFIG } from './feeRecipients';
+
 export const QUICKTRADE_CONFIG = {
   SERVICE_FEE: 0.0034, // 0.34% service fee
   MIN_TRANSACTION_USD: 10,

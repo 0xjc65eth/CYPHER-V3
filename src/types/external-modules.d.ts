@@ -3,6 +3,30 @@
  * Eliminates TS2307 errors for packages used in non-critical paths
  */
 
+
+// Web Speech API (not in all TS lib targets)
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: any) => void) | null;
+  onerror: ((event: any) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+declare var SpeechRecognition: {
+  new(): SpeechRecognition;
+  prototype: SpeechRecognition;
+};
+
+declare var webkitSpeechRecognition: {
+  new(): SpeechRecognition;
+  prototype: SpeechRecognition;
+};
+
 declare module 'vite-plugin-dts' {
   const plugin: (...args: any[]) => any;
   export default plugin;

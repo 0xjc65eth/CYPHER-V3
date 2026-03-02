@@ -152,3 +152,63 @@ export const createAssetSlice: StateCreator<
     })
   },
 })
+
+// Redux-style selectors for backward compatibility
+export const selectSelectedAsset = (state: RootState) => state.asset.selectedAsset
+export const selectSelectedAssetSymbol = (state: RootState) => state.asset.selectedAssetSymbol
+export const selectAssetPrices = (state: RootState) => state.asset.assetPrices
+export const selectIsLoadingAssetData = (state: RootState) => state.asset.isLoadingAssetData
+export const selectIsLoadingAssetSwitch = (state: RootState) => state.asset.isLoadingAssetSwitch
+export const selectAssetError = (state: RootState) => state.asset.error
+export const selectAssetHistory = (state: RootState) => state.asset.assetHistory
+export const selectLastAssetSwitch = (state: RootState) => state.asset.lastAssetSwitch
+
+// Parameterized selector for specific asset price
+export const selectAssetPrice = (symbol: string) => (state: RootState) =>
+  state.asset.assetPrices[symbol] || null
+
+// Redux-style action creators for backward compatibility
+// These return thunk-like functions that execute the store methods
+let storeInstance: any = null
+
+const getStore = () => {
+  if (!storeInstance && typeof window !== 'undefined') {
+    // Lazy load the store to avoid circular dependencies
+    const { useStore } = require('../index')
+    storeInstance = useStore
+  }
+  return storeInstance
+}
+
+// Action creators that return functions (for Redux-style dispatch compatibility)
+export const setSelectedAsset = (payload: Parameters<AssetActions['setSelectedAsset']>[0]) => () => {
+  getStore()?.getState().setSelectedAsset(payload)
+}
+
+export const setAssetSwitchComplete = () => () => {
+  getStore()?.getState().setAssetSwitchComplete()
+}
+
+export const setAssetPrice = (payload: Parameters<AssetActions['setAssetPrice']>[0]) => () => {
+  getStore()?.getState().setAssetPrice(payload)
+}
+
+export const setAssetPrices = (prices: Parameters<AssetActions['setAssetPrices']>[0]) => () => {
+  getStore()?.getState().setAssetPrices(prices)
+}
+
+export const setAssetDataLoading = (loading: boolean) => () => {
+  getStore()?.getState().setAssetDataLoading(loading)
+}
+
+export const setAssetError = (error: string) => () => {
+  getStore()?.getState().setAssetError(error)
+}
+
+export const clearAssetError = () => () => {
+  getStore()?.getState().clearAssetError()
+}
+
+export const clearStaleAssetData = () => () => {
+  getStore()?.getState().clearStaleAssetData()
+}

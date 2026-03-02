@@ -7,12 +7,12 @@ import {
   AnalysisResult,
   TradingSignal
 } from './types';
-import { AutomatedTradingBotService } from '@/services/AutomatedTradingBotService';
+import { AutomatedTradingBotService, automatedTradingBot } from '@/services/AutomatedTradingBotService';
 
 export class CypherAI {
   private config: CypherAIConfig;
   private conversationHistory: ConversationMessage[] = [];
-  private tradingBot: AutomatedTradingBotService | null = null;
+  private tradingBot: AutomatedTradingBotService = automatedTradingBot;
   private eventListeners: Map<string, Array<(...args: any[]) => void>> = new Map();
 
   constructor(config?: Partial<CypherAIConfig>) {
@@ -160,10 +160,6 @@ export class CypherAI {
 
   private async handleStartBot(): Promise<any> {
     try {
-      if (!this.tradingBot) {
-        this.tradingBot = new AutomatedTradingBotService();
-      }
-      
       await this.tradingBot.startBot();
 
       return {

@@ -36,7 +36,7 @@ import {
   Target,
   Award,
   Shield,
-  TrendingFlat,
+  Minus as TrendingFlat,
   Calculator,
   BookOpen,
   FileText,

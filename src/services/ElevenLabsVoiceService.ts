@@ -366,6 +366,13 @@ export class ElevenLabsVoiceService {
   }
 
   /**
+   * Speak text aloud (alias for quickSpeak)
+   */
+  async speak(text: string): Promise<void> {
+    return this.quickSpeak(text, 'casual');
+  }
+
+  /**
    * Stop current audio and clear queue
    */
   stopAudio(): void {

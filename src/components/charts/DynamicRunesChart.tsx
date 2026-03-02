@@ -15,7 +15,6 @@ import {
   Area,
   BarChart,
   Bar,
-  CandlestickChart,
   XAxis,
   YAxis,
   CartesianGrid,

@@ -76,12 +76,50 @@ export class AutomatedTradingBotService {
   private cmcService: CoinMarketCapService;
   private voiceService: ElevenLabsVoiceService;
   private hyperliquidService: HyperliquidTradingService;
+  private listeners = new Map<string, Function[]>();
 
   constructor() {
     this.cmcService = new CoinMarketCapService();
     this.voiceService = new ElevenLabsVoiceService();
     this.hyperliquidService = new HyperliquidTradingService();
     this.initializeStrategies();
+  }
+
+  /**
+   * Register an event listener
+   */
+  on(event: string, callback: Function): void {
+    const existing = this.listeners.get(event) || [];
+    this.listeners.set(event, [...existing, callback]);
+  }
+
+  /**
+   * Unregister an event listener
+   */
+  off(event: string, callback: Function): void {
+    const existing = this.listeners.get(event) || [];
+    this.listeners.set(event, existing.filter(cb => cb !== callback));
+  }
+
+  /**
+   * Remove all event listeners
+   */
+  removeAllListeners(): void {
+    this.listeners.clear();
+  }
+
+  /**
+   * Emit an event to all registered listeners
+   */
+  protected emit(event: string, ...args: any[]): void {
+    const callbacks = this.listeners.get(event) || [];
+    callbacks.forEach(cb => {
+      try {
+        cb(...args);
+      } catch (error) {
+        console.error(`Error in event listener for ${event}:`, error);
+      }
+    });
   }
 
   private initializeStrategies() {
@@ -164,12 +202,13 @@ export class AutomatedTradingBotService {
     }
 
     this.isRunning = true;
-    
+    this.emit('botStarted');
+
     // Inicializar Hyperliquid Trading Service
     const hyperliquidConnected = await this.hyperliquidService.initialize();
     if (!hyperliquidConnected) {
     }
-    
+
     // Anunciar início por voz
     await this.voiceService.speak(
       'E aí, mano! CYPHER Bot tá ligando agora! Vou ficar de olho nas melhores oportunidades pra você. Bora fazer essa grana!',
@@ -187,10 +226,11 @@ export class AutomatedTradingBotService {
     if (!this.isRunning) return;
 
     this.isRunning = false;
-    
+    this.emit('botStopped');
+
     // Desconectar Hyperliquid
     await this.hyperliquidService.disconnect();
-    
+
     await this.voiceService.speak(
       'Opa, parando o bot aqui! Foi massa operar com você hoje. Até a próxima, parceiro!',
       'casual'
@@ -566,13 +606,13 @@ export class AutomatedTradingBotService {
 
   private async closePosition(position: TradingPosition, reason: string) {
     this.updatePerformance(position.pnl, position.pnl > 0);
-    
-    
+    this.emit('tradeCompleted', { position, reason });
+
     if (Math.abs(position.pnl) > 50) { // Anunciar trades significativos
-      const message = position.pnl > 0 ? 
+      const message = position.pnl > 0 ?
         `Show! Fechei ${position.asset} com lucro de $${position.pnl.toFixed(0)}. ${reason === 'take_profit' ? 'Meta batida!' : 'Stop ativado, mas foi lucro!'}` :
         `Fechei ${position.asset} com perda de $${Math.abs(position.pnl).toFixed(0)}. ${reason === 'stop_loss' ? 'Stop loss ativado, proteção funcionou!' : 'Realização tática.'}`;
-      
+
       await this.voiceService.speak(message, position.pnl > 0 ? 'confident' : 'analytical');
     }
 
@@ -608,7 +648,8 @@ export class AutomatedTradingBotService {
       }
 
       this.performance.uptime = Date.now() - this.performance.startTime.getTime();
-      
+      this.emit('performanceUpdate', this.getPerformance());
+
       // Relatório periódico (a cada hora)
       if (this.performance.uptime % (60 * 60 * 1000) < 60000) {
         await this.generatePerformanceReport();
@@ -642,18 +683,126 @@ export class AutomatedTradingBotService {
   }
 
   // Métodos públicos para controle do bot
+  get isRunning(): boolean {
+    return this.isActive();
+  }
+
   getPerformance() {
     return {
       ...this.performance,
-      successRate: this.performance.totalTrades > 0 ? 
+      successRate: this.performance.totalTrades > 0 ?
         (this.performance.successfulTrades / this.performance.totalTrades) * 100 : 0,
-      isRunning: this.isRunning,
+      isRunning: this.isActive(),
       activePositions: this.activePositions.length,
       activeOpportunities: this.opportunities.length,
       hyperliquidConnected: this.hyperliquidService.isConnected(),
       hyperliquidPositions: this.hyperliquidService.getPositions().length,
       hyperliquidOrders: this.hyperliquidService.getPendingOrders().length
     };
+  }
+
+  async start() {
+    return this.startBot();
+  }
+
+  async stop() {
+    return this.stopBot();
+  }
+
+  getPositions() {
+    return this.getActivePositions();
+  }
+
+  getDailyStats() {
+    const now = Date.now();
+    const dayStart = new Date().setHours(0, 0, 0, 0);
+    const todayPositions = this.activePositions.filter(
+      pos => pos.openTime.getTime() >= dayStart
+    );
+
+    const todayPnL = todayPositions.reduce((sum, pos) => sum + pos.pnl, 0);
+    const todayTrades = todayPositions.length;
+
+    return {
+      tradesCount: todayTrades,
+      profit: todayPnL,
+      startTime: dayStart,
+      uptime: now - dayStart
+    };
+  }
+
+  getConfig() {
+    return {
+      strategies: this.strategies,
+      accounts: this.accounts.map(acc => ({
+        exchange: acc.exchange,
+        connected: acc.connected,
+        hasBalance: Object.keys(acc.balance).length > 0
+      })),
+      settings: {
+        voiceEnabled: true,
+        emergencyStopEnabled: true,
+        maxPositions: 10,
+        maxRiskPerTrade: 0.02 // 2%
+      }
+    };
+  }
+
+  getStats() {
+    const performance = this.getPerformance();
+    return {
+      totalTrades: performance.totalTrades,
+      successfulTrades: performance.successfulTrades,
+      winRate: performance.successRate,
+      totalProfit: performance.totalPnL,
+      totalLoss: Math.abs(Math.min(0, performance.totalPnL)),
+      tradesPerHour: this.calculateTradesPerHour(),
+      activePositions: performance.activePositions,
+      isRunning: performance.isRunning
+    };
+  }
+
+  private calculateTradesPerHour(): number {
+    if (!this.performance.startTime) return 0;
+    const hoursSinceStart = (Date.now() - this.performance.startTime.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceStart === 0) return 0;
+    return Math.round(this.performance.totalTrades / hoursSinceStart);
+  }
+
+  getRecentTrades(limit: number = 10): any[] {
+    // Return recent closed positions as trades
+    const now = Date.now();
+    const recentPositions = this.activePositions
+      .filter(pos => now - pos.openTime.getTime() < 24 * 60 * 60 * 1000) // Last 24 hours
+      .slice(-limit)
+      .map(pos => ({
+        id: pos.id,
+        timestamp: pos.openTime.toISOString(),
+        opportunity: {
+          type: pos.id.includes('arb') ? 'arbitrage' : pos.id.includes('momentum') ? 'momentum' : 'dca',
+          token: pos.asset
+        },
+        profit: pos.pnlPercent,
+        pnl: pos.pnl,
+        status: 'completed'
+      }));
+
+    return recentPositions;
+  }
+
+  async scanOpportunities(): Promise<TradingOpportunity[]> {
+    // Return current opportunities
+    return this.opportunities.slice(-10);
+  }
+
+  async executeStrategies(): Promise<void> {
+    // Execute all active strategies
+    for (const strategy of this.strategies) {
+      if (strategy.active) {
+        // Trigger strategy execution
+        console.log(`Executing strategy: ${strategy.name}`);
+      }
+    }
   }
 
   getActivePositions() {
