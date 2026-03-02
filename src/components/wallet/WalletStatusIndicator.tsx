@@ -38,17 +38,20 @@ export function WalletStatusIndicator({
   const wallet = {
     isConnected: false,
     address: null as string | null,
-    balance: null as number | null,
+    balance: null as any,
     currentWallet: null as string | null,
+    walletType: null as string | null,
     connect: () => {},
     disconnect: () => {},
     portfolioData: null as any,
+    error: null as string | null,
+    loading: false,
   };
-  
+
   const portfolio = {
     isConnected: false,
     isLoading: false,
-    error: null,
+    error: null as string | null,
     portfolioData: null,
     balance: null,
     refreshAll: () => {}
@@ -109,18 +112,18 @@ export function WalletStatusIndicator({
           <div className="flex items-center gap-3 text-xs">
             <div className="flex items-center gap-1">
               <DollarSign className="w-3 h-3 text-gray-400" />
-              <span className="text-white">${formatNumber(wallet.balance.usd)}</span>
+              <span className="text-white">${formatNumber((wallet.balance as any)?.usd || 0)}</span>
             </div>
             {wallet.portfolioData && (
               <div className={`flex items-center gap-1 ${
-                wallet.portfolioData.totalPNL >= 0 ? 'text-green-500' : 'text-red-500'
+                (wallet.portfolioData as any)?.totalPNL >= 0 ? 'text-green-500' : 'text-red-500'
               }`}>
-                {wallet.portfolioData.totalPNL >= 0 ? 
-                  <TrendingUp className="w-3 h-3" /> : 
+                {(wallet.portfolioData as any)?.totalPNL >= 0 ?
+                  <TrendingUp className="w-3 h-3" /> :
                   <TrendingDown className="w-3 h-3" />
                 }
                 <span>
-                  {wallet.portfolioData.totalPNL >= 0 ? '+' : ''}{formatNumber(wallet.portfolioData.totalPNLPercentage)}%
+                  {(wallet.portfolioData as any)?.totalPNL >= 0 ? '+' : ''}{formatNumber((wallet.portfolioData as any)?.totalPNLPercentage || 0)}%
                 </span>
               </div>
             )}
@@ -182,27 +185,27 @@ export function WalletStatusIndicator({
             <div className="text-center">
               <div className="text-xs text-gray-500">Total Value</div>
               <div className="text-sm font-semibold text-white">
-                ${formatNumber(wallet.balance.usd)}
+                ${formatNumber((wallet.balance as any)?.usd || 0)}
               </div>
             </div>
-            
+
             {wallet.portfolioData && (
               <>
                 <div className="text-center">
                   <div className="text-xs text-gray-500">P&L</div>
                   <div className={`text-sm font-semibold ${
-                    wallet.portfolioData.totalPNL >= 0 ? 'text-green-500' : 'text-red-500'
+                    (wallet.portfolioData as any)?.totalPNL >= 0 ? 'text-green-500' : 'text-red-500'
                   }`}>
-                    {wallet.portfolioData.totalPNL >= 0 ? '+' : ''}${formatNumber(wallet.portfolioData.totalPNL)}
+                    {(wallet.portfolioData as any)?.totalPNL >= 0 ? '+' : ''}${formatNumber((wallet.portfolioData as any)?.totalPNL || 0)}
                   </div>
                 </div>
-                
+
                 <div className="text-center">
                   <div className="text-xs text-gray-500">Return %</div>
                   <div className={`text-sm font-semibold ${
-                    wallet.portfolioData.totalPNLPercentage >= 0 ? 'text-green-500' : 'text-red-500'
+                    (wallet.portfolioData as any)?.totalPNLPercentage >= 0 ? 'text-green-500' : 'text-red-500'
                   }`}>
-                    {wallet.portfolioData.totalPNLPercentage >= 0 ? '+' : ''}{formatNumber(wallet.portfolioData.totalPNLPercentage)}%
+                    {(wallet.portfolioData as any)?.totalPNLPercentage >= 0 ? '+' : ''}{formatNumber((wallet.portfolioData as any)?.totalPNLPercentage || 0)}%
                   </div>
                 </div>
               </>
@@ -219,27 +222,27 @@ export function WalletStatusIndicator({
                 <span className="text-gray-300">Bitcoin</span>
               </div>
               <span className="text-white font-medium">
-                {wallet.balance.bitcoin.toFixed(6)} BTC
+                {((wallet.balance as any)?.bitcoin || 0).toFixed(6)} BTC
               </span>
             </div>
-            
-            {wallet.balance.ordinals > 0 && (
+
+            {(wallet.balance as any)?.ordinals > 0 && (
               <div className="flex justify-between items-center text-sm">
                 <div className="flex items-center gap-2">
                   <Crown className="w-4 h-4 text-purple-500" />
                   <span className="text-gray-300">Ordinals</span>
                 </div>
-                <span className="text-white font-medium">{wallet.balance.ordinals}</span>
+                <span className="text-white font-medium">{(wallet.balance as any).ordinals}</span>
               </div>
             )}
-            
-            {wallet.balance.runes > 0 && (
+
+            {(wallet.balance as any)?.runes > 0 && (
               <div className="flex justify-between items-center text-sm">
                 <div className="flex items-center gap-2">
                   <Gem className="w-4 h-4 text-green-500" />
                   <span className="text-gray-300">Runes</span>
                 </div>
-                <span className="text-white font-medium">{wallet.balance.runes}</span>
+                <span className="text-white font-medium">{(wallet.balance as any).runes}</span>
               </div>
             )}
           </div>
@@ -259,19 +262,20 @@ export function WalletStatusIndicator({
 
 // Hook to check wallet connection status across the app
 export function useWalletStatus() {
-  const wallet = useWallet();
-  const portfolio = useWalletPortfolio();
+  // WALLET TEMPORARILY DISABLED
+  // const wallet = useWallet();
+  // const portfolio = useWalletPortfolio();
 
   return {
-    isConnected: wallet.isConnected,
-    hasPortfolioData: !!wallet.portfolioData,
-    hasBalance: !!wallet.balance,
-    isLoading: wallet.loading || portfolio.isLoading,
-    error: wallet.error || portfolio.error,
-    address: wallet.address,
-    walletType: wallet.walletType,
-    portfolioValue: wallet.balance?.usd || 0,
-    portfolioPNL: wallet.portfolioData?.totalPNL || 0,
-    portfolioPNLPercentage: wallet.portfolioData?.totalPNLPercentage || 0,
+    isConnected: false,
+    hasPortfolioData: false,
+    hasBalance: false,
+    isLoading: false,
+    error: null,
+    address: null,
+    walletType: null,
+    portfolioValue: 0,
+    portfolioPNL: 0,
+    portfolioPNLPercentage: 0,
   };
 }

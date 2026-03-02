@@ -181,7 +181,7 @@ export default function MarketAnalytics() {
             ) : (
               <>
                 <p className="text-2xl font-bold">
-                  ₿{marketStats?.total_volume_24h.toFixed(1) || '0.0'}
+                  ₿{marketStats?.totalVolume24h.toFixed(1) || '0.0'}
                 </p>
                 <div className="flex items-center gap-1 text-sm">
                   <TrendingUp className="h-3 w-3 text-green-500" />
@@ -209,7 +209,7 @@ export default function MarketAnalytics() {
             ) : (
               <>
                 <p className="text-2xl font-bold">
-                  {marketStats?.total_collections.toLocaleString() || '0'}
+                  {marketStats?.topCollections.length.toLocaleString() || '0'}
                 </p>
                 <div className="flex items-center gap-1 text-sm">
                   <Activity className="h-3 w-3 text-blue-500" />

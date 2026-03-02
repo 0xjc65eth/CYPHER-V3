@@ -102,7 +102,7 @@ class MagicEdenService {
    */
   async getPopularCollections(limit: number = 20): Promise<MECollection[]> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`popular-collections-${limit}`),
+      (cacheKeys as any).magiceden(`popular-collections-${limit}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching top ${limit} collections`);
         return await this.request<MECollection[]>(
@@ -110,7 +110,7 @@ class MagicEdenService {
           { limit }
         );
       },
-      cacheTTL.collections
+      (cacheTTL as any).collections
     );
   }
 
@@ -119,14 +119,14 @@ class MagicEdenService {
    */
   async getCollection(symbol: string): Promise<MECollection> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`collection-${symbol}`),
+      (cacheKeys as any).magiceden(`collection-${symbol}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching collection: ${symbol}`);
         return await this.request<MECollection>(
           `${API_CONFIG.magiceden.endpoints.collections}/${symbol}`
         );
       },
-      cacheTTL.collections
+      (cacheTTL as any).collections
     );
   }
 
@@ -139,7 +139,7 @@ class MagicEdenService {
     limit: number = 20
   ): Promise<METoken[]> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`tokens-${symbol}-${offset}-${limit}`),
+      (cacheKeys as any).magiceden(`tokens-${symbol}-${offset}-${limit}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching tokens for collection: ${symbol}`);
         return await this.request<METoken[]>(
@@ -147,7 +147,7 @@ class MagicEdenService {
           { offset, limit }
         );
       },
-      cacheTTL.tokens
+      (cacheTTL as any).tokens
     );
   }
 
@@ -156,14 +156,14 @@ class MagicEdenService {
    */
   async getToken(tokenId: string): Promise<METoken> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`token-${tokenId}`),
+      (cacheKeys as any).magiceden(`token-${tokenId}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching token: ${tokenId}`);
         return await this.request<METoken>(
           `${API_CONFIG.magiceden.endpoints.tokens}/${tokenId}`
         );
       },
-      cacheTTL.tokens
+      (cacheTTL as any).tokens
     );
   }
 
@@ -174,23 +174,23 @@ class MagicEdenService {
     collectionSymbol?: string,
     limit: number = 50
   ): Promise<MEActivity[]> {
-    const cacheKey = collectionSymbol 
+    const cacheKey = collectionSymbol
       ? `activities-${collectionSymbol}-${limit}`
       : `activities-all-${limit}`;
 
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(cacheKey),
+      (cacheKeys as any).magiceden(cacheKey),
       async () => {
         devLogger.log('MAGIC_EDEN', 'Fetching recent activities');
         const params: any = { limit };
         if (collectionSymbol) params.collectionSymbol = collectionSymbol;
-        
+
         return await this.request<MEActivity[]>(
           API_CONFIG.magiceden.endpoints.activities,
           params
         );
       },
-      cacheTTL.activities
+      (cacheTTL as any).activities
     );
   }
 
@@ -199,14 +199,14 @@ class MagicEdenService {
    */
   async getCollectionStats(symbol: string): Promise<MEStats> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`stats-${symbol}`),
+      (cacheKeys as any).magiceden(`stats-${symbol}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching stats for: ${symbol}`);
         return await this.request<MEStats>(
           `${API_CONFIG.magiceden.endpoints.stats}/${symbol}`
         );
       },
-      cacheTTL.stats
+      (cacheTTL as any).stats
     );
   }
 
@@ -215,14 +215,14 @@ class MagicEdenService {
    */
   async getMarketplaceData(symbol: string): Promise<MEMarketplace> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`marketplace-${symbol}`),
+      (cacheKeys as any).magiceden(`marketplace-${symbol}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching marketplace data for: ${symbol}`);
         return await this.request<MEMarketplace>(
           `${API_CONFIG.magiceden.endpoints.marketplace}/${symbol}`
         );
       },
-      cacheTTL.marketplace
+      (cacheTTL as any).marketplace
     );
   }
 
@@ -231,7 +231,7 @@ class MagicEdenService {
    */
   async searchCollections(query: string): Promise<MECollection[]> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`search-${query}`),
+      (cacheKeys as any).magiceden(`search-${query}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Searching collections: ${query}`);
         return await this.request<MECollection[]>(
@@ -239,7 +239,7 @@ class MagicEdenService {
           { q: query }
         );
       },
-      cacheTTL.search
+      (cacheTTL as any).search
     );
   }
 
@@ -248,14 +248,14 @@ class MagicEdenService {
    */
   async getListedTokensByOwner(address: string): Promise<METoken[]> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`owner-listings-${address}`),
+      (cacheKeys as any).magiceden(`owner-listings-${address}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching listings for owner: ${address}`);
         return await this.request<METoken[]>(
           `${API_CONFIG.magiceden.endpoints.tokens}/owner/${address}`
         );
       },
-      cacheTTL.tokens
+      (cacheTTL as any).tokens
     );
   }
 
@@ -264,20 +264,20 @@ class MagicEdenService {
    */
   async getCollectionOffers(symbol: string): Promise<any[]> {
     return cacheService.getOrCompute(
-      cacheKeys.magiceden(`offers-${symbol}`),
+      (cacheKeys as any).magiceden(`offers-${symbol}`),
       async () => {
         devLogger.log('MAGIC_EDEN', `Fetching offers for: ${symbol}`);
         return await this.request<any[]>(
           `${API_CONFIG.magiceden.endpoints.collections}/${symbol}/offers`
         );
       },
-      cacheTTL.offers
+      (cacheTTL as any).offers
     );
   }
 }
 
 // Cache keys específicos para Magic Eden
-cacheKeys.magiceden = (key: string) => `magiceden:${key}`;
+(cacheKeys as any).magiceden = (key: string) => `magiceden:${key}`;
 
 // Cache TTLs específicos
 Object.assign(cacheTTL, {

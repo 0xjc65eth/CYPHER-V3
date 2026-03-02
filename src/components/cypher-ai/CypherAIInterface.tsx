@@ -258,7 +258,7 @@ export function CypherAIInterface() {
           personality: selectedPersonality.id,
           walletData: wallet.walletData,
           context: {
-            connectedWallet: wallet.connected,
+            connectedWallet: wallet.isConnected,
             isPremium: wallet.isPremium
           }
         })

@@ -193,7 +193,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
       { name: 'Low Risk', value: lowRisk.reduce((sum: number, a: any) => sum + a.value, 0), color: '#10B981' },
       { name: 'Medium Risk', value: mediumRisk.reduce((sum: number, a: any) => sum + a.value, 0), color: '#F59E0B' },
       { name: 'High Risk', value: highRisk.reduce((sum: number, a: any) => sum + a.value, 0), color: '#EF4444' }
-    ].filter((item: any) => item.value > 0);
+    ].filter((item: { name: string; value: number; color: string }) => item.value > 0);
   }, [processedAssets]);
 
   // Timeframe options
@@ -396,7 +396,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                               dataKey="value"
                               label={({ allocation }: any) => `${allocation.toFixed(1)}%`}
                             >
-                              {allocationData.map((entry: any, index: number) => (
+                              {allocationData.map((entry: { color: string }, index: number) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
@@ -433,9 +433,9 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                               outerRadius={height / 3}
                               fill="#8884d8"
                               dataKey="value"
-                              label={({ name, allocation }) => `${name}: ${allocation.toFixed(1)}%`}
+                              label={({ name, allocation }: { name: string; allocation: number }) => `${name}: ${allocation.toFixed(1)}%`}
                             >
-                              {allocationData.map((entry: any, index: number) => (
+                              {allocationData.map((entry: { color: string }, index: number) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
@@ -465,12 +465,12 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                             </tr>
                           </thead>
                           <tbody>
-                            {processedAssets.map((asset, index) => (
+                            {processedAssets.map((asset: any, index: number) => (
                               <tr key={asset.symbol} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                                 <td className="p-2">
                                   <div className="flex items-center gap-2">
-                                    <div 
-                                      className="w-3 h-3 rounded-full" 
+                                    <div
+                                      className="w-3 h-3 rounded-full"
                                       style={{ backgroundColor: asset.color }}
                                     />
                                     <span className="font-medium">{asset.symbol}</span>
@@ -556,9 +556,9 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                                 outerRadius={100}
                                 fill="#8884d8"
                                 dataKey="value"
-                                label={({ name, value }: any) => `${name}: $${value.toLocaleString()}`}
+                                label={({ name, value }: { name: string; value: number }) => `${name}: $${value.toLocaleString()}`}
                               >
-                                {riskData.map((entry, index) => (
+                                {riskData.map((entry: { color: string }, index: number) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                               </Pie>

@@ -202,7 +202,7 @@ export class CypherAIRAG extends EventEmitter {
 
     try {
       // Initialize Pinecone index
-      const index = this.pinecone.Index(this.config.pineconeIndex);
+      const index = this.pinecone.index(this.config.pineconeIndex);
       
       // Load initial knowledge base
       await this.loadKnowledgeBase();
@@ -322,7 +322,7 @@ export class CypherAIRAG extends EventEmitter {
     }>
   ): Promise<void> {
     try {
-      const index = this.pinecone.Index(this.config.pineconeIndex);
+      const index = this.pinecone.index(this.config.pineconeIndex);
       
       for (const doc of documents) {
         // Split document into chunks
@@ -426,7 +426,7 @@ export class CypherAIRAG extends EventEmitter {
     topK: number = 5
   ): Promise<KnowledgeDocument[]> {
     try {
-      const index = this.pinecone.Index(this.config.pineconeIndex);
+      const index = this.pinecone.index(this.config.pineconeIndex);
       
       // Generate query embedding
       const queryEmbedding = await this.generateEmbedding(query);

@@ -91,7 +91,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
 
   const renderAssetPNL = (asset: AssetPNL) => {
     return (
-      <Card key={`${asset.assetType}-${asset.assetId}`} className="bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 p-6 hover:border-gray-600 transition-all duration-200 shadow-lg">
+      <Card key={`${asset.assetType}-${asset.asset}`} className="bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 p-6 hover:border-gray-600 transition-all duration-200 shadow-lg">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-gray-700/50 rounded-lg">
@@ -108,7 +108,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => onViewTransactions?.(asset.assetType, asset.assetId)}
+            onClick={() => onViewTransactions?.(asset.assetType, asset.asset)}
             className="text-gray-400 hover:text-white hover:bg-gray-700"
           >
             <Info className="w-4 h-4 mr-1" />
@@ -229,24 +229,24 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
               <p className="text-xs text-green-400 mb-2">Best Performer</p>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-white">
-                  {portfolioData.bestPerformer.asset.assetName}
+                  {(portfolioData.bestPerformer as any)?.asset?.assetName || 'N/A'}
                 </span>
                 <Badge variant="default" className="bg-green-600">
-                  +{portfolioData.bestPerformer.pnlPercentage.toFixed(2)}%
+                  +{((portfolioData.bestPerformer as any)?.pnlPercentage || 0).toFixed(2)}%
                 </Badge>
               </div>
             </div>
           )}
-          
+
           {portfolioData.worstPerformer && (
             <div className="p-4 bg-red-900/20 border border-red-700/50 rounded-lg">
               <p className="text-xs text-red-400 mb-2">Worst Performer</p>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-white">
-                  {portfolioData.worstPerformer.asset.assetName}
+                  {(portfolioData.worstPerformer as any)?.asset?.assetName || 'N/A'}
                 </span>
                 <Badge variant="destructive">
-                  {portfolioData.worstPerformer.pnlPercentage.toFixed(2)}%
+                  {((portfolioData.worstPerformer as any)?.pnlPercentage || 0).toFixed(2)}%
                 </Badge>
               </div>
             </div>
@@ -259,21 +259,21 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
         <h3 className="text-lg font-semibold text-white">Assets P&L</h3>
         
         {/* Bitcoin */}
-        {portfolioData.bitcoin.totalAmount > 0 && renderAssetPNL(portfolioData.bitcoin)}
-        
+        {(portfolioData as any)?.bitcoin?.totalAmount > 0 && renderAssetPNL((portfolioData as any).bitcoin)}
+
         {/* Ordinals */}
-        {portfolioData.ordinals.length > 0 && (
+        {(portfolioData as any)?.ordinals?.length > 0 && (
           <>
             <h4 className="text-md font-medium text-gray-300 mt-4">Ordinals</h4>
-            {portfolioData.ordinals.map((ordinal: AssetPNL) => renderAssetPNL(ordinal))}
+            {(portfolioData as any).ordinals.map((ordinal: AssetPNL) => renderAssetPNL(ordinal))}
           </>
         )}
-        
+
         {/* Runes */}
-        {portfolioData.runes.length > 0 && (
+        {(portfolioData as any)?.runes?.length > 0 && (
           <>
             <h4 className="text-md font-medium text-gray-300 mt-4">Runes</h4>
-            {portfolioData.runes.map((rune: AssetPNL) => renderAssetPNL(rune))}
+            {(portfolioData as any).runes.map((rune: AssetPNL) => renderAssetPNL(rune))}
           </>
         )}
       </div>

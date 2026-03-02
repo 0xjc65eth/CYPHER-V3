@@ -307,13 +307,13 @@ export class TradingSignalsService {
     let score = 0;
 
     // Order blocks score
-    const bullishOBs = analysis.orderBlocks?.filter(ob => ob.type === 'bullish').length || 0;
-    const bearishOBs = analysis.orderBlocks?.filter(ob => ob.type === 'bearish').length || 0;
+    const bullishOBs = analysis.orderBlocks?.filter((ob: any) => ob.type === 'bullish').length || 0;
+    const bearishOBs = analysis.orderBlocks?.filter((ob: any) => ob.type === 'bearish').length || 0;
     score += (bullishOBs - bearishOBs) * 0.1;
 
     // Break of structure score
-    const bullishBOS = analysis.breakOfStructure?.filter(bos => bos.type === 'bullish').length || 0;
-    const bearishBOS = analysis.breakOfStructure?.filter(bos => bos.type === 'bearish').length || 0;
+    const bullishBOS = analysis.breakOfStructure?.filter((bos: any) => bos.type === 'bullish').length || 0;
+    const bearishBOS = analysis.breakOfStructure?.filter((bos: any) => bos.type === 'bearish').length || 0;
     score += (bullishBOS - bearishBOS) * 0.15;
 
     // Institutional flow score
@@ -348,8 +348,8 @@ export class TradingSignalsService {
       
       if (supportLevels.length > 0) {
         // Use nearest support as stop loss
-        stopLoss = supportLevels.reduce((closest, level) => 
-          Math.abs(level.price - entryPrice) < Math.abs(closest.price - entryPrice) 
+        stopLoss = supportLevels.reduce((closest: any, level: any) =>
+          Math.abs(level.price - entryPrice) < Math.abs(closest.price - entryPrice)
             ? level : closest
         ).price;
       } else {
@@ -369,8 +369,8 @@ export class TradingSignalsService {
       const resistanceLevels = analysis.keyLevels?.filter(level => level.type === 'resistance') || [];
       
       if (resistanceLevels.length > 0) {
-        stopLoss = resistanceLevels.reduce((closest, level) => 
-          Math.abs(level.price - entryPrice) < Math.abs(closest.price - entryPrice) 
+        stopLoss = resistanceLevels.reduce((closest: any, level: any) =>
+          Math.abs(level.price - entryPrice) < Math.abs(closest.price - entryPrice)
             ? level : closest
         ).price;
       } else {

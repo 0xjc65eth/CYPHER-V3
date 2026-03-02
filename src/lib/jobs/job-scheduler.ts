@@ -6,7 +6,7 @@
  * Jobs are tracked in the database for audit and recovery.
  */
 
-import { dbService } from '@/lib/database'
+import { dbService } from '@/lib/database/db-service'
 import { redis } from '@/lib/cache/redis.config'
 
 // ============================================================================

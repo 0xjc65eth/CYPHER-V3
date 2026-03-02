@@ -103,9 +103,9 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
 
   // Get current chain information
   const getCurrentChain = () => {
-    if (caipNetwork?.chainNamespace === 'eip155') {
+    if ((caipNetwork as any)?.chainNamespace === 'eip155') {
       return SUPPORTED_EVM_CHAINS.find(chain => chain.id === chainId)
-    } else if (caipNetwork?.chainNamespace === 'solana') {
+    } else if ((caipNetwork as any)?.chainNamespace === 'solana') {
       return SUPPORTED_SOLANA_CHAINS[0]
     }
     return null
@@ -178,7 +178,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
 
     try {
       const start = Date.now()
-      const response = await fetch(currentChain.rpcUrl || '', {
+      const response = await fetch((currentChain as any).rpcUrl || '', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -188,10 +188,10 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
           id: 1
         })
       })
-      
+
       const latency = Date.now() - start
       const data = await response.json()
-      
+
       setNetworkStatus({
         connected: response.ok,
         latency,
@@ -241,7 +241,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
   const openExplorer = () => {
     if (currentChain && (address || wagmiAddress)) {
       const addressToShow = address || wagmiAddress
-      window.open(`${currentChain.explorerUrl}/address/${addressToShow}`, '_blank')
+      window.open(`${(currentChain as any).explorerUrl}/address/${addressToShow}`, '_blank')
     }
   }
 
@@ -355,12 +355,12 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
           )}
           {currentChain && (
             <Badge variant="secondary" className="text-xs">
-              {currentChain.name}
+              {(currentChain as any).name}
             </Badge>
           )}
           {showBalance && evmBalance && (
             <span className="text-sm font-medium">
-              {formatBalance(formatEther(evmBalance.value), hideBalance)} {currentChain?.currency}
+              {formatBalance(formatEther(evmBalance.value), hideBalance)} {(currentChain as any)?.currency}
             </span>
           )}
           <ChevronDown className="h-4 w-4" />
@@ -505,24 +505,24 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
         {currentChain && (
           <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
             <div className="flex items-center space-x-2">
-              <div 
+              <div
                 className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: currentChain.color }}
+                style={{ backgroundColor: (currentChain as any).color }}
               />
               <div>
-                <p className="font-medium">{currentChain.name}</p>
+                <p className="font-medium">{(currentChain as any).name}</p>
                 <p className="text-sm text-muted-foreground">Active Network</p>
               </div>
             </div>
             {evmBalance && (
               <div className="text-right">
                 <p className="font-bold">
-                  {formatBalance(formatEther(evmBalance.value), hideBalance)} {currentChain.currency}
+                  {formatBalance(formatEther(evmBalance.value), hideBalance)} {(currentChain as any).currency}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {formatUSDValue(
-                    parseFloat(formatEther(evmBalance.value)) * 
-                    (multiChainWalletService.getPrice(currentChain.coingeckoId || '').price || 0),
+                    parseFloat(formatEther(evmBalance.value)) *
+                    (multiChainWalletService.getPrice((currentChain as any).coingeckoId || '').price || 0),
                     hideBalance
                   )}
                 </p>
@@ -572,9 +572,9 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
                   disabled={isSwitching}
                   className="flex items-center space-x-2"
                 >
-                  <div 
+                  <div
                     className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: chain.color }}
+                    style={{ backgroundColor: (chain as any).color }}
                   />
                   <span className="text-xs">{chain.name}</span>
                 </Button>

@@ -12,6 +12,10 @@ interface WalletConflict {
 }
 
 export function WalletConflictManager() {
+  const [conflicts, setConflicts] = useState<WalletConflict[]>([]);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isResolved, setIsResolved] = useState(false);
+
   // Disabled - no conflict notifications
   return null;
 
@@ -166,7 +170,7 @@ export function WalletConflictManager() {
         </div>
 
         <div className="space-y-2 mb-4">
-          {conflicts.map((conflict, index) => (
+          {conflicts.map((conflict: WalletConflict, index: number) => (
             <div key={index} className="text-xs">
               <div className="text-yellow-200 font-medium">
                 {conflict.extension}

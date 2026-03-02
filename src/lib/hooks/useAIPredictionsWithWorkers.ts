@@ -64,8 +64,8 @@ export function useAIPredictionsWithWorkers(autoRefresh: boolean = true) {
       
       // Verificar se os modelos estão treinados
       const models = await modelPersistence.listModels();
-      const pricePredictorTrained = models.some(m => m.name === 'price-predictor' && m.versions.length > 0);
-      const sentimentAnalyzerTrained = models.some(m => m.name === 'sentiment-analyzer' && m.versions.length > 0);
+      const pricePredictorTrained = models.some(m => m.name === 'price-predictor' && m.version);
+      const sentimentAnalyzerTrained = models.some(m => m.name === 'sentiment-analyzer' && m.version);
       
       if (!pricePredictorTrained && !sentimentAnalyzerTrained) {
         devLogger.log('AI_PREDICTIONS', 'Nenhum modelo treinado disponível');

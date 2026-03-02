@@ -13,7 +13,7 @@ export function CacheStatus() {
 
   useEffect(() => {
     const updateStatus = () => {
-      const currentStatus = cacheService.getStatus();
+      const currentStatus = cacheService.getStats();
       setStatus(currentStatus);
       devLogger.log('CACHE', 'Cache status updated', currentStatus);
     };

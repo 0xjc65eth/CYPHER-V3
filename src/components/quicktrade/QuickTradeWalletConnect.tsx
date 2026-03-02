@@ -22,26 +22,23 @@ interface QuickTradeWalletConnectProps {
   requiredNetworks?: string[];
 }
 
-export function QuickTradeWalletConnect({ 
-  onWalletConnect, 
+export function QuickTradeWalletConnect({
+  onWalletConnect,
   selectedNetwork = 'ethereum',
   requiredNetworks = ['ethereum', 'bitcoin', 'solana']
 }: QuickTradeWalletConnectProps) {
-  const {
-    isConnected,
-    isConnecting,
-    walletType,
-    address,
-    balance,
-    connectBitcoin,
-    connectEthereum,
-    connectSolana,
-    disconnect
-  } = useBitcoinWallet();
-  
+  const bitcoinWallet = useBitcoinWallet();
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  // Extract values from wallet context
+  const isConnected = bitcoinWallet.state.isConnected;
+  const address = bitcoinWallet.state.address;
+  const walletType = bitcoinWallet.state.provider as 'bitcoin' | 'ethereum' | 'solana' | null;
+  const balance = { bitcoin: bitcoinWallet.state.balance, ethereum: 0, solana: 0, usd: 0 };
 
   // Notificar pai quando conectar
   useEffect(() => {
@@ -54,36 +51,45 @@ export function QuickTradeWalletConnect({
   const handleConnectBitcoin = async (type: 'unisat' | 'xverse' | 'ord') => {
     try {
       setError(null);
-      await connectBitcoin(type);
+      setIsConnecting(true);
+      await bitcoinWallet.connectWallet(type);
       setShowDropdown(false);
     } catch (error: any) {
       setError(error.message || 'Erro ao conectar carteira Bitcoin');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
   const handleConnectEthereum = async () => {
     try {
       setError(null);
-      await connectEthereum();
+      setIsConnecting(true);
+      await bitcoinWallet.connectWallet('ethereum');
       setShowDropdown(false);
     } catch (error: any) {
       setError(error.message || 'Erro ao conectar MetaMask');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
   const handleConnectSolana = async () => {
     try {
       setError(null);
-      await connectSolana();
+      setIsConnecting(true);
+      await bitcoinWallet.connectWallet('solana');
       setShowDropdown(false);
     } catch (error: any) {
       setError(error.message || 'Erro ao conectar Phantom');
+    } finally {
+      setIsConnecting(false);
     }
   };
 
   const handleDisconnect = async () => {
     try {
-      await disconnect();
+      bitcoinWallet.disconnectWallet();
       setShowDropdown(false);
     } catch (error: any) {
       setError(error.message || 'Erro ao desconectar');
@@ -123,14 +129,14 @@ export function QuickTradeWalletConnect({
 
   const getBalanceDisplay = () => {
     if (!balance) return '0.00';
-    
+
     switch (walletType) {
       case 'bitcoin':
-        return `${balance.bitcoin?.toFixed(8)} BTC`;
+        return `${(balance.bitcoin || 0).toFixed(8)} BTC`;
       case 'ethereum':
-        return `${balance.ethereum?.toFixed(4)} ETH`;
+        return `${(balance.ethereum || 0).toFixed(4)} ETH`;
       case 'solana':
-        return `${balance.solana?.toFixed(2)} SOL`;
+        return `${(balance.solana || 0).toFixed(2)} SOL`;
       default:
         return '0.00';
     }
@@ -186,7 +192,7 @@ export function QuickTradeWalletConnect({
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-400">USD Value</span>
                   <span className="text-sm text-green-400">
-                    ${balance?.usd?.toLocaleString() || '0.00'}
+                    ${(balance?.usd || 0).toLocaleString()}
                   </span>
                 </div>
               </div>

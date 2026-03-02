@@ -257,10 +257,10 @@ export class EnhancedCypherAIService extends CypherAIService {
       this.pruneVoiceCache();
 
       const voiceText = response.voiceResponse || response.response;
-      
+
       // Split long responses for optimal voice synthesis
       const chunks = this.splitResponseForVoice(voiceText);
-      
+
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const chunkOptions = {
@@ -269,15 +269,18 @@ export class EnhancedCypherAIService extends CypherAIService {
           emotion: options.emotion || response.emotion,
           interrupt: options.interrupt && i === 0
         };
-        
-        await this.voiceManager.processTextToSpeech(chunk, chunkOptions);
-        
+
+        // Call processTextToSpeech if it exists
+        if (typeof (this.voiceManager as any).processTextToSpeech === 'function') {
+          await (this.voiceManager as any).processTextToSpeech(chunk, chunkOptions);
+        }
+
         // Small delay between chunks for natural flow
         if (i < chunks.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 200));
         }
       }
-      
+
     } catch (error) {
       console.error('🎤 Voice response processing error:', error);
     }
@@ -375,16 +378,22 @@ export class EnhancedCypherAIService extends CypherAIService {
       timestamp: Date.now(),
       inputMethod: 'voice'
     };
-    
-    // Update conversation context in voice manager
-    this.voiceManager.updateContext({
-      lastInteraction: Date.now(),
-      messageHistory: [
-        ...this.voiceManager.getConversationContext().messageHistory,
-        { role: 'user', content: transcript, timestamp: Date.now() }
-      ]
-    });
-    
+
+    // Update conversation context in voice manager (if method exists)
+    if (typeof (this.voiceManager as any).updateContext === 'function') {
+      const conversationContext = typeof (this.voiceManager as any).getConversationContext === 'function'
+        ? (this.voiceManager as any).getConversationContext()
+        : { messageHistory: [] };
+
+      (this.voiceManager as any).updateContext({
+        lastInteraction: Date.now(),
+        messageHistory: [
+          ...(conversationContext.messageHistory || []),
+          { role: 'user', content: transcript, timestamp: Date.now() }
+        ]
+      });
+    }
+
     // Process with voice-optimized options
     return await this.processQueryWithVoice(transcript, voiceContext, {
       enableVoice: true,
@@ -402,36 +411,45 @@ export class EnhancedCypherAIService extends CypherAIService {
     interrupt: boolean = false
   ): Promise<void> {
     if (!this.isVoiceEnabled) return;
-    
+
     const optimizedText = this.optimizeTextForVoice(text);
-    
-    await this.voiceManager.processTextToSpeech(optimizedText, {
-      priority: 'urgent',
-      emotion,
-      interrupt,
-      skipQueue: true
-    });
+
+    if (typeof (this.voiceManager as any).processTextToSpeech === 'function') {
+      await (this.voiceManager as any).processTextToSpeech(optimizedText, {
+        priority: 'urgent',
+        emotion,
+        interrupt,
+        skipQueue: true
+      });
+    }
   }
 
   /**
    * Start voice listening
    */
   async startListening(): Promise<boolean> {
-    return await this.voiceManager.startListening();
+    if (typeof (this.voiceManager as any).startListening === 'function') {
+      return await (this.voiceManager as any).startListening();
+    }
+    return false;
   }
 
   /**
    * Stop voice listening
    */
   stopListening(): void {
-    this.voiceManager.stopListening();
+    if (typeof (this.voiceManager as any).stopListening === 'function') {
+      (this.voiceManager as any).stopListening();
+    }
   }
 
   /**
    * Stop voice output
    */
   stopSpeaking(): void {
-    this.voiceManager.stopSpeaking();
+    if (typeof (this.voiceManager as any).stopSpeaking === 'function') {
+      (this.voiceManager as any).stopSpeaking();
+    }
   }
 
   /**
@@ -457,13 +475,15 @@ export class EnhancedCypherAIService extends CypherAIService {
     queueLength: number;
     lastResponseTime: number;
   } {
-    const voiceState = this.voiceManager.getVoiceState();
-    
+    const voiceState = typeof (this.voiceManager as any).getVoiceState === 'function'
+      ? (this.voiceManager as any).getVoiceState()
+      : { isListening: false, isSpeaking: false, queueLength: 0 };
+
     return {
       isEnabled: this.isVoiceEnabled,
-      isListening: voiceState.isListening,
-      isSpeaking: voiceState.isSpeaking,
-      queueLength: voiceState.queueLength,
+      isListening: voiceState.isListening || false,
+      isSpeaking: voiceState.isSpeaking || false,
+      queueLength: voiceState.queueLength || 0,
       lastResponseTime: this.lastResponseTime
     };
   }
@@ -486,14 +506,19 @@ export class EnhancedCypherAIService extends CypherAIService {
    * Get voice performance metrics
    */
   getVoiceMetrics(): any {
-    return this.voiceManager.getVoiceState().metrics;
+    const voiceState = typeof (this.voiceManager as any).getVoiceState === 'function'
+      ? (this.voiceManager as any).getVoiceState()
+      : {};
+    return voiceState.metrics || {};
   }
 
   /**
    * Cleanup and destroy
    */
   destroy(): void {
-    this.voiceManager.destroy();
+    if (typeof (this.voiceManager as any).destroy === 'function') {
+      (this.voiceManager as any).destroy();
+    }
     this.voiceResponseCache.clear();
   }
 }

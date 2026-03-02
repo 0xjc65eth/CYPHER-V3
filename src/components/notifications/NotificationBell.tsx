@@ -6,7 +6,23 @@ import { Bell, Settings, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export function NotificationBell() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, settings, updateSettings } = useNotifications();
+  const context = useNotifications() as any;
+  const {
+    notifications = [],
+    unreadCount = 0,
+    markAsRead = () => {},
+    markAllAsRead = () => {},
+    clearAll = context?.clearNotifications || (() => {}),
+    settings = {
+      soundEnabled: true,
+      priceAlerts: true,
+      arbitrageAlerts: true,
+      neuralInsights: true,
+      showDesktopNotifications: true
+    },
+    updateSettings = () => {}
+  } = context || {};
+
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -116,28 +132,33 @@ export function NotificationBell() {
                       No notifications yet
                     </div>
                   ) : (
-                    recentNotifications.map((notification) => (
+                    recentNotifications.map((notification: any) => {
+                      const notifId = notification.id;
+                      const notifRead = notification.read ?? false;
+                      const notifTimestamp = notification.timestamp || Date.now();
+
+                      return (
                       <div
-                        key={notification.id}
+                        key={notifId}
                         className={`p-4 border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer ${
-                          !notification.read ? 'bg-orange-500/5' : ''
+                          !notifRead ? 'bg-orange-500/5' : ''
                         }`}
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => markAsRead(notifId)}
                       >
                         <div className="flex items-start gap-3">
                           <div className="text-xs text-gray-500 mt-0.5">
-                            {new Date(notification.timestamp).toLocaleTimeString()}
+                            {new Date(notifTimestamp).toLocaleTimeString()}
                           </div>
                           <div className="flex-1">
                             <h4 className="text-sm font-medium text-white">{notification.title}</h4>
                             <p className="text-xs text-gray-400 mt-1">{notification.message}</p>
                           </div>
-                          {!notification.read && (
+                          {!notifRead && (
                             <div className="w-2 h-2 bg-orange-500 rounded-full" />
                           )}
                         </div>
                       </div>
-                    ))
+                    )})
                   )}
                 </div>
 

@@ -407,7 +407,10 @@ export class LiquidationProtectionSystem extends EventEmitter {
       if (!this.userPositions.has(userId)) {
         this.userPositions.set(userId, new Set());
       }
-      this.userPositions.get(userId)!.add(positionId);
+      const userPositionSet = this.userPositions.get(userId);
+      if (userPositionSet) {
+        userPositionSet.add(positionId);
+      }
 
       // Initialize action history
       this.protectionActions.set(positionId, []);
@@ -505,14 +508,14 @@ export class LiquidationProtectionSystem extends EventEmitter {
       action.executedAt = Date.now();
 
       // Update position if successful
-      if (result.success) {
-        if (result.newMarginRatio) position.marginRatio = result.newMarginRatio;
-        if (result.newLiquidationPrice) position.liquidationPrice = result.newLiquidationPrice;
+      if (result?.success) {
+        if (result?.newMarginRatio !== undefined) position.marginRatio = result.newMarginRatio;
+        if (result?.newLiquidationPrice !== undefined) position.liquidationPrice = result.newLiquidationPrice;
         position.lastUpdate = Date.now();
-        
+
         // Recalculate risk metrics
         position.riskMetrics = await this.calculateRiskMetrics(position);
-        
+
         this.protectedPositions.set(positionId, position);
       }
 
@@ -520,8 +523,8 @@ export class LiquidationProtectionSystem extends EventEmitter {
         actionId: action.id,
         positionId,
         type: actionType,
-        success: result.success,
-        cost: result.cost
+        success: result?.success || false,
+        cost: result?.cost || 0
       });
 
       this.emit('actionExecuted', action);
@@ -572,14 +575,14 @@ export class LiquidationProtectionSystem extends EventEmitter {
       ? this.getUserProtectedPositions(userId)
       : Array.from(this.protectedPositions.values());
 
-    const relevantPositions = positions.filter(p => 
-      p.lastUpdate >= start && p.lastUpdate <= end
+    const relevantPositions = positions.filter(p =>
+      p?.lastUpdate >= start && p?.lastUpdate <= end
     );
 
     const allActions = Array.from(this.protectionActions.values()).flat()
-      .filter(a => a.executedAt && a.executedAt >= start && a.executedAt <= end);
+      .filter(a => a?.executedAt && a.executedAt >= start && a.executedAt <= end);
 
-    const successfulActions = allActions.filter(a => a.result?.success);
+    const successfulActions = allActions.filter(a => a?.result?.success);
 
     return {
       userId,
@@ -604,8 +607,8 @@ export class LiquidationProtectionSystem extends EventEmitter {
         userSatisfaction: 85 // Mock - would be from user feedback
       },
       risks: {
-        highestRisk: Math.max(...relevantPositions.map(p => p.riskMetrics.portfolioHeat)),
-        averageRisk: relevantPositions.reduce((sum, p) => sum + p.riskMetrics.portfolioHeat, 0) / relevantPositions.length,
+        highestRisk: relevantPositions.length > 0 ? Math.max(...relevantPositions.map(p => p?.riskMetrics?.portfolioHeat || 0)) : 0,
+        averageRisk: relevantPositions.length > 0 ? relevantPositions.reduce((sum, p) => sum + (p?.riskMetrics?.portfolioHeat || 0), 0) / relevantPositions.length : 0,
         riskTrends: this.calculateRiskTrends(relevantPositions)
       }
     };
@@ -651,8 +654,8 @@ export class LiquidationProtectionSystem extends EventEmitter {
 
   private getCurrentPrice(symbol: string): number {
     const cached = this.priceFeeds.get(symbol);
-    if (cached && Date.now() - cached.timestamp < 5000) {
-      return cached.price;
+    if (cached && Date.now() - (cached?.timestamp || 0) < 5000) {
+      return cached?.price || 0;
     }
 
     // Mock price with small random movement
@@ -940,8 +943,10 @@ export class LiquidationProtectionSystem extends EventEmitter {
   private async assessRisks(): Promise<void> {
     // Assess overall portfolio risk
     const allPositions = Array.from(this.protectedPositions.values());
-    const avgRisk = allPositions.reduce((sum, p) => sum + p.riskMetrics.portfolioHeat, 0) / allPositions.length;
-    
+    const avgRisk = allPositions.length > 0
+      ? allPositions.reduce((sum, p) => sum + (p?.riskMetrics?.portfolioHeat || 0), 0) / allPositions.length
+      : 0;
+
     if (avgRisk > 80) {
       this.emit('portfolioRiskHigh', { avgRisk, positionCount: allPositions.length });
     }
@@ -1000,10 +1005,10 @@ export class LiquidationProtectionSystem extends EventEmitter {
   }
 
   private calculateAverageResponseTime(actions: ProtectionAction[]): number {
-    const executedActions = actions.filter(a => a.executedAt);
+    const executedActions = actions.filter(a => a?.executedAt);
     if (executedActions.length === 0) return 0;
-    
-    const totalTime = executedActions.reduce((sum, a) => sum + (a.executedAt! - Date.now()), 0);
+
+    const totalTime = executedActions.reduce((sum, a) => sum + ((a?.executedAt || 0) - Date.now()), 0);
     return totalTime / executedActions.length;
   }
 

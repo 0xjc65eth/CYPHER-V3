@@ -33,9 +33,12 @@ interface TransactionListProps {
 
 export function TransactionList({ transactions }: TransactionListProps) {
   // Sort transactions by date (newest first)
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    const timeA = (a as any).timestamp || 0;
+    const timeB = (b as any).timestamp || 0;
+    return (typeof timeB === 'number' ? timeB : new Date(timeB).getTime()) -
+           (typeof timeA === 'number' ? timeA : new Date(timeA).getTime());
+  });
 
   const getTransactionIcon = (type: string, status: string) => {
     if (status === 'failed') {
@@ -62,26 +65,31 @@ export function TransactionList({ transactions }: TransactionListProps) {
       case 'pending':
         return <Badge variant="outline" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'confirmed':
+      case 'completed':
         return <Badge variant="outline" className="bg-green-100 text-green-800">Confirmed</Badge>;
       case 'failed':
         return <Badge variant="outline" className="bg-red-100 text-red-800">Failed</Badge>;
       default:
-        return null;
+        return <Badge variant="outline" className="bg-gray-100 text-gray-800">Unknown</Badge>;
     }
   };
 
   const getTransactionLabel = (tx: Transaction) => {
-    switch (tx.type) {
+    const txData = tx as any; // Type assertion for wallet-connector Transaction
+    switch (txData.type) {
       case 'send':
-        return `Sent Bitcoin${tx.to ? ` to ${tx.to.substring(0, 8)}...` : ''}`;
+        return `Sent Bitcoin${txData.to?.[0] ? ` to ${txData.to[0].substring(0, 8)}...` : ''}`;
       case 'receive':
-        return `Received Bitcoin${tx.from ? ` from ${tx.from.substring(0, 8)}...` : ''}`;
+        return `Received Bitcoin${txData.from?.[0] ? ` from ${txData.from[0].substring(0, 8)}...` : ''}`;
       case 'inscribe':
+      case 'inscription':
         return 'Inscribed Ordinal';
       case 'transfer_ordinal':
-        return `Sent Ordinal${tx.to ? ` to ${tx.to.substring(0, 8)}...` : ''}`;
+        return `Sent Ordinal${txData.to?.[0] ? ` to ${txData.to[0].substring(0, 8)}...` : ''}`;
       case 'transfer_rune':
-        return `Sent Rune${tx.to ? ` to ${tx.to.substring(0, 8)}...` : ''}`;
+      case 'rune-mint':
+      case 'brc20-transfer':
+        return `Sent Rune${txData.to?.[0] ? ` to ${txData.to[0].substring(0, 8)}...` : ''}`;
       default:
         return 'Transaction';
     }
@@ -109,38 +117,46 @@ export function TransactionList({ transactions }: TransactionListProps) {
               </TableCell>
             </TableRow>
           ) : (
-            sortedTransactions.map((tx) => (
-              <TableRow key={tx.id}>
+            sortedTransactions.map((tx) => {
+              const txData = tx as any;
+              const txId = txData.id || txData.txid || 'unknown';
+              const txTimestamp = typeof txData.timestamp === 'number'
+                ? txData.timestamp
+                : new Date(txData.timestamp).getTime();
+              const txStatus = txData.status || 'confirmed';
+
+              return (
+              <TableRow key={txId}>
                 <TableCell>
-                  {getTransactionIcon(tx.type, tx.status)}
+                  {getTransactionIcon(txData.type, txStatus)}
                 </TableCell>
                 <TableCell className="font-medium">
                   <div>{getTransactionLabel(tx)}</div>
                   <div className="text-xs text-muted-foreground">
-                    {tx.id.substring(0, 10)}...
+                    {txId.substring(0, 10)}...
                   </div>
                 </TableCell>
                 <TableCell>
-                  {formatDate(new Date(tx.timestamp))}
+                  {formatDate(new Date(txTimestamp))}
                 </TableCell>
                 <TableCell>
-                  {tx.amount ? formatCurrency(tx.amount) : '-'}
-                  {tx.runeAmount && (
+                  {txData.amount ? formatCurrency(txData.amount) : '-'}
+                  {txData.runeAmount && (
                     <div className="text-xs text-muted-foreground">
-                      {tx.runeAmount} {tx.runeId?.substring(0, 4)}
+                      {txData.runeAmount} {txData.runeId?.substring(0, 4)}
                     </div>
                   )}
                 </TableCell>
                 <TableCell>
-                  {getStatusBadge(tx.status)}
-                  {tx.confirmations && tx.confirmations > 0 && (
+                  {getStatusBadge(txStatus)}
+                  {txData.confirmations && txData.confirmations > 0 && (
                     <div className="text-xs text-muted-foreground mt-1">
-                      {tx.confirmations} confirmations
+                      {txData.confirmations} confirmations
                     </div>
                   )}
                 </TableCell>
               </TableRow>
-            ))
+            )})
           )}
         </TableBody>
       </Table>

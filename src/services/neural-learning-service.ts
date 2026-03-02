@@ -173,19 +173,19 @@ export class NeuralLearningService extends EventEmitter {
       const cloudTrainingData = await supabaseService.loadTrainingData(this.config.dataRetentionDays);
 
       // Mesclar dados de treinamento da nuvem com dados locais
-      if (cloudTrainingData.marketData && cloudTrainingData.marketData.length > 0) {
+      if (cloudTrainingData?.marketData && cloudTrainingData.marketData.length > 0) {
         this.trainingData.marketData = [...this.trainingData.marketData, ...cloudTrainingData.marketData];
       }
 
-      if (cloudTrainingData.mempoolData && cloudTrainingData.mempoolData.length > 0) {
+      if (cloudTrainingData?.mempoolData && cloudTrainingData.mempoolData.length > 0) {
         this.trainingData.mempoolData = [...this.trainingData.mempoolData, ...cloudTrainingData.mempoolData];
       }
 
-      if (cloudTrainingData.ordinalData && cloudTrainingData.ordinalData.length > 0) {
+      if (cloudTrainingData?.ordinalData && cloudTrainingData.ordinalData.length > 0) {
         this.trainingData.ordinalData = [...this.trainingData.ordinalData, ...cloudTrainingData.ordinalData];
       }
 
-      if (cloudTrainingData.runeData && cloudTrainingData.runeData.length > 0) {
+      if (cloudTrainingData?.runeData && cloudTrainingData.runeData.length > 0) {
         this.trainingData.runeData = [...this.trainingData.runeData, ...cloudTrainingData.runeData];
       }
 
@@ -249,17 +249,17 @@ export class NeuralLearningService extends EventEmitter {
       const recentTimestamp = recentCutoff.toISOString();
 
       const recentTrainingData: Partial<TrainingData> = {
-        marketData: this.trainingData.marketData.filter(data => data.timestamp > recentTimestamp),
-        mempoolData: this.trainingData.mempoolData.filter(data => data.timestamp > recentTimestamp),
-        ordinalData: this.trainingData.ordinalData.filter(data => data.timestamp > recentTimestamp),
-        runeData: this.trainingData.runeData.filter(data => data.timestamp > recentTimestamp)
+        marketData: this.trainingData.marketData.filter(data => data?.timestamp > recentTimestamp),
+        mempoolData: this.trainingData.mempoolData.filter(data => data?.timestamp > recentTimestamp),
+        ordinalData: this.trainingData.ordinalData.filter(data => data?.timestamp > recentTimestamp),
+        runeData: this.trainingData.runeData.filter(data => data?.timestamp > recentTimestamp)
       };
 
       await supabaseService.saveTrainingData(recentTrainingData);
 
       // Salvar insights (apenas os mais recentes)
       const recentInsights = this.insights
-        .filter(insight => insight.timestamp > recentTimestamp)
+        .filter(insight => insight?.timestamp > recentTimestamp)
         .slice(0, 100); // Limitar a 100 insights recentes
 
       if (recentInsights.length > 0) {
@@ -1094,23 +1094,23 @@ export class NeuralLearningService extends EventEmitter {
 
     // Filtrar dados mais recentes que o limite
     this.trainingData.marketData = this.trainingData.marketData.filter(
-      data => data.timestamp > cutoffTimestamp
+      data => data?.timestamp > cutoffTimestamp
     );
 
     this.trainingData.mempoolData = this.trainingData.mempoolData.filter(
-      data => data.timestamp > cutoffTimestamp
+      data => data?.timestamp > cutoffTimestamp
     );
 
     this.trainingData.ordinalData = this.trainingData.ordinalData.filter(
-      data => data.timestamp > cutoffTimestamp
+      data => data?.timestamp > cutoffTimestamp
     );
 
     this.trainingData.runeData = this.trainingData.runeData.filter(
-      data => data.timestamp > cutoffTimestamp
+      data => data?.timestamp > cutoffTimestamp
     );
 
     this.trainingData.socialSentiment = this.trainingData.socialSentiment.filter(
-      data => data.timestamp > cutoffTimestamp
+      data => data?.timestamp > cutoffTimestamp
     );
 
     // Limitar o número de correções autônomas armazenadas
@@ -1175,7 +1175,7 @@ export class NeuralLearningService extends EventEmitter {
 
     // Ordenar dados por timestamp
     const sortedData = [...this.trainingData.marketData].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) => new Date(a?.timestamp || 0).getTime() - new Date(b?.timestamp || 0).getTime()
     );
 
     // Verificar variações anormais de preço
@@ -1183,24 +1183,26 @@ export class NeuralLearningService extends EventEmitter {
       const prevData = sortedData[i - 1];
       const currData = sortedData[i];
 
+      if (!prevData || !currData) continue;
+
       // Verificar se há uma variação de preço anormal (mais de 20% em um curto período)
       const timeDiff = new Date(currData.timestamp).getTime() - new Date(prevData.timestamp).getTime();
       const hoursDiff = timeDiff / (1000 * 60 * 60);
 
       if (hoursDiff < 1) { // Menos de 1 hora entre pontos de dados
-        const priceDiff = Math.abs(currData.btcPrice - prevData.btcPrice) / prevData.btcPrice;
+        const priceDiff = Math.abs((currData.btcPrice ?? 0) - (prevData.btcPrice ?? 0)) / (prevData.btcPrice || 1);
 
         if (priceDiff > 0.2) { // Variação de mais de 20%
           // Calcular valor corrigido (média com dados adjacentes)
-          let correctedPrice = prevData.btcPrice;
+          let correctedPrice = prevData.btcPrice ?? 0;
 
           // Se houver um próximo ponto de dados, usar a média dos três
           if (i < sortedData.length - 1) {
             const nextData = sortedData[i + 1];
-            correctedPrice = (prevData.btcPrice + currData.btcPrice + nextData.btcPrice) / 3;
+            correctedPrice = ((prevData.btcPrice ?? 0) + (currData.btcPrice ?? 0) + (nextData?.btcPrice ?? 0)) / 3;
           } else {
             // Caso contrário, usar a média dos dois últimos
-            correctedPrice = (prevData.btcPrice + currData.btcPrice) / 2;
+            correctedPrice = ((prevData.btcPrice ?? 0) + (currData.btcPrice ?? 0)) / 2;
           }
 
           // Criar correção
@@ -1209,7 +1211,7 @@ export class NeuralLearningService extends EventEmitter {
             timestamp: new Date().toISOString(),
             dataType: 'Market',
             field: 'btcPrice',
-            oldValue: currData.btcPrice,
+            oldValue: currData.btcPrice ?? 0,
             newValue: correctedPrice,
             confidence: 0.9,
             source: 'Anomaly Detection',
@@ -1233,7 +1235,7 @@ export class NeuralLearningService extends EventEmitter {
 
     // Ordenar dados por timestamp
     const sortedData = [...this.trainingData.ordinalData].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) => new Date(a?.timestamp || 0).getTime() - new Date(b?.timestamp || 0).getTime()
     );
 
     // Verificar variações anormais de volume
@@ -1241,24 +1243,26 @@ export class NeuralLearningService extends EventEmitter {
       const prevData = sortedData[i - 1];
       const currData = sortedData[i];
 
+      if (!prevData || !currData) continue;
+
       // Verificar se há uma variação de volume anormal (mais de 300% em um curto período)
       const timeDiff = new Date(currData.timestamp).getTime() - new Date(prevData.timestamp).getTime();
       const hoursDiff = timeDiff / (1000 * 60 * 60);
 
       if (hoursDiff < 2) { // Menos de 2 horas entre pontos de dados
-        const volumeDiff = Math.abs(currData.volume24h - prevData.volume24h) / prevData.volume24h;
+        const volumeDiff = Math.abs((currData.volume24h ?? 0) - (prevData.volume24h ?? 0)) / (prevData.volume24h || 1);
 
         if (volumeDiff > 3) { // Variação de mais de 300%
           // Calcular valor corrigido (média com dados adjacentes)
-          let correctedVolume = prevData.volume24h;
+          let correctedVolume = prevData.volume24h ?? 0;
 
           // Se houver um próximo ponto de dados, usar a média dos três
           if (i < sortedData.length - 1) {
             const nextData = sortedData[i + 1];
-            correctedVolume = (prevData.volume24h + currData.volume24h + nextData.volume24h) / 3;
+            correctedVolume = ((prevData.volume24h ?? 0) + (currData.volume24h ?? 0) + (nextData?.volume24h ?? 0)) / 3;
           } else {
             // Caso contrário, usar a média dos dois últimos
-            correctedVolume = (prevData.volume24h + currData.volume24h) / 2;
+            correctedVolume = ((prevData.volume24h ?? 0) + (currData.volume24h ?? 0)) / 2;
           }
 
           // Criar correção
@@ -1267,7 +1271,7 @@ export class NeuralLearningService extends EventEmitter {
             timestamp: new Date().toISOString(),
             dataType: 'Ordinals',
             field: 'volume24h',
-            oldValue: currData.volume24h,
+            oldValue: currData.volume24h ?? 0,
             newValue: correctedVolume,
             confidence: 0.85,
             source: 'Pattern Recognition',
@@ -1291,7 +1295,7 @@ export class NeuralLearningService extends EventEmitter {
 
     // Ordenar dados por timestamp
     const sortedData = [...this.trainingData.runeData].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) => new Date(a?.timestamp || 0).getTime() - new Date(b?.timestamp || 0).getTime()
     );
 
     // Verificar variações anormais de mintRate
@@ -1299,24 +1303,26 @@ export class NeuralLearningService extends EventEmitter {
       const prevData = sortedData[i - 1];
       const currData = sortedData[i];
 
+      if (!prevData || !currData) continue;
+
       // Verificar se há uma variação de mintRate anormal (mais de 500% em um curto período)
       const timeDiff = new Date(currData.timestamp).getTime() - new Date(prevData.timestamp).getTime();
       const hoursDiff = timeDiff / (1000 * 60 * 60);
 
       if (hoursDiff < 3) { // Menos de 3 horas entre pontos de dados
-        const mintRateDiff = Math.abs(currData.mintRate - prevData.mintRate) / prevData.mintRate;
+        const mintRateDiff = Math.abs((currData.mintRate ?? 0) - (prevData.mintRate ?? 0)) / (prevData.mintRate || 1);
 
         if (mintRateDiff > 5) { // Variação de mais de 500%
           // Calcular valor corrigido (média com dados adjacentes)
-          let correctedMintRate = prevData.mintRate;
+          let correctedMintRate = prevData.mintRate ?? 0;
 
           // Se houver um próximo ponto de dados, usar a média dos três
           if (i < sortedData.length - 1) {
             const nextData = sortedData[i + 1];
-            correctedMintRate = (prevData.mintRate + currData.mintRate + nextData.mintRate) / 3;
+            correctedMintRate = ((prevData.mintRate ?? 0) + (currData.mintRate ?? 0) + (nextData?.mintRate ?? 0)) / 3;
           } else {
             // Caso contrário, usar a média dos dois últimos
-            correctedMintRate = (prevData.mintRate + currData.mintRate) / 2;
+            correctedMintRate = ((prevData.mintRate ?? 0) + (currData.mintRate ?? 0)) / 2;
           }
 
           // Criar correção
@@ -1325,7 +1331,7 @@ export class NeuralLearningService extends EventEmitter {
             timestamp: new Date().toISOString(),
             dataType: 'Runes',
             field: 'mintRate',
-            oldValue: currData.mintRate,
+            oldValue: currData.mintRate ?? 0,
             newValue: correctedMintRate,
             confidence: 0.88,
             source: 'Statistical Analysis',
@@ -1384,12 +1390,12 @@ export class NeuralLearningService extends EventEmitter {
     if (correction.field === 'btcPrice') {
       // Encontrar o ponto de dados correspondente
       const dataPoint = this.trainingData.marketData.find(
-        data => data.btcPrice === correction.oldValue
+        data => data?.btcPrice === correction.oldValue
       );
 
-      if (dataPoint) {
+      if (dataPoint && 'btcPrice' in dataPoint) {
         // Aplicar correção
-        dataPoint.btcPrice = Number(correction.newValue);
+        (dataPoint as any).btcPrice = Number(correction.newValue);
       }
     }
   }
@@ -1399,12 +1405,12 @@ export class NeuralLearningService extends EventEmitter {
     if (correction.field === 'volume24h') {
       // Encontrar o ponto de dados correspondente
       const dataPoint = this.trainingData.ordinalData.find(
-        data => data.volume24h === correction.oldValue
+        data => data?.volume24h === correction.oldValue
       );
 
-      if (dataPoint) {
+      if (dataPoint && 'volume24h' in dataPoint) {
         // Aplicar correção
-        dataPoint.volume24h = Number(correction.newValue);
+        (dataPoint as any).volume24h = Number(correction.newValue);
       }
     }
   }
@@ -1414,12 +1420,12 @@ export class NeuralLearningService extends EventEmitter {
     if (correction.field === 'mintRate') {
       // Encontrar o ponto de dados correspondente
       const dataPoint = this.trainingData.runeData.find(
-        data => data.mintRate === correction.oldValue
+        data => data?.mintRate === correction.oldValue
       );
 
-      if (dataPoint) {
+      if (dataPoint && 'mintRate' in dataPoint) {
         // Aplicar correção
-        dataPoint.mintRate = Number(correction.newValue);
+        (dataPoint as any).mintRate = Number(correction.newValue);
       }
     }
   }

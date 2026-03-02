@@ -339,7 +339,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
   constructor() {
     super();
     this.setupErrorHandling();
-    this.initializeComponents();
+    this.initializeModels();
   }
   
   /**

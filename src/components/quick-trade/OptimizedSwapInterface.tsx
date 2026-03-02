@@ -163,12 +163,12 @@ const OptimizedSwapInterface: React.FC = () => {
         toChain: selectedChain
       };
 
-      const quote = await swapService.getBestQuote(params);
+      const quote = await swapService.getQuote(params);
       setCurrentQuote(quote);
       setToAmount(quote.outputAmount);
       
       
-    } catch (error) {
+    } catch (error: any) {
       setQuoteError(error.message);
       console.error('Erro ao obter cotação:', error);
     } finally {
@@ -205,7 +205,7 @@ const OptimizedSwapInterface: React.FC = () => {
         loadRevenueStats(); // Atualizar stats
       }, 2000);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao executar swap:', error);
       setQuoteError(error.message);
     } finally {
@@ -246,7 +246,7 @@ const OptimizedSwapInterface: React.FC = () => {
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-2">Sistema de Swap Otimizado</h1>
         <p className="text-muted-foreground">
-          Encontramos automaticamente a melhor rota entre {Object.keys(swapService.supportedDEXs).length} DEXs
+          Encontramos automaticamente a melhor rota entre {Object.keys((swapService as any).supportedDEXs || {}).length} DEXs
         </p>
       </div>
 
@@ -437,7 +437,7 @@ const OptimizedSwapInterface: React.FC = () => {
                   <CardContent className="p-4">
                     <h4 className="font-medium mb-3">Comparação de Rotas</h4>
                     <div className="space-y-2">
-                      {[currentQuote, ...currentQuote.alternatives].map((quote, index) => (
+                      {[currentQuote, ...currentQuote.alternatives].map((quote: QuoteResult, index: number) => (
                         <div key={index} className={`flex justify-between p-2 rounded ${index === 0 ? 'bg-green-50 border border-green-200' : 'bg-muted'}`}>
                           <span className="flex items-center gap-2">
                             {index === 0 && <span className="text-green-600">👑</span>}
@@ -510,11 +510,11 @@ const OptimizedSwapInterface: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {Object.entries(swapService.supportedDEXs).map(([chain, dexs]) => (
+                {Object.entries((swapService as any).supportedDEXs || {}).map(([chain, dexs]: [string, any]) => (
                   <div key={chain}>
                     <p className="font-medium capitalize mb-1">{chain}</p>
                     <div className="flex flex-wrap gap-1">
-                      {dexs.map(dex => (
+                      {(dexs as string[]).map((dex: string) => (
                         <Badge key={dex} variant="outline" className="text-xs">
                           {dex}
                         </Badge>
@@ -539,7 +539,7 @@ const OptimizedSwapInterface: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600">✅</span>
-                  <span>Comparação entre {Object.values(swapService.supportedDEXs).flat().length} DEXs</span>
+                  <span>Comparação entre {Object.values((swapService as any).supportedDEXs || {}).flat().length} DEXs</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-green-600">✅</span>

@@ -100,9 +100,9 @@ export class CypherFeeDistributor {
   private getRecipientAddress(network: NetworkType): string {
     switch (network) {
       case 'bitcoin':
-        return WALLET_ADDRESSES.BITCOIN;
+        return WALLET_ADDRESSES.bitcoin;
       case 'solana':
-        return WALLET_ADDRESSES.SOLANA;
+        return WALLET_ADDRESSES.solana;
       default:
         return WALLET_ADDRESSES.EVM;
     }

@@ -158,19 +158,19 @@ const CypherAIV2: React.FC = () => {
         });
 
         // Configurar event listeners
-        cypherAI.current.on('stateChange', (state: Partial<AIState>) => {
+        (cypherAI.current as any).on('stateChange', (state: Partial<AIState>) => {
           setAIState(prev => ({ ...prev, ...state }));
         });
 
-        cypherAI.current.on('message', (message: ConversationMessage) => {
+        (cypherAI.current as any).on('message', (message: ConversationMessage) => {
           setMessages(prev => [...prev, message]);
         });
 
-        cypherAI.current.on('marketUpdate', (data: MarketData) => {
+        (cypherAI.current as any).on('marketUpdate', (data: MarketData) => {
           setMarketData(data);
         });
 
-        cypherAI.current.on('voiceAmplitude', (amplitude: number) => {
+        (cypherAI.current as any).on('voiceAmplitude', (amplitude: number) => {
           setVoiceAmplitude(amplitude);
         });
 
@@ -182,10 +182,10 @@ const CypherAIV2: React.FC = () => {
             interimResults: false
           },
           {
-            onResult: (transcript, isFinal) => {
+            onResult: (transcript: string, isFinal: boolean) => {
               if (isFinal && transcript.trim()) {
                 const voiceCommand = EnhancedVoiceCommandProcessor.processCommand(transcript);
-                
+
                 if (voiceCommand.command && voiceCommand.confidence > 0.2) {
                   handleQuickCommand(voiceCommand.command);
                 } else {
@@ -201,10 +201,10 @@ const CypherAIV2: React.FC = () => {
             onEnd: () => {
               setAIState(prev => ({ ...prev, isListening: false }));
             },
-            onError: (error) => {
+            onError: (error: string) => {
               console.error('🎤 Enhanced voice error:', error);
               setAIState(prev => ({ ...prev, isListening: false }));
-              
+
               // Show user-friendly error
               const errorMessage: ConversationMessage = {
                 id: Date.now().toString(),
@@ -221,7 +221,7 @@ const CypherAIV2: React.FC = () => {
 
         // Inicializar AI
         if (cypherAI.current) {
-          await cypherAI.current.initialize();
+          await (cypherAI.current as any).initialize();
         }
 
         // Mensagem de boas-vindas simples
@@ -334,9 +334,9 @@ const CypherAIV2: React.FC = () => {
       } else {
         throw new Error(result.error || 'Failed to get AI response');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao processar mensagem:', error);
-      
+
       const errorMessage: ConversationMessage = {
         id: (Date.now() + 2).toString(),
         role: 'assistant',
@@ -503,10 +503,10 @@ const CypherAIV2: React.FC = () => {
                 onClick={() => {
                   const newVoiceState = !aiState.voiceEnabled;
                   setAIState(prev => ({ ...prev, voiceEnabled: newVoiceState }));
-                  
+
                   // Update AI configuration
                   if (cypherAI.current) {
-                    cypherAI.current.setVoiceConfig({ enabled: newVoiceState });
+                    (cypherAI.current as any).setVoiceConfig({ enabled: newVoiceState });
                   }
                 }}
               >
@@ -678,12 +678,12 @@ const CypherAIV2: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-gray-400">Bitcoin</span>
                         <span className="text-2xl font-bold text-green-500">
-                          ${marketData.bitcoin?.price.toLocaleString()}
+                          ${(marketData as any).bitcoin?.price.toLocaleString()}
                         </span>
                       </div>
                       <div className="text-sm text-gray-500 mt-1">
-                        {marketData.bitcoin?.change24h > 0 ? '+' : ''}
-                        {marketData.bitcoin?.change24h.toFixed(2)}%
+                        {(marketData as any).bitcoin?.change24h > 0 ? '+' : ''}
+                        {(marketData as any).bitcoin?.change24h.toFixed(2)}%
                       </div>
                     </CardContent>
                   </Card>

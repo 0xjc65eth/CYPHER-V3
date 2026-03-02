@@ -40,7 +40,7 @@ export function EnhancedMarketAnalysisCard() {
             volume24h: btcData.volume_24h || 45678901234,
             marketCap: btcData.market_cap || 1234567890123,
             btcPrice: btcData.price || 64000,
-            btcChange24h: btcData.percent_change_24h || 2.5,
+            btcChange24h: btcData.percentChange24h || 2.5,
             isLoading: false
           })
           setLastUpdated(new Date())

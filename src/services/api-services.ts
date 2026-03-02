@@ -32,7 +32,7 @@ export class CoinMarketCapService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.COINMARKETCAP.BASE_URL}${API_CONFIG.COINMARKETCAP.ENDPOINTS.QUOTES}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch CoinMarketCap data'
       );
       
@@ -57,7 +57,7 @@ export class CoinMarketCapService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.COINMARKETCAP.BASE_URL}${API_CONFIG.COINMARKETCAP.ENDPOINTS.LISTINGS}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch CoinMarketCap listings'
       );
       return { data: [] };
@@ -118,14 +118,14 @@ export class HiroAPIService {
       EnhancedLogger.info('Hiro Ordinals data fetched successfully', {
         component: 'HiroAPIService',
         address,
-        count: response.data?.results?.length || 0
+        count: response?.data?.results?.length || 0
       });
 
       return response.data;
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.HIRO.BASE_URL}${API_CONFIG.HIRO.ENDPOINTS.INSCRIPTIONS}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch Hiro Ordinals data'
       );
       
@@ -147,14 +147,14 @@ export class HiroAPIService {
 
       EnhancedLogger.info('Hiro Runes data fetched successfully', {
         component: 'HiroAPIService',
-        count: response.data?.results?.length || 0
+        count: response?.data?.results?.length || 0
       });
 
       return response.data;
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.HIRO.BASE_URL}${API_CONFIG.HIRO.ENDPOINTS.RUNES}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch Hiro Runes data'
       );
       
@@ -178,7 +178,7 @@ export class HiroAPIService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.HIRO.BASE_URL}${API_CONFIG.HIRO.ENDPOINTS.BRC20}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch BRC20 tokens'
       );
       
@@ -242,14 +242,14 @@ export class MempoolAPIService {
 
       EnhancedLogger.info('Mempool blocks data fetched successfully', {
         component: 'MempoolAPIService',
-        count: response.data?.length || 0
+        count: response?.data?.length || 0
       });
 
-      return response.data.slice(0, count);
+      return (response?.data || []).slice(0, count);
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.MEMPOOL.BASE_URL}${API_CONFIG.MEMPOOL.ENDPOINTS.BLOCKS}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch Mempool blocks'
       );
       
@@ -273,7 +273,7 @@ export class MempoolAPIService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.MEMPOOL.BASE_URL}${API_CONFIG.MEMPOOL.ENDPOINTS.FEES}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch fee estimates'
       );
       
@@ -297,7 +297,7 @@ export class MempoolAPIService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.MEMPOOL.BASE_URL}${API_CONFIG.MEMPOOL.ENDPOINTS.STATISTICS}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch network statistics'
       );
       
@@ -355,7 +355,7 @@ export class BlockstreamAPIService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.BLOCKSTREAM.BASE_URL}${API_CONFIG.BLOCKSTREAM.ENDPOINTS.ADDRESS}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch address data from Blockstream'
       );
       
@@ -395,7 +395,7 @@ export class BlockstreamAPIService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${API_CONFIG.BLOCKSTREAM.BASE_URL}${API_CONFIG.BLOCKSTREAM.ENDPOINTS.UTXO}`,
-        error.status || 0,
+        (error as any)?.status || 0,
         'Failed to fetch UTXOs from Blockstream'
       );
       

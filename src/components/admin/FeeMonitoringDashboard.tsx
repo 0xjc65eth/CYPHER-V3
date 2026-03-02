@@ -277,7 +277,7 @@ export function FeeMonitoringDashboard() {
               <Badge className="bg-orange-500 text-white">Mainnet</Badge>
             </div>
             <p className="font-mono text-xs text-white break-all">
-              {WALLET_ADDRESSES.BITCOIN}
+              {WALLET_ADDRESSES.bitcoin}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4">
@@ -295,7 +295,7 @@ export function FeeMonitoringDashboard() {
               <Badge className="bg-purple-500 text-white">SPL</Badge>
             </div>
             <p className="font-mono text-xs text-white break-all">
-              {WALLET_ADDRESSES.SOLANA}
+              {WALLET_ADDRESSES.solana}
             </p>
           </div>
         </div>

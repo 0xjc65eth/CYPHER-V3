@@ -29,7 +29,11 @@ interface Transaction {
 }
 
 export const PortfolioPnL: React.FC = () => {
-  const { wallet, connected } = useWallet();
+  const walletContext = useWallet() as any;
+  const { address, isConnected } = walletContext || {};
+  const connected = isConnected ?? false;
+  const wallet = walletContext;
+
   const [assets, setAssets] = useState<AssetPnL[]>([]);
   const [totalPnL, setTotalPnL] = useState({
     realized: 0,
@@ -40,30 +44,30 @@ export const PortfolioPnL: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (connected && wallet) {
+    if (connected && wallet && address) {
       fetchPortfolioData();
     }
-  }, [connected, wallet]);
+  }, [connected, wallet, address]);
 
   const fetchPortfolioData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch wallet balances
-      const balances = await wallet.getBalances();
-      
+
+      // Fetch wallet balances - handle different wallet interface formats
+      const balances = wallet.portfolioData?.assets || wallet.walletInfo?.assets || [];
+
       // Fetch transaction history from multiple sources
-      const transactions = await fetchTransactionHistory(wallet.address);
-      
+      const transactions = await fetchTransactionHistory(address || '');
+
       // Calculate P&L for each asset
       const assetPnLData = await calculateAssetPnL(balances, transactions);
-      
+
       setAssets(assetPnLData);
-      
+
       // Calculate total portfolio P&L
       const totals = calculateTotalPnL(assetPnLData);
       setTotalPnL(totals);
-      
+
     } catch (error) {
       console.error('Error fetching portfolio data:', error);
     } finally {
@@ -86,13 +90,16 @@ export const PortfolioPnL: React.FC = () => {
 
   const calculateAssetPnL = async (balances: any[], transactions: Transaction[]) => {
     const assetMap = new Map<string, AssetPnL>();
-    
+
     // Group transactions by asset
-    transactions.forEach(tx => {
-      if (!assetMap.has(tx.symbol)) {
-        assetMap.set(tx.symbol, {
-          symbol: tx.symbol,
-          name: tx.name,
+    transactions.forEach((tx: any) => {
+      const txSymbol = tx.symbol || tx.asset || 'UNKNOWN';
+      const txName = tx.name || txSymbol;
+
+      if (!assetMap.has(txSymbol)) {
+        assetMap.set(txSymbol, {
+          symbol: txSymbol,
+          name: txName,
           holdings: 0,
           averageBuyPrice: 0,
           averageSellPrice: 0,
@@ -106,16 +113,16 @@ export const PortfolioPnL: React.FC = () => {
           transactions: [],
         });
       }
-      
-      const asset = assetMap.get(tx.symbol)!;
+
+      const asset = assetMap.get(txSymbol)!;
       asset.transactions.push(tx);
-      
+
       if (tx.type === 'buy') {
-        asset.totalInvested += tx.amount * tx.price + tx.fee;
-        asset.holdings += tx.amount;
-      } else {
-        asset.realizedPnL += (tx.amount * tx.price) - (tx.amount * asset.averageBuyPrice) - tx.fee;
-        asset.holdings -= tx.amount;
+        asset.totalInvested += (tx.amount || 0) * (tx.price || 0) + (tx.fee || 0);
+        asset.holdings += tx.amount || 0;
+      } else if (tx.type === 'sell') {
+        asset.realizedPnL += ((tx.amount || 0) * (tx.price || 0)) - ((tx.amount || 0) * asset.averageBuyPrice) - (tx.fee || 0);
+        asset.holdings -= tx.amount || 0;
       }
     });
     
@@ -273,22 +280,28 @@ export const PortfolioPnL: React.FC = () => {
         <h3 className="text-xl font-semibold mb-4">Recent Transactions</h3>
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {assets.flatMap(asset => asset.transactions)
-            .sort((a, b) => b.date.getTime() - a.date.getTime())
+            .sort((a: any, b: any) => {
+              const dateA = a.date ? a.date.getTime() : 0;
+              const dateB = b.date ? b.date.getTime() : 0;
+              return dateB - dateA;
+            })
             .slice(0, 20)
-            .map((tx, index) => (
+            .map((tx: any, index) => (
               <div key={index} className="flex justify-between items-center p-3 bg-gray-800/50 rounded">
                 <div className="flex items-center gap-4">
                   <span className={`px-2 py-1 rounded text-xs ${tx.type === 'buy' ? 'bg-green-600' : 'bg-red-600'}`}>
-                    {tx.type.toUpperCase()}
+                    {(tx.type || 'unknown').toUpperCase()}
                   </span>
                   <div>
-                    <p className="font-semibold">{tx.symbol}</p>
-                    <p className="text-xs text-gray-400">{tx.date.toLocaleString()}</p>
+                    <p className="font-semibold">{tx.symbol || tx.asset || 'UNKNOWN'}</p>
+                    <p className="text-xs text-gray-400">
+                      {tx.date ? tx.date.toLocaleString() : tx.timestamp ? new Date(tx.timestamp).toLocaleString() : 'Unknown date'}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p>{tx.amount.toFixed(8)} @ {formatCurrency(tx.price)}</p>
-                  <p className="text-sm text-gray-400">Total: {formatCurrency(tx.amount * tx.price)}</p>
+                  <p>{(tx.amount || 0).toFixed(8)} @ {formatCurrency(tx.price || 0)}</p>
+                  <p className="text-sm text-gray-400">Total: {formatCurrency((tx.amount || 0) * (tx.price || 0))}</p>
                 </div>
               </div>
             ))}

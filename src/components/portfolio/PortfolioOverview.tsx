@@ -159,14 +159,14 @@ export function PortfolioOverview() {
             <CardDescription>Your portfolio's total value</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{formatCurrency(metrics.totalValueUsd)}</div>
+            <div className="text-3xl font-bold">{formatCurrency(metrics.totalValue)}</div>
             <div className="flex items-center mt-2">
               <span className={`text-sm ${metrics.dailyChangePct >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                 {formatPercentage(metrics.dailyChangePct)} (24h)
               </span>
             </div>
             <div className="text-sm text-muted-foreground mt-1">
-              {formatCurrency(metrics.totalValueBtc, 'BTC')}
+              {formatCurrency(metrics.totalValue, 'BTC')}
             </div>
           </CardContent>
         </Card>

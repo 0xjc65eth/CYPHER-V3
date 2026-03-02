@@ -87,9 +87,9 @@ export class CypherFeeManager {
   public getFeeRecipientAddress(network: NetworkType): string {
     switch (network) {
       case 'bitcoin':
-        return WALLET_ADDRESSES.BITCOIN;
+        return WALLET_ADDRESSES.bitcoin;
       case 'solana':
-        return WALLET_ADDRESSES.SOLANA;
+        return WALLET_ADDRESSES.solana;
       case 'ethereum':
       case 'polygon':
       case 'bsc':

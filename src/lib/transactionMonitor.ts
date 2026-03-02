@@ -601,7 +601,7 @@ export class TransactionMonitor {
       
       case 'log':
         this.logger.logSecurityEvent(
-          SecurityEventType.SUSPICIOUS_ACTIVITY_DETECTED,
+          SecurityEventType.SUSPICIOUS_ACTIVITY,
           {
             ruleId: rule.id,
             ruleName: rule.name,
@@ -657,7 +657,7 @@ export class TransactionMonitor {
     }
 
     this.logger.logSecurityEvent(
-      SecurityEventType.SUSPICIOUS_ACTIVITY_DETECTED,
+      SecurityEventType.SUSPICIOUS_ACTIVITY,
       {
         alertId: alert.id,
         severity: alert.severity,

@@ -84,12 +84,12 @@ export function NotificationContainer() {
               <div className="flex-1 min-w-0">
                 <h4 className="text-white font-medium">{notification.title}</h4>
                 <p className="text-gray-300 text-sm mt-1">{notification.message}</p>
-                {notification.action && (
+                {notification.actions && (
                   <button
-                    onClick={notification.action.onClick}
+                    onClick={notification.actions.onClick}
                     className="text-orange-500 hover:text-orange-400 text-sm mt-2 font-medium"
                   >
-                    {notification.action.label}
+                    {notification.actions.label}
                   </button>
                 )}
               </div>

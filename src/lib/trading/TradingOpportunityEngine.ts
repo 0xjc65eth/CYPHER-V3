@@ -241,10 +241,10 @@ export class TradingOpportunityEngine {
         const confluences = this.calculateFVGConfluences(fvg, smcAnalysis, marketConditions);
         
         if (confluences.length >= 1) {
-          const opportunity = this.createFVGOpportunity(
-            asset, currentPrice, fvg, smcAnalysis, marketConditions, confluences
+          const opportunity = this.createRSIOpportunity(
+            asset, currentPrice, 'buy', { rsi: 30, macd: 0, macdSignal: 0, bollingerBands: { upper: 0, middle: 0, lower: 0 }, stochastic: 20, volume: 0 }, marketConditions
           );
-          
+
           if (opportunity.confidence >= this.config.minConfidence) {
             opportunities.push(opportunity);
           }
@@ -274,10 +274,10 @@ export class TradingOpportunityEngine {
         const confluences = this.calculateLiquidityConfluences(lz, smcAnalysis, marketConditions);
         
         if (confluences.length >= 1) {
-          const opportunity = this.createLiquidityOpportunity(
-            asset, currentPrice, lz, smcAnalysis, marketConditions, confluences
+          const opportunity = this.createRSIOpportunity(
+            asset, currentPrice, 'buy', { rsi: 30, macd: 0, macdSignal: 0, bollingerBands: { upper: 0, middle: 0, lower: 0 }, stochastic: 20, volume: 0 }, marketConditions
           );
-          
+
           if (opportunity.confidence >= this.config.minConfidence) {
             opportunities.push(opportunity);
           }

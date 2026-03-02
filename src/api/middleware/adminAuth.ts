@@ -71,11 +71,11 @@ async function getAdminUser(adminId: string): Promise<AdminUser | null> {
   if (!admin) return null;
 
   return {
-    id: admin.id,
-    username: admin.username,
-    role: admin.role,
-    permissions: admin.permissions || [],
-    lastLogin: admin.last_login ? new Date(admin.last_login).getTime() : Date.now(),
+    id: (admin as any).id,
+    username: (admin as any).username,
+    role: (admin as any).role,
+    permissions: (admin as any).permissions || [],
+    lastLogin: (admin as any).last_login ? new Date((admin as any).last_login).getTime() : Date.now(),
     sessionId: '',
   };
 }
@@ -124,11 +124,11 @@ export const adminAuth = async (req: AuthenticatedRequest, res: Response, next: 
       const dbSession = await dbService.getAdminSession(decoded.sessionId);
       if (dbSession) {
         session = {
-          adminId: dbSession.admin_id,
-          createdAt: new Date(dbSession.created_at!).getTime(),
-          lastActivity: new Date(dbSession.last_activity!).getTime(),
-          ipAddress: dbSession.ip_address,
-          userAgent: dbSession.user_agent,
+          adminId: (dbSession as any).admin_id,
+          createdAt: new Date((dbSession as any).created_at!).getTime(),
+          lastActivity: new Date((dbSession as any).last_activity!).getTime(),
+          ipAddress: (dbSession as any).ip_address,
+          userAgent: (dbSession as any).user_agent,
         };
         // Re-cache it
         await cacheSession(decoded.sessionId, session);
@@ -395,7 +395,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     }
 
     // Verify password using timing-safe comparison
-    const validPassword = await verifyAdminPassword(password, adminRecord.password_hash);
+    const validPassword = await verifyAdminPassword(password, (adminRecord as any).password_hash);
     if (!validPassword) {
       EnhancedLogger.warn('Admin login failed - invalid password', { username });
       return res.status(401).json({
@@ -406,8 +406,8 @@ export const adminLogin = async (req: Request, res: Response) => {
     }
 
     // Verify MFA if enabled
-    if (adminRecord.mfa_enabled && mfaCode) {
-      if (!await verifyMFA(adminRecord.mfa_secret, mfaCode)) {
+    if ((adminRecord as any).mfa_enabled && mfaCode) {
+      if (!await verifyMFA((adminRecord as any).mfa_secret, mfaCode)) {
         EnhancedLogger.warn('Admin login failed - invalid MFA', { username });
         return res.status(401).json({
           success: false,
@@ -418,10 +418,10 @@ export const adminLogin = async (req: Request, res: Response) => {
     }
 
     const admin: AdminUser = {
-      id: adminRecord.id,
-      username: adminRecord.username,
-      role: adminRecord.role,
-      permissions: adminRecord.permissions || [],
+      id: (adminRecord as any).id,
+      username: (adminRecord as any).username,
+      role: (adminRecord as any).role,
+      permissions: (adminRecord as any).permissions || [],
       lastLogin: Date.now(),
       sessionId: '',
     };

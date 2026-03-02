@@ -149,24 +149,24 @@ async function fetchWithTimeout(url: string, timeoutMs: number = FETCH_TIMEOUT):
 }
 
 interface HiroRuneEntry {
-  id: string;
+  id?: string;
   name: string;
-  spaced_name: string;
+  spaced_name?: string;
   number: number;
-  supply: {
-    current: string;
-    minted: string;
-    mint_percentage: string;
-    mintable: boolean;
-    burned: string;
-    premine: string;
-    total_mints: string;
-    cap: string;
+  supply?: {
+    current?: string;
+    minted?: string;
+    mint_percentage?: string;
+    mintable?: boolean;
+    burned?: string;
+    premine?: string;
+    total_mints?: string;
+    cap?: string;
   };
-  turbo: boolean;
-  divisibility: number;
-  symbol: string;
-  timestamp: number;
+  turbo?: boolean;
+  divisibility?: number;
+  symbol?: string;
+  timestamp?: number;
 }
 
 async function fetchRunesFromHiro(limit: number): Promise<RuneMarketData[]> {
@@ -176,28 +176,28 @@ async function fetchRunesFromHiro(limit: number): Promise<RuneMarketData[]> {
   }
 
   const listData = await listResponse.json();
-  const entries: HiroRuneEntry[] = listData.results || [];
+  const entries: HiroRuneEntry[] = listData?.results || [];
 
   // Fetch holder counts and activity in parallel for each rune (limited batch)
   const runeDetails = await Promise.allSettled(
     entries.slice(0, limit).map(async (entry, index) => {
-      const encodedName = encodeURIComponent(entry.spaced_name || entry.name);
+      const encodedName = encodeURIComponent(entry?.spaced_name || entry?.name || '');
 
       let holders = 0;
       let activityCount = 0;
       try {
         const holdersRes = await fetchWithTimeout(`${HIRO_API_BASE}/${encodedName}/holders?offset=0&count=1`);
-        if (holdersRes.ok) {
+        if (holdersRes?.ok) {
           const holdersData = await holdersRes.json();
-          holders = holdersData.total || 0;
+          holders = holdersData?.total || 0;
         }
       } catch { /* fallback to 0 */ }
 
       try {
         const activityRes = await fetchWithTimeout(`${HIRO_API_BASE}/${encodedName}/activity?offset=0&count=1`);
-        if (activityRes.ok) {
+        if (activityRes?.ok) {
           const activityData = await activityRes.json();
-          activityCount = activityData.total || 0;
+          activityCount = activityData?.total || 0;
         }
       } catch { /* fallback to 0 */ }
 
@@ -216,11 +216,11 @@ function mapHiroEntryToRuneMarketData(
   holders: number,
   activityCount: number
 ): RuneMarketData {
-  const currentSupply = parseInt(entry.supply?.current || '0') / Math.pow(10, entry.divisibility || 0);
-  const maxSupply = parseInt(entry.supply?.cap || '0') / Math.pow(10, entry.divisibility || 0);
-  const totalMints = parseInt(entry.supply?.total_mints || '0');
-  const mintPercentage = parseFloat(entry.supply?.mint_percentage || '0');
-  const burned = parseInt(entry.supply?.burned || '0') / Math.pow(10, entry.divisibility || 0);
+  const currentSupply = parseInt(entry?.supply?.current || '0') / Math.pow(10, entry?.divisibility || 0);
+  const maxSupply = parseInt(entry?.supply?.cap || '0') / Math.pow(10, entry?.divisibility || 0);
+  const totalMints = parseInt(entry?.supply?.total_mints || '0');
+  const mintPercentage = parseFloat(entry?.supply?.mint_percentage || '0');
+  const burned = parseInt(entry?.supply?.burned || '0') / Math.pow(10, entry?.divisibility || 0);
 
   // We don't have price data from Hiro directly, so set to 0
   // Consumers should layer in price data from DEX APIs if needed
@@ -229,9 +229,9 @@ function mapHiroEntryToRuneMarketData(
   const volume24h = 0;
 
   return {
-    id: entry.id || `rune_${entry.number}`,
-    name: entry.spaced_name || entry.name,
-    symbol: entry.symbol || entry.name.replace(/[•\s]/g, '').substring(0, 8),
+    id: entry?.id || `rune_${entry?.number || 0}`,
+    name: entry?.spaced_name || entry?.name || 'Unknown',
+    symbol: entry?.symbol || (entry?.name || 'UNK').replace(/[•\s]/g, '').substring(0, 8),
     price: {
       current: price,
       change24h: 0,
@@ -265,7 +265,7 @@ function mapHiroEntryToRuneMarketData(
       progress: mintPercentage,
       remaining: maxSupply - currentSupply,
       rate: totalMints,
-      estimatedCompletion: entry.supply?.mintable ? Date.now() + 86400000 * 30 : 0
+      estimatedCompletion: entry?.supply?.mintable ? Date.now() + 86400000 * 30 : 0
     },
     liquidity: {
       pools: [],

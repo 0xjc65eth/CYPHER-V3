@@ -6,12 +6,23 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Eye, TrendingUp, AlertTriangle, Activity, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
+interface Whale {
+  address: string;
+  balance: string;
+  ordinalsCount: number;
+  brc20Holdings: Record<string, string>;
+  recentActivity: string;
+  impact: 'high' | 'medium' | 'low';
+  trend: 'up' | 'down';
+  change: string;
+}
+
 export function WhaleTracker() {
-  const [whales, setWhales] = useState([])
+  const [whales, setWhales] = useState<Whale[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const mockWhales = [
+    const mockWhales: Whale[] = [
       {
         address: 'bc1q...whale1',
         balance: '1,234 BTC',
@@ -23,7 +34,7 @@ export function WhaleTracker() {
         change: '+12.4%'
       },
       {
-        address: 'bc1q...whale2', 
+        address: 'bc1q...whale2',
         balance: '892 BTC',
         ordinalsCount: 8750,
         brc20Holdings: { ORDI: '1.8M', RATS: '890M' },
@@ -33,7 +44,7 @@ export function WhaleTracker() {
         change: '-5.1%'
       }
     ]
-    
+
     setTimeout(() => {
       setWhales(mockWhales)
       setIsLoading(false)

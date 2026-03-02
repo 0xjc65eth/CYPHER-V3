@@ -462,7 +462,7 @@ class InMemoryStore {
 // Database Service
 // ============================================================================
 
-class DatabaseService {
+export class DatabaseService {
   private fallback = new InMemoryStore()
   private _isConnected = false
   private _connectionTested = false
@@ -1761,7 +1761,7 @@ class DatabaseService {
 }
 
 // Singleton export
-export const dbService = new DatabaseService()
+export const dbService: DatabaseService = new DatabaseService()
 
 // Auto-test connection on module load (async, non-blocking)
 // This ensures _isConnected is set before the first DB operation

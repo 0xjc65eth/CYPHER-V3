@@ -24,18 +24,29 @@ interface AssetListProps {
 
 export function AssetList({ assets }: AssetListProps) {
   // Sort assets by value (highest first)
-  const sortedAssets = [...assets].sort((a, b) => b.value - a.value);
+  const sortedAssets = [...assets].sort((a, b) => {
+    const valueA = (a as any).value || 0;
+    const valueB = (b as any).value || 0;
+    return valueB - valueA;
+  });
 
-  const getAssetIcon = (type: AssetType) => {
-    switch (type) {
+  const getAssetIcon = (type: AssetType | string) => {
+    const typeStr = typeof type === 'string' ? type.toLowerCase() : type;
+    switch (typeStr) {
       case AssetType.BITCOIN:
+      case 'bitcoin':
+      case 'btc':
         return <Bitcoin className="h-5 w-5 text-[#F7931A]" />;
       case AssetType.ORDINAL:
+      case 'ordinal':
+      case 'ordinals':
         return <Gem className="h-5 w-5 text-[#6F4E37]" />;
       case AssetType.RUNE:
+      case 'rune':
+      case 'runes':
         return <CircleDollarSign className="h-5 w-5 text-[#9945FF]" />;
       default:
-        return null;
+        return <CircleDollarSign className="h-5 w-5 text-gray-500" />;
     }
   };
 
@@ -61,33 +72,43 @@ export function AssetList({ assets }: AssetListProps) {
               </TableCell>
             </TableRow>
           ) : (
-            sortedAssets.map((asset) => (
-              <TableRow key={`${asset.id}-${asset.location}`}>
+            sortedAssets.map((asset) => {
+              const assetData = asset as any;
+              const assetId = assetData.id || assetData.asset || assetData.symbol || 'unknown';
+              const assetLocation = assetData.location || 'default';
+              const assetQuantity = typeof assetData.quantity === 'string'
+                ? parseFloat(assetData.quantity)
+                : assetData.quantity || 0;
+              const assetPrice = assetData.priceUsd || assetData.price || 0;
+              const assetValue = assetData.value || (assetQuantity * assetPrice);
+
+              return (
+              <TableRow key={`${assetId}-${assetLocation}`}>
                 <TableCell>
-                  {getAssetIcon(asset.type)}
+                  {getAssetIcon(assetData.type)}
                 </TableCell>
                 <TableCell className="font-medium">
-                  <div>{asset.name}</div>
-                  {asset.symbol && (
-                    <div className="text-xs text-muted-foreground">{asset.symbol}</div>
+                  <div>{assetData.name || assetData.asset || 'Unknown'}</div>
+                  {assetData.symbol && (
+                    <div className="text-xs text-muted-foreground">{assetData.symbol}</div>
                   )}
                 </TableCell>
                 <TableCell>
-                  {formatNumber(parseFloat(asset.quantity))}
+                  {formatNumber(assetQuantity)}
                 </TableCell>
                 <TableCell>
-                  <div>{formatCurrency(asset.priceUsd)}</div>
-                  {asset.priceBtc && asset.type !== AssetType.BITCOIN && (
+                  <div>{formatCurrency(assetPrice)}</div>
+                  {assetData.priceBtc && assetData.type !== AssetType.BITCOIN && assetData.type !== 'bitcoin' && (
                     <div className="text-xs text-muted-foreground">
-                      {formatNumber(asset.priceBtc)} BTC
+                      {formatNumber(assetData.priceBtc)} BTC
                     </div>
                   )}
                 </TableCell>
                 <TableCell className="text-right">
-                  {formatCurrency(asset.value)}
+                  {formatCurrency(assetValue)}
                 </TableCell>
               </TableRow>
-            ))
+            )})
           )}
         </TableBody>
       </Table>

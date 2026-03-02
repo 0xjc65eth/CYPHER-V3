@@ -162,7 +162,7 @@ export default function EnhancedCypherAIBrazilian() {
     }
 
     // Initialize audio context
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    audioContextRef.current = new ((window as any).AudioContext || (window as any).webkitAudioContext)();
 
     // Add initial greeting
     setTimeout(() => {

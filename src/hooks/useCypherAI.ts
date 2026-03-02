@@ -97,7 +97,7 @@ export function useCypherAI(): UseCypherAIReturn {
         console.error('Error initializing CYPHER AI:', error);
         addMessage({
           type: 'ERROR',
-          message: `Initialization error: ${error.message}`,
+          message: `Initialization error: ${(error as Error)?.message || 'Unknown error'}`,
           confidence: 0.1
         });
       }
@@ -204,7 +204,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       const errorResponse: AIResponse = {
         type: 'ERROR',
-        message: `Command processing error: ${error.message}`,
+        message: `Command processing error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       };
       addMessage(errorResponse);
@@ -234,7 +234,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Signal generation error: ${error.message}`,
+        message: `Signal generation error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;
@@ -257,7 +257,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Engine start error: ${error.message}`,
+        message: `Engine start error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;
@@ -280,7 +280,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Engine stop error: ${error.message}`,
+        message: `Engine stop error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;
@@ -298,7 +298,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Emergency stop error: ${error.message}`,
+        message: `Emergency stop error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;
@@ -325,7 +325,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Reset error: ${error.message}`,
+        message: `Reset error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;
@@ -344,7 +344,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Market analysis error: ${error.message}`,
+        message: `Market analysis error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;
@@ -364,7 +364,7 @@ export function useCypherAI(): UseCypherAIReturn {
     } catch (error) {
       addMessage({
         type: 'ERROR',
-        message: `Portfolio stats error: ${error.message}`,
+        message: `Portfolio stats error: ${(error as Error)?.message || 'Unknown error'}`,
         confidence: 0.1
       });
       throw error;

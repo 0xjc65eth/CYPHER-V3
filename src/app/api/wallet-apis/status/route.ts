@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
     devLogger.log('API', 'Fetching wallet APIs status');
 
     // Get cache status
-    const cacheStatus = cacheService.getStatus();
+    const cacheStatus = cacheService.getStats();
     
     // Get rate limit status
     const rateLimitStatus = apiCache.getRateLimitStatus();

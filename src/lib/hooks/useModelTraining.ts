@@ -49,12 +49,11 @@ export function useModelTraining() {
       const modelList = await modelPersistence.listModels();
       
       const modelInfo: ModelInfo[] = modelList.map(model => {
-        const latestVersion = model.versions[model.versions.length - 1];
         return {
           name: model.name,
-          currentVersion: latestVersion?.version || null,
-          lastTrained: latestVersion?.timestamp || null,
-          metrics: latestVersion?.metrics
+          currentVersion: model.version || null,
+          lastTrained: model.timestamp || null,
+          metrics: model.metrics
         };
       });
       

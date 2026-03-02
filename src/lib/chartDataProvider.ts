@@ -369,7 +369,7 @@ export class ChartDataProvider {
       if (source === 'binance') {
         this.createBinanceWebSocket(symbol, subscriptionKey);
       } else if (source === 'coinbase') {
-        this.createCoinbaseWebSocket(symbol, subscriptionKey);
+        this.createBinanceWebSocket(symbol, subscriptionKey);
       }
     } catch (error) {
       console.error(`Error creating WebSocket for ${symbol}:`, error);

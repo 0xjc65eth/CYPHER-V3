@@ -107,19 +107,19 @@ class QuickNodeService {
    */
   async getLatestBlock(): Promise<BlockInfo> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode('latest-block'),
+      (cacheKeys as any).quicknode('latest-block'),
       async () => {
         devLogger.log('QUICKNODE', 'Fetching latest block');
-        
+
         // Primeiro, obter o hash do bloco mais recente
         const blockHash = await this.rpcCall('getbestblockhash');
-        
+
         // Depois, obter as informações do bloco
         const blockInfo = await this.rpcCall('getblock', [blockHash, 1]);
-        
+
         return blockInfo;
       },
-      cacheTTL.blocks
+      (cacheTTL as any).blocks
     );
   }
 
@@ -128,12 +128,12 @@ class QuickNodeService {
    */
   async getBlock(blockHash: string): Promise<BlockInfo> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode(`block-${blockHash}`),
+      (cacheKeys as any).quicknode(`block-${blockHash}`),
       async () => {
         devLogger.log('QUICKNODE', `Fetching block: ${blockHash}`);
         return await this.rpcCall('getblock', [blockHash, 1]);
       },
-      cacheTTL.blocks
+      (cacheTTL as any).blocks
     );
   }
 
@@ -142,12 +142,12 @@ class QuickNodeService {
    */
   async getTransaction(txid: string): Promise<TransactionInfo> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode(`tx-${txid}`),
+      (cacheKeys as any).quicknode(`tx-${txid}`),
       async () => {
         devLogger.log('QUICKNODE', `Fetching transaction: ${txid}`);
         return await this.rpcCall('getrawtransaction', [txid, true]);
       },
-      cacheTTL.transactions
+      (cacheTTL as any).transactions
     );
   }
 
@@ -156,7 +156,7 @@ class QuickNodeService {
    */
   async getMempoolInfo(): Promise<MempoolInfo> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode('mempool-info'),
+      (cacheKeys as any).quicknode('mempool-info'),
       async () => {
         devLogger.log('QUICKNODE', 'Fetching mempool info');
         return await this.rpcCall('getmempoolinfo');
@@ -170,12 +170,12 @@ class QuickNodeService {
    */
   async getNetworkInfo(): Promise<NetworkInfo> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode('network-info'),
+      (cacheKeys as any).quicknode('network-info'),
       async () => {
         devLogger.log('QUICKNODE', 'Fetching network info');
         return await this.rpcCall('getnetworkinfo');
       },
-      cacheTTL.network
+      (cacheTTL as any).network
     );
   }
 
@@ -184,12 +184,12 @@ class QuickNodeService {
    */
   async getBlockCount(): Promise<number> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode('block-count'),
+      (cacheKeys as any).quicknode('block-count'),
       async () => {
         devLogger.log('QUICKNODE', 'Fetching block count');
         return await this.rpcCall('getblockcount');
       },
-      cacheTTL.blocks
+      (cacheTTL as any).blocks
     );
   }
 
@@ -198,12 +198,12 @@ class QuickNodeService {
    */
   async getDifficulty(): Promise<number> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode('difficulty'),
+      (cacheKeys as any).quicknode('difficulty'),
       async () => {
         devLogger.log('QUICKNODE', 'Fetching mining difficulty');
         return await this.rpcCall('getdifficulty');
       },
-      cacheTTL.mining
+      (cacheTTL as any).mining
     );
   }
 
@@ -212,12 +212,12 @@ class QuickNodeService {
    */
   async getNetworkHashrate(): Promise<number> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode('network-hashrate'),
+      (cacheKeys as any).quicknode('network-hashrate'),
       async () => {
         devLogger.log('QUICKNODE', 'Fetching network hashrate');
         return await this.rpcCall('getnetworkhashps');
       },
-      cacheTTL.mining
+      (cacheTTL as any).mining
     );
   }
 
@@ -250,16 +250,19 @@ class QuickNodeService {
    */
   async estimateFee(blocks: number = 6): Promise<number> {
     return cacheService.getOrCompute(
-      cacheKeys.quicknode(`fee-estimate-${blocks}`),
+      (cacheKeys as any).quicknode(`fee-estimate-${blocks}`),
       async () => {
         devLogger.log('QUICKNODE', `Estimating fee for ${blocks} blocks`);
         const result = await this.rpcCall('estimatesmartfee', [blocks]);
         return result.feerate || 0;
       },
-      cacheTTL.fees
+      (cacheTTL as any).fees
     );
   }
 }
+
+// Cache keys específicos para QuickNode
+(cacheKeys as any).quicknode = (key: string) => `quicknode:${key}`;
 
 // Exportar instância singleton
 export const quickNodeService = new QuickNodeService();

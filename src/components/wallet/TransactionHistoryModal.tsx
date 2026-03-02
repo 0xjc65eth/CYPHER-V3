@@ -81,7 +81,7 @@ export function TransactionHistoryModal({
         tx.amount,
         tx.price,
         tx.totalValue,
-        tx.feeUsd,
+        tx.feeUSD,
         tx.txHash
       ].join(','))
     ].join('\n');
@@ -111,7 +111,7 @@ export function TransactionHistoryModal({
       totalSold,
       avgBuyPrice,
       avgSellPrice,
-      totalFees: transactions.reduce((sum, tx) => sum + tx.feeUsd, 0)
+      totalFees: transactions.reduce((sum, tx) => sum + tx.feeUSD, 0)
     };
   };
 
@@ -263,7 +263,7 @@ export function TransactionHistoryModal({
                     ${tx.totalValue.toLocaleString()}
                   </p>
                   <p className="text-xs text-gray-500">
-                    Fee: ${tx.feeUsd.toFixed(2)}
+                    Fee: ${tx.feeUSD.toFixed(2)}
                   </p>
                 </div>
               </div>

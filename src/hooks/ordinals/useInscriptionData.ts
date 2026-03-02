@@ -129,7 +129,7 @@ async function fetchMempoolInscriptions(): Promise<MempoolInscription[]> {
  */
 async function fetchInscriptionDetails(inscriptionId: string): Promise<Inscription | null> {
   try {
-    const inscription = await hiroOrdinalsService.getInscriptionById(inscriptionId)
+    const inscription = await hiroOrdinalsService.getInscriptions(inscriptionId)
 
     if (!inscription) return null
 
