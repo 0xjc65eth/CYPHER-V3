@@ -308,9 +308,59 @@ export class OrdinalsDataConverter {
 }
 
 /**
+ * Data domain for marketplace selection
+ */
+export type OrdinalsDataDomain = 'collections' | 'inscriptions' | 'activities' | 'stats' | 'runes' | 'brc20';
+
+/**
  * Unified marketplace client factory
  */
 export class OrdinalsMarketplaceFactory {
+  /**
+   * Returns the preferred marketplace priority for a given data domain.
+   * Post-ME deprecation: OKX primary for Ordinals, UniSat/Hiro for Runes/BRC-20.
+   */
+  static getPreferredOrder(domain: OrdinalsDataDomain = 'collections'): OrdinalsMarketplace[] {
+    switch (domain) {
+      case 'runes':
+        // OKX has 0% Runes coverage - use UniSat + Hiro, ME as last resort
+        return [OrdinalsMarketplace.UNISAT, OrdinalsMarketplace.HIRO, OrdinalsMarketplace.MAGIC_EDEN];
+      case 'brc20':
+        // UniSat is the primary BRC-20 source
+        return [OrdinalsMarketplace.UNISAT, OrdinalsMarketplace.HIRO, OrdinalsMarketplace.MAGIC_EDEN];
+      case 'collections':
+      case 'inscriptions':
+      case 'activities':
+      case 'stats':
+      default:
+        // OKX primary for all Ordinals data, ME as degraded fallback
+        return [
+          OrdinalsMarketplace.OKX,
+          OrdinalsMarketplace.BESTINSLOT,
+          OrdinalsMarketplace.UNISAT,
+          OrdinalsMarketplace.HIRO,
+          OrdinalsMarketplace.MAGIC_EDEN,
+        ];
+    }
+  }
+
+  /**
+   * Returns the preferred client for a given data domain with fallback support.
+   * Tries clients in priority order, returns the first available one.
+   */
+  static getPreferredClient(domain: OrdinalsDataDomain = 'collections', config?: { uniSatApiKey?: string }) {
+    const order = this.getPreferredOrder(domain);
+    for (const marketplace of order) {
+      try {
+        const client = this.createClient(marketplace, config);
+        if (client) return { client, marketplace };
+      } catch {
+        continue;
+      }
+    }
+    throw new Error(`No available marketplace client for domain: ${domain}`);
+  }
+
   static createClient(marketplace: OrdinalsMarketplace, config?: any) {
     switch (marketplace) {
       case OrdinalsMarketplace.MAGIC_EDEN:

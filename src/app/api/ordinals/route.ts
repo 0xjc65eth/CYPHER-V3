@@ -3,6 +3,7 @@ import { magicEdenService } from '@/services/magicEdenService'
 import type { MagicEdenCollectionStats } from '@/services/magicEdenService'
 import { priceVolumeService } from '@/services/ordinals/PriceVolumeService'
 import { OrdinalsDataAggregator } from '@/services/ordinals/OrdinalsDataAggregator'
+import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI'
 
 // ─── Circuit Breaker for Magic Eden 429 Rate Limits ─────────────────────────
 
@@ -141,53 +142,8 @@ function satsToBTC(sats: number | undefined): number {
 // ─── GET Handler ────────────────────────────────────────────────────────────
 
 // Core fetching logic - extracted for dedup
-// Uses ONLY the /v2/ord/btc/stat endpoint (one call per collection)
-// No details calls, no enhancement pass (PriceVolumeService) - avoids 429s
+// Priority: OKX (primary) → Magic Eden (fallback) → OrdinalsDataAggregator (last resort)
 async function fetchOrdinalsData(): Promise<unknown> {
-  // If circuit breaker is open, skip Magic Eden entirely
-  if (isCircuitBreakerOpen()) {
-    throw new Error('Circuit breaker open - Magic Eden rate limited')
-  }
-
-  // Helper: race a promise against a 20s timeout, with 429 detection
-  const withTimeout = <T>(p: Promise<T>, ms = 20000): Promise<T | null> =>
-    Promise.race([
-      p.catch((err: Error & { status?: number }) => {
-        if (err.message?.includes('429') || err.status === 429) {
-          tripCircuitBreaker()
-        }
-        throw err
-      }),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-    ])
-
-  // Fetch collection stats in batches of 3 with 1s delay between batches
-  const BATCH_SIZE = 3
-  const allStatResults: { symbol: string; stats: MagicEdenCollectionStats | null }[] = []
-
-  for (let i = 0; i < TOP_COLLECTION_SYMBOLS.length; i += BATCH_SIZE) {
-    if (isCircuitBreakerOpen()) break // Stop if circuit breaker trips mid-batch
-
-    const batch = TOP_COLLECTION_SYMBOLS.slice(i, i + BATCH_SIZE)
-    const batchPromises = batch.map(async (symbol) => {
-      // Stats endpoint only - one API call per collection
-      const stats = await withTimeout(magicEdenService.getCollectionStats(symbol), 20000)
-      return { symbol, stats }
-    })
-
-    const batchResults = await Promise.allSettled(batchPromises)
-    for (const r of batchResults) {
-      if (r.status === 'fulfilled') {
-        allStatResults.push(r.value)
-      }
-    }
-
-    // 1 second delay between batches to avoid rate limits
-    if (i + BATCH_SIZE < TOP_COLLECTION_SYMBOLS.length) {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-    }
-  }
-
   // Get BTC/USD rate once for all collections (from CoinGecko via PriceVolumeService)
   let btcUsdRate = 95000 // fallback
   try {
@@ -195,58 +151,158 @@ async function fetchOrdinalsData(): Promise<unknown> {
   } catch (e) {
   }
 
-  // Build collections from stat data + hard-coded names/images
-  const validCollections = allStatResults.filter(
-    (c): c is { symbol: string; stats: MagicEdenCollectionStats } => c.stats !== null
-  )
+  // ─── Try OKX first (primary source, post-ME deprecation) ──────────────────
+  let trendingCollections: Array<{
+    name: string; symbol: string; floor: number; floorUSD: number;
+    volume: number; volume24h: number; volume7d: number; volume30d: number;
+    volumeUSD24h: number; volumeUSD7d: number; volumeUSD30d: number;
+    listed: number; owners: number; supply: number; imageURI: string;
+    change: number; change7d: number; change30d: number;
+    bestBid: number; bidAskSpread: number; vwap24h: number;
+    trades24h: number; trades7d: number; trades30d: number;
+  }> = []
 
-  const trendingCollections = validCollections.map((c) => {
-    const info = COLLECTION_INFO[c.symbol] || {
-      name: c.symbol,
-      image: `https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`,
+  let dataSource = 'okx'
+
+  try {
+    const { collections: okxCollections } = await okxOrdinalsAPI.getCollections(20, undefined, 'volume24h')
+
+    if (okxCollections.length > 0) {
+      trendingCollections = okxCollections.map((c) => {
+        const floorBTC = parseFloat(c.floorPrice || '0')
+        const vol24h = parseFloat(c.volume24h || '0')
+        const vol7d = parseFloat(c.volume7d || '0')
+        const vol30d = parseFloat(c.volume30d || '0')
+        const volTotal = parseFloat(c.volumeTotal || '0')
+        const imageURI = c.logoUrl
+          ? `/api/ordinals/image/?url=${encodeURIComponent(c.logoUrl)}`
+          : `/api/ordinals/image/?url=${encodeURIComponent(`https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`)}`
+
+        return {
+          name: c.name || c.symbol,
+          symbol: c.symbol || c.collectionId,
+          floor: floorBTC,
+          floorUSD: floorBTC * btcUsdRate,
+          volume: volTotal,
+          volume24h: vol24h,
+          volume7d: vol7d,
+          volume30d: vol30d,
+          volumeUSD24h: vol24h * btcUsdRate,
+          volumeUSD7d: vol7d * btcUsdRate,
+          volumeUSD30d: vol30d * btcUsdRate,
+          listed: Number(c.listedRate) || 0,
+          owners: c.ownerCount || 0,
+          supply: c.totalSupply || 0,
+          imageURI,
+          change: parseFloat(c.change24h || '0'),
+          change7d: parseFloat(c.change7d || '0'),
+          change30d: parseFloat(c.change30d || '0'),
+          bestBid: floorBTC,
+          bidAskSpread: 0,
+          vwap24h: parseFloat(c.avgPrice24h || '0'),
+          trades24h: c.salesCount24h || 0,
+          trades7d: 0,
+          trades30d: 0,
+        }
+      })
+    }
+  } catch (okxError) {
+    console.warn('[Ordinals API] OKX primary fetch failed, falling back to Magic Eden:', okxError instanceof Error ? okxError.message : okxError)
+  }
+
+  // ─── Fallback to Magic Eden if OKX returned nothing ───────────────────────
+  if (trendingCollections.length === 0) {
+    dataSource = 'magic_eden'
+
+    if (isCircuitBreakerOpen()) {
+      throw new Error('Circuit breaker open - Magic Eden rate limited and OKX unavailable')
     }
 
-    const floorBTC = satsToBTC(Number(c.stats.floorPrice) || 0)
-    const totalVolumeBTC = satsToBTC(Number(c.stats.totalVolume) || 0)
-    const supply = Number(c.stats.supply) || 0
-    const listed = Number(c.stats.listedCount ?? c.stats.totalListed) || 0
+    const withTimeout = <T>(p: Promise<T>, ms = 20000): Promise<T | null> =>
+      Promise.race([
+        p.catch((err: Error & { status?: number }) => {
+          if (err.message?.includes('429') || err.status === 429) {
+            tripCircuitBreaker()
+          }
+          throw err
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+      ])
 
-    // Sanitize owners: must be a reasonable integer (not satoshi counts or garbage values)
-    const rawOwners = Number(c.stats.owners ?? 0)
-    const owners = (Number.isFinite(rawOwners) && rawOwners > 0 && rawOwners < 1_000_000)
-      ? Math.round(rawOwners)
-      : 0
+    const BATCH_SIZE = 3
+    const allStatResults: { symbol: string; stats: MagicEdenCollectionStats | null }[] = []
 
-    // Proxy collection images through our image route to avoid CORS issues
-    const imageURI = `/api/ordinals/image/?url=${encodeURIComponent(info.image)}`
+    for (let i = 0; i < TOP_COLLECTION_SYMBOLS.length; i += BATCH_SIZE) {
+      if (isCircuitBreakerOpen()) break
 
-    return {
-      name: info.name,
-      symbol: c.symbol,
-      floor: floorBTC,
-      floorUSD: floorBTC * btcUsdRate,
-      volume: totalVolumeBTC,   // all-time volume in BTC (from stat endpoint)
-      volume24h: 0,             // will be enriched below from collection-stats
-      volume7d: 0,
-      volume30d: 0,
-      volumeUSD24h: 0,
-      volumeUSD7d: 0,
-      volumeUSD30d: 0,
-      listed,
-      owners,
-      supply,
-      imageURI,
-      change: 0,
-      change7d: 0,
-      change30d: 0,
-      bestBid: floorBTC,
-      bidAskSpread: 0,
-      vwap24h: 0,
-      trades24h: 0,
-      trades7d: 0,
-      trades30d: 0,
+      const batch = TOP_COLLECTION_SYMBOLS.slice(i, i + BATCH_SIZE)
+      const batchPromises = batch.map(async (symbol) => {
+        const stats = await withTimeout(magicEdenService.getCollectionStats(symbol), 20000)
+        return { symbol, stats }
+      })
+
+      const batchResults = await Promise.allSettled(batchPromises)
+      for (const r of batchResults) {
+        if (r.status === 'fulfilled') {
+          allStatResults.push(r.value)
+        }
+      }
+
+      if (i + BATCH_SIZE < TOP_COLLECTION_SYMBOLS.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
     }
-  })
+
+    const validCollections = allStatResults.filter(
+      (c): c is { symbol: string; stats: MagicEdenCollectionStats } => c.stats !== null
+    )
+
+    trendingCollections = validCollections.map((c) => {
+      const info = COLLECTION_INFO[c.symbol] || {
+        name: c.symbol,
+        image: `https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`,
+      }
+
+      const floorBTC = satsToBTC(Number(c.stats.floorPrice) || 0)
+      const totalVolumeBTC = satsToBTC(Number(c.stats.totalVolume) || 0)
+      const supply = Number(c.stats.supply) || 0
+      const listed = Number(c.stats.listedCount ?? c.stats.totalListed) || 0
+
+      const rawOwners = Number(c.stats.owners ?? 0)
+      const owners = (Number.isFinite(rawOwners) && rawOwners > 0 && rawOwners < 1_000_000)
+        ? Math.round(rawOwners)
+        : 0
+
+      const imageURI = `/api/ordinals/image/?url=${encodeURIComponent(info.image)}`
+
+      return {
+        name: info.name,
+        symbol: c.symbol,
+        floor: floorBTC,
+        floorUSD: floorBTC * btcUsdRate,
+        volume: totalVolumeBTC,
+        volume24h: 0,
+        volume7d: 0,
+        volume30d: 0,
+        volumeUSD24h: 0,
+        volumeUSD7d: 0,
+        volumeUSD30d: 0,
+        listed,
+        owners,
+        supply,
+        imageURI,
+        change: 0,
+        change7d: 0,
+        change30d: 0,
+        bestBid: floorBTC,
+        bidAskSpread: 0,
+        vwap24h: 0,
+        trades24h: 0,
+        trades7d: 0,
+        trades30d: 0,
+      }
+    })
+  }
 
   // ─── Enrich with volume/price change from collection-stats endpoint ──────
   // Uses BestInSlot -> OKX -> ME fallback chain (server-side, no CORS issues)
@@ -334,8 +390,10 @@ async function fetchOrdinalsData(): Promise<unknown> {
       real_data: true,
       fake_data: false,
       estimated_data: false,
-      source: 'magic_eden_stat_api+collection_stats_enrichment',
-      note: 'Base data from ME stat API, enriched with volume/price changes from BestInSlot/OKX/ME collection-stats',
+      source: dataSource === 'okx' ? 'okx_primary+collection_stats_enrichment' : 'magic_eden_fallback+collection_stats_enrichment',
+      note: dataSource === 'okx'
+        ? 'Primary data from OKX Ordinals API, enriched with volume/price changes from BestInSlot/OKX collection-stats'
+        : 'Fallback data from ME stat API (OKX unavailable), enriched with BestInSlot/OKX/ME collection-stats',
     },
   }
 }

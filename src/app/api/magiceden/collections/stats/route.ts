@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { magicEdenService } from '@/services/magicEdenService';
+import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Try OKX first (primary post-ME deprecation)
+    try {
+      const okxStats = await okxOrdinalsAPI.getCollectionStats(collectionSymbol);
+      if (okxStats) {
+        return NextResponse.json({
+          ...okxStats,
+          _source: 'okx',
+        });
+      }
+    } catch (okxError) {
+      console.warn('[API] OKX stats fetch failed, falling back to ME:', okxError instanceof Error ? okxError.message : okxError);
+    }
+
+    // Fallback to Magic Eden
     const data = await magicEdenService.getCollectionStats(collectionSymbol);
     if (!data) {
       return NextResponse.json(
@@ -21,7 +36,10 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      ...data,
+      _source: 'magic_eden',
+    });
   } catch (error) {
     console.error('[API] GET /api/magiceden/collections/stats error:', error);
     return NextResponse.json(

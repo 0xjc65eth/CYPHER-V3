@@ -2,11 +2,11 @@
  * Ordinals Data Aggregator - CYPHER V3
  * Aggregates Ordinals data from multiple sources with automatic fallback
  *
- * Data Sources Priority:
- * 1. Magic Eden (primary) - stat-only approach (no details calls)
+ * Data Sources Priority (post-ME deprecation):
+ * 1. OKX (primary) - marketplace API with full Ordinals coverage
  * 2. UniSat (fallback) - direct API with auth
- * 3. OKX (fallback) - marketplace API
- * 4. Hiro (fallback) - blockchain/inscription data
+ * 3. Hiro (fallback) - blockchain/inscription data
+ * 4. Magic Eden (last resort) - deprecated, rate-limited
  *
  * IMPORTANT: All fetch() calls use ABSOLUTE URLs, not relative /api/ paths
  * (relative paths don't work server-side in Next.js API routes)
@@ -80,11 +80,11 @@ export class OrdinalsDataAggregator {
    */
   static async fetchCollections(): Promise<AggregatedCollection[]> {
 
-    // Try Magic Eden first (primary source) - stat-only approach
+    // Try OKX first (primary source post-ME deprecation)
     try {
-      const magicEdenData = await this.fetchFromMagicEden();
-      if (magicEdenData.length > 0) {
-        return magicEdenData;
+      const okxData = await this.fetchFromOKX();
+      if (okxData.length > 0) {
+        return okxData;
       }
     } catch (error) {
     }
@@ -98,20 +98,20 @@ export class OrdinalsDataAggregator {
     } catch (error) {
     }
 
-    // Fallback to OKX
-    try {
-      const okxData = await this.fetchFromOKX();
-      if (okxData.length > 0) {
-        return okxData;
-      }
-    } catch (error) {
-    }
-
-    // Final fallback to Hiro
+    // Fallback to Hiro
     try {
       const hiroData = await this.fetchFromHiro();
       if (hiroData.length > 0) {
         return hiroData;
+      }
+    } catch (error) {
+    }
+
+    // Last resort: Magic Eden (deprecated, rate-limited)
+    try {
+      const magicEdenData = await this.fetchFromMagicEden();
+      if (magicEdenData.length > 0) {
+        return magicEdenData;
       }
     } catch (error) {
       console.error('[OrdinalsDataAggregator] All API sources failed:', error instanceof Error ? error.message : 'Unknown error');
