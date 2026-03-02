@@ -12,6 +12,9 @@
 import * as tf from '@tensorflow/tfjs-node';
 import { EventEmitter } from 'events';
 
+// Type-safe TensorFlow operations
+const tfOps = tf as any;
+
 // Environment and Action Spaces
 export interface TradingEnvironment {
   state: TradingState;
@@ -520,7 +523,7 @@ export class PPOAgent {
    * Build actor network (policy)
    */
   private buildActorNetwork(inputSize: number, outputSize: number): any {
-    const input = tf.input({ shape: [inputSize] });
+    const input = tfOps.input({ shape: [inputSize] });
     
     let x = tf.layers.dense({
       units: 256,
@@ -540,8 +543,8 @@ export class PPOAgent {
       activation: 'softmax',
       kernelInitializer: 'glorotUniform'
     }).apply(x) as any;
-    
-    const model = tf.model({ inputs: input, outputs: output });
+
+    const model = tfOps.model({ inputs: input, outputs: output });
     
     return model;
   }
@@ -634,7 +637,7 @@ export class PPOAgent {
     const returns = this.calculateReturns();
     
     // Convert trajectory to tensors
-    const states = tf.stack(this.trajectoryBuffer.states);
+    const states = tfOps.stack(this.trajectoryBuffer.states);
     const actions = tf.tensor(this.trajectoryBuffer.actions, [this.trajectoryBuffer.actions.length], 'int32');
     const oldLogProbs = tf.tensor(this.trajectoryBuffer.logProbs);
     const advantagesTensor = tf.tensor(advantages);
@@ -661,31 +664,31 @@ export class PPOAgent {
         
         // Normalize advantages
         const advMean = batchAdvantages.mean();
-        const advStd = tf.sqrt(tf.moments(batchAdvantages).variance).add(1e-8);
+        const advStd = tfOps.sqrt(tfOps.moments(batchAdvantages).variance).add(1e-8);
         const normalizedAdvantages = batchAdvantages.sub(advMean).div(advStd);
         
         // Calculate losses
         const losses = await this.optimizer.minimize(() => {
           // Actor loss (PPO-Clip)
           const actionProbs = this.actor.predict(batchStates) as any;
-          const indices = tf.range(0, batchSize, 1, 'int32');
+          const indices = tfOps.range(0, batchSize, 1, 'int32');
           const gatheredProbs = actionProbs.gather(batchActions, 1);
-          const newLogProbs = tf.log(gatheredProbs.add(1e-8));
-          
+          const newLogProbs = tfOps.log(gatheredProbs.add(1e-8));
+
           const ratio = newLogProbs.sub(batchOldLogProbs).exp();
-          const clippedRatio = tf.clipByValue(ratio, 1 - this.clipRatio, 1 + this.clipRatio);
-          
-          const policyLoss = tf.minimum(
+          const clippedRatio = tfOps.clipByValue(ratio, 1 - this.clipRatio, 1 + this.clipRatio);
+
+          const policyLoss = tfOps.minimum(
               ratio.mul(normalizedAdvantages),
               clippedRatio.mul(normalizedAdvantages)
             ).mean().neg();
-          
+
           // Entropy bonus
-          const entropy = tf.sum(actionProbs.mul(tf.log(actionProbs.add(1e-8))), 1)
+          const entropy = tfOps.sum(actionProbs.mul(tfOps.log(actionProbs.add(1e-8))), 1)
             .mean().neg();
-          
+
           // Value loss
-          const values = tf.squeeze(this.critic.predict(batchStates) as any);
+          const values = tfOps.squeeze(this.critic.predict(batchStates) as any);
           const valueLoss = batchReturns.sub(values).square().mean();
           
           // Total loss
@@ -738,7 +741,7 @@ export class PPOAgent {
     
     // Get final value estimate
     const lastState = this.trajectoryBuffer.states[this.trajectoryBuffer.states.length - 1];
-    const lastValueTensor = this.critic.predict(tf.expandDims(lastState, 0)) as any;
+    const lastValueTensor = this.critic.predict(tfOps.expandDims(lastState, 0)) as any;
     const lastValue = (await lastValueTensor.array() as number[][])[0][0];
     lastValueTensor.dispose();
     

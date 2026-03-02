@@ -124,11 +124,11 @@ export async function GET(request: Request) {
 
             const stats = {
               totalRunes: enrichedRunes.length,
-              totalHolders: enrichedRunes.reduce((sum, r) => sum + r.holders, 0),
-              totalVolume24h: enrichedRunes.reduce((sum, r) => sum + r.volume24h, 0),
-              totalMarketCap: enrichedRunes.reduce((sum, r) => sum + r.marketCap, 0),
-              turboRunes: enrichedRunes.filter(r => r.turbo).length,
-              activeListings: enrichedRunes.reduce((sum, r) => sum + r.listed, 0),
+              totalHolders: enrichedRunes.reduce((sum: number, r: any) => sum + r.holders, 0),
+              totalVolume24h: enrichedRunes.reduce((sum: number, r: any) => sum + r.volume24h, 0),
+              totalMarketCap: enrichedRunes.reduce((sum: number, r: any) => sum + r.marketCap, 0),
+              turboRunes: enrichedRunes.filter((r: any) => r.turbo).length,
+              activeListings: enrichedRunes.reduce((sum: number, r: any) => sum + r.listed, 0),
             };
 
             return {
@@ -199,7 +199,7 @@ export async function GET(request: Request) {
 
             const stats = {
               totalRunes: enrichedRunes.length,
-              totalHolders: enrichedRunes.reduce((sum, r) => sum + r.holders, 0),
+              totalHolders: enrichedRunes.reduce((sum: number, r: any) => sum + r.holders, 0),
               totalVolume24h: 0,
               totalMarketCap: 0,
               turboRunes: 0,
@@ -272,11 +272,11 @@ export async function GET(request: Request) {
 
             const stats = {
               totalRunes: enrichedRunes.length,
-              totalHolders: enrichedRunes.reduce((sum, r) => sum + r.holders, 0),
-              totalVolume24h: enrichedRunes.reduce((sum, r) => sum + r.volume24h, 0),
-              totalMarketCap: enrichedRunes.reduce((sum, r) => sum + r.marketCap, 0),
+              totalHolders: enrichedRunes.reduce((sum: number, r: any) => sum + r.holders, 0),
+              totalVolume24h: enrichedRunes.reduce((sum: number, r: any) => sum + r.volume24h, 0),
+              totalMarketCap: enrichedRunes.reduce((sum: number, r: any) => sum + r.marketCap, 0),
               turboRunes: 0,
-              activeListings: enrichedRunes.reduce((sum, r) => sum + r.listed, 0),
+              activeListings: enrichedRunes.reduce((sum: number, r: any) => sum + r.listed, 0),
             };
 
             return {
@@ -344,10 +344,10 @@ export async function GET(request: Request) {
 
             const stats = {
               totalRunes: enrichedRunes.length,
-              totalHolders: enrichedRunes.reduce((sum, r) => sum + r.holders, 0),
-              totalVolume24h: enrichedRunes.reduce((sum, r) => sum + r.volume24h, 0),
-              totalMarketCap: enrichedRunes.reduce((sum, r) => sum + r.marketCap, 0),
-              turboRunes: enrichedRunes.filter(r => r.turbo).length,
+              totalHolders: enrichedRunes.reduce((sum: number, r: any) => sum + r.holders, 0),
+              totalVolume24h: enrichedRunes.reduce((sum: number, r: any) => sum + r.volume24h, 0),
+              totalMarketCap: enrichedRunes.reduce((sum: number, r: any) => sum + r.marketCap, 0),
+              turboRunes: enrichedRunes.filter((r: any) => r.turbo).length,
               activeListings: 0,
             };
 

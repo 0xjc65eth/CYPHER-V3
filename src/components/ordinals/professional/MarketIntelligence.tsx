@@ -65,10 +65,10 @@ export default function MarketIntelligence() {
     if (!marketActivities.data?.activities) return null
 
     const activities = marketActivities.data.activities
-    const sales = activities.filter((a) => a.kind === 'buying_broadcasted')
-    const listings = activities.filter((a) => a.kind === 'create_offer')
+    const sales = activities.filter((a: any) => a.kind === 'buying_broadcasted')
+    const listings = activities.filter((a: any) => a.kind === 'create_offer')
 
-    const totalVolume = sales.reduce((sum, s) => sum + (s.listedPrice || 0), 0)
+    const totalVolume = sales.reduce((sum: number, s: any) => sum + (s.listedPrice || 0), 0)
     const avgSalePrice = sales.length > 0 ? totalVolume / sales.length : 0
     const totalSales = sales.length
     const totalListings = listings.length
@@ -91,7 +91,7 @@ export default function MarketIntelligence() {
 
     // Aggregate volume by collection from real activity data
     const collectionVolumes = new Map<string, { volume: number; floor: number }>()
-    marketActivities.data.activities.forEach((a) => {
+    marketActivities.data.activities.forEach((a: any) => {
       if (a.collection_symbol) {
         const existing = collectionVolumes.get(a.collection_symbol) || { volume: 0, floor: 0 }
         existing.volume += (a.listedPrice || 0)
@@ -103,8 +103,8 @@ export default function MarketIntelligence() {
     })
 
     return Array.from(collectionVolumes.entries())
-      .map(([name, data]) => ({ name, volume: data.volume, change: 0, floor: data.floor }))
-      .sort((a, b) => b.volume - a.volume)
+      .map(([name, data]: any) => ({ name, volume: data.volume, change: 0, floor: data.floor }))
+      .sort((a: any, b: any) => b.volume - a.volume)
       .slice(0, 5)
   }, [marketActivities.data])
 
@@ -264,7 +264,7 @@ export default function MarketIntelligence() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {marketInsights.map((insight, i) => {
+          {marketInsights.map((insight: any, i: number) => {
             const Icon =
               insight.type === 'bullish'
                 ? CheckCircle
@@ -327,7 +327,7 @@ export default function MarketIntelligence() {
         </h3>
 
         <div className="space-y-3">
-          {trendingCollections.map((collection, i) => (
+          {trendingCollections.map((collection: any, i: number) => (
             <div
               key={i}
               className="flex items-center justify-between p-4 bg-[#0a0a0f] rounded border border-[#2a2a3e] hover:border-[#f59e0b] transition-colors"
@@ -384,7 +384,7 @@ export default function MarketIntelligence() {
               { label: 'Collections', value: 31, color: '#10b981' },
               { label: 'Individual Inscriptions', value: 18, color: '#3b82f6' },
               { label: 'Rare Sats', value: 9, color: '#8b5cf6' },
-            ].map((item, i) => (
+            ].map((item: any, i: number) => (
               <div key={i}>
                 <div className="flex items-center justify-between mb-1">
                   <div className="text-sm text-gray-300">{item.label}</div>
@@ -419,7 +419,7 @@ export default function MarketIntelligence() {
               { address: 'bc1q...5c6d', volume: 7.23, trades: 21 },
               { address: 'bc1q...9e0f', volume: 5.67, trades: 15 },
               { address: 'bc1q...1g2h', volume: 4.89, trades: 12 },
-            ].map((trader, i) => (
+            ].map((trader: any, i: number) => (
               <div
                 key={i}
                 className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]"
@@ -478,7 +478,7 @@ export default function MarketIntelligence() {
               current: 0.156,
               status: 'triggered',
             },
-          ].map((alert, i) => (
+          ].map((alert: any, i: number) => (
             <div
               key={i}
               className={`p-4 bg-[#0a0a0f] rounded border ${

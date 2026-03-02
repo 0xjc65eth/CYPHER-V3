@@ -77,9 +77,9 @@ async function fetchUnisatData(runeName: string): Promise<RuneMarketData | null>
       if (!response.ok) throw new Error('Failed to fetch runes list');
       const { list, total } = await response.json();
 
-      const totalHolders = list.reduce((sum, rune) => sum + (rune.holders || 0), 0);
-      const totalTransactions = list.reduce((sum, rune) => sum + (rune.transactions || 0), 0);
-      const totalSupply = list.reduce((sum, rune) => {
+      const totalHolders = list.reduce((sum: number, rune: any) => sum + (rune.holders || 0), 0);
+      const totalTransactions = list.reduce((sum: number, rune: any) => sum + (rune.transactions || 0), 0);
+      const totalSupply = list.reduce((sum: number, rune: any) => {
         const supply = parseFloat(rune.supply || '0');
         return sum + (isNaN(supply) ? 0 : supply);
       }, 0);
@@ -161,7 +161,7 @@ async function fetchMagicEdenData(runeName: string): Promise<RuneMarketData | nu
       new Date(a.createdAt).getTime() > oneDayAgo
     ) || [];
 
-    const volume24h = recent24hActivities.reduce((sum, activity) => {
+    const volume24h = recent24hActivities.reduce((sum: number, activity: any) => {
       const amount = parseFloat(activity.listedPrice || activity.totalPrice || '0');
       return sum + (isNaN(amount) ? 0 : amount);
     }, 0);

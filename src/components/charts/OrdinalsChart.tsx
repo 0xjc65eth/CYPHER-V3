@@ -115,7 +115,7 @@ export interface OrdinalsChartProps {
 }
 
 // Custom Tooltip Components
-const CollectionTooltip = ({ active, payload, label }: any) => {
+const CollectionTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -149,7 +149,7 @@ const CollectionTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const InscriptionTooltip = ({ active, payload, label }: any) => {
+const InscriptionTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -245,11 +245,11 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
     let filtered = collections;
     
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(c => c.category === selectedCategory);
+      filtered = filtered.filter((c: any) => c.category === selectedCategory);
     }
     
     // Sort collections
-    filtered.sort((a, b) => {
+    filtered.sort((a: any, b: any) => {
       switch (sortBy) {
         case 'volume':
           return b.volume24h - a.volume24h;
@@ -264,7 +264,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
       }
     });
 
-    return filtered.map((collection, index) => ({
+    return filtered.map((collection: any, index: number) => ({
       ...collection,
       color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
     }));
@@ -277,17 +277,17 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
     let filtered = inscriptions;
     
     if (rarityFilter !== 'all') {
-      filtered = filtered.filter(i => i.rarity === rarityFilter);
+      filtered = filtered.filter((i: any) => i.rarity === rarityFilter);
     }
-    
-    return filtered.sort((a, b) => b.timestamp - a.timestamp);
+
+    return filtered.sort((a: any, b: any) => b.timestamp - a.timestamp);
   }, [inscriptions, rarityFilter]);
 
   // Category breakdown
   const categoryBreakdown = useMemo(() => {
     if (!collections) return [];
     
-    const categories = collections.reduce((acc, collection) => {
+    const categories = collections.reduce((acc: Record<string, any>, collection: any) => {
       const cat = collection.category || 'Other';
       if (!acc[cat]) {
         acc[cat] = { name: cat, count: 0, volume: 0, marketCap: 0 };
@@ -297,8 +297,8 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
       acc[cat].marketCap += collection.marketCap;
       return acc;
     }, {} as Record<string, any>);
-    
-    return Object.values(categories).map((cat: any, index) => ({
+
+    return Object.values(categories).map((cat: any, index: number) => ({
       ...cat,
       color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
     }));
@@ -307,14 +307,14 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
   // Rarity distribution
   const rarityDistribution = useMemo(() => {
     if (!inscriptions) return [];
-    
-    const rarities = inscriptions.reduce((acc, inscription) => {
+
+    const rarities = inscriptions.reduce((acc: Record<string, number>, inscription: any) => {
       const rarity = inscription.rarity || 'common';
       acc[rarity] = (acc[rarity] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
-    return Object.entries(rarities).map(([rarity, count]) => ({
+    return Object.entries(rarities).map(([rarity, count]: [string, number]) => ({
       name: rarity,
       value: count,
       color: RARITY_COLORS[rarity as keyof typeof RARITY_COLORS] || '#6B7280'
@@ -326,13 +326,13 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
     if (!inscriptions) return [];
     
     const feeRanges = {
-      'Low (0-1000)': inscriptions.filter(i => i.fee < 1000).length,
-      'Medium (1000-10000)': inscriptions.filter(i => i.fee >= 1000 && i.fee < 10000).length,
-      'High (10000-50000)': inscriptions.filter(i => i.fee >= 10000 && i.fee < 50000).length,
-      'Very High (50000+)': inscriptions.filter(i => i.fee >= 50000).length
+      'Low (0-1000)': inscriptions.filter((i: any) => i.fee < 1000).length,
+      'Medium (1000-10000)': inscriptions.filter((i: any) => i.fee >= 1000 && i.fee < 10000).length,
+      'High (10000-50000)': inscriptions.filter((i: any) => i.fee >= 10000 && i.fee < 50000).length,
+      'Very High (50000+)': inscriptions.filter((i: any) => i.fee >= 50000).length
     };
-    
-    return Object.entries(feeRanges).map(([range, count], index) => ({
+
+    return Object.entries(feeRanges).map(([range, count]: [string, number], index: number) => ({
       name: range,
       value: count,
       color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
@@ -586,9 +586,9 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                                 outerRadius={80}
                                 fill="#8884d8"
                                 dataKey="count"
-                                label={({ name, count }) => `${name}: ${count}`}
+                                label={({ name, count }: any) => `${name}: ${count}`}
                               >
-                                {categoryBreakdown.map((entry, index) => (
+                                {categoryBreakdown.map((entry: any, index: number) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                               </Pie>
@@ -666,7 +666,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                             </tr>
                           </thead>
                           <tbody>
-                            {processedCollections.slice(0, 15).map((collection) => (
+                            {processedCollections.slice(0, 15).map((collection: any) => (
                               <tr key={collection.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                                 <td className="p-2">
                                   <div className="flex items-center gap-2">
@@ -745,9 +745,9 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                                 outerRadius={80}
                                 fill="#8884d8"
                                 dataKey="value"
-                                label={({ name, value }) => `${name}: ${value}`}
+                                label={({ name, value }: any) => `${name}: ${value}`}
                               >
-                                {rarityDistribution.map((entry, index) => (
+                                {rarityDistribution.map((entry: any, index: number) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                               </Pie>
@@ -765,7 +765,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                               <YAxis className="text-xs" />
                               <Tooltip />
                               <Bar dataKey="value">
-                                {feeAnalysis.map((entry, index) => (
+                                {feeAnalysis.map((entry: any, index: number) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                               </Bar>
@@ -778,7 +778,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                       <div className="space-y-3">
                         <h5 className="font-medium">Latest Inscriptions</h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                          {processedInscriptions.slice(0, 20).map((inscription) => (
+                          {processedInscriptions.slice(0, 20).map((inscription: any) => (
                             <div 
                               key={inscription.id} 
                               className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
@@ -822,7 +822,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                                 <div className="mt-3">
                                   <div className="text-xs text-gray-500 mb-1">Attributes:</div>
                                   <div className="flex flex-wrap gap-1">
-                                    {inscription.attributes.slice(0, 3).map((attr, index) => (
+                                    {inscription.attributes.slice(0, 3).map((attr: any, index: number) => (
                                       <Badge key={index} variant="outline" className="text-xs">
                                         {attr.trait_type}: {attr.value}
                                       </Badge>
@@ -890,7 +890,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                         <h5 className="font-medium mb-3">Volume Analysis by Collection</h5>
                         <ResponsiveContainer width="100%" height={height}>
                           <Treemap
-                            data={processedCollections.slice(0, 20).map(c => ({
+                            data={processedCollections.slice(0, 20).map((c: any) => ({
                               name: c.symbol,
                               size: c.volume24h,
                               fill: c.color

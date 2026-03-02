@@ -83,9 +83,9 @@ export default function RareSatsMarket() {
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter((listing) =>
+      filtered = filtered.filter((listing: any) =>
         listing.meta?.attributes?.some(
-          (attr) => attr.trait_type === 'Rarity' && attr.value.toLowerCase() === selectedCategory
+          (attr: any) => attr.trait_type === 'Rarity' && attr.value.toLowerCase() === selectedCategory
         )
       )
     }
@@ -94,7 +94,7 @@ export default function RareSatsMarket() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase()
       filtered = filtered.filter(
-        (listing) =>
+        (listing: any) =>
           listing.id?.toLowerCase().includes(query) ||
           listing.meta?.name?.toLowerCase().includes(query)
       )
@@ -102,9 +102,9 @@ export default function RareSatsMarket() {
 
     // Sort
     if (sortBy === 'price') {
-      filtered = filtered.sort((a, b) => (b.listedPrice || 0) - (a.listedPrice || 0))
+      filtered = filtered.sort((a: any, b: any) => (b.listedPrice || 0) - (a.listedPrice || 0))
     } else if (sortBy === 'recent') {
-      filtered = filtered.sort((a, b) => (b.listedAt || 0) - (a.listedAt || 0))
+      filtered = filtered.sort((a: any, b: any) => (b.listedAt || 0) - (a.listedAt || 0))
     }
 
     return filtered
@@ -116,9 +116,9 @@ export default function RareSatsMarket() {
 
     const listings = rareSatListings.data.inscriptions
     const totalListings = listings.length
-    const totalVolume = listings.reduce((sum, l) => sum + (l.listedPrice || 0), 0)
+    const totalVolume = listings.reduce((sum: number, l: any) => sum + (l.listedPrice || 0), 0)
     const avgPrice = totalListings > 0 ? totalVolume / totalListings : 0
-    const floorPrice = Math.min(...listings.map((l) => l.listedPrice || Infinity))
+    const floorPrice = Math.min(...listings.map((l: any) => l.listedPrice || Infinity))
 
     return {
       totalListings,
@@ -131,7 +131,7 @@ export default function RareSatsMarket() {
   if (rareSatListings.isLoading) {
     return (
       <div className="space-y-6">
-        {[...Array(3)].map((_, i) => (
+        {[...Array(3)].map((_: any, i: number) => (
           <Card key={i} variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">
             <div className="h-48 bg-[#2a2a3e] rounded animate-pulse"></div>
           </Card>
@@ -225,7 +225,7 @@ export default function RareSatsMarket() {
               type="text"
               placeholder="Search by ID or name..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none"
             />
           </div>
@@ -247,7 +247,7 @@ export default function RareSatsMarket() {
               >
                 All
               </button>
-              {rareSatCategories.data?.map((category) => (
+              {rareSatCategories.data?.map((category: any) => (
                 <button
                   key={category.id}
                   onClick={() => setSelectedCategory(category.id)}
@@ -274,7 +274,7 @@ export default function RareSatsMarket() {
               { id: 'price', label: 'Price' },
               { id: 'rarity', label: 'Rarity' },
               { id: 'recent', label: 'Recent' },
-            ].map((option) => (
+            ].map((option: any) => (
               <button
                 key={option.id}
                 onClick={() => setSortBy(option.id as any)}
@@ -293,9 +293,9 @@ export default function RareSatsMarket() {
 
       {/* Listings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredListings.map((listing, i) => {
+        {filteredListings.map((listing: any, i: number) => {
           const rarityAttr = listing.meta?.attributes?.find(
-            (attr) => attr.trait_type === 'Rarity'
+            (attr: any) => attr.trait_type === 'Rarity'
           )
           const rarity = rarityAttr?.value || 'Unknown'
           const category = RARE_SAT_CATEGORIES.find(
@@ -344,7 +344,7 @@ export default function RareSatsMarket() {
                 {/* Rarity Attributes */}
                 {listing.meta?.attributes && listing.meta.attributes.length > 0 && (
                   <div className="space-y-1">
-                    {listing.meta.attributes.slice(0, 3).map((attr, idx) => (
+                    {listing.meta.attributes.slice(0, 3).map((attr: any, idx: number) => (
                       <div
                         key={idx}
                         className="flex items-center justify-between text-xs"
@@ -403,7 +403,7 @@ export default function RareSatsMarket() {
           Recent Activity
         </h3>
         <div className="space-y-2">
-          {rareSatActivities.data?.activities?.slice(0, 10).map((activity, i) => (
+          {rareSatActivities.data?.activities?.slice(0, 10).map((activity: any, i: number) => (
             <div
               key={i}
               className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]"

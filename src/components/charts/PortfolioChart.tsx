@@ -82,7 +82,7 @@ export interface PortfolioChartProps {
 }
 
 // Custom Tooltip Components
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
@@ -98,7 +98,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const AllocationTooltip = ({ active, payload }: any) => {
+const AllocationTooltip = ({ active, payload }: { active?: boolean; payload?: any }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -152,7 +152,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   const processedAssets = useMemo(() => {
     if (!portfolio) return [];
     
-    return portfolio.map((asset, index) => ({
+    return portfolio.map((asset: any, index: number) => ({
       ...asset,
       color: ASSET_COLORS[index % ASSET_COLORS.length]
     }));
@@ -162,7 +162,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   const performanceData = useMemo(() => {
     if (!performance) return [];
     
-    return performance.map(p => ({
+    return performance.map((p: any) => ({
       timestamp: new Date(p.timestamp).toLocaleDateString(),
       value: p.totalValue,
       pnl: p.pnl,
@@ -172,7 +172,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
 
   // Allocation data for pie chart
   const allocationData = useMemo(() => {
-    return processedAssets.map(asset => ({
+    return processedAssets.map((asset: any) => ({
       name: asset.symbol,
       value: asset.value,
       allocation: asset.allocation,
@@ -185,15 +185,15 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   const riskData = useMemo(() => {
     if (!processedAssets.length) return [];
     
-    const lowRisk = processedAssets.filter(a => Math.abs(a.changePercent24h) < 5);
-    const mediumRisk = processedAssets.filter(a => Math.abs(a.changePercent24h) >= 5 && Math.abs(a.changePercent24h) < 15);
-    const highRisk = processedAssets.filter(a => Math.abs(a.changePercent24h) >= 15);
+    const lowRisk = processedAssets.filter((a: any) => Math.abs(a.changePercent24h) < 5);
+    const mediumRisk = processedAssets.filter((a: any) => Math.abs(a.changePercent24h) >= 5 && Math.abs(a.changePercent24h) < 15);
+    const highRisk = processedAssets.filter((a: any) => Math.abs(a.changePercent24h) >= 15);
     
     return [
-      { name: 'Low Risk', value: lowRisk.reduce((sum, a) => sum + a.value, 0), color: '#10B981' },
-      { name: 'Medium Risk', value: mediumRisk.reduce((sum, a) => sum + a.value, 0), color: '#F59E0B' },
-      { name: 'High Risk', value: highRisk.reduce((sum, a) => sum + a.value, 0), color: '#EF4444' }
-    ].filter(item => item.value > 0);
+      { name: 'Low Risk', value: lowRisk.reduce((sum: number, a: any) => sum + a.value, 0), color: '#10B981' },
+      { name: 'Medium Risk', value: mediumRisk.reduce((sum: number, a: any) => sum + a.value, 0), color: '#F59E0B' },
+      { name: 'High Risk', value: highRisk.reduce((sum: number, a: any) => sum + a.value, 0), color: '#EF4444' }
+    ].filter((item: any) => item.value > 0);
   }, [processedAssets]);
 
   // Timeframe options
@@ -394,9 +394,9 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                               outerRadius={Math.min(height / 3, 120)}
                               fill="#8884d8"
                               dataKey="value"
-                              label={({ allocation }) => `${allocation.toFixed(1)}%`}
+                              label={({ allocation }: any) => `${allocation.toFixed(1)}%`}
                             >
-                              {allocationData.map((entry, index) => (
+                              {allocationData.map((entry: any, index: number) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
@@ -435,7 +435,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                               dataKey="value"
                               label={({ name, allocation }) => `${name}: ${allocation.toFixed(1)}%`}
                             >
-                              {allocationData.map((entry, index) => (
+                              {allocationData.map((entry: any, index: number) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
@@ -556,7 +556,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                                 outerRadius={100}
                                 fill="#8884d8"
                                 dataKey="value"
-                                label={({ name, value }) => `${name}: $${value.toLocaleString()}`}
+                                label={({ name, value }: any) => `${name}: $${value.toLocaleString()}`}
                               >
                                 {riskData.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />

@@ -132,7 +132,7 @@ export default function PortfolioSummary({ address }: PortfolioSummaryProps) {
             </div>
             <div className="mt-4 pt-4 border-t border-purple-200/50 dark:border-purple-700/30">
               <div className="space-y-2">
-                {data?.ordinals.collections?.map((collection, index) => (
+                {data?.ordinals.collections?.map((collection: any, index: number) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="text-purple-800/70 dark:text-purple-300/70">{collection.name}</span>
                     <span className="font-medium text-purple-800 dark:text-purple-300">${collection.floorPrice.toLocaleString()}</span>
@@ -168,7 +168,7 @@ export default function PortfolioSummary({ address }: PortfolioSummaryProps) {
             </div>
             <div className="mt-4 pt-4 border-t border-pink-200/50 dark:border-pink-700/30">
               <div className="space-y-2">
-                {data?.runes.holdings?.map((holding, index) => (
+                {data?.runes.holdings?.map((holding: any, index: number) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="text-pink-800/70 dark:text-pink-300/70">{holding.ticker}</span>
                     <span className="font-medium text-pink-800 dark:text-pink-300">{holding.amount}</span>
@@ -202,7 +202,7 @@ export default function PortfolioSummary({ address }: PortfolioSummaryProps) {
             </div>
             <div className="mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-700/30">
               <div className="space-y-2">
-                {data?.rareSats.items?.map((item, index) => (
+                {data?.rareSats.items?.map((item: any, index: number) => (
                   <div key={index} className="flex justify-between text-sm">
                     <span className="text-amber-800/70 dark:text-amber-300/70">{item.type} ({item.sat.substring(0, 4)}...)</span>
                     <span className="font-medium text-amber-800 dark:text-amber-300">${item.value.toLocaleString()}</span>
@@ -238,7 +238,7 @@ export default function PortfolioSummary({ address }: PortfolioSummaryProps) {
             </div>
           ) : (
             <div className="space-y-3 bg-gray-50 dark:bg-gray-800/20 rounded-xl p-4">
-              {data?.recentTransactions.map((tx, index) => (
+              {data?.recentTransactions.map((tx: any, index: number) => (
                 <div key={index} className="flex justify-between items-center p-3 bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700/30 hover:border-blue-200 dark:hover:border-blue-700/30 transition-colors">
                   <div className="flex items-center">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${tx.type === 'Received' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>

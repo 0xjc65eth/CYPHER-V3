@@ -16,7 +16,7 @@ export interface NetworkConfig {
   blockExplorerUrls?: string[];
   iconUrl?: string;
   type: 'bitcoin' | 'evm' | 'solana';
-  supportedWallets: WalletType[];
+  supportedWallets: string[]; // Array of wallet IDs
 }
 
 export interface WalletType {
@@ -302,10 +302,10 @@ export class NetworkDetectionService {
   static getWalletsForNetwork(networkId: string): WalletType[] {
     const network = NETWORKS[networkId];
     if (!network) return [];
-    
+
     return network.supportedWallets
       .map(walletId => WALLETS[walletId])
-      .filter(Boolean);
+      .filter((wallet): wallet is WalletType => wallet !== undefined);
   }
   
   static getNetworksForAsset(assetSymbol: string): NetworkConfig[] {

@@ -288,7 +288,7 @@ export class TradingSignalsService {
     }
 
     // SMC analysis weight
-    Object.values(mtfAnalysis.timeframes).forEach(analysis => {
+    Object.values(mtfAnalysis.timeframes).forEach((analysis: any) => {
       const smcScore = this.calculateSMCScore(analysis);
       if (smcScore > 0) {
         bullishScore += smcScore * 0.3;
@@ -419,7 +419,7 @@ export class TradingSignalsService {
     let confluence = 0;
     let factors = 0;
 
-    Object.values(mtfAnalysis.timeframes).forEach(analysis => {
+    Object.values(mtfAnalysis.timeframes).forEach((analysis: any) => {
       // Order blocks confluence
       if (analysis.orderBlocks?.length > 0) {
         confluence += 0.2;
@@ -433,7 +433,7 @@ export class TradingSignalsService {
       }
 
       // Fair value gaps confluence
-      const unfilledFVGs = analysis.fairValueGaps?.filter(fvg => !fvg.filled).length || 0;
+      const unfilledFVGs = analysis.fairValueGaps?.filter((fvg: any) => !fvg.filled).length || 0;
       if (unfilledFVGs > 0) {
         confluence += 0.15;
         factors++;
@@ -467,7 +467,7 @@ export class TradingSignalsService {
     }
 
     // SMC reasoning
-    Object.values(mtfAnalysis.timeframes).forEach(analysis => {
+    Object.values(mtfAnalysis.timeframes).forEach((analysis: any) => {
       if (analysis.orderBlocks?.length > 0) {
         reasons.push(`${analysis.orderBlocks.length} order blocks identified on ${analysis.timeframe}`);
       }
@@ -524,7 +524,7 @@ export class TradingSignalsService {
       validation.riskRewardValid ? 0.2 : 0
     ];
 
-    validation.score = scores.reduce((sum, score) => sum + score, 0);
+    validation.score = scores.reduce((sum: number, score: number) => sum + score, 0);
     validation.overallValid = validation.score >= 0.7;
 
     return validation;
@@ -532,19 +532,19 @@ export class TradingSignalsService {
 
   private checkVolumeConfirmation(mtfAnalysis: MultiTimeframeAnalysis): boolean {
     // Check if recent volume supports the signal
-    return Object.values(mtfAnalysis.timeframes).some(analysis => 
+    return Object.values(mtfAnalysis.timeframes).some((analysis: any) =>
       analysis.institutionalFlow?.strength > 0.5
     );
   }
 
   private checkSMCConfirmation(mtfAnalysis: MultiTimeframeAnalysis, signalType: 'buy' | 'sell'): boolean {
     // Check if SMC analysis supports the signal
-    return Object.values(mtfAnalysis.timeframes).some(analysis => {
-      const relevantOBs = analysis.orderBlocks?.filter(ob => 
+    return Object.values(mtfAnalysis.timeframes).some((analysis: any) => {
+      const relevantOBs = analysis.orderBlocks?.filter((ob: any) =>
         signalType === 'buy' ? ob.type === 'bullish' : ob.type === 'bearish'
       ) || [];
 
-      const relevantBOS = analysis.breakOfStructure?.filter(bos => 
+      const relevantBOS = analysis.breakOfStructure?.filter((bos: any) =>
         signalType === 'buy' ? bos.type === 'bullish' : bos.type === 'bearish'
       ) || [];
 
@@ -691,25 +691,25 @@ export class TradingSignalsService {
 
     const successfulTrades = results.filter(r => r.pnl > 0);
     const winRate = successfulTrades.length / results.length;
-    const averagePnL = results.reduce((sum, r) => sum + r.pnlPercentage, 0) / results.length;
-    const totalReturn = results.reduce((product, r) => product * (1 + r.pnlPercentage / 100), 1) - 1;
+    const averagePnL = results.reduce((sum: number, r: any) => sum + r.pnlPercentage, 0) / results.length;
+    const totalReturn = results.reduce((product: number, r: any) => product * (1 + r.pnlPercentage / 100), 1) - 1;
     
     // Calculate Sharpe ratio (simplified)
-    const returns = results.map(r => r.pnlPercentage);
-    const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
+    const returns = results.map((r: any) => r.pnlPercentage);
+    const avgReturn = returns.reduce((sum: number, r: number) => sum + r, 0) / returns.length;
     const stdDev = Math.sqrt(
-      returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
+      returns.reduce((sum: number, r: number) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length
     );
     const sharpeRatio = stdDev > 0 ? avgReturn / stdDev : 0;
 
-    const maxDrawdown = Math.min(...results.map(r => r.maxDrawdown));
-    const averageHoldingTime = results.reduce((sum, r) => sum + r.holdingTime, 0) / results.length;
-    
-    const bestTrade = results.reduce((best, current) => 
+    const maxDrawdown = Math.min(...results.map((r: any) => r.maxDrawdown));
+    const averageHoldingTime = results.reduce((sum: number, r: any) => sum + r.holdingTime, 0) / results.length;
+
+    const bestTrade = results.reduce((best: any, current: any) =>
       current.pnl > best.pnl ? current : best
     );
-    
-    const worstTrade = results.reduce((worst, current) => 
+
+    const worstTrade = results.reduce((worst: any, current: any) =>
       current.pnl < worst.pnl ? current : worst
     );
 

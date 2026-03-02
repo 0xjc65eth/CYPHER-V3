@@ -265,13 +265,13 @@ const WalletStats: React.FC<WalletStatsProps> = ({
                 <div className="flex justify-between">
                   <span className="text-gray-400">Total Value:</span>
                   <span className="text-white">
-                    {formatCurrency(portfolioData.ordinals.reduce((sum, o) => sum + o.currentValue, 0))}
+                    {formatCurrency(portfolioData.ordinals.reduce((sum: number, o: any) => sum + o.currentValue, 0))}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Total Cost:</span>
                   <span className="text-white">
-                    {formatCurrency(portfolioData.ordinals.reduce((sum, o) => sum + o.cost, 0))}
+                    {formatCurrency(portfolioData.ordinals.reduce((sum: number, o: any) => sum + o.cost, 0))}
                   </span>
                 </div>
               </div>
@@ -292,13 +292,13 @@ const WalletStats: React.FC<WalletStatsProps> = ({
                 <div className="flex justify-between">
                   <span className="text-gray-400">Total Value:</span>
                   <span className="text-white">
-                    {formatCurrency(portfolioData.runes.reduce((sum, r) => sum + r.currentValue, 0))}
+                    {formatCurrency(portfolioData.runes.reduce((sum: number, r: any) => sum + r.currentValue, 0))}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Total Cost:</span>
                   <span className="text-white">
-                    {formatCurrency(portfolioData.runes.reduce((sum, r) => sum + r.cost, 0))}
+                    {formatCurrency(portfolioData.runes.reduce((sum: number, r: any) => sum + r.cost, 0))}
                   </span>
                 </div>
               </div>

@@ -104,7 +104,7 @@ export interface ArbitrageChartProps {
 }
 
 // Custom Tooltip Components
-const OpportunityTooltip = ({ active, payload, label }: any) => {
+const OpportunityTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
@@ -143,7 +143,7 @@ const OpportunityTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const SpreadTooltip = ({ active, payload, label }: any) => {
+const SpreadTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg border">
@@ -222,14 +222,14 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
   const filteredOpportunities = useMemo(() => {
     if (!opportunities) return [];
     
-    let filtered = opportunities.filter(opp => 
-      opp.spreadPercent >= filterSpread && 
+    let filtered = opportunities.filter((opp: any) =>
+      opp.spreadPercent >= filterSpread &&
       opp.riskScore <= filterRisk &&
       (!showOnlyActive || opp.status === 'active')
     );
 
     // Sort opportunities
-    filtered.sort((a, b) => {
+    filtered.sort((a: any, b: any) => {
       switch (sortBy) {
         case 'spread':
           return b.spreadPercent - a.spreadPercent;
@@ -249,7 +249,7 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
 
   // Process data for charts
   const scatterData = useMemo(() => {
-    return filteredOpportunities.map(opp => ({
+    return filteredOpportunities.map((opp: any) => ({
       x: opp.spreadPercent,
       y: opp.netProfit,
       z: opp.riskScore,
@@ -260,8 +260,8 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
   // Exchange breakdown
   const exchangeBreakdown = useMemo(() => {
     if (!exchangeData) return [];
-    
-    return exchangeData.map((exchange, index) => ({
+
+    return exchangeData.map((exchange: any, index: number) => ({
       ...exchange,
       color: EXCHANGE_COLORS[index % EXCHANGE_COLORS.length]
     }));
@@ -270,10 +270,10 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
   // Risk distribution
   const riskDistribution = useMemo(() => {
     if (!filteredOpportunities.length) return [];
-    
-    const low = filteredOpportunities.filter(opp => opp.riskScore < 3).length;
-    const medium = filteredOpportunities.filter(opp => opp.riskScore >= 3 && opp.riskScore < 7).length;
-    const high = filteredOpportunities.filter(opp => opp.riskScore >= 7).length;
+
+    const low = filteredOpportunities.filter((opp: any) => opp.riskScore < 3).length;
+    const medium = filteredOpportunities.filter((opp: any) => opp.riskScore >= 3 && opp.riskScore < 7).length;
+    const high = filteredOpportunities.filter((opp: any) => opp.riskScore >= 7).length;
     
     return [
       { name: 'Low Risk', value: low, color: RISK_COLORS.low },
@@ -571,7 +571,7 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
                               </tr>
                             </thead>
                             <tbody>
-                              {filteredOpportunities.slice(0, 10).map((opp) => (
+                              {filteredOpportunities.slice(0, 10).map((opp: any) => (
                                 <tr key={opp.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                                   <td className="p-2 font-medium">{opp.symbol}</td>
                                   <td className="p-2">{opp.buyExchange}</td>
@@ -678,9 +678,9 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
                                 outerRadius={80}
                                 fill="#8884d8"
                                 dataKey="value"
-                                label={({ name, value }) => `${name}: ${value}`}
+                                label={({ name, value }: any) => `${name}: ${value}`}
                               >
-                                {riskDistribution.map((entry, index) => (
+                                {riskDistribution.map((entry: any, index: number) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                               </Pie>
@@ -713,7 +713,7 @@ export const ArbitrageChart: React.FC<ArbitrageChartProps> = ({
 
                       {/* Exchange Details */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {exchangeBreakdown.map((exchange, index) => (
+                        {exchangeBreakdown.map((exchange: any, index: number) => (
                           <div key={exchange.name} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
                             <div className="flex items-center justify-between mb-3">
                               <h5 className="font-medium">{exchange.name}</h5>

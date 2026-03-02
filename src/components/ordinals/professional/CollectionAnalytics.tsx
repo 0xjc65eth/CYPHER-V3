@@ -47,7 +47,7 @@ export default function CollectionAnalytics() {
   const currentCollection = collectionDetails || (collectionsData?.find(c => c.id === selectedCollection || c.slug === selectedCollection))
 
   // Process real data from market data
-  const floorPriceData = marketData?.floor_price_history?.map(item => ({
+  const floorPriceData = marketData?.floor_price_history?.map((item: any) => ({
     date: new Date(item.timestamp).toISOString().split('T')[0],
     price: item.price,
     volume: 0, // Volume is tracked separately via volume_history
@@ -56,12 +56,12 @@ export default function CollectionAnalytics() {
   })) || []
 
   const volumeHistory = marketData?.volume_history || []
-  const volumeProfileData = volumeHistory.slice(-5).map((item, index) => {
+  const volumeProfileData = volumeHistory.slice(-5).map((item: any, index: number) => {
     const priceRange = `${(currentCollection?.floor_price || 0.04 + index * 0.002).toFixed(3)}-${(currentCollection?.floor_price || 0.04 + (index + 1) * 0.002).toFixed(3)}`
     return {
       price: priceRange,
       volume: Math.floor(item.volume),
-      percentage: Math.floor((item.volume / volumeHistory.reduce((sum, v) => sum + v.volume, 1)) * 100)
+      percentage: Math.floor((item.volume / volumeHistory.reduce((sum: number, v: any) => sum + v.volume, 1)) * 100)
     }
   })
 
@@ -72,7 +72,7 @@ export default function CollectionAnalytics() {
     { name: 'Small (1-9)', value: 25, count: Math.floor(currentCollection.holders_count * 0.73) },
   ] : []
 
-  const salesVelocityData = volumeHistory?.slice(-7).map((item, index) => {
+  const salesVelocityData = volumeHistory?.slice(-7).map((item: any, index: number) => {
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     return {
       day: dayNames[index % 7],
@@ -101,7 +101,7 @@ export default function CollectionAnalytics() {
               <SelectValue placeholder="Select collection" />
             </SelectTrigger>
             <SelectContent>
-              {collectionsData?.slice(0, 10).map(collection => (
+              {collectionsData?.slice(0, 10).map((collection: any) => (
                 <SelectItem key={collection.id} value={collection.id}>
                   {collection.name}
                 </SelectItem>
@@ -340,12 +340,12 @@ export default function CollectionAnalytics() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}%`}
+                        label={({ name, value }: any) => `${name}: ${value}%`}
                         outerRadius={120}
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {holderDistribution.map((entry, index) => (
+                        {holderDistribution.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -365,7 +365,7 @@ export default function CollectionAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {holderDistribution.map((group, index) => (
+                  {holderDistribution.map((group: any, index: number) => (
                     <div key={index} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{group.name}</span>

@@ -294,7 +294,7 @@ export function DraggableDashboard({ children }: DraggableDashboardProps) {
       {/* Draggable Dashboard Grid */}
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="dashboard" direction="horizontal">
-          {(provided, snapshot) => (
+          {(provided: any, snapshot: any) => (
             <div
               {...provided.droppableProps}
               ref={provided.innerRef}
@@ -309,7 +309,7 @@ export function DraggableDashboard({ children }: DraggableDashboardProps) {
                   index={index}
                   isDragDisabled={!isEditMode}
                 >
-                  {(provided, snapshot) => (
+                  {(provided: any, snapshot: any) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}

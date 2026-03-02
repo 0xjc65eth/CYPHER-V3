@@ -69,9 +69,9 @@ export default function MarketAnalytics() {
   })
 
   // Process data for charts
-  const volumeTrendData = marketStats?.recent_sales?.slice(-30).reduce((acc, sale, index) => {
+  const volumeTrendData = marketStats?.recent_sales?.slice(-30).reduce((acc: any[], sale: any, index: number) => {
     const date = new Date(sale.timestamp).toISOString().split('T')[0]
-    const existing = acc.find(item => item.date === date)
+    const existing = acc.find((item: any) => item.date === date)
     
     if (existing) {
       existing.volume += sale.price
@@ -87,9 +87,9 @@ export default function MarketAnalytics() {
       })
     }
     return acc
-  }, [] as any[])?.sort((a, b) => a.timestamp - b.timestamp) || []
+  }, [] as any[])?.sort((a: any, b: any) => a.timestamp - b.timestamp) || []
 
-  const collectionDistribution = topCollections?.slice(0, 6).map(collection => ({
+  const collectionDistribution = topCollections?.slice(0, 6).map((collection: any) => ({
     name: collection.name,
     value: collection.volume_24h,
     percentage: 0, // Will be calculated
@@ -98,20 +98,20 @@ export default function MarketAnalytics() {
   })) || []
 
   // Calculate percentages
-  const totalVolume = collectionDistribution.reduce((sum, item) => sum + item.value, 0)
-  collectionDistribution.forEach(item => {
+  const totalVolume = collectionDistribution.reduce((sum: number, item: any) => sum + item.value, 0)
+  collectionDistribution.forEach((item: any) => {
     item.percentage = totalVolume > 0 ? (item.value / totalVolume) * 100 : 0
   })
 
   const priceRangeData = marketStats?.price_ranges || []
 
-  const marketActivityData = volumeTrendData.map((item) => ({
+  const marketActivityData = volumeTrendData.map((item: any) => ({
     time: item.date,
     activeTrades: item.sales,
     volume: item.volume
   }))
 
-  const correlationData = topCollections?.slice(0, 10).map(collection => ({
+  const correlationData = topCollections?.slice(0, 10).map((collection: any) => ({
     collection: collection.name.substring(0, 8),
     volume: collection.volume_24h,
     floor: collection.floor_price * 100, // Scale for visibility
@@ -119,7 +119,7 @@ export default function MarketAnalytics() {
     marketCap: collection.floor_price * collection.total_supply
   })) || []
 
-  const liquidityMetrics = topCollections?.map(collection => {
+  const liquidityMetrics = topCollections?.map((collection: any) => {
     const marketCap = collection.floor_price * collection.total_supply;
     const liquidity = collection.total_supply > 0 ? (collection.listed_count / collection.total_supply) * 100 : 0;
     const velocity = marketCap > 0 ? (collection.volume_24h / marketCap) * 100 : 0;
@@ -331,12 +331,12 @@ export default function MarketAnalytics() {
                         cx="50%"
                         cy="50%"
                         labelLine={false}
-                        label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
+                        label={({ name, percentage }: any) => `${name}: ${percentage.toFixed(1)}%`}
                         outerRadius={100}
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {collectionDistribution.map((entry, index) => (
+                        {collectionDistribution.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -382,7 +382,7 @@ export default function MarketAnalytics() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {topCollections?.slice(0, 8).map((collection, index) => (
+                  {topCollections?.slice(0, 8).map((collection: any, index: number) => (
                     <div key={collection.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-orange-500"></div>
@@ -426,7 +426,7 @@ export default function MarketAnalytics() {
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
                         labelStyle={{ color: '#999' }}
-                        formatter={(value, name) => [
+                        formatter={(value: any, name: any) => [
                           typeof value === 'number' ? value.toFixed(2) : value,
                           name === 'liquidity' ? 'Liquidity %' : 'Velocity'
                         ]}

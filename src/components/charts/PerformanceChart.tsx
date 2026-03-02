@@ -93,7 +93,7 @@ export interface PerformanceChartProps {
 }
 
 // Custom Tooltip Components
-const PerformanceTooltip = ({ active, payload, label }: any) => {
+const PerformanceTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg border">
@@ -117,7 +117,7 @@ const PerformanceTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const TradeTooltip = ({ active, payload, label }: any) => {
+const TradeTooltip = ({ active, payload, label }: { active?: boolean; payload?: any; label?: any }) => {
   if (active && payload && payload.length) {
     const trade = payload[0].payload;
     return (
@@ -171,7 +171,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const performanceData = useMemo(() => {
     if (!performance) return [];
     
-    return performance.map(p => ({
+    return performance.map((p: any) => ({
       timestamp: p.timestamp,
       date: new Date(p.timestamp).toLocaleDateString(),
       portfolioValue: p.portfolioValue,
@@ -187,7 +187,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const tradesData = useMemo(() => {
     if (!trades) return [];
     
-    return trades.map(trade => ({
+    return trades.map((trade: any) => ({
       ...trade,
       date: new Date(trade.timestamp).toLocaleDateString(),
       time: new Date(trade.timestamp).toLocaleTimeString()
@@ -198,9 +198,9 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   const calculatedMetrics = useMemo(() => {
     if (!performanceData.length || !metrics) return null;
 
-    const returns = performanceData.map(d => d.dailyReturn);
-    const positiveReturns = returns.filter(r => r > 0);
-    const negativeReturns = returns.filter(r => r < 0);
+    const returns = performanceData.map((d: any) => d.dailyReturn);
+    const positiveReturns = returns.filter((r: number) => r > 0);
+    const negativeReturns = returns.filter((r: number) => r < 0);
     
     return {
       ...metrics,
@@ -208,8 +208,8 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
       worstDay: Math.min(...returns),
       consecutiveWins: calculateConsecutiveWins(returns),
       consecutiveLosses: calculateConsecutiveLosses(returns),
-      avgDailyReturn: returns.reduce((sum, r) => sum + r, 0) / returns.length,
-      volatilityAnnualized: Math.sqrt(252) * Math.sqrt(returns.reduce((sum, r) => sum + Math.pow(r - (returns.reduce((s, ret) => s + ret, 0) / returns.length), 2), 0) / returns.length)
+      avgDailyReturn: returns.reduce((sum: number, r: number) => sum + r, 0) / returns.length,
+      volatilityAnnualized: Math.sqrt(252) * Math.sqrt(returns.reduce((sum: number, r: number) => sum + Math.pow(r - (returns.reduce((s: number, ret: number) => s + ret, 0) / returns.length), 2), 0) / returns.length)
     };
   }, [performanceData, metrics]);
 
@@ -239,7 +239,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   function calculateConsecutiveWins(returns: number[]): number {
     let maxWins = 0;
     let currentWins = 0;
-    for (const ret of returns) {
+    for (const ret of returns as number[]) {
       if (ret > 0) {
         currentWins++;
         maxWins = Math.max(maxWins, currentWins);
@@ -253,7 +253,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
   function calculateConsecutiveLosses(returns: number[]): number {
     let maxLosses = 0;
     let currentLosses = 0;
-    for (const ret of returns) {
+    for (const ret of returns as number[]) {
       if (ret < 0) {
         currentLosses++;
         maxLosses = Math.max(maxLosses, currentLosses);
@@ -821,7 +821,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
                               </tr>
                             </thead>
                             <tbody>
-                              {tradesData.slice(0, 10).map((trade) => (
+                              {tradesData.slice(0, 10).map((trade: any) => (
                                 <tr key={trade.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                                   <td className="p-2">{trade.date}</td>
                                   <td className="p-2 font-medium">{trade.symbol}</td>

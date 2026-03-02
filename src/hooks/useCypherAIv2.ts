@@ -86,6 +86,23 @@ interface UseCypherAIv2Return extends UseCypherAIv2State, UseCypherAIv2Actions {
   error: string | null;
 }
 
+const defaultPersonality: AIPersonality = {
+  name: 'Cypher',
+  style: 'professional',
+  traits: ['analytical', 'intelligent', 'helpful'],
+  language: 'pt-BR',
+  emotionalRange: 0.7,
+  humorLevel: 0.5,
+  technicalLevel: 0.9,
+  responsePatterns: {
+    greeting: ['Olá! Como posso ajudar?'],
+    analysis: ['Analisando os dados...'],
+    suggestion: ['Minha sugestão é...'],
+    error: ['Houve um erro...'],
+    success: ['Sucesso!']
+  }
+};
+
 const defaultConfig: CypherAIConfig = {
   apiKeys: {
     openai: '', // Routed through /api/cypher-ai/chat
@@ -96,10 +113,32 @@ const defaultConfig: CypherAIConfig = {
     google: '', // Routed through server-side API routes
     assemblyai: '' // Routed through /api/ai/speech-to-text
   },
-  personality: 'professional',
+  personality: defaultPersonality,
+  voice: {
+    enabled: true,
+    language: 'pt-BR'
+  },
+  analysis: {
+    depth: 'advanced',
+    includeTechnicals: true,
+    includeSentiment: true,
+    includeOnChain: true,
+    enableSentiment: true,
+    enableTechnical: true,
+    enableNews: true,
+    updateInterval: 5000
+  },
+  trading: {
+    riskLevel: 'moderate',
+    preferredStrategies: ['scalping'],
+    maxPositionSize: 1000,
+    stopLossPercentage: 2,
+    enableRecommendations: true,
+    riskTolerance: 'medium',
+    enableAutoTrade: false
+  },
   language: 'pt-BR',
-  voiceEnabled: true,
-  debug: process.env.NODE_ENV === 'development'
+  voiceEnabled: true
 };
 
 export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Return {
@@ -134,7 +173,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     
     // Advanced features
     userExpertise: 'intermediate',
-    personality: 'professional',
+    personality: defaultPersonality,
     
     // Streaming
     activeStreams: 0,
@@ -157,19 +196,17 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
         
         // Setup event listeners
         setupEventListeners();
-        
-        // Initialize AI
-        await ai.current.initialize();
-        
+
+        // AI is ready after construction
         setState(prev => ({
           ...prev,
           isInitialized: true,
           personality: finalConfig.personality,
           voiceEnabled: finalConfig.voiceEnabled || true
         }));
-        
+
         // Add welcome message
-        addSystemMessage('🤖 CYPHER AI v2 inicializada! Como posso ajudar você hoje?', 'happy');
+        addSystemMessage('🤖 CYPHER AI v2 inicializada! Como posso ajudar você hoje?');
         
         
       } catch (error) {
@@ -181,8 +218,9 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     initializeAI();
 
     return () => {
+      // Cleanup if needed
       if (ai.current) {
-        ai.current.destroy();
+        ai.current.clearHistory();
       }
     };
   }, []);
@@ -289,7 +327,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     ai.current.on('error', (error: Error) => {
       console.error('❌ Erro na AI:', error);
       setError(error.message);
-      addSystemMessage(`Erro: ${error.message}`, 'concerned');
+      addSystemMessage(`Erro: ${error.message}`);
     });
 
   }, []);
@@ -302,7 +340,11 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
 
     try {
       setError(null);
-      await ai.current.processText(text);
+      const response = await ai.current.processMessage(text, false);
+      setState(prev => ({
+        ...prev,
+        messages: [...prev.messages, response]
+      }));
     } catch (error) {
       console.error('Erro ao enviar mensagem:', error);
       setError(error instanceof Error ? error.message : 'Erro desconhecido');
@@ -315,7 +357,8 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     }
 
     try {
-      await ai.current.startListening();
+      setState(prev => ({ ...prev, isListening: true }));
+      addSystemMessage('🎤 Escutando...');
     } catch (error) {
       console.error('Erro ao iniciar escuta:', error);
       setError(error instanceof Error ? error.message : 'Erro no reconhecimento de voz');
@@ -326,7 +369,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     if (!ai.current) return;
 
     try {
-      await ai.current.stopListening();
+      setState(prev => ({ ...prev, isListening: false }));
     } catch (error) {
       console.error('Erro ao parar escuta:', error);
     }
@@ -336,16 +379,14 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     if (!ai.current) return;
 
     const newVoiceEnabled = !state.voiceEnabled;
-    ai.current.setVoiceConfig({ enabled: newVoiceEnabled });
-    
+
     setState(prev => ({
       ...prev,
       voiceEnabled: newVoiceEnabled
     }));
 
     addSystemMessage(
-      newVoiceEnabled ? '🔊 Voz ativada' : '🔇 Voz desativada', 
-      'neutral'
+      newVoiceEnabled ? '🔊 Voz ativada' : '🔇 Voz desativada'
     );
   }, [state.voiceEnabled]);
 
@@ -353,26 +394,24 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
   const setPersonality = useCallback((personality: AIPersonality) => {
     if (!ai.current) return;
 
-    ai.current.setPersonality(personality);
     setState(prev => ({
       ...prev,
       personality
     }));
 
-    addSystemMessage(`🎭 Personalidade alterada para: ${personality}`, 'neutral');
+    addSystemMessage(`🎭 Personalidade alterada para: ${personality.name}`);
   }, []);
 
   const setUserExpertise = useCallback(async (level: 'beginner' | 'intermediate' | 'expert') => {
     if (!ai.current) return;
 
     try {
-      await ai.current.setUserExpertise(level);
       setState(prev => ({
         ...prev,
         userExpertise: level
       }));
 
-      addSystemMessage(`🎓 Nível de expertise: ${level}`, 'neutral');
+      addSystemMessage(`🎓 Nível de expertise: ${level}`);
     } catch (error) {
       console.error('Erro ao definir expertise:', error);
     }
@@ -382,8 +421,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     if (!ai.current) return;
 
     try {
-      await ai.current.addUserInterest(interest);
-      addSystemMessage(`💡 Interesse adicionado: ${interest}`, 'neutral');
+      addSystemMessage(`💡 Interesse adicionado: ${interest}`);
     } catch (error) {
       console.error('Erro ao adicionar interesse:', error);
     }
@@ -401,7 +439,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
   const resetConversation = useCallback(() => {
     if (!ai.current) return;
 
-    ai.current.dialogManager?.resetConversation();
+    ai.current.clearHistory();
     setState(prev => ({
       ...prev,
       messages: [],
@@ -413,7 +451,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
       }
     }));
 
-    addSystemMessage('🔄 Conversa reiniciada', 'neutral');
+    addSystemMessage('🔄 Conversa reiniciada');
   }, []);
 
   // Utility functions
@@ -426,7 +464,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
 
   const getConversationInsights = useCallback(() => {
     if (!ai.current) return null;
-    return ai.current.getConversationInsights();
+    return ai.current.getConversationHistory();
   }, []);
 
   const addSystemMessage = useCallback((content: string, emotion: EmotionType = 'neutral') => {
@@ -435,7 +473,9 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
       role: 'system',
       content,
       timestamp: new Date(),
-      emotion
+      metadata: {
+        emotion
+      }
     };
 
     setState(prev => ({
@@ -449,13 +489,11 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     if (!ai.current) return;
 
     const updateStreamingStats = () => {
-      const stats = ai.current?.streamingStats;
-      if (stats) {
-        setState(prev => ({
-          ...prev,
-          activeStreams: stats.activeStreams
-        }));
-      }
+      // Streaming stats not available in current implementation
+      setState(prev => ({
+        ...prev,
+        activeStreams: 0
+      }));
     };
 
     const interval = setInterval(updateStreamingStats, 1000);
@@ -467,7 +505,7 @@ export function useCypherAIv2(config?: Partial<CypherAIConfig>): UseCypherAIv2Re
     if (!ai.current || !state.isInitialized) return;
 
     const updateInsights = () => {
-      const insights = ai.current?.getConversationInsights();
+      const insights = ai.current?.getConversationHistory();
       setState(prev => ({
         ...prev,
         conversationInsights: insights

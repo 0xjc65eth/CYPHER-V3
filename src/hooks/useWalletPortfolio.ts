@@ -63,8 +63,8 @@ export function useWalletPortfolio(): WalletPortfolioHook {
   const defaultWallet = {
     isConnected: false,
     address: null,
-    balance: null,
-    portfolioData: null,
+    balance: null as any,
+    portfolioData: null as any,
     loading: false,
     error: null,
     refreshBalance: async () => {
@@ -275,8 +275,8 @@ export function useBitcoinWallet() {
   
   // Fallback wallet data (wallet integration temporarily disabled)
   const defaultWallet = {
-    balance: null,
-    portfolioData: null,
+    balance: null as any,
+    portfolioData: null as any,
     isConnected: false,
     address: null
   };
@@ -325,9 +325,9 @@ export function useOrdinalsWallet() {
       };
     }
 
-    const totalValue = portfolio.portfolioData.ordinals.reduce((sum, ord) => sum + ord.currentValue, 0);
-    const floorPrice = portfolio.ordinals.inscriptions.length > 0 
-      ? Math.min(...portfolio.ordinals.inscriptions.map(ins => ins.value || 0))
+    const totalValue = portfolio.portfolioData.ordinals.reduce((sum: number, ord: any) => sum + ord.currentValue, 0);
+    const floorPrice = portfolio.ordinals.inscriptions.length > 0
+      ? Math.min(...portfolio.ordinals.inscriptions.map((ins: any) => ins.value || 0))
       : 0;
 
     return {
@@ -359,7 +359,7 @@ export function useRunesWallet() {
       };
     }
 
-    const totalValue = portfolio.portfolioData.runes.reduce((sum, rune) => sum + rune.currentValue, 0);
+    const totalValue = portfolio.portfolioData.runes.reduce((sum: number, rune: any) => sum + rune.currentValue, 0);
 
     return {
       balances: portfolio.runes.balances,

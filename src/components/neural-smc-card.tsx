@@ -121,7 +121,7 @@ export function NeuralSmcCard() {
               <div className="bg-gradient-to-r from-purple-500/10 to-purple-600/5 rounded-lg p-3 border border-purple-500/20">
                 <p className="text-xs text-purple-300 mb-2">Order Blocks</p>
                 <div className="space-y-2">
-                  {latestSmcInsight.prediction.orderBlocks.map((block, index) => (
+                  {latestSmcInsight.prediction.orderBlocks.map((block: any, index: number) => (
                     <div key={index} className="bg-purple-500/10 p-2 rounded-lg border border-purple-500/20">
                       <div className="flex justify-between items-center">
                         <span className={`text-xs ${block.type === 'Bullish' ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -134,11 +134,11 @@ export function NeuralSmcCard() {
                   ))}
                 </div>
               </div>
-              
+
               <div className="bg-gradient-to-r from-purple-500/10 to-purple-600/5 rounded-lg p-3 border border-purple-500/20">
                 <p className="text-xs text-purple-300 mb-2">Fair Value Gaps</p>
                 <div className="space-y-2">
-                  {latestSmcInsight.prediction.fairValueGaps.map((gap, index) => (
+                  {latestSmcInsight.prediction.fairValueGaps.map((gap: any, index: number) => (
                     <div key={index} className="bg-purple-500/10 p-2 rounded-lg border border-purple-500/20">
                       <div className="flex justify-between items-center">
                         <span className={`text-xs ${gap.type === 'Bullish' ? 'text-emerald-400' : 'text-rose-400'}`}>

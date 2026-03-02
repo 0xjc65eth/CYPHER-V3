@@ -30,7 +30,11 @@ export function BitcoinTabExample() {
     usdValue: 0,
     isConnected: false,
     address: null,
-    refreshData: () => {}
+    refreshData: () => {},
+    averageBuyPrice: 0,
+    totalPNL: 0,
+    totalPNLPercentage: 0,
+    currentPrice: 0
   };
 
   const formatNumber = (num: number, decimals: number = 2) => {
@@ -135,13 +139,21 @@ export function BitcoinTabExample() {
 // Example: Ordinals Tab Component
 export function OrdinalsTabExample() {
   // WALLET TEMPORARILY DISABLED - const ordinalsWallet = useOrdinalsWallet();
+  interface Inscription {
+    id: string;
+    number: number;
+    content_type: string;
+    value?: number;
+  }
+
   const ordinalsWallet = {
-    inscriptions: [],
+    inscriptions: [] as Inscription[],
     totalCount: 0,
     totalValue: 0,
     isConnected: false,
     address: null,
-    refreshData: () => {}
+    refreshData: () => {},
+    floorPrice: 0
   };
 
   if (!ordinalsWallet.isConnected) {
@@ -229,8 +241,16 @@ export function OrdinalsTabExample() {
 // Example: Runes Tab Component
 export function RunesTabExample() {
   // WALLET TEMPORARILY DISABLED - const runesWallet = useRunesWallet();
+  interface RuneBalance {
+    rune: string;
+    spacedRune?: string;
+    symbol: string;
+    amount: string;
+    divisibility: number;
+  }
+
   const runesWallet = {
-    balances: [],
+    balances: [] as RuneBalance[],
     totalCount: 0,
     totalValue: 0,
     isConnected: false,

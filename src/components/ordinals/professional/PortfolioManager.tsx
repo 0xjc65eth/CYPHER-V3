@@ -97,7 +97,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
           <Loader2 className="w-5 h-5 animate-spin text-[#f59e0b]" />
           <span className="text-sm text-gray-400">Loading portfolio data for {address?.slice(0, 8)}...{address?.slice(-4)}</span>
         </div>
-        {[...Array(3)].map((_, i) => (
+        {[...Array(3)].map((_: any, i: number) => (
           <Card key={i} variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">
             <div className="h-48 bg-[#2a2a3e] rounded animate-pulse"></div>
           </Card>
@@ -256,7 +256,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
           { id: 'collections', label: 'Collections', icon: ImageIcon },
           { id: 'brc20', label: 'BRC-20', icon: Coins },
           { id: 'inscriptions', label: 'Inscriptions', icon: Gem },
-        ].map((tab) => {
+        ].map((tab: any) => {
           const Icon = tab.icon
           return (
             <button
@@ -283,7 +283,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
             <h3 className="text-lg font-bold text-white mb-4">Top Holdings</h3>
             {holdings.length > 0 ? (
               <div className="space-y-3">
-                {holdings.slice(0, 5).map((holding, i) => (
+                {holdings.slice(0, 5).map((holding: any, i: number) => (
                   <div
                     key={i}
                     className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]"
@@ -313,7 +313,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
             <h3 className="text-lg font-bold text-white mb-4">BRC-20 Tokens</h3>
             {brc20Holdings.length > 0 ? (
               <div className="space-y-3">
-                {brc20Holdings.slice(0, 5).map((token, i) => (
+                {brc20Holdings.slice(0, 5).map((token: any, i: number) => (
                   <div
                     key={i}
                     className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]"
@@ -345,7 +345,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
       {activeTab === 'collections' && (
         holdings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {holdings.map((holding, i) => (
+            {holdings.map((holding: any, i: number) => (
               <Card
                 key={i}
                 variant="bordered"
@@ -404,7 +404,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2a2a3e]">
-                {brc20Holdings.map((token, i) => (
+                {brc20Holdings.map((token: any, i: number) => (
                   <tr key={i} className="hover:bg-[#1a1a2e] transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-semibold text-white">{token.ticker}</span>
@@ -453,7 +453,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
                           src={token.contentURI}
                           alt={token.meta?.name || `#${token.inscriptionNumber}`}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
+                          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                             const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement;
                             if (fallback) fallback.style.display = 'flex';

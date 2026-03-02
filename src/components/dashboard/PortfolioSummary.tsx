@@ -139,8 +139,8 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
       };
     }
 
-    const ordinalsValue = portfolioData.ordinals.reduce((sum, o) => sum + o.currentValue, 0);
-    const runesValue = portfolioData.runes.reduce((sum, r) => sum + r.currentValue, 0);
+    const ordinalsValue = portfolioData.ordinals.reduce((sum: number, o: any) => sum + o.currentValue, 0);
+    const runesValue = portfolioData.runes.reduce((sum: number, r: any) => sum + r.currentValue, 0);
 
     return {
       totalValue: portfolioData.totalValue,
