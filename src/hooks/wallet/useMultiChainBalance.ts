@@ -34,12 +34,13 @@ interface UseMultiChainBalanceOptions {
   onError?: (error: string) => void
 }
 
-// Mock price data - in production, fetch from actual price APIs
-const MOCK_PRICES: Record<string, number> = {
-  ETH: 3000,
-  MATIC: 0.8,
-  SOL: 100,
-  BTC: 45000
+// FALLBACK: Static placeholder prices used for USD value estimation.
+// Replace with real price feed from CoinGecko /api/coingecko/simple/price
+const FALLBACK_PRICES: Record<string, number> = {
+  ETH: 0,
+  MATIC: 0,
+  SOL: 0,
+  BTC: 0
 }
 
 export const useMultiChainBalance = (options: UseMultiChainBalanceOptions = {}) => {
@@ -85,7 +86,7 @@ export const useMultiChainBalance = (options: UseMultiChainBalanceOptions = {}) 
       // For current chain, use wagmi data if available
       if (chain.id === chainId && currentBalance) {
         const formatted = formatEther(currentBalance.value)
-        const usdValue = enablePriceData ? parseFloat(formatted) * (MOCK_PRICES[chain.currency] || 0) : 0
+        const usdValue = enablePriceData ? parseFloat(formatted) * (FALLBACK_PRICES[chain.currency] || 0) : 0
         
         return {
           chainId: chain.id,
@@ -127,8 +128,8 @@ export const useMultiChainBalance = (options: UseMultiChainBalanceOptions = {}) 
   // Fetch Solana balance
   const fetchSolanaBalance = async (address: string): Promise<ChainBalance | null> => {
     try {
-      // In a real implementation, you would use @solana/web3.js
-      // For now, return mock data
+      // FALLBACK: Replace with real @solana/web3.js balance fetch
+      // Returns zero balance until Solana integration is complete
       return {
         chainId: 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
         chainName: 'Solana',

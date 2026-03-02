@@ -59,107 +59,9 @@ interface TradeHistoryProps {
   chainId?: number
 }
 
-// Mock trade history data
-const MOCK_TRADES: TradeRecord[] = [
-  {
-    id: '1',
-    timestamp: Date.now() - 3600000, // 1 hour ago
-    tokenIn: {
-      symbol: 'ETH',
-      address: '0x0000000000000000000000000000000000000000',
-      amount: '1.0',
-      logoUri: '/icons/ethereum.png'
-    },
-    tokenOut: {
-      symbol: 'USDC',
-      address: '0xA0b86a33E6F8b16dcE3d16b0e4f3b8De1A9e1C6C',
-      amount: '2,347.50',
-      logoUri: '/icons/usdc.png'
-    },
-    dex: 'Uniswap V3',
-    status: 'completed',
-    txHash: '0x1234567890abcdef1234567890abcdef12345678',
-    chainId: 1,
-    priceImpact: 0.12,
-    cypherFee: '0.002',
-    totalFee: '15.50',
-    executionTime: 18,
-    blockExplorer: 'https://etherscan.io'
-  },
-  {
-    id: '2',
-    timestamp: Date.now() - 7200000, // 2 hours ago
-    tokenIn: {
-      symbol: 'SOL',
-      address: 'So11111111111111111111111111111111111111112',
-      amount: '10.0',
-      logoUri: '/icons/solana.png'
-    },
-    tokenOut: {
-      symbol: 'USDC',
-      address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-      amount: '987.60',
-      logoUri: '/icons/usdc.png'
-    },
-    dex: 'Jupiter',
-    status: 'completed',
-    txHash: '2x9876543210fedcba9876543210fedcba98765432',
-    chainId: 101,
-    priceImpact: 0.08,
-    cypherFee: '0.02',
-    totalFee: '0.005',
-    executionTime: 3,
-    blockExplorer: 'https://solscan.io'
-  },
-  {
-    id: '3',
-    timestamp: Date.now() - 10800000, // 3 hours ago
-    tokenIn: {
-      symbol: 'USDT',
-      address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-      amount: '500.0',
-      logoUri: '/icons/usdt.png'
-    },
-    tokenOut: {
-      symbol: 'ETH',
-      address: '0x0000000000000000000000000000000000000000',
-      amount: '0.2127',
-      logoUri: '/icons/ethereum.png'
-    },
-    dex: 'SushiSwap',
-    status: 'failed',
-    chainId: 1,
-    priceImpact: 0.25,
-    cypherFee: '1.0',
-    totalFee: '12.30',
-    blockExplorer: 'https://etherscan.io',
-    error: 'Insufficient gas for transaction'
-  },
-  {
-    id: '4',
-    timestamp: Date.now() - 300000, // 5 minutes ago
-    tokenIn: {
-      symbol: 'ETH',
-      address: '0x0000000000000000000000000000000000000000',
-      amount: '0.5',
-      logoUri: '/icons/ethereum.png'
-    },
-    tokenOut: {
-      symbol: 'USDC',
-      address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-      amount: '1,175.25',
-      logoUri: '/icons/usdc.png'
-    },
-    dex: 'LHMA Swap',
-    status: 'pending',
-    txHash: '0xabcdef1234567890abcdef1234567890abcdef12',
-    chainId: 42161,
-    priceImpact: 0.06,
-    cypherFee: '0.001',
-    totalFee: '2.85',
-    blockExplorer: 'https://arbiscan.io'
-  }
-]
+// FALLBACK: Replace with real trade history API call
+// Trade records should be fetched from the backend based on walletAddress
+const INITIAL_TRADES: TradeRecord[] = []
 
 const TradeHistory: React.FC<TradeHistoryProps> = ({
   isOpen,
@@ -167,8 +69,8 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({
   walletAddress,
   chainId
 }) => {
-  const [trades, setTrades] = useState<TradeRecord[]>(MOCK_TRADES)
-  const [filteredTrades, setFilteredTrades] = useState<TradeRecord[]>(MOCK_TRADES)
+  const [trades, setTrades] = useState<TradeRecord[]>(INITIAL_TRADES)
+  const [filteredTrades, setFilteredTrades] = useState<TradeRecord[]>(INITIAL_TRADES)
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState({
     status: 'all',

@@ -8,23 +8,27 @@ export function useOrdiscanData(endpoint: string) {
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    // Simulated data for BRC-20
-    const mockData = {
-      total_tokens: 15000,
-      volume_24h: 2500000,
-      market_cap: 150000000,
-      tokens: [
-        { name: 'ORDI', price: 0.00005, market_cap: 50000000, volume_24h: 1000000 },
-        { name: 'SATS', price: 0.00002, market_cap: 30000000, volume_24h: 750000 },
-        { name: 'PEPE', price: 0.00001, market_cap: 20000000, volume_24h: 500000 }
-      ]
+    // FALLBACK: Replace with real Ordiscan API call
+    // Currently attempts to fetch from internal proxy, falls back to empty state
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`/api/ordiscan/${endpoint}`)
+        if (response.ok) {
+          const result = await response.json()
+          setData(result)
+        } else {
+          setData(null)
+        }
+      } catch (err) {
+        console.warn('[useOrdiscanData] API unavailable:', err)
+        setError(err instanceof Error ? err : new Error('Failed to fetch Ordiscan data'))
+        setData(null)
+      } finally {
+        setIsLoading(false)
+      }
     }
-    
-    // Simulate API call
-    setTimeout(() => {
-      setData(mockData)
-      setIsLoading(false)
-    }, 500)
+
+    fetchData()
   }, [endpoint])
 
   return { data, isLoading, error }

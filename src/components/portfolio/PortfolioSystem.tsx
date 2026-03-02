@@ -90,7 +90,7 @@ type AssetFilter = 'all' | 'bitcoin' | 'ordinals' | 'runes' | 'brc20';
 
 export function PortfolioSystem() {
   // WALLET TEMPORARILY DISABLED - const { connectionState } = useWalletContext();
-  const connectionState = { isConnected: false };
+  const connectionState = { isConnected: false, account: null as string | null };
   
   const [showValues, setShowValues] = useState(true);
   const [isLoading, setIsLoading] = useState(true);

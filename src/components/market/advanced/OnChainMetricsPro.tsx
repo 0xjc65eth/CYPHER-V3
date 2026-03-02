@@ -88,54 +88,56 @@ export function OnChainMetricsPro({ refreshTrigger = 0 }: OnChainMetricsProProps
     );
   }
 
-  const mockData: OnChainData = {
-    price: { current: 95450, realized: 40782, thermocap: 28450 },
-    mvrv: { ratio: 2.34, zScore: 1.42, percentile: 68, signal: 'Neutral/Bullish' },
-    nvt: { ratio: 45.2, signal: 42.8, percentile: 55 },
-    sopr: { value: 1.024, adjusted: 1.019, longTerm: 1.032, shortTerm: 1.018 },
-    nupl: { value: 0.62, percentile: 72, zone: 'Belief-Denial' },
-    puellMultiple: { value: 1.45, percentile: 58, signal: 'Neutral' },
-    stockToFlow: { actual: 95450, model: 125000, deflection: -23.6, daysFromHalving: 298 },
+  // FALLBACK: Static fallback data used when /api/market/onchain-metrics-pro/ is unavailable.
+  // Replace with real API data once on-chain data pipeline is connected.
+  const fallbackData: OnChainData = {
+    price: { current: 0, realized: 0, thermocap: 0 },
+    mvrv: { ratio: 0, zScore: 0, percentile: 0, signal: 'N/A' },
+    nvt: { ratio: 0, signal: 0, percentile: 0 },
+    sopr: { value: 1, adjusted: 1, longTerm: 1, shortTerm: 1 },
+    nupl: { value: 0, percentile: 0, zone: 'N/A' },
+    puellMultiple: { value: 0, percentile: 0, signal: 'N/A' },
+    stockToFlow: { actual: 0, model: 0, deflection: 0, daysFromHalving: 0 },
     exchangeFlow: {
-      netFlow24h: -12450,
-      reserves: 2456789,
-      reservesChange7d: -1.2,
-      inflowUsd: 234500000,
-      outflowUsd: 245680000,
+      netFlow24h: 0,
+      reserves: 0,
+      reservesChange7d: 0,
+      inflowUsd: 0,
+      outflowUsd: 0,
     },
     whales: {
-      addresses1kPlus: 2156,
-      addresses10kPlus: 92,
-      totalHoldings: 8456234,
-      netPositionChange24h: 1234,
-      largestTx24h: { amount: 4567, usd: 436000000 },
+      addresses1kPlus: 0,
+      addresses10kPlus: 0,
+      totalHoldings: 0,
+      netPositionChange24h: 0,
+      largestTx24h: { amount: 0, usd: 0 },
     },
     hashRate: {
-      current: 612,
-      ma30: 598,
-      ma60: 585,
-      ribbonSignal: 'buy',
-      difficulty: 79500000000000,
-      nextAdjustment: 2.3,
+      current: 0,
+      ma30: 0,
+      ma60: 0,
+      ribbonSignal: 'neutral',
+      difficulty: 0,
+      nextAdjustment: 0,
     },
     miner: {
-      revenue24h: 28500000,
-      txFees: 450000,
-      blockreward: 450,
-      puellMultiple: 1.45,
+      revenue24h: 0,
+      txFees: 0,
+      blockreward: 0,
+      puellMultiple: 0,
       sellingPressure: 'low',
     },
     hodlWaves: {
-      lessThan1m: 8.2,
-      oneToThreeM: 12.4,
-      threeToSixM: 9.8,
-      sixToTwelveM: 14.2,
-      oneToTwoY: 18.6,
-      moreThanTwoY: 36.8,
+      lessThan1m: 0,
+      oneToThreeM: 0,
+      threeToSixM: 0,
+      sixToTwelveM: 0,
+      oneToTwoY: 0,
+      moreThanTwoY: 0,
     },
   };
 
-  const d = data || mockData;
+  const d = data || fallbackData;
 
   const getZoneColor = (zone: string) => {
     const zones: Record<string, string> = {
@@ -168,7 +170,7 @@ export function OnChainMetricsPro({ refreshTrigger = 0 }: OnChainMetricsProProps
           <div className="text-[9px] text-[#e4e4e7]/40 mb-1">REALIZED PRICE</div>
           <div className="text-lg font-bold text-[#00D4AA] font-mono">${d.price.realized.toLocaleString()}</div>
           <div className="text-[8px] text-[#e4e4e7]/50 mt-0.5">
-            +{((d.price.current / d.price.realized - 1) * 100).toFixed(1)}% premium
+            +{(d.price.realized > 0 ? ((d.price.current / d.price.realized - 1) * 100).toFixed(1) : '0.0')}% premium
           </div>
         </div>
         <div className="bg-[#0d0d14] border border-[#1a1a2e] rounded p-3 hover:border-[#8B5CF6]/50 transition-all cursor-pointer">

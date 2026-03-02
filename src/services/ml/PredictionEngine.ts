@@ -366,6 +366,8 @@ export class PredictionEngine extends EventEmitter {
 
   /**
    * Get model performance metrics
+   * FALLBACK: Returns zero-value metrics until real training data is available.
+   * In production, calculate from actual prediction vs outcome comparisons.
    */
   async getModelMetrics(modelName: string): Promise<{
     accuracy: number;
@@ -377,16 +379,15 @@ export class PredictionEngine extends EventEmitter {
     lastTrained: number;
     predictions: number;
   }> {
-    // Mock implementation - in production would calculate real metrics
     return {
-      accuracy: 0.78,
-      precision: 0.75,
-      recall: 0.72,
-      f1Score: 0.735,
-      mse: 0.0234,
-      mae: 0.0156,
-      lastTrained: Date.now() - 3600000,
-      predictions: 1547
+      accuracy: 0,
+      precision: 0,
+      recall: 0,
+      f1Score: 0,
+      mse: 0,
+      mae: 0,
+      lastTrained: 0,
+      predictions: 0
     };
   }
 
@@ -602,14 +603,9 @@ export class PredictionEngine extends EventEmitter {
   }
 
   private async getModelAccuracy(modelName: string): Promise<number> {
-    // Mock accuracy - in production would calculate based on recent predictions vs actual
-    const accuracies: Record<string, number> = {
-      'btc-lstm-primary': 0.78,
-      'eth-transformer': 0.75,
-      'multi-asset-ensemble': 0.82
-    };
-    
-    return accuracies[modelName] || 0.70;
+    // FALLBACK: Returns 0 until real prediction tracking is implemented.
+    // In production, calculate from recent predictions vs actual outcomes.
+    return 0;
   }
 
   private initializeScaler(modelName: string): void {
@@ -621,22 +617,10 @@ export class PredictionEngine extends EventEmitter {
   }
 
   private async loadHistoricalData(): Promise<void> {
-    // Mock historical data loading - in production would load from database
-    const mockData: TrainingData = {
-      features: Array.from({ length: 1000 }, () => [
-        45000 + Math.random() * 10000,
-        1000000 + Math.random() * 500000,
-        0.02 + Math.random() * 0.01,
-        50 + Math.random() * 30,
-        Math.random() * 200 - 100,
-        Math.random()
-      ]),
-      targets: Array.from({ length: 1000 }, () => Math.random() * 0.1 - 0.05),
-      timestamps: Array.from({ length: 1000 }, (_, i) => Date.now() - i * 3600000),
-      symbols: Array.from({ length: 1000 }, () => 'BTC')
-    };
-
-    this.trainingData.set('BTC', mockData);
+    // FALLBACK: No historical data loaded. In production, fetch from database
+    // or market data API to populate training data for each symbol.
+    // this.trainingData.set('BTC', realDataFromDB);
+    EnhancedLogger.info('No historical training data loaded - awaiting real market data');
   }
 
   private convertMarketDataToTraining(symbol: string, marketData: MarketFeatures[]): TrainingData {

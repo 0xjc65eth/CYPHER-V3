@@ -261,56 +261,19 @@ const MarketScreen: React.FC = () => {
 
   const loadMarketData = async () => {
     try {
-      // Fallback market data - atualizado 2026-02-24
-      // TODO: Substituir por chamada real à API /api/market/data
-      const mockData: MarketData[] = [
-        {
-          symbol: 'BTC',
-          price: 63500,
-          change24h: 0,
-          volume24h: 25000000000,
-          marketCap: 1250000000000,
-          high24h: 64500,
-          low24h: 62500,
-          chartData: generateMockChartData()
-        },
-        {
-          symbol: 'ETH',
-          price: 1850,
-          change24h: 0,
-          volume24h: 12000000000,
-          marketCap: 223000000000,
-          high24h: 1900,
-          low24h: 1800,
-          chartData: generateMockChartData()
-        }
-      ];
-      setMarkets(mockData);
+      // FALLBACK: Replace with real API call to /api/market/data
+      // Currently returns empty state until mobile API is connected
+      const response = await fetch(`${appConfig.apiEndpoint}/market/data`);
+      if (response.ok) {
+        const data = await response.json();
+        setMarkets(data);
+      } else {
+        setMarkets([]);
+      }
     } catch (error) {
       console.error('Failed to load market data:', error);
+      setMarkets([]);
     }
-  };
-
-  const generateMockChartData = (): ChartDataPoint[] => {
-    const data: ChartDataPoint[] = [];
-    const now = Date.now();
-    const interval = 60 * 60 * 1000; // 1 hour intervals
-
-    for (let i = 0; i < 24; i++) {
-      const timestamp = now - (23 - i) * interval;
-      const basePrice = 45000 + Math.random() * 1000;
-      
-      data.push({
-        timestamp,
-        open: basePrice,
-        high: basePrice + Math.random() * 500,
-        low: basePrice - Math.random() * 500,
-        close: basePrice + (Math.random() - 0.5) * 200,
-        volume: Math.random() * 1000000
-      });
-    }
-
-    return data;
   };
 
   const onRefresh = async () => {
@@ -409,42 +372,18 @@ const PortfolioScreen: React.FC = () => {
 
   const loadPortfolio = async () => {
     try {
-      // Mock portfolio data
-      const mockPortfolio: Portfolio = {
-        totalValue: 125000,
-        totalPnL: 12500,
-        totalPnLPercent: 11.11,
-        assets: [
-          {
-            symbol: 'BTC',
-            name: 'Bitcoin',
-            balance: 2.5,
-            value: 112500,
-            price: 45000,
-            change24h: 2.5,
-            allocation: 90
-          },
-          {
-            symbol: 'ETH',
-            name: 'Ethereum',
-            balance: 4.17,
-            value: 12500,
-            price: 3000,
-            change24h: -1.2,
-            allocation: 10
-          }
-        ],
-        performance: {
-          daily: 2.1,
-          weekly: 8.5,
-          monthly: 15.2,
-          yearly: 45.8,
-          allTime: 125.7
-        }
-      };
-      setPortfolio(mockPortfolio);
+      // FALLBACK: Replace with real portfolio API call
+      // Currently returns null until mobile API is connected
+      const response = await fetch(`${appConfig.apiEndpoint}/portfolio`);
+      if (response.ok) {
+        const data = await response.json();
+        setPortfolio(data);
+      } else {
+        setPortfolio(null);
+      }
     } catch (error) {
       console.error('Failed to load portfolio:', error);
+      setPortfolio(null);
     }
   };
 
@@ -561,7 +500,7 @@ const TradingScreen: React.FC = () => {
         return;
       }
 
-      // Mock order submission
+      // FALLBACK: Replace with real order submission API call
       const order = {
         symbol: selectedSymbol,
         side: orderSide,

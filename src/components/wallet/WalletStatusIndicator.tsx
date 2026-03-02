@@ -34,14 +34,15 @@ export function WalletStatusIndicator({
   // WALLET TEMPORARILY DISABLED - const wallet = useWallet();
   // WALLET TEMPORARILY DISABLED - const portfolio = useWalletPortfolio();
   
-  // Mock wallet data
+  // Mock wallet data (wallet temporarily disabled)
   const wallet = {
     isConnected: false,
-    address: null,
-    balance: null,
-    currentWallet: null,
+    address: null as string | null,
+    balance: null as number | null,
+    currentWallet: null as string | null,
     connect: () => {},
-    disconnect: () => {}
+    disconnect: () => {},
+    portfolioData: null as any,
   };
   
   const portfolio = {

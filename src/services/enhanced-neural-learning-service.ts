@@ -261,6 +261,7 @@ export interface EnhancedNeuralInsight {
     reasoning: string;
     timeframe: string;
   }[];
+  prediction?: any;
   relatedInsights: string[];
   tags: string[];
 }

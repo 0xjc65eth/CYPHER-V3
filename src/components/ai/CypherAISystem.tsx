@@ -106,7 +106,7 @@ const PRESET_PROMPTS = {
 
 export function CypherAISystem() {
   // WALLET TEMPORARILY DISABLED - const { connectionState } = useWalletContext();
-  const connectionState = { isConnected: false };
+  const connectionState = { isConnected: false, account: null as string | null };
   
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');

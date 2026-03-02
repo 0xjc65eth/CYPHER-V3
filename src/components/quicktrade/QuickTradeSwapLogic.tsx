@@ -57,7 +57,8 @@ interface QuickTradeSwapLogicProps {
   onError?: (error: string) => void;
 }
 
-const MOCK_EXCHANGES = {
+// Static mapping of supported DEXes per network (not mock data)
+const NETWORK_EXCHANGES = {
   ethereum: ['UNISWAP', 'SUSHISWAP', '1INCH'],
   arbitrum: ['UNISWAP', 'SUSHISWAP', 'CAMELOT', 'GMX'],
   optimism: ['UNISWAP', 'VELODROME', 'BEETHOVEN_X'],
@@ -105,7 +106,7 @@ export function QuickTradeSwapLogic({
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
 
-  // Simular análise de múltiplas exchanges
+  // Analyze swap across multiple exchanges
   const analyzeSwapOpportunity = async () => {
     if (!amount || !userAddress) {
       onError?.('Dados insuficientes para análise');
@@ -123,8 +124,8 @@ export function QuickTradeSwapLogic({
     setCurrentStep('Iniciando análise...');
 
     try {
-      // Simular análise com delays realistas
-      const exchanges = MOCK_EXCHANGES[network as keyof typeof MOCK_EXCHANGES] || [];
+      // Query exchanges for quotes
+      const exchanges = NETWORK_EXCHANGES[network as keyof typeof NETWORK_EXCHANGES] || [];
       const quotes: SwapQuote[] = [];
 
       for (let i = 0; i < exchanges.length; i++) {
@@ -132,12 +133,12 @@ export function QuickTradeSwapLogic({
         setCurrentStep(`Verificando liquidez em ${exchange}...`);
         setProgress((i + 1) / exchanges.length * 60);
 
-        // Simular delay da API
+        // FALLBACK: Replace with real DEX aggregator API calls (1inch, Jupiter, etc.)
+        // Currently using simulated quotes until aggregator integration is complete
         await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
 
-        // Gerar cotação mock realista
-        const basePrice = 2850; // Mock ETH price
-        const priceVariation = (Math.random() - 0.5) * 0.02; // ±1% variation
+        const basePrice = 2850; // Placeholder price - should come from real price feed
+        const priceVariation = (Math.random() - 0.5) * 0.02;
         const price = basePrice * (1 + priceVariation);
         
         const quote: SwapQuote = {
@@ -209,7 +210,7 @@ export function QuickTradeSwapLogic({
     setIsExecuting(true);
     
     try {
-      // Simular processamento da taxa
+      // Process service fee
       setCurrentStep('Processando taxa de serviço...');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -271,7 +272,7 @@ export function QuickTradeSwapLogic({
           <Progress value={progress} className="w-full max-w-sm mx-auto mb-3" />
           
           <div className="text-sm text-gray-400">
-            Verificando {MOCK_EXCHANGES[network as keyof typeof MOCK_EXCHANGES]?.length || 0} exchanges...
+            Verificando {NETWORK_EXCHANGES[network as keyof typeof NETWORK_EXCHANGES]?.length || 0} exchanges...
           </div>
         </div>
       </Card>

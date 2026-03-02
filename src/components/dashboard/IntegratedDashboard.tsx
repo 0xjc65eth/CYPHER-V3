@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function IntegratedDashboard() {
   // WALLET TEMPORARILY DISABLED - const { connectionState } = useWalletContext();
-  const connectionState = { isConnected: false };
+  const connectionState = { isConnected: false, account: null as string | null };
   const [activeTab, setActiveTab] = useState<TabView>('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);

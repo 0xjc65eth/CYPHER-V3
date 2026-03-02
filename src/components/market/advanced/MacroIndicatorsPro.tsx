@@ -58,7 +58,9 @@ export function MacroIndicatorsPro({ refreshTrigger = 0 }: MacroIndicatorsProPro
   };
 
   const getPercentile = (value: number, low: number, high: number) => {
-    return ((value - low) / (high - low)) * 100;
+    const range = high - low;
+    if (range === 0) return 50; // Default to midpoint when no range data
+    return ((value - low) / range) * 100;
   };
 
   if (loading) {
@@ -71,23 +73,25 @@ export function MacroIndicatorsPro({ refreshTrigger = 0 }: MacroIndicatorsProPro
     );
   }
 
-  const mockData: MacroData = {
-    dxy: { value: 104.25, change: -0.18, change1w: -0.45, change1m: 1.23, high52w: 107.35, low52w: 99.58 },
-    treasury10y: { value: 4.35, change: 0.05, change1w: 0.12, change1m: -0.23, high52w: 5.02, low52w: 3.79 },
-    treasury2y: { value: 4.68, change: 0.03 },
-    yieldSpread: { value: -0.33, inverted: true },
-    vix: { value: 15.8, change: -2.1, percentile90d: 32, high52w: 28.45, low52w: 12.12 },
-    sp500: { value: 5847.23, change: 0.45, change1w: 1.23, change1m: 3.45, change1y: 24.67, pe: 21.4, high52w: 5892.11, low52w: 4103.78 },
-    nasdaq: { value: 18402.56, change: 0.58, change1w: 1.67, change1m: 4.23, change1y: 31.24 },
-    gold: { value: 2634.50, change: 0.32, change1w: -0.78, change1m: 2.34, change1y: 18.45 },
-    oil: { value: 78.45, change: -1.24, change1w: -2.34, change1m: -5.67 },
-    cpi: { value: 3.2, previous: 3.4, date: 'Jan 2026', trend: 'falling' },
-    ppi: { value: 2.4, previous: 2.6, date: 'Jan 2026' },
-    fedRate: { value: 5.50, nextMeeting: 'Mar 20, 2026', probability: { hold: 78.5, cut25: 19.2, hike25: 2.3 } },
-    unemployment: { value: 3.7, previous: 3.8, date: 'Jan 2026' },
+  // FALLBACK: Zero-value fallback when /api/market/macro-indicators-pro/ is unavailable.
+  // Replace with real API data from Twelve Data / FRED once connected.
+  const fallbackData: MacroData = {
+    dxy: { value: 0, change: 0, change1w: 0, change1m: 0, high52w: 0, low52w: 0 },
+    treasury10y: { value: 0, change: 0, change1w: 0, change1m: 0, high52w: 0, low52w: 0 },
+    treasury2y: { value: 0, change: 0 },
+    yieldSpread: { value: 0, inverted: false },
+    vix: { value: 0, change: 0, percentile90d: 0, high52w: 0, low52w: 0 },
+    sp500: { value: 0, change: 0, change1w: 0, change1m: 0, change1y: 0, pe: 0, high52w: 0, low52w: 0 },
+    nasdaq: { value: 0, change: 0, change1w: 0, change1m: 0, change1y: 0 },
+    gold: { value: 0, change: 0, change1w: 0, change1m: 0, change1y: 0 },
+    oil: { value: 0, change: 0, change1w: 0, change1m: 0 },
+    cpi: { value: 0, previous: 0, date: 'N/A', trend: 'stable' },
+    ppi: { value: 0, previous: 0, date: 'N/A' },
+    fedRate: { value: 0, nextMeeting: 'N/A', probability: { hold: 0, cut25: 0, hike25: 0 } },
+    unemployment: { value: 0, previous: 0, date: 'N/A' },
   };
 
-  const d = data || mockData;
+  const d = data || fallbackData;
 
   const getChangeByTimeframe = (indicator: any) => {
     switch (selectedTimeframe) {

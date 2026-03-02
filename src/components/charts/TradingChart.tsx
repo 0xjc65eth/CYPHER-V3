@@ -172,10 +172,9 @@ export default function TradingChart({
     }
   };
 
-  // Returns empty data — no mock/random candle generation.
-  // Real data should be fetched from the API and passed in as props.
-  const generateMockData = useCallback((): CandleData[] => {
-    console.warn('[TradingChart] No real market data available. Chart will display empty state.');
+  // Returns empty data - real candle data should be fetched from API and passed as props.
+  // FALLBACK: Replace with real market data API (e.g., Binance klines)
+  const getChartData = useCallback((): CandleData[] => {
     return [];
   }, [timeframe]);
 
@@ -237,12 +236,12 @@ export default function TradingChart({
         });
       }
 
-      // Gerar e definir dados
-      const mockData = generateMockData();
-      setChartData(mockData);
-      
-      // Converter dados para formato lightweight-charts
-      const candleData = mockData.map(d => ({
+      // Load and set chart data
+      const data = getChartData();
+      setChartData(data);
+
+      // Convert data for lightweight-charts format
+      const candleData = data.map(d => ({
         time: d.time,
         open: d.open,
         high: d.high,
@@ -250,7 +249,7 @@ export default function TradingChart({
         close: d.close
       }));
 
-      const volumeData = mockData.map(d => ({
+      const volumeData = data.map(d => ({
         time: d.time,
         value: d.volume,
         color: d.close >= d.open ? '#00ff0044' : '#ff000044'
@@ -264,12 +263,12 @@ export default function TradingChart({
       }
 
       if (ma20SeriesRef.current) {
-        const ma20Data = calculateMA(mockData, 20);
+        const ma20Data = calculateMA(data, 20);
         ma20SeriesRef.current.setData(ma20Data);
       }
 
       if (ma50SeriesRef.current) {
-        const ma50Data = calculateMA(mockData, 50);
+        const ma50Data = calculateMA(data, 50);
         ma50SeriesRef.current.setData(ma50Data);
       }
 
@@ -281,9 +280,9 @@ export default function TradingChart({
       });
 
       // Set current price from real data if available
-      if (mockData.length > 0) {
-        const lastCandle = mockData[mockData.length - 1];
-        const previousCandle = mockData[mockData.length - 2];
+      if (data.length > 0) {
+        const lastCandle = data[data.length - 1];
+        const previousCandle = data[data.length - 2];
         setCurrentPrice(lastCandle.close);
         setPriceChange(lastCandle.close - previousCandle?.close || 0);
       } else {
@@ -305,7 +304,7 @@ export default function TradingChart({
         chartRef.current = null;
       }
     };
-  }, [timeframe, height, fullscreen, indicators, generateMockData, onCrosshairMove]);
+  }, [timeframe, height, fullscreen, indicators, getChartData, onCrosshairMove]);
 
   // Redimensionar gráfico
   useEffect(() => {

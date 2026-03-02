@@ -201,103 +201,37 @@ export default function TickerTape({
   );
 }
 
-// Hook para dados do ticker (simulado)
+// Hook for ticker data - fetches from real market data API
+// FALLBACK: Replace with real WebSocket or polling API for live ticker prices
 export function useTickerData() {
   const [tickerData, setTickerData] = useState<TickerItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simular carregamento de dados
-    const loadTickerData = () => {
-      const mockData: TickerItem[] = [
-        {
-          symbol: 'BTC',
-          name: 'Bitcoin',
-          price: 97234.56,
-          change24h: 2341.23,
-          changePercent24h: 2.47,
-          volume24h: 28500000000,
-          type: 'crypto',
-          trending: true,
-          alert: 'high',
-          lastUpdate: Date.now()
-        },
-        {
-          symbol: 'ETH',
-          name: 'Ethereum',
-          price: 3456.78,
-          change24h: -123.45,
-          changePercent24h: -3.45,
-          volume24h: 15200000000,
-          type: 'crypto',
-          lastUpdate: Date.now()
-        },
-        {
-          symbol: 'ORDI',
-          name: 'Ordinals',
-          price: 34.56,
-          change24h: 5.67,
-          changePercent24h: 19.6,
-          volume24h: 45000000,
-          type: 'ordinal',
-          trending: true,
-          alert: 'medium',
-          lastUpdate: Date.now()
-        },
-        {
-          symbol: 'RSIC',
-          name: 'Rune Stone',
-          price: 0.0123,
-          change24h: 0.0034,
-          changePercent24h: 38.2,
-          volume24h: 2300000,
-          type: 'rune',
-          trending: true,
-          alert: 'high',
-          lastUpdate: Date.now()
-        },
-        {
-          symbol: 'PEPE',
-          name: 'Pepe Rune',
-          price: 0.000045,
-          change24h: -0.000012,
-          changePercent24h: -21.1,
-          volume24h: 890000,
-          type: 'rune',
-          lastUpdate: Date.now()
-        },
-        {
-          symbol: 'MSTR',
-          name: 'MicroStrategy',
-          price: 423.45,
-          change24h: 18.90,
-          changePercent24h: 4.67,
-          volume24h: 1200000,
-          type: 'stock',
-          alert: 'medium',
-          lastUpdate: Date.now()
+    const loadTickerData = async () => {
+      try {
+        // Attempt to fetch real ticker data from API
+        const response = await fetch('/api/market/tickers/');
+        if (response.ok) {
+          const result = await response.json();
+          if (result?.length) {
+            setTickerData(result);
+            setIsLoading(false);
+            return;
+          }
         }
-      ];
-
-      setTickerData(mockData);
+      } catch (error) {
+        console.warn('[useTickerData] API unavailable, ticker will be empty:', error);
+      }
+      // No data available - ticker will be empty
+      setTickerData([]);
       setIsLoading(false);
     };
 
     loadTickerData();
 
-    // Simular atualizações em tempo real
-    const interval = setInterval(() => {
-      setTickerData(prevData => 
-        prevData.map(item => ({
-          ...item,
-          price: item.price * (1 + (Math.random() - 0.5) * 0.002), // Variação de ±0.1%
-          change24h: item.change24h * (1 + (Math.random() - 0.5) * 0.05),
-          changePercent24h: item.changePercent24h * (1 + (Math.random() - 0.5) * 0.05),
-          volume24h: item.volume24h * (1 + (Math.random() - 0.5) * 0.01),
-          lastUpdate: Date.now()
-        }))
-      );
-    }, 2000);
+    // Refresh ticker data periodically
+    const interval = setInterval(loadTickerData, 30000); // Every 30 seconds
 
     return () => clearInterval(interval);
   }, []);

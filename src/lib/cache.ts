@@ -178,6 +178,20 @@ class CacheService {
     throw lastError || new Error('All providers failed');
   }
 
+  /**
+   * Get or compute: cache-aside pattern
+   * Returns cached value if available, otherwise computes and caches it
+   */
+  async getOrCompute<T>(key: string, computeFn: () => Promise<T>, ttlSeconds?: number): Promise<T> {
+    const cached = await this.get<T>(key);
+    if (cached !== null && cached !== undefined) {
+      return cached;
+    }
+    const value = await computeFn();
+    await this.set(key, value, ttlSeconds ?? 300);
+    return value;
+  }
+
   getStats() {
     return this.cache.getStats();
   }
@@ -198,7 +212,24 @@ export const cacheTTL = {
   LONG_TERM: 86400, // 24 hours
 };
 
-export const cacheKeys = {
+export const cacheKeys: Record<string, any> & {
+  BITCOIN_PRICE: string;
+  MARKET_DATA: string;
+  ORDINALS_COLLECTIONS: string;
+  ORDINALS_ACTIVITY: string;
+  RUNES_LIST: string;
+  RUNES_ACTIVITY: string;
+  MINING_POOLS: string;
+  MINING_DIFFICULTY: string;
+  NEWS_FEED: string;
+  NETWORK_HEALTH: string;
+  MEMPOOL_DATA: string;
+  magiceden: (key: string) => string;
+  quicknode: (key: string) => string;
+  glassnode: (key: string) => string;
+  binance: (key: string) => string;
+  bitcoinPrice: () => string;
+} = {
   BITCOIN_PRICE: 'bitcoin:price',
   MARKET_DATA: 'market:data',
   ORDINALS_COLLECTIONS: 'ordinals:collections',
@@ -210,4 +241,9 @@ export const cacheKeys = {
   NEWS_FEED: 'news:feed',
   NETWORK_HEALTH: 'network:health',
   MEMPOOL_DATA: 'mempool:data',
+  magiceden: (key: string) => `magiceden:${key}`,
+  quicknode: (key: string) => `quicknode:${key}`,
+  glassnode: (key: string) => `glassnode:${key}`,
+  binance: (key: string) => `binance:${key}`,
+  bitcoinPrice: () => 'bitcoin:price',
 };

@@ -43,84 +43,29 @@ export function BRC20Explorer({ searchQuery }: BRC20ExplorerProps) {
   const [tokens, setTokens] = useState<BRC20Token[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // Mock data
+  // FALLBACK: Replace with real BRC-20 API data from Hiro/UniSat
+  // Currently no API integration - tokens list will be empty until connected
   useEffect(() => {
-    const mockTokens: BRC20Token[] = [
-      {
-        symbol: 'ORDI',
-        name: 'Ordinals',
-        totalSupply: '21000000',
-        maxSupply: '21000000',
-        limitPerMint: '1000',
-        holders: 28563,
-        transactions: 856234,
-        deployer: 'bc1q...deployer1',
-        deployTime: Date.now() - 86400000 * 365,
-        price: 45.67,
-        marketCap: 958930000,
-        volume24h: 89234567,
-        change24h: 12.4,
-        priceHistory: [
-          { time: '00:00', price: 42.3 },
-          { time: '04:00', price: 44.1 },
-          { time: '08:00', price: 43.8 },
-          { time: '12:00', price: 46.2 },
-          { time: '16:00', price: 45.1 },
-          { time: '20:00', price: 45.67 }
-        ]
-      },
-      {
-        symbol: 'SATS',
-        name: 'Satoshis',
-        totalSupply: '2100000000000000',
-        maxSupply: '2100000000000000',
-        limitPerMint: '100000000',
-        holders: 45782,
-        transactions: 1234567,
-        deployer: 'bc1q...deployer2',
-        deployTime: Date.now() - 86400000 * 300,
-        price: 0.000234,
-        marketCap: 491460000,
-        volume24h: 45678901,
-        change24h: -3.2,
-        priceHistory: [
-          { time: '00:00', price: 0.000242 },
-          { time: '04:00', price: 0.000238 },
-          { time: '08:00', price: 0.000235 },
-          { time: '12:00', price: 0.000232 },
-          { time: '16:00', price: 0.000236 },
-          { time: '20:00', price: 0.000234 }
-        ]
-      },
-      {
-        symbol: 'RATS',
-        name: 'Rats',
-        totalSupply: '1000000000000',
-        maxSupply: '1000000000000',
-        limitPerMint: '1000000',
-        holders: 18394,
-        transactions: 567890,
-        deployer: 'bc1q...deployer3',
-        deployTime: Date.now() - 86400000 * 200,
-        price: 0.00156,
-        marketCap: 1560000,
-        volume24h: 23456789,
-        change24h: 18.7,
-        priceHistory: [
-          { time: '00:00', price: 0.00131 },
-          { time: '04:00', price: 0.00138 },
-          { time: '08:00', price: 0.00142 },
-          { time: '12:00', price: 0.00151 },
-          { time: '16:00', price: 0.00158 },
-          { time: '20:00', price: 0.00156 }
-        ]
+    const fetchBRC20Tokens = async () => {
+      try {
+        const response = await fetch('/api/brc20/tokens/')
+        if (response.ok) {
+          const result = await response.json()
+          if (result.tokens?.length) {
+            setTokens(result.tokens)
+            setIsLoading(false)
+            return
+          }
+        }
+      } catch (error) {
+        console.warn('[BRC20Explorer] API unavailable, showing empty state:', error)
       }
-    ]
-
-    setTimeout(() => {
-      setTokens(mockTokens)
+      // No data available
+      setTokens([])
       setIsLoading(false)
-    }, 1500)
+    }
+
+    fetchBRC20Tokens()
   }, [])
 
   const formatNumber = (num: number) => {

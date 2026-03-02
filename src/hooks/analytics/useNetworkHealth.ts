@@ -39,32 +39,26 @@ export function useNetworkHealth() {
         setLoading(true);
       }
       
-      // Mock data for now - replace with actual Lightning Network API calls
-      const mockData: NetworkHealthData = {
-        nodeCount: 15234,
-        channelCount: 73456,
-        networkCapacity: 5432.67,
-        avgChannelSize: 0.074,
-        healthStatus: 'excellent',
-        lastUpdate: new Date(),
-        nodeGrowth24h: 2.3,
-        channelGrowth24h: 1.8,
-        capacityGrowth24h: 3.1
-      };
+      // FALLBACK: Replace with real Lightning Network API (e.g., mempool.space/api/v1/lightning/statistics)
+      const response = await fetch('/api/lightning/network-health/', { signal });
 
-      // Simulate API delay com AbortController
-      await new Promise((resolve, reject) => {
-        const timeout = setTimeout(resolve, 1000);
-        
-        signal.addEventListener('abort', () => {
-          clearTimeout(timeout);
-          reject(new DOMException('Aborted', 'AbortError'));
+      if (response.ok && isMountedRef.current && !signal.aborted) {
+        const result = await response.json();
+        setData(result);
+        setError(null);
+      } else if (isMountedRef.current && !signal.aborted) {
+        // API unavailable - set empty state
+        setData({
+          nodeCount: 0,
+          channelCount: 0,
+          networkCapacity: 0,
+          avgChannelSize: 0,
+          healthStatus: 'fair',
+          lastUpdate: new Date(),
+          nodeGrowth24h: 0,
+          channelGrowth24h: 0,
+          capacityGrowth24h: 0
         });
-      });
-      
-      // Verificar se ainda está montado antes de atualizar estado
-      if (isMountedRef.current && !signal.aborted) {
-        setData(mockData);
         setError(null);
       }
     } catch (err) {

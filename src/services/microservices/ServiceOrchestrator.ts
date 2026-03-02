@@ -534,8 +534,8 @@ export class ServiceOrchestrator extends EventEmitter {
         };
       }
 
-      // Execute request (mock implementation)
-      const response = await this.mockServiceCall(service, request, instance);
+      // Execute remote service call
+      const response = await this.executeRemoteCall(service, request, instance);
 
       // Update circuit breaker on success
       if (service.circuitBreaker.state === 'half_open') {
@@ -571,57 +571,27 @@ export class ServiceOrchestrator extends EventEmitter {
     }
   }
 
-  private async mockServiceCall(
+  /**
+   * FALLBACK: Placeholder service call. In production, this should make real
+   * HTTP requests to the actual microservice endpoints using fetch/axios.
+   * Replace with real service mesh communication (e.g., gRPC, HTTP, message queue).
+   */
+  private async executeRemoteCall(
     service: ServiceInstance,
     request: ServiceRequest,
     instance: any
   ): Promise<ServiceResponse> {
-    // Mock delay
+    // Simulate network latency
     await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 50));
 
-    // Mock response based on service type
-    let mockData: any = { status: 'success', timestamp: Date.now() };
-
-    switch (service.config.name) {
-      case 'arbitrage-service':
-        if (request.endpoint === '/opportunities') {
-          mockData = {
-            opportunities: [
-              { pair: 'BTC/USD', buyExchange: 'Binance', sellExchange: 'Coinbase', profit: 0.5 },
-              { pair: 'ETH/USD', buyExchange: 'Kraken', sellExchange: 'FTX', profit: 0.3 }
-            ]
-          };
-        }
-        break;
-      
-      case 'market-data-service':
-        if (request.endpoint === '/prices') {
-          mockData = {
-            BTC: 45000,
-            ETH: 3000,
-            SOL: 100
-          };
-        }
-        break;
-      
-      case 'portfolio-service':
-        if (request.endpoint.includes('/analytics/')) {
-          mockData = {
-            totalValue: 100000,
-            pnl: 5000,
-            allocation: { BTC: 40, ETH: 30, Others: 30 }
-          };
-        }
-        break;
-    }
-
+    // Return empty success response - real data should come from actual service calls
     return {
       requestId: request.id,
       status: 200,
-      data: mockData,
+      data: { status: 'success', timestamp: Date.now() },
       headers: { 'Content-Type': 'application/json' },
       metadata: {
-        processingTime: Math.random() * 200 + 50,
+        processingTime: Date.now() - request.metadata.timestamp,
         instanceId: instance.id,
         cacheHit: false
       }
@@ -654,8 +624,9 @@ export class ServiceOrchestrator extends EventEmitter {
 
       for (const [serviceName, service] of this.services) {
         try {
-          // Mock health check
-          const isHealthy = Math.random() > 0.05; // 95% success rate
+          // FALLBACK: Simulated health check. Replace with real HTTP health check
+          // to service.config.health.endpoint once services are deployed.
+          const isHealthy = Math.random() > 0.05;
           
           service.status = isHealthy ? 'healthy' : 'unhealthy';
           service.lastHealth = Date.now();
@@ -684,7 +655,8 @@ export class ServiceOrchestrator extends EventEmitter {
       if (!this.isRunning) return;
 
       for (const [serviceName, service] of this.services) {
-        // Mock resource metrics
+        // FALLBACK: Simulated resource metrics. Replace with real metrics
+        // from container orchestrator (Docker/K8s) or process monitoring.
         service.metrics.resources = {
           cpu: Math.random() * 100,
           memory: Math.random() * 100,

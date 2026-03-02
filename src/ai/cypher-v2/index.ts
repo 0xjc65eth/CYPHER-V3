@@ -13,7 +13,8 @@ export class CypherAI {
   private config: CypherAIConfig;
   private conversationHistory: ConversationMessage[] = [];
   private tradingBot: AutomatedTradingBotService | null = null;
-  
+  private eventListeners: Map<string, Array<(...args: any[]) => void>> = new Map();
+
   constructor(config?: Partial<CypherAIConfig>) {
     this.config = {
       personality: config?.personality || this.getDefaultPersonality(),
@@ -340,6 +341,36 @@ ${this.getRandomResponse('suggestion')} Tá bem diversificado! Talvez valha a pe
       risks: [],
       opportunities: []
     };
+  }
+
+  /**
+   * Register an event listener
+   */
+  on(event: string, callback: (...args: any[]) => void): void {
+    if (!this.eventListeners.has(event)) {
+      this.eventListeners.set(event, []);
+    }
+    this.eventListeners.get(event)!.push(callback);
+  }
+
+  /**
+   * Remove an event listener
+   */
+  off(event: string, callback: (...args: any[]) => void): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      this.eventListeners.set(event, listeners.filter(l => l !== callback));
+    }
+  }
+
+  /**
+   * Emit an event
+   */
+  protected emit(event: string, ...args: any[]): void {
+    const listeners = this.eventListeners.get(event);
+    if (listeners) {
+      listeners.forEach(callback => callback(...args));
+    }
   }
 
   getConversationHistory(): ConversationMessage[] {

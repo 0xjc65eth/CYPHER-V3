@@ -9,11 +9,11 @@ import { clusterApiUrl } from '@solana/web3.js';
 
 // Exportar configurações para uso em outros componentes
 export const SUPPORTED_EVM_CHAINS = [
-  { name: 'Ethereum', chainId: 1, icon: '⟠' },
-  { name: 'Arbitrum', chainId: 42161, icon: '🔷' },
-  { name: 'Polygon', chainId: 137, icon: '🟣' },
-  { name: 'Optimism', chainId: 10, icon: '🔴' },
-  { name: 'Base', chainId: 8453, icon: '🔵' }
+  { id: 1, name: 'Ethereum', chainId: 1, icon: '⟠' },
+  { id: 42161, name: 'Arbitrum', chainId: 42161, icon: '🔷' },
+  { id: 137, name: 'Polygon', chainId: 137, icon: '🟣' },
+  { id: 10, name: 'Optimism', chainId: 10, icon: '🔴' },
+  { id: 8453, name: 'Base', chainId: 8453, icon: '🔵' }
 ];
 
 export const SUPPORTED_SOLANA_CHAINS = [

@@ -24,38 +24,8 @@ export function BitcoinPriceChart({
   // Transform price history data for chart
   const chartData = useMemo(() => {
     if (!priceHistory?.length) {
-      // Generate mock data if no real data available
-      const mockData = []
-      const currentPrice = marketData?.btcPrice || 50000
-      
-      for (let i = 23; i >= 0; i--) {
-        const time = new Date(Date.now() - i * 60 * 60 * 1000).toISOString()
-        const variation = (Math.random() - 0.5) * 0.02 // 2% variation
-        const price = currentPrice * (1 + variation)
-        
-        if (type === 'candlestick') {
-          const open = price * (1 + (Math.random() - 0.5) * 0.01)
-          const close = price * (1 + (Math.random() - 0.5) * 0.01)
-          const high = Math.max(open, close) * (1 + Math.random() * 0.005)
-          const low = Math.min(open, close) * (1 - Math.random() * 0.005)
-          
-          mockData.push({
-            time,
-            open,
-            high,
-            low,
-            close,
-            volume: Math.random() * 1000000
-          })
-        } else {
-          mockData.push({
-            time,
-            value: price
-          })
-        }
-      }
-      
-      return mockData
+      // No data available yet - return empty array until API responds
+      return []
     }
     
     // Transform real data
@@ -109,7 +79,7 @@ export function BitcoinPriceChart({
       <div className="flex items-center justify-center" style={{ height }}>
         <div className="text-center text-red-500">
           <p className="text-sm">Failed to load price data</p>
-          <p className="text-xs text-gray-500 mt-1">Using demo data</p>
+          <p className="text-xs text-gray-500 mt-1">Please try again later</p>
         </div>
       </div>
     )

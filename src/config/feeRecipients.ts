@@ -74,6 +74,8 @@ export const FEE_CONFIG = {
   percentage: CYPHER_FEE_CONFIG.swapFeePercent,
   maxFeeUSD: CYPHER_FEE_CONFIG.maxFeeUSD,
   minFeeUSD: CYPHER_FEE_CONFIG.minFeeUSD,
+  minimumTransactionUSD: 1, // Minimum $1 USD transaction value
+  serviceFeePercentage: CYPHER_FEE_CONFIG.swapFeePercent * 100, // e.g. 0.3 for 0.3%
 };
 
 // Wallet addresses derived from centralized config (single source of truth)
