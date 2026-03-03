@@ -1,6 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { hiroOrdinalsService } from '@/services/HiroOrdinalsService'
 
+// Use 'any' for Hiro inscription items since the service returns dynamic data
+// and we transform them into our own Inscription interface below.
+type HiroInscriptionItem = any;
+
 interface InscriptionFilters {
   contentType?: string
   inscriptionRange?: [number, number]
@@ -50,18 +54,18 @@ interface MempoolInscription extends Inscription {
 async function fetchInscriptions(filters: InscriptionFilters): Promise<Inscription[]> {
   try {
     // Get inscriptions from Hiro service
-    const hiroInscriptions = await hiroOrdinalsService.getInscriptions(50, 0)
+    const hiroInscriptions: HiroInscriptionItem[] = await hiroOrdinalsService.getInscriptions(50, 0)
 
     // Transform Hiro data to our interface (using REAL data only)
     const inscriptions: Inscription[] = hiroInscriptions
-      .filter(item => item && item.number) // Only valid items
-      .map(item => ({
+      .filter((item: HiroInscriptionItem) => item && item.number) // Only valid items
+      .map((item: HiroInscriptionItem) => ({
         id: item.number,
         txid: item.tx_id || '',
         address: item.address || '',
         contentType: item.content_type || 'unknown',
         contentSize: item.content_length || 0,
-        contentUrl: `https://ordinals.com/content/${item.id}`,
+        contentUrl: `https://ordinals.com/content/${item.id || item.number}`,
         fee: item.genesis_fee || 0,
         feeRate: item.genesis_fee ? Math.floor(item.genesis_fee / 250) : 0,
         satNumber: parseInt(item.sat_ordinal || '0') || 0,
@@ -129,7 +133,9 @@ async function fetchMempoolInscriptions(): Promise<MempoolInscription[]> {
  */
 async function fetchInscriptionDetails(inscriptionId: string): Promise<Inscription | null> {
   try {
-    const inscription = await hiroOrdinalsService.getInscriptions(inscriptionId)
+    const inscription: HiroInscriptionItem = await (hiroOrdinalsService as any).getInscriptionDetails
+      ? (hiroOrdinalsService as any).getInscriptionDetails(inscriptionId)
+      : (await hiroOrdinalsService.getInscriptions(1, 0))[0];
 
     if (!inscription) return null
 
@@ -139,7 +145,7 @@ async function fetchInscriptionDetails(inscriptionId: string): Promise<Inscripti
       address: inscription.address || '',
       contentType: inscription.content_type || 'unknown',
       contentSize: inscription.content_length || 0,
-      contentUrl: `https://ordinals.com/content/${inscription.id}`,
+      contentUrl: `https://ordinals.com/content/${inscription.id || inscription.number}`,
       fee: inscription.genesis_fee || 0,
       feeRate: inscription.genesis_fee ? Math.floor(inscription.genesis_fee / 250) : 0,
       satNumber: parseInt(inscription.sat_ordinal || '0') || 0,
@@ -205,18 +211,18 @@ export function useCollectionInscriptions(collectionId: string, limit = 20, offs
   return useQuery({
     queryKey: ['ordinals', 'collection-inscriptions', collectionId, limit, offset],
     queryFn: async () => {
-      const inscriptions = await hiroOrdinalsService.getInscriptionsByCollection(collectionId, limit, offset)
+      const inscriptions: HiroInscriptionItem[] = await (hiroOrdinalsService as any).getInscriptionsByCollection(collectionId, limit, offset)
 
       // Transform to our interface (using REAL data only)
       return inscriptions
-        .filter(item => item && item.number)
-        .map(item => ({
+        .filter((item: HiroInscriptionItem) => item && item.number)
+        .map((item: HiroInscriptionItem) => ({
           id: item.number,
           txid: item.tx_id || '',
           address: item.address || '',
           contentType: item.content_type || 'unknown',
           contentSize: item.content_length || 0,
-          contentUrl: `https://ordinals.com/content/${item.id}`,
+          contentUrl: `https://ordinals.com/content/${item.id || item.number}`,
           fee: item.genesis_fee || 0,
           feeRate: item.genesis_fee ? Math.floor(item.genesis_fee / 250) : 0,
           satNumber: parseInt(item.sat_ordinal || '0') || 0,

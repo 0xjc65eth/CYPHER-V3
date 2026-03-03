@@ -62,7 +62,7 @@ export class AutomatedTradingBotService {
   private activePositions: TradingPosition[] = [];
   private opportunities: TradingOpportunity[] = [];
   private accounts: ExchangeAccount[] = [];
-  private isRunning = false;
+  private _isRunning = false;
   private performance = {
     totalTrades: 0,
     successfulTrades: 0,
@@ -79,7 +79,7 @@ export class AutomatedTradingBotService {
   private listeners = new Map<string, Function[]>();
 
   constructor() {
-    this.cmcService = new CoinMarketCapService();
+    this.cmcService = new CoinMarketCapService({ apiKey: process.env.CMC_API_KEY || '' });
     this.voiceService = new ElevenLabsVoiceService();
     this.hyperliquidService = new HyperliquidTradingService();
     this.initializeStrategies();
@@ -201,7 +201,7 @@ export class AutomatedTradingBotService {
       return;
     }
 
-    this.isRunning = true;
+    this._isRunning = true;
     this.emit('botStarted');
 
     // Inicializar Hyperliquid Trading Service
@@ -210,7 +210,7 @@ export class AutomatedTradingBotService {
     }
 
     // Anunciar início por voz
-    await this.voiceService.speak(
+    await this.voiceService.quickSpeak(
       'E aí, mano! CYPHER Bot tá ligando agora! Vou ficar de olho nas melhores oportunidades pra você. Bora fazer essa grana!',
       'excited'
     );
@@ -223,15 +223,15 @@ export class AutomatedTradingBotService {
   }
 
   async stopBot() {
-    if (!this.isRunning) return;
+    if (!this._isRunning) return;
 
-    this.isRunning = false;
+    this._isRunning = false;
     this.emit('botStopped');
 
     // Desconectar Hyperliquid
     await this.hyperliquidService.disconnect();
 
-    await this.voiceService.speak(
+    await this.voiceService.quickSpeak(
       'Opa, parando o bot aqui! Foi massa operar com você hoje. Até a próxima, parceiro!',
       'casual'
     );
@@ -246,7 +246,7 @@ export class AutomatedTradingBotService {
 
       try {
         // Buscar dados de mercado em tempo real
-        const marketData = await this.cmcService.getMultipleQuotes(['BTC', 'ETH', 'SOL', 'ORDI']);
+        const marketData = await this.cmcService.getCryptocurrencyQuotes({ symbol: 'BTC,ETH,SOL,ORDI' });
         
         // Analisar cada asset
         for (const [symbol, data] of Object.entries(marketData)) {
@@ -387,7 +387,7 @@ export class AutomatedTradingBotService {
 
       // Anunciar sucesso por voz
       if (position.pnl > 100) { // Apenas para trades significativos
-        await this.voiceService.speak(
+        await this.voiceService.quickSpeak(
           `Opa! Fechei uma arbitragem massa aqui! Lucro de $${position.pnl.toFixed(0)} no ${opportunity.asset}. Bora que bora!`,
           'excited'
         );
@@ -493,7 +493,8 @@ export class AutomatedTradingBotService {
   private async scanSpecialOpportunities() {
     // Detectar condições especiais de mercado
     try {
-      const btcData = await this.cmcService.getQuote('BTC');
+      const btcQuotes = await this.cmcService.getCryptocurrencyQuotes({ symbol: 'BTC' });
+      const btcData = btcQuotes['BTC'];
       const change1h = btcData.quote.USD.percent_change_1h;
 
       // Buscar oportunidades de arbitragem via Hyperliquid
@@ -520,7 +521,7 @@ export class AutomatedTradingBotService {
 
       // Alertas de volatilidade extrema
       if (Math.abs(change1h) > 5) {
-        await this.voiceService.speak(
+        await this.voiceService.quickSpeak(
           `Opa! Bitcoin tá ${change1h > 0 ? 'bombando' : 'despencando'} ${Math.abs(change1h).toFixed(1)}% na última hora! Fica ligado nas oportunidades!`,
           'warning'
         );
@@ -570,7 +571,8 @@ export class AutomatedTradingBotService {
 
   private async updatePositionPnL(position: TradingPosition) {
     try {
-      const currentData = await this.cmcService.getQuote(position.asset);
+      const currentQuotes = await this.cmcService.getCryptocurrencyQuotes({ symbol: position.asset });
+      const currentData = currentQuotes[position.asset];
       position.currentPrice = currentData.quote.USD.price;
       
       if (position.side === 'long') {
@@ -613,7 +615,7 @@ export class AutomatedTradingBotService {
         `Show! Fechei ${position.asset} com lucro de $${position.pnl.toFixed(0)}. ${reason === 'take_profit' ? 'Meta batida!' : 'Stop ativado, mas foi lucro!'}` :
         `Fechei ${position.asset} com perda de $${Math.abs(position.pnl).toFixed(0)}. ${reason === 'stop_loss' ? 'Stop loss ativado, proteção funcionou!' : 'Realização tática.'}`;
 
-      await this.voiceService.speak(message, position.pnl > 0 ? 'confident' : 'analytical');
+      await this.voiceService.quickSpeak(message, position.pnl > 0 ? 'confident' : 'analytical');
     }
 
     // Remover posição da lista
@@ -678,7 +680,7 @@ export class AutomatedTradingBotService {
         `Opa! Já fiz ${this.performance.totalTrades} trades hoje com ${successRate.toFixed(0)}% de acerto. Lucro total de $${this.performance.totalPnL.toFixed(0)}. Tô on fire!` :
         `Já executei ${this.performance.totalTrades} trades com ${successRate.toFixed(0)}% de acerto. Ainda no prejuízo de $${Math.abs(this.performance.totalPnL).toFixed(0)}, mas vou recuperar!`;
       
-      await this.voiceService.speak(message, this.performance.totalPnL > 0 ? 'excited' : 'confident');
+      await this.voiceService.quickSpeak(message, this.performance.totalPnL > 0 ? 'excited' : 'confident');
     }
   }
 
@@ -837,7 +839,7 @@ export class AutomatedTradingBotService {
     if (strategy) {
       strategy.active = !strategy.active;
       
-      await this.voiceService.speak(
+      await this.voiceService.quickSpeak(
         `${strategy.active ? 'Ativei' : 'Desativei'} a estratégia ${strategyName}. ${strategy.active ? 'Vamos fazer dinheiro!' : 'Ficou de fora agora.'}`,
         'confident'
       );
@@ -845,7 +847,7 @@ export class AutomatedTradingBotService {
   }
 
   isActive() {
-    return this.isRunning;
+    return this._isRunning;
   }
 }
 

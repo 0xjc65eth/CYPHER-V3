@@ -61,8 +61,8 @@ export function useMultiWallet() {
   const evmService = EVMWalletService.getInstance();
   const solanaService = SolanaWalletService.getInstance();
   
-  // Bitcoin wallet (existing)
-  const bitcoinWallet = useWallet();
+  // Bitcoin wallet (existing) - cast to any for properties that may vary
+  const bitcoinWallet = useWallet() as any;
   
   // Multi-wallet state
   const [state, setState] = useState<MultiWalletState>({

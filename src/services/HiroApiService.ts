@@ -366,10 +366,11 @@ export class HiroApiService {
   /**
    * Cache management
    */
-  private setCache(key: string, value: any): void {
+  private setCache(key: string, value: any, customTimeout?: number): void {
     this.cache.set(key, {
       value,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(customTimeout !== undefined && { customTimeout })
     });
   }
 
@@ -377,7 +378,8 @@ export class HiroApiService {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
-    if (Date.now() - cached.timestamp > this.cacheTimeout) {
+    const timeout = cached.customTimeout ?? this.cacheTimeout;
+    if (Date.now() - cached.timestamp > timeout) {
       this.cache.delete(key);
       return null;
     }

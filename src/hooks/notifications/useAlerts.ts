@@ -12,13 +12,32 @@ interface PriceAlert {
   triggered: boolean;
 }
 
-// Hook para monitorar preço e disparar alertas
+// Settings interface for alert preferences (stored in localStorage)
+interface AlertSettings {
+  priceAlerts: boolean;
+  arbitrageAlerts: boolean;
+  neuralInsights: boolean;
+}
+
+function getAlertSettings(): AlertSettings {
+  try {
+    const stored = localStorage.getItem('alertSettings');
+    if (stored) return JSON.parse(stored);
+  } catch { /* ignore */ }
+  return { priceAlerts: true, arbitrageAlerts: true, neuralInsights: true };
+}
+
+// Hook para monitorar preco e disparar alertas
 export function usePriceAlerts() {
-  const { addNotification, settings } = useNotifications();
+  const { addNotification } = useNotifications();
   const { data: btcPrice } = useBitcoinPrice();
 
   useEffect(() => {
+    const settings = getAlertSettings();
     if (!btcPrice || !settings.priceAlerts) return;
+
+    const price = (btcPrice as any)?.price ?? (btcPrice as any)?.prices?.USD ?? 0;
+    if (!price) return;
 
     // Check stored price alerts
     const alertsJson = localStorage.getItem('priceAlerts');
@@ -28,20 +47,16 @@ export function usePriceAlerts() {
     const updatedAlerts = alerts.map(alert => {
       if (alert.triggered) return alert;
 
-      const shouldTrigger = 
-        (alert.direction === 'above' && btcPrice.price >= alert.price) ||
-        (alert.direction === 'below' && btcPrice.price <= alert.price);
+      const shouldTrigger =
+        (alert.direction === 'above' && price >= alert.price) ||
+        (alert.direction === 'below' && price <= alert.price);
 
       if (shouldTrigger) {
         addNotification({
-          type: 'price',
+          type: 'info',
           title: 'Price Alert Triggered!',
-          message: `Bitcoin is now ${alert.direction} $${alert.price.toLocaleString()} at $${btcPrice.price.toLocaleString()}`,
-          action: {
-            label: 'View Market',
-            onClick: () => window.location.href = '/market',
-          },
-        });
+          message: `Bitcoin is now ${alert.direction} $${alert.price.toLocaleString()} at $${price.toLocaleString()}`,
+        } as any);
 
         devLogger.log('PRICE_ALERT', `Alert triggered: BTC ${alert.direction} $${alert.price}`);
         return { ...alert, triggered: true };
@@ -52,13 +67,14 @@ export function usePriceAlerts() {
 
     // Update alerts in storage
     localStorage.setItem('priceAlerts', JSON.stringify(updatedAlerts));
-  }, [btcPrice, addNotification, settings.priceAlerts]);
+  }, [btcPrice, addNotification]);
 }
 // Hook para monitorar oportunidades de arbitragem
 export function useArbitrageAlerts() {
-  const { addNotification, settings } = useNotifications();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
+    const settings = getAlertSettings();
     if (!settings.arbitrageAlerts) return;
 
     // Check real arbitrage opportunities from API
@@ -73,15 +89,10 @@ export function useArbitrageAlerts() {
         for (const opp of opportunities) {
           if (opp.profitPercent > 0.5) {
             addNotification({
-              type: 'arbitrage',
+              type: 'info',
               title: 'Arbitrage Opportunity Detected!',
               message: `${opp.profitPercent.toFixed(2)}% profit between ${opp.exchange1 || opp.buyExchange} and ${opp.exchange2 || opp.sellExchange}`,
-              data: opp,
-              action: {
-                label: 'View Details',
-                onClick: () => window.location.href = '/arbitrage',
-              },
-            });
+            } as any);
 
             devLogger.log('ARBITRAGE', 'New opportunity detected', opp);
             break; // Only notify for the best opportunity per check
@@ -94,14 +105,15 @@ export function useArbitrageAlerts() {
 
     const interval = setInterval(checkArbitrage, 60000); // Check every minute
     return () => clearInterval(interval);
-  }, [addNotification, settings.arbitrageAlerts]);
+  }, [addNotification]);
 }
 
 // Hook para neural insights
 export function useNeuralInsights() {
-  const { addNotification, settings } = useNotifications();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
+    const settings = getAlertSettings();
     if (!settings.neuralInsights) return;
 
     // Neural insights are generated server-side; this hook is a placeholder
@@ -111,5 +123,5 @@ export function useNeuralInsights() {
 
     // Placeholder: no interval needed until real API is available
     return () => {};
-  }, [addNotification, settings.neuralInsights]);
+  }, [addNotification]);
 }

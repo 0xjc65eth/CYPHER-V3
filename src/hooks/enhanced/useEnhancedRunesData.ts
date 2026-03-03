@@ -63,7 +63,7 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
     order = 'desc',
     refreshInterval = 60000, // 1 minute
     staleTime = 30000, // 30 seconds
-    cacheTime = 300000, // 5 minutes
+    gcTime = 300000, // 5 minutes (formerly cacheTime)
     enabled = true
   } = options
 
@@ -116,7 +116,7 @@ export function useEnhancedRunesData(options: EnhancedRunesOptions = {}): Enhanc
     enabled,
     refetchInterval: refreshInterval,
     staleTime,
-    cacheTime,
+    gcTime,
     retry: (failureCount, error) => {
       // Implement intelligent retry logic
       if (failureCount >= 3) return false

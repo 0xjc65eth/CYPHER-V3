@@ -109,11 +109,27 @@ interface FallbackProvider<T> {
 class CacheService {
   private cache = new MemoryCache();
 
-  async get<T>(key: string): Promise<T | null> {
-    return this.cache.get<T>(key);
+  async get<T>(key: string, fetchFn?: () => Promise<T>, config?: { ttl?: number; staleWhileRevalidate?: boolean }): Promise<T | null> {
+    const cached = this.cache.get<T>(key);
+    if (cached !== null) return cached;
+
+    // If a fetch function is provided, use it as a cache-aside pattern
+    if (fetchFn) {
+      try {
+        const data = await fetchFn();
+        const ttl = config?.ttl ?? 300;
+        this.cache.set(key, data, ttl);
+        return data;
+      } catch (error) {
+        return null;
+      }
+    }
+
+    return null;
   }
 
-  async set<T>(key: string, data: T, ttlSeconds: number): Promise<void> {
+  async set<T>(key: string, data: T, ttlOrOptions: number | { ttl?: number; staleWhileRevalidate?: boolean } = 300): Promise<void> {
+    const ttlSeconds = typeof ttlOrOptions === 'number' ? ttlOrOptions : (ttlOrOptions.ttl ? ttlOrOptions.ttl / 1000 : 300);
     this.cache.set(key, data, ttlSeconds);
   }
 
