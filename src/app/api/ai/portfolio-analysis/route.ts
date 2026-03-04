@@ -264,7 +264,7 @@ function generateAIAnalysis(data: PortfolioAnalysisRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body: PortfolioAnalysisRequest = await request.json();
-    
+
     if (!body.address) {
       return NextResponse.json({
         success: false,
@@ -272,23 +272,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log('🤖 AI Analysis Request:', {
-      address: body.address,
-      riskProfile: body.riskProfile,
-      portfolioValue: body.portfolioData?.portfolio?.totalValue
-    });
-
     // Generate AI analysis
     const analysis = generateAIAnalysis(body);
 
     // Simulate processing time for AI feel
     await new Promise(resolve => setTimeout(resolve, 1500));
-
-    console.log('✅ AI Analysis Generated:', {
-      score: analysis.portfolioHealth.score,
-      opportunities: analysis.opportunities.length,
-      insights: analysis.marketInsights.length
-    });
 
     return NextResponse.json({
       success: true,

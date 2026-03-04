@@ -109,7 +109,7 @@ const DEX_CONFIGS = {
   ],
   bitcoin: [
     { name: 'RunesDX', url: 'https://runesdx.io', priority: 1 },
-    { name: 'Magic Eden', url: 'https://magiceden.io/runes', priority: 2 }
+    { name: 'Gamma.io', url: 'https://gamma.io/ordinals', priority: 2 }
   ]
 };
 

@@ -688,7 +688,7 @@ export class CrossChainBridge extends EventEmitter {
       },
       liquidity: {
         available: this.liquidity.get(`${toChain.chainId}-${asset.symbol}`) || 1000000,
-        utilization: Math.random() * 0.8 // Mock utilization
+        utilization: 0 // No live utilization data
       }
     };
 
@@ -762,7 +762,7 @@ export class CrossChainBridge extends EventEmitter {
             this.liquidity.get(`1-${asset.symbol}`) || 1000000,
             this.liquidity.get(`${toChain.chainId}-${asset.symbol}`) || 1000000
           ),
-          utilization: Math.random() * 0.6
+          utilization: 0
         }
       };
 
@@ -775,7 +775,7 @@ export class CrossChainBridge extends EventEmitter {
   private async calculateRouteQuote(route: BridgeRoute, amount: number): Promise<BridgeRoute> {
     // Calculate dynamic fees based on network conditions
     const baseFees = route.fees.total;
-    const congestionMultiplier = 1 + Math.random() * 0.2; // 0-20% congestion fee
+    const congestionMultiplier = 1; // No congestion data available
     const liquidityMultiplier = route.liquidity.utilization > 0.8 ? 1.1 : 1;
 
     const updatedRoute = {
@@ -915,7 +915,7 @@ export class CrossChainBridge extends EventEmitter {
         if (asset.contracts[chain.chainId]) {
           const key = `${chain.chainId}-${asset.symbol}`;
           const currentLiquidity = this.liquidity.get(key) || 1000000;
-          const newLiquidity = currentLiquidity * (0.95 + Math.random() * 0.1);
+          const newLiquidity = currentLiquidity; // No live liquidity updates
           this.liquidity.set(key, newLiquidity);
         }
       }

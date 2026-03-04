@@ -41,7 +41,7 @@ interface ArbitrageOpportunity {
 }
 
 const MARKETPLACE_LINKS = {
-  'Magic Eden': 'https://magiceden.io/ordinals',
+  'Gamma.io': 'https://gamma.io/ordinals/collections',
   'OrdSwap': 'https://ordswap.io',
   'Gamma': 'https://gamma.io',
   'Unisat': 'https://unisat.io/market',
@@ -117,7 +117,7 @@ export function ArbitrageScanner() {
 
   const getMarketplaceIcon = (marketplace: string) => {
     const icons: Record<string, string> = {
-      'Magic Eden': '🟣',
+      'Gamma.io': '🟢',
       'OrdSwap': '🟡', 
       'Gamma': '🟢',
       'Unisat': '🔵',
@@ -180,7 +180,7 @@ export function ArbitrageScanner() {
         <div className="animate-pulse space-y-6">
           <div className="flex items-center gap-3">
             <RefreshCw className="w-5 h-5 text-orange-400 animate-spin" />
-            <span className="text-gray-400">Scanning Magic Eden and UniSat for arbitrage opportunities...</span>
+            <span className="text-gray-400">Scanning Gamma.io and UniSat for arbitrage opportunities...</span>
           </div>
           <div className="space-y-4">
             {[...Array(5)].map((_, i) => (
@@ -368,7 +368,7 @@ export function ArbitrageScanner() {
             </div>
             <p className="text-xs text-gray-400 uppercase tracking-wider">Marketplaces</p>
             <p className="text-3xl font-bold text-white">2</p>
-            <p className="text-xs text-yellow-400 mt-1">Magic Eden + UniSat</p>
+            <p className="text-xs text-yellow-400 mt-1">Gamma.io + UniSat</p>
           </div>
         </Card>
       </div>
@@ -469,7 +469,7 @@ export function ArbitrageScanner() {
                 <Target className="w-12 h-12 text-gray-600 mx-auto mb-4" />
                 <h3 className="text-lg font-bold text-gray-400 mb-2">No Opportunities Found</h3>
                 <p className="text-gray-500 text-sm">
-                  No arbitrage opportunities detected between Magic Eden and UniSat right now.
+                  No arbitrage opportunities detected between Gamma.io and UniSat right now.
                   The scanner checks for price discrepancies across marketplaces every 60 seconds.
                 </p>
               </div>
@@ -493,7 +493,7 @@ function WallStreetOpportunityCard({ opportunity, onTrade, btcPrice = 58000 }: O
   
   const getMarketplaceIcon = (marketplace: string) => {
     const icons: Record<string, string> = {
-      'Magic Eden': '🟣',
+      'Gamma.io': '🟢',
       'OrdSwap': '🟡', 
       'Gamma': '🟢',
       'Unisat': '🔵',
@@ -687,7 +687,7 @@ function WallStreetOpportunityCard({ opportunity, onTrade, btcPrice = 58000 }: O
 function OpportunityCard({ opportunity, onTrade }: OpportunityCardProps) {
   const getMarketplaceIcon = (marketplace: string) => {
     const icons: Record<string, string> = {
-      'Magic Eden': '🟣',
+      'Gamma.io': '🟢',
       'OrdSwap': '🟡', 
       'Gamma': '🟢',
       'Unisat': '🔵',

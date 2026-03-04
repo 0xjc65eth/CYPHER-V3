@@ -170,9 +170,8 @@ export class BitcoinService {
 
     for (let i = days; i >= 0; i--) {
       const timestamp = now - (i * 24 * 60 * 60 * 1000)
-      const priceVariation = (Math.random() - 0.5) * 0.1 // ±5% variation
-      const price = basePrice * (1 + priceVariation)
-      const volume = 25000000000 + (Math.random() * 10000000000)
+      const price = basePrice // Deterministic fallback
+      const volume = 25000000000
 
       prices.push([timestamp, price])
       volumes.push([timestamp, volume])

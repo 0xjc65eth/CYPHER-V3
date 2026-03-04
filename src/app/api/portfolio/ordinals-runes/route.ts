@@ -18,9 +18,7 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): 
         signal: AbortSignal.timeout(10000) // 10s timeout
       });
       if (response.ok) return response;
-      console.warn(`API request failed (${response.status}):`, url);
     } catch (error) {
-      console.warn(`API request error (attempt ${i + 1}/${retries}):`, url, error);
       if (i === retries - 1) throw error;
     }
   }
@@ -29,8 +27,6 @@ async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): 
 
 async function getOrdinalsData(address: string): Promise<OrdinalsData> {
   try {
-    console.log('🎨 Fetching REAL Ordinals/Runes data for:', address);
-    
     let inscriptions: any[] = [];
     let ordinals: any[] = [];
     let runes: any[] = [];
@@ -46,8 +42,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
         .then(async (response) => {
           if (response) {
             const data = await response.json();
-            console.log('📜 Hiro Inscriptions found:', data.results?.length || 0);
-            
+
             inscriptions = (data.results || []).map((inscription: any) => ({
               id: inscription.id,
               number: inscription.number,
@@ -65,7 +60,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
             }));
           }
         })
-        .catch(err => console.warn('Hiro API error:', err))
+        .catch(err => {/* Hiro API error */})
     );
 
     // 2. ORDISCAN API - Inscriptions e Collections
@@ -74,8 +69,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
         .then(async (response) => {
           if (response) {
             const data = await response.json();
-            console.log('🖼️ Ordiscan Collections found:', data.data?.length || 0);
-            
+
             // Processar collections
             const collections = data.data || [];
             ordinals = collections
@@ -98,7 +92,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
               }));
           }
         })
-        .catch(err => console.warn('Ordiscan API error:', err))
+        .catch(err => {/* Ordiscan API error */})
     );
 
     // 3. UNISAT API - Runes (se tivermos API key)
@@ -116,8 +110,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
           .then(async (response) => {
             if (response) {
               const data = await response.json();
-              console.log('🟣 Unisat Runes found:', data.data?.detail?.length || 0);
-              
+
               runes = (data.data?.detail || []).map((rune: any) => ({
                 runeid: rune.runeid,
                 name: rune.rune,
@@ -132,7 +125,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
               }));
             }
           })
-          .catch(err => console.warn('Unisat API error:', err))
+          .catch(err => {/* Unisat API error */})
       );
     }
 
@@ -142,8 +135,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
         .then(async (response) => {
           if (response) {
             const data = await response.json();
-            console.log('💎 Rare Sats found:', data.total_sats || 0);
-            
+
             rareSats = (data.sats || []).map((sat: any) => ({
               sat: sat.sat,
               rarity: sat.rarity,
@@ -156,7 +148,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
             }));
           }
         })
-        .catch(err => console.warn('OrdAPI error:', err))
+        .catch(err => {/* OrdAPI error */})
     );
 
     // 5. MEMPOOL.SPACE - UTXOs para valores reais
@@ -165,8 +157,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
         .then(async (response) => {
           if (response) {
             const utxos = await response.json();
-            console.log('💰 UTXOs found:', utxos.length);
-            
+
             // Somar valores de UTXOs que podem conter ordinals
             utxos.forEach((utxo: any) => {
               if (utxo.value > 10000) { // UTXOs maiores que 10k sats podem ter ordinals
@@ -175,7 +166,7 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
             });
           }
         })
-        .catch(err => console.warn('Mempool API error:', err))
+        .catch(err => {/* Mempool API error */})
     );
 
     // Aguardar todas as APIs
@@ -190,10 +181,9 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
         );
         if (ordinalsComResponse) {
           const data = await ordinalsComResponse.json();
-          console.log('🎨 Ordinals.com fallback data:', data);
         }
       } catch (err) {
-        console.warn('Ordinals.com API error:', err);
+        // Ordinals.com API error
       }
     }
 
@@ -206,14 +196,6 @@ async function getOrdinalsData(address: string): Promise<OrdinalsData> {
         ...rareSats.map(s => s.value || 0)
       ].reduce((sum, val) => sum + val, 0);
     }
-
-    console.log('🎨 Final Ordinals/Runes data:', {
-      inscriptions: inscriptions.length,
-      ordinals: ordinals.length,
-      runes: runes.length,
-      rareSats: rareSats.length,
-      totalValue
-    });
 
     return {
       inscriptions,

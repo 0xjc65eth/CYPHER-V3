@@ -135,7 +135,6 @@ export async function GET() {
       tickers = await fetchCoinGecko();
       source = 'coingecko';
     } catch (err) {
-      console.warn('[Market Tickers] CoinGecko failed, trying Binance:', err);
       try {
         tickers = await fetchBinanceFallback();
         source = 'binance';

@@ -13,6 +13,7 @@ export function useMempoolHashrate() {
       // Validate that we have valid avgHashrate values
       return hashrates.filter((h: any) => typeof h?.avgHashrate === 'number' && h.avgHashrate > 0)
     },
+    staleTime: 300000, // 5min - hashrate changes slowly
     refetchInterval: 60000,
   })
 } 

@@ -316,16 +316,11 @@ class AutomatedFeeCollector {
   }> {
     try {
       // Mock EVM settlement - in production, use actual Web3 providers
-      const mockTxHash = `0x${Math.random().toString(16).slice(2)}`;
+      const mockTxHash = `0x${'0'.repeat(64)}`;
       const mockGasUsed = batch.gasEstimate;
 
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Simulate occasional failures for testing
-      if (Math.random() < 0.05) { // 5% failure rate
-        throw new Error('Network congestion - transaction reverted');
-      }
 
       return {
         success: true,
@@ -348,16 +343,11 @@ class AutomatedFeeCollector {
   }> {
     try {
       // Mock Solana settlement - in production, use actual Solana Web3.js
-      const mockTxHash = Math.random().toString(16).slice(2);
+      const mockTxHash = '0'.repeat(64);
       const mockComputeUnits = '5000';
 
       // Simulate network delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Simulate occasional failures
-      if (Math.random() < 0.03) { // 3% failure rate for Solana
-        throw new Error('RPC timeout - transaction not confirmed');
-      }
 
       return {
         success: true,

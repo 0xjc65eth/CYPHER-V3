@@ -29,18 +29,18 @@ interface ArbitrageOpportunity {
 
 // Taxas reais dos marketplaces
 const MARKETPLACE_FEES: Record<string, number> = {
-  'Magic Eden': 2.0,
+  'Gamma.io': 2.0,
   'UniSat': 1.0,
   'OKX': 0.5,
-  'Gamma.io': 1.5,
+  'Ordinals Market': 1.5,
 };
 
 // Links para os marketplaces
 const MARKETPLACE_LINKS: Record<string, string> = {
-  'Magic Eden': 'https://magiceden.io/runes/',
+  'Gamma.io': 'https://gamma.io/ordinals/',
   'UniSat': 'https://unisat.io/runes/market/',
   'OKX': 'https://www.okx.com/web3/marketplace/runes/',
-  'Gamma.io': 'https://gamma.io/ordinals/',
+  'Ordinals Market': 'https://ordinals.market/',
 };
 
 export function EnhancedArbitrageCard() {
@@ -82,7 +82,7 @@ export function EnhancedArbitrageCard() {
           const name = rune.spacedRune || rune.rune || rune.name;
           if (!name) continue;
 
-          // Buscar preço do Magic Eden
+          // Buscar preço do Gamma.io
           let mePrice = 0;
           let meVolume = 0;
           try {
@@ -109,8 +109,8 @@ export function EnhancedArbitrageCard() {
           // Se temos preços de ambas exchanges e há diferença
           if (mePrice > 0 && uniPrice > 0 && mePrice !== uniPrice) {
             const [cheap, expensive] = mePrice < uniPrice
-              ? [{ name: 'Magic Eden', price: mePrice, vol: meVolume }, { name: 'UniSat', price: uniPrice, vol: uniVolume }]
-              : [{ name: 'UniSat', price: uniPrice, vol: uniVolume }, { name: 'Magic Eden', price: mePrice, vol: meVolume }];
+              ? [{ name: 'Gamma.io', price: mePrice, vol: meVolume }, { name: 'UniSat', price: uniPrice, vol: uniVolume }]
+              : [{ name: 'UniSat', price: uniPrice, vol: uniVolume }, { name: 'Gamma.io', price: mePrice, vol: meVolume }];
 
             const sourceFee = MARKETPLACE_FEES[cheap.name] || 1.0;
             const targetFee = MARKETPLACE_FEES[expensive.name] || 1.0;
@@ -184,7 +184,7 @@ export function EnhancedArbitrageCard() {
 
         return {
           id: opp.id || `ARB-${idx}`,
-          sourceExchange: opp.sourceExchange || 'Magic Eden',
+          sourceExchange: opp.sourceExchange || 'Gamma.io',
           targetExchange: opp.targetExchange || 'UniSat',
           asset: opp.asset || opp.rune || 'Unknown',
           sourceBuyPrice: opp.sourceBuyPrice || 0,
@@ -200,7 +200,7 @@ export function EnhancedArbitrageCard() {
           confidence,
           status: opp.status || 'Active',
           timestamp: opp.timestamp || new Date().toISOString(),
-          sourceBuyLink: generateLink(opp.sourceExchange || 'Magic Eden', opp.asset || ''),
+          sourceBuyLink: generateLink(opp.sourceExchange || 'Gamma.io', opp.asset || ''),
           targetSellLink: generateLink(opp.targetExchange || 'UniSat', opp.asset || ''),
         };
       }).filter((opp: ArbitrageOpportunity) => opp.profitPercent > 0)
@@ -395,14 +395,14 @@ export function EnhancedArbitrageCard() {
                   <Text className="text-white font-medium">Exchanges</Text>
                 </div>
                 <Text className="text-purple-400 font-bold text-lg">
-                  ME / UniSat / OKX
+                  Gamma / UniSat / OKX
                 </Text>
               </div>
             </div>
           </div>
         </div>
         <div className="mt-3 pt-3 border-t border-gray-700/30 text-xs text-gray-400">
-          Data: {formattedDate} | Fontes: Magic Eden API, UniSat API | Atualização: a cada 60s
+          Data: {formattedDate} | Fontes: Gamma.io API, UniSat API | Atualização: a cada 60s
         </div>
       </div>
 

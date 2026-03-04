@@ -16,8 +16,8 @@ export function InflowOutflowCard() {
     const dates = ['2024-04-01', '2024-04-02', '2024-04-03', '2024-04-04']
 
     return dates.map(date => {
-      const inflow = Math.floor(Math.random() * 800) + 800
-      const outflow = Math.floor(Math.random() * 800) + 700
+      const inflow = 0
+      const outflow = 0
       return { date, inflow, outflow }
     })
   }, [])

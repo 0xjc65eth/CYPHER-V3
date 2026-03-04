@@ -55,7 +55,7 @@ export async function GET(request: Request) {
         }));
       }
     } catch (err) {
-      console.warn('[Collections API] OKX failed, trying ME fallback:', err);
+      // OKX failed, continue to fallbacks
     }
 
     // Fallback 1: Magic Eden

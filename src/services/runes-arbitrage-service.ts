@@ -16,8 +16,8 @@ const TRACKED_RUNES = [
 // Exchanges reais que suportam Runes com taxas verificadas
 const RUNE_EXCHANGES = [
   {
-    name: 'Magic Eden',
-    url: 'https://magiceden.io/runes',
+    name: 'Gamma.io',
+    url: 'https://gamma.io/ordinals/collections/runes',
     fee: 2.0,
     source: 'magiceden' as const,
   },
@@ -103,7 +103,7 @@ export class RunesArbitrageService {
   }
 
   /**
-   * Busca preços reais de uma runa no Magic Eden
+   * Busca preços reais de uma runa no Gamma.io
    */
   private async fetchMagicEdenPrice(runeName: string): Promise<ExchangePrice | null> {
     try {
@@ -188,7 +188,7 @@ export class RunesArbitrageService {
   }
 
   /**
-   * Busca dados top de mercado do Magic Eden para obter lista de runas ativas
+   * Busca dados top de mercado do Gamma.io para obter lista de runas ativas
    */
   private async fetchTopRunes(): Promise<RuneCollectionStat[]> {
     try {
@@ -210,7 +210,7 @@ export class RunesArbitrageService {
 
     try {
 
-      // 1. Obter lista de runas populares do Magic Eden
+      // 1. Obter lista de runas populares do Gamma.io
       const topRunes = await this.fetchTopRunes();
       const runeNames = topRunes.length > 0
         ? topRunes.map(r => r.spacedRune || r.rune).filter(Boolean).slice(0, 10)

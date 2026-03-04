@@ -471,22 +471,22 @@ export class RealArbitrageService {
   
   /**
    * Get Ordinals marketplace prices from real APIs
-   * Fetches from Magic Eden + UniSat for cross-marketplace comparison
+   * Fetches from Gamma.io + UniSat for cross-marketplace comparison
    */
   private async getOrdinalsMarketplacePrices(collection: any): Promise<ExchangePrice[]> {
     const results: ExchangePrice[] = [];
     const basePrice = collection.floor_price;
 
     if (basePrice && basePrice > 0) {
-      // Magic Eden is the primary source - use real floor price
+      // Gamma.io is the primary source - use real floor price
       results.push({
-        exchange: 'Magic Eden',
+        exchange: 'Gamma.io',
         price: basePrice,
         volume: collection.sales_24h || 0,
         timestamp: Date.now(),
         fees: 0.025,
         available: true,
-        link: `https://magiceden.io/ordinals/marketplace/${collection.id}`
+        link: `https://gamma.io/ordinals/collections/${collection.id}`
       });
 
       // Try fetching UniSat floor price for this collection
@@ -550,7 +550,7 @@ export class RealArbitrageService {
 
   /**
    * Get Runes marketplace prices from real APIs
-   * Fetches from Magic Eden + UniSat for cross-marketplace comparison
+   * Fetches from Gamma.io + UniSat for cross-marketplace comparison
    */
   private async getRunesMarketplacePrices(rune: any): Promise<ExchangePrice[]> {
     const results: ExchangePrice[] = [];
@@ -559,13 +559,13 @@ export class RealArbitrageService {
     // If the rune has a real floor price (from upstream API), use it
     if (rune.floorUnitPrice?.value && rune.floorUnitPrice.value > 0) {
       results.push({
-        exchange: 'Magic Eden',
+        exchange: 'Gamma.io',
         price: rune.floorUnitPrice.value / 1e8, // sats to BTC
         volume: rune.volume24h || 0,
         timestamp: Date.now(),
         fees: 0.025,
         available: true,
-        link: `https://magiceden.io/runes/${runeName}`
+        link: `https://gamma.io/ordinals/collections/runes/${runeName}`
       });
     }
 
@@ -603,7 +603,7 @@ export class RealArbitrageService {
       if (okxRes.ok) {
         const okxData = await okxRes.json();
         if (okxData?.floorUnitPrice?.value && okxData.floorUnitPrice.value > 0) {
-          // Only add if different from Magic Eden price
+          // Only add if different from Gamma.io price
           const okxPrice = okxData.floorUnitPrice.value / 1e8;
           const mePrice = results[0]?.price || 0;
           if (Math.abs(okxPrice - mePrice) / Math.max(mePrice, 0.000001) > 0.001) {
@@ -682,7 +682,7 @@ export class RealArbitrageService {
    */
   private getMarketplaceFee(marketplace: string): number {
     const fees: { [key: string]: number } = {
-      'magic_eden': 0.025,
+      'gamma_io': 0.025,
       'unisat': 0.02,
       'okx': 0.02,
       'ordiscan': 0.015,
@@ -697,14 +697,14 @@ export class RealArbitrageService {
    */
   private getMarketplaceLink(marketplace: string, collectionId: string): string {
     const baseUrls: { [key: string]: string } = {
-      'magic_eden': 'https://magiceden.io/ordinals/marketplace',
+      'gamma_io': 'https://gamma.io/ordinals/collections',
       'unisat': 'https://unisat.io/inscription',
       'okx': 'https://okx.com/web3/marketplace/ordinals',
       'ordiscan': 'https://ordiscan.com/collection',
       'binance': 'https://binance.com/en/nft/collection'
     };
     
-    const baseUrl = baseUrls[marketplace] || 'https://magiceden.io/ordinals/marketplace';
+    const baseUrl = baseUrls[marketplace] || 'https://gamma.io/ordinals/collections';
     return `${baseUrl}/${collectionId}`;
   }
 

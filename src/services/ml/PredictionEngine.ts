@@ -7,11 +7,13 @@ import { EventEmitter } from 'events';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
 // Lazy load TensorFlow to avoid bundle bloat
 let _tf: any = null;
+let tf: any = null;
 async function getTf() {
   if (!_tf) {
     try { _tf = await import('@tensorflow/tfjs-node'); }
     catch { try { _tf = require('@tensorflow/tfjs'); } catch { _tf = null; } }
   }
+  tf = _tf;
   return _tf;
 }
 
@@ -540,12 +542,12 @@ export class PredictionEngine extends EventEmitter {
   }
 
   private async generateMultiTimeframePredictions(
-    model: tf.LayersModel,
+    model: any,
     sequenceData: number[][],
     symbol: string
   ): Promise<PredictionResult['predictions']> {
     const input = tf.tensor3d([sequenceData]);
-    const prediction = model.predict(input) as tf.Tensor;
+    const prediction = model.predict(input) as any;
     const predictionValue = await prediction.data();
 
     // Clean up tensors
@@ -683,7 +685,7 @@ export class PredictionEngine extends EventEmitter {
     }, 5 * 60 * 1000); // Check every 5 minutes
   }
 
-  private async saveModel(modelName: string, model: tf.LayersModel): Promise<void> {
+  private async saveModel(modelName: string, model: any): Promise<void> {
     try {
       await model.save(`file://./models/${modelName}`);
       EnhancedLogger.info('Model saved', { modelName });

@@ -51,50 +51,34 @@ export function RealTimeMonitor() {
   const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
   useEffect(() => {
-    // Simular dados em tempo real
-    const generateMetrics = (): SystemMetrics => ({
+    // Initialize with zero/default values - real data should come from system monitoring
+    const initialMetrics: SystemMetrics = {
       timestamp: Date.now(),
-      cpuUsage: Math.random() * 100,
-      memoryUsage: 60 + Math.random() * 30,
-      networkLatency: 10 + Math.random() * 40,
-      tradingEngineStatus: Math.random() > 0.1 ? 'active' : 'error',
-      aiModelAccuracy: 70 + Math.random() * 25,
-      totalTrades: Math.floor(Math.random() * 1000),
-      profitLoss: (Math.random() - 0.4) * 10000,
-      activePairs: Math.floor(Math.random() * 5) + 1,
-      riskScore: Math.random() * 100
-    });
-
-    const generateMarketTick = (): MarketTick => ({
-      timestamp: Date.now(),
-      btc: 110000 + (Math.random() - 0.5) * 5000,
-      eth: 4000 + (Math.random() - 0.5) * 200,
-      ordi: 45 + (Math.random() - 0.5) * 5
-    });
-
-    const updateData = () => {
-      const newMetric = generateMetrics();
-      const newTick = generateMarketTick();
-      
-      setCurrentMetrics(newMetric);
-      
-      setMetrics(prev => {
-        const updated = [...prev, newMetric].slice(-50); // Keep last 50 points
-        return updated;
-      });
-      
-      setMarketData(prev => {
-        const updated = [...prev, newTick].slice(-100); // Keep last 100 points
-        return updated;
-      });
+      cpuUsage: 0,
+      memoryUsage: 0,
+      networkLatency: 0,
+      tradingEngineStatus: 'inactive',
+      aiModelAccuracy: 0,
+      totalTrades: 0,
+      profitLoss: 0,
+      activePairs: 0,
+      riskScore: 0
     };
 
-    // Initial data
-    updateData();
-    setIsConnected(true);
+    const initialMarketTick: MarketTick = {
+      timestamp: Date.now(),
+      btc: 0,
+      eth: 0,
+      ordi: 0
+    };
 
-    // Update every 2 seconds
-    intervalRef.current = setInterval(updateData, 2000);
+    setCurrentMetrics(initialMetrics);
+    setMetrics([initialMetrics]);
+    setMarketData([initialMarketTick]);
+    setIsConnected(false);
+
+    // In production, connect to real system monitoring and market data feeds
+    // Example: connectToSystemMonitor() / connectToMarketDataFeed()
 
     return () => {
       if (intervalRef.current) {

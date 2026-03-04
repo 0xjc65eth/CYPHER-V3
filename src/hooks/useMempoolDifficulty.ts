@@ -13,6 +13,7 @@ export function useMempoolDifficulty() {
       // Return null if difficulty is invalid, not 0 (0 will cause NaN when divided)
       return typeof difficulty === 'number' && difficulty > 0 ? difficulty : null
     },
+    staleTime: 300000, // 5min - difficulty changes every ~2 weeks
     refetchInterval: 60000,
   })
 } 

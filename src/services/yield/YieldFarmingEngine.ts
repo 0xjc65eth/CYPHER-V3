@@ -599,24 +599,24 @@ export class YieldFarmingEngine extends EventEmitter {
           { symbol: 'BTC', address: '0x0000', weight: 50, price: 63500, balance: 0, decimals: 8 },
           { symbol: 'ETH', address: '0x0001', weight: 50, price: 1850, balance: 0, decimals: 18 }
         ],
-        apy: 15 + Math.random() * 20,
-        tvl: 1000000 + Math.random() * 5000000,
-        dailyVolume: 500000 + Math.random() * 1000000,
+        apy: 0, // No real data available
+        tvl: 0, // No real data available
+        dailyVolume: 0, // No real data available
         fees: { ...config.fees, performance: (config.fees as any).performance || 0 } as any,
         risks: {
-          impermanentLoss: Math.random() * 10,
-          smartContract: Math.random() * 5,
-          liquidity: Math.random() * 8,
-          overall: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)] as any
+          impermanentLoss: 0, // No real data available
+          smartContract: 0, // No real data available
+          liquidity: 0, // No real data available
+          overall: 'low' as any // Use first risk level
         },
         rewards: [
           {
             token: protocolName.toUpperCase(),
-            apr: 5 + Math.random() * 10,
+            apr: 0, // No real data available
             distribution: 'continuous'
           }
         ],
-        lockupPeriod: Math.floor(Math.random() * 30),
+        lockupPeriod: 0, // No real data available
         minDeposit: 100,
         maxDeposit: 1000000,
         isActive: true,
@@ -802,10 +802,9 @@ export class YieldFarmingEngine extends EventEmitter {
 
   private async updatePoolData(): Promise<void> {
     for (const pool of this.pools.values()) {
-      // Update APY, TVL, etc. from protocols
-      pool.apy += (Math.random() - 0.5) * 2; // Mock fluctuation
-      pool.tvl += (Math.random() - 0.5) * pool.tvl * 0.1;
-      
+      // No real data source - skip fluctuation updates
+      // In production, fetch real data from protocols
+
       this.pools.set(pool.id, pool);
     }
   }

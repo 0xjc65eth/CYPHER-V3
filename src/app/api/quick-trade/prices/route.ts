@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (err) {
-        console.warn('[QuickTrade] Jupiter quote failed:', err);
+        // Jupiter quote failed
       }
     }
 
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
         });
       }
     } catch (err) {
-      console.warn('[QuickTrade] Binance estimation failed:', err);
+      // Binance estimation failed
     }
 
     if (quotes.length === 0) {

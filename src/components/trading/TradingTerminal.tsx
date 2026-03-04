@@ -99,31 +99,19 @@ const OrderBook: React.FC<{ symbol: string }> = ({ symbol }) => {
   });
 
   useEffect(() => {
-    // Simulate order book data
-    const generateOrderBook = () => {
-      const basePrice = 45000;
-      const bids = Array.from({ length: 15 }, (_, i) => {
-        const price = basePrice - (i + 1) * 10;
-        const size = Math.random() * 2 + 0.1;
-        return { price, size, total: size * price };
-      });
-      
-      const asks = Array.from({ length: 15 }, (_, i) => {
-        const price = basePrice + (i + 1) * 10;
-        const size = Math.random() * 2 + 0.1;
-        return { price, size, total: size * price };
-      });
-      
-      setOrderBook({
-        bids,
-        asks,
-        spread: asks[0]?.price - bids[0]?.price || 0
-      });
-    };
+    // Initialize with empty order book - real data should come from exchange
+    setOrderBook({
+      bids: [],
+      asks: [],
+      spread: 0
+    });
 
-    generateOrderBook();
-    const interval = setInterval(generateOrderBook, 1000);
-    return () => clearInterval(interval);
+    // In production, connect to real order book feed
+    // Example: connectToOrderBook(symbol, updateOrderBook)
+
+    return () => {
+      // Cleanup WebSocket connections
+    };
   }, [symbol]);
 
   return (
@@ -677,16 +665,14 @@ const TradingTerminal: React.FC = () => {
     }
   });
 
-  // Simulate price updates
+  // Price updates should come from real exchange data
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentPrice(prev => {
-        const change = (Math.random() - 0.5) * 100;
-        return Math.max(1000, prev + change);
-      });
-    }, 2000);
+    // In production, connect to real price feed
+    // Example: connectToExchangePriceFeed(selectedSymbol, updatePrice)
 
-    return () => clearInterval(interval);
+    return () => {
+      // Cleanup WebSocket connections
+    };
   }, []);
 
   return (

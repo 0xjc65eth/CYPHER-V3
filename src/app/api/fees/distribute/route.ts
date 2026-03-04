@@ -69,12 +69,6 @@ export async function POST(request: NextRequest) {
           });
 
           results = distributionResults;
-          
-          console.log('💸 MANUAL DISTRIBUTION COMPLETED:', {
-            count: results.length,
-            networks: results.map(r => r.network),
-            totalAmount: results.reduce((sum, r) => sum + r.amount, 0)
-          });
 
         } catch (error) {
           throw new Error(`Failed to distribute all fees: ${error}`);
@@ -101,15 +95,8 @@ export async function POST(request: NextRequest) {
 
           // Registrar no revenue tracker
           cypherRevenueTracker.recordDistribution(result);
-          
-          results = [result];
 
-          console.log('💸 NETWORK DISTRIBUTION COMPLETED:', {
-            network,
-            amount: result.amount,
-            force,
-            txHash: result.txHash
-          });
+          results = [result];
 
         } catch (error) {
           throw new Error(`Failed to distribute ${network} fees: ${error}`);
@@ -196,8 +183,6 @@ export async function PUT(request: NextRequest) {
 
     const updatedConfig = cypherFeeDistributor.getConfig();
 
-    console.log('⚙️ DISTRIBUTION CONFIG UPDATED:', updatedConfig);
-
     return NextResponse.json({
       success: true,
       config: updatedConfig,
@@ -231,10 +216,6 @@ export async function DELETE(request: NextRequest) {
 
     // Por enquanto, apenas log da operação
     // Em implementação real, cancelaria transações pendentes
-    console.log('🛑 DISTRIBUTION CANCELLATION REQUESTED:', {
-      network: network || 'all',
-      timestamp: new Date().toISOString()
-    });
 
     return NextResponse.json({
       success: true,

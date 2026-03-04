@@ -26,7 +26,7 @@ export async function GET(
         });
       }
     } catch (okxError) {
-      console.warn('[API] OKX collection fetch failed, falling back to ME:', okxError instanceof Error ? okxError.message : okxError);
+      // OKX failed, continue to ME fallback
     }
 
     // Fallback to Magic Eden

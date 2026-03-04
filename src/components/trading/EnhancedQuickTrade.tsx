@@ -134,17 +134,13 @@ const useLivePrices = () => {
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {
-    // Simular atualização de preços
-    const interval = setInterval(() => {
-      setPrices(prev => ({
-        ...prev,
-        BTC: prev.BTC * (1 + (Math.random() - 0.5) * 0.001),
-        ETH: prev.ETH * (1 + (Math.random() - 0.5) * 0.002),
-        SOL: prev.SOL * (1 + (Math.random() - 0.5) * 0.003)
-      }));
-    }, 5000);
-    
-    return () => clearInterval(interval);
+    // Price updates should come from real market data, not Math.random()
+    // In production, connect to real price feed
+    // Example: connectToPriceFeed(updatePrices)
+
+    return () => {
+      // Cleanup WebSocket connections
+    };
   }, []);
   
   return { prices, loading };
@@ -156,16 +152,11 @@ const useMultiWallet = () => {
   const [activeWallet, setActiveWallet] = useState<any>(null);
 
   const connectForAsset = async (asset: string) => {
-    // Simulate wallet connection
-    const mockWallet = {
-      type: asset === 'SOL' ? 'solana' : asset === 'BTC' ? 'bitcoin' : 'evm',
-      walletType: asset === 'SOL' ? 'Phantom' : asset === 'BTC' ? 'UniSat' : 'MetaMask',
-      address: '0x' + Math.random().toString(16).substr(2, 40),
-      chainId: 1,
-      connected: true
-    };
-    setActiveWallet(mockWallet);
-    return mockWallet;
+    // In production, use real wallet connection logic
+    // This should call actual wallet connectors (MetaMask, Phantom, etc.)
+    // For now, return null to indicate no wallet connected
+    setActiveWallet(null);
+    return null;
   };
 
   const getActiveWalletForAsset = (asset: string) => {
@@ -323,17 +314,11 @@ const EnhancedQuickTrade: React.FC = () => {
       // Simular execução do trade
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const txHash = '0x' + Math.random().toString(16).substr(2, 64);
+      const txHash = '0x0000000000000000000000000000000000000000000000000000000000000000';
       
       setTradeExecution({
         orderId: 'trade-' + Date.now(),
         status: 'confirmed',
-        txHash
-      });
-      
-      console.log('✅ Trade executado:', {
-        ...fractionalOrder,
-        wallet: activeWalletInfo,
         txHash
       });
       

@@ -333,7 +333,7 @@ export class TradingSignalsService {
 
   private getCurrentPrice(symbol: string): number {
     // Mock implementation - in production, fetch from price API
-    return 50000 + (Math.random() - 0.5) * 1000;
+    return 50000; // Default price - in production, fetch from price API
   }
 
   private calculateLevels(

@@ -38,7 +38,7 @@ async function getWalletBalance(address: string): Promise<WalletBalance> {
         ordinalsCount = (ordinalsText.match(/inscription/gi) || []).length;
       }
     } catch (e) {
-      console.debug('Could not fetch ordinals data:', e);
+      // Ordinals API unavailable
     }
     
     // Runes are harder to get without specialized API, so we'll use a basic estimation

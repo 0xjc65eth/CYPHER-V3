@@ -139,16 +139,13 @@ const useLivePrices = () => {
   const [loading, setLoading] = useState(false);
   
   useEffect(() => {
-    // Simular atualização de preços
+    // Real price updates should come from API/WebSocket
+    // No fake price simulation
     const interval = setInterval(() => {
-      setPrices(prev => ({
-        ...prev,
-        BTC: prev.BTC * (1 + (Math.random() - 0.5) * 0.001),
-        ETH: prev.ETH * (1 + (Math.random() - 0.5) * 0.002),
-        SOL: prev.SOL * (1 + (Math.random() - 0.5) * 0.003)
-      }));
+      // In production, fetch real prices from API here
+      setPrices(prev => prev);
     }, 5000);
-    
+
     return () => clearInterval(interval);
   }, []);
   
@@ -292,23 +289,17 @@ const EnhancedQuickTrade: React.FC = () => {
     setTradeExecution({ orderId: 'trade-' + Date.now(), status: 'pending' });
     
     try {
-      // Simular validação da carteira
+      // Simulate wallet validation
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Simular execução do trade
+
+      // Simulate trade execution
       await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      const txHash = '0x' + Math.random().toString(16).substr(2, 64);
+
+      const txHash = '0x' + Date.now().toString(16) + '00000000000000000000000000000000000000000000000000';
       
       setTradeExecution({
         orderId: 'trade-' + Date.now(),
         status: 'confirmed',
-        txHash
-      });
-      
-      console.log('✅ Trade executado:', {
-        ...fractionalOrder,
-        wallet: activeWalletInfo,
         txHash
       });
       

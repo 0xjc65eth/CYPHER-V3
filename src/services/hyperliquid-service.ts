@@ -384,11 +384,11 @@ export class HyperliquidService {
   }
 
   private getMockPriceChange(): number {
-    return (Math.random() - 0.5) * 1000;
+    return 0;
   }
 
   private getMockPriceChangePercent(): number {
-    return (Math.random() - 0.5) * 10;
+    return 0;
   }
 }
 

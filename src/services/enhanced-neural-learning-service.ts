@@ -1808,59 +1808,59 @@ class EnhancedNeuralLearningService extends EventEmitter {
    */
   private async getCurrentMarketData(): Promise<any> {
     // This would typically fetch real-time data from APIs
-    // For now, return simulated current market data
-    const currentPrice = 65000 + (Math.random() - 0.5) * 5000; // Simulate current BTC price
-    const volatility = 0.02 + Math.random() * 0.08; // Simulate current volatility
-    
+    // For now, return default market data structure
+    const currentPrice = 0;
+    const volatility = 0;
+
     return {
       currentPrice,
       volatility,
-      volume24h: 30000000000 + Math.random() * 10000000000,
+      volume24h: 0,
       timestamp: new Date().toISOString(),
       price: currentPrice,
       // Add other required fields for feature creation
       technicalIndicators: {
-        rsi: 30 + Math.random() * 40,
+        rsi: 0,
         macd: {
-          line: (Math.random() - 0.5) * 5,
-          signal: (Math.random() - 0.5) * 5,
-          histogram: (Math.random() - 0.5) * 2
+          line: 0,
+          signal: 0,
+          histogram: 0
         },
         bollingerBands: {
-          upper: currentPrice * 1.05,
-          middle: currentPrice,
-          lower: currentPrice * 0.95,
-          width: currentPrice * 0.1,
-          percentB: Math.random()
+          upper: 0,
+          middle: 0,
+          lower: 0,
+          width: 0,
+          percentB: 0
         },
         stochastic: {
-          k: Math.random() * 100,
-          d: Math.random() * 100
+          k: 0,
+          d: 0
         },
-        williams: -100 + Math.random() * 100,
-        cci: (Math.random() - 0.5) * 200,
-        atr: currentPrice * 0.02,
-        obv: Math.random() * 1000000
+        williams: 0,
+        cci: 0,
+        atr: 0,
+        obv: 0
       },
       marketMicrostructure: {
-        bidAskSpread: currentPrice * 0.001,
-        orderBookImbalance: (Math.random() - 0.5) * 0.2,
-        tradeIntensity: Math.random(),
-        liquidityScore: 0.5 + Math.random() * 0.5
+        bidAskSpread: 0,
+        orderBookImbalance: 0,
+        tradeIntensity: 0,
+        liquidityScore: 0
       },
       onchainMetrics: {
-        activeAddresses: 800000 + Math.random() * 200000,
-        newAddresses: 15000 + Math.random() * 5000,
-        largeTransactions: 500 + Math.random() * 200,
-        exchangeInflows: 5000 + Math.random() * 2000,
-        exchangeOutflows: 4500 + Math.random() * 2000,
-        minerRevenue: 15000000 + Math.random() * 5000000,
-        hashRate: 400000000 + Math.random() * 50000000,
-        difficulty: 50000000000000 + Math.random() * 10000000000000
+        activeAddresses: 0,
+        newAddresses: 0,
+        largeTransactions: 0,
+        exchangeInflows: 0,
+        exchangeOutflows: 0,
+        minerRevenue: 0,
+        hashRate: 0,
+        difficulty: 0
       },
       socialSentiment: [{
-        sentiment: 0.3 + Math.random() * 0.4,
-        confidence: 0.6 + Math.random() * 0.3,
+        sentiment: 0,
+        confidence: 0,
         timestamp: new Date().toISOString()
       }]
     };
@@ -2153,7 +2153,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
     }
     
     // Generate trend analysis insight
-    const trendConfidence = trendModel.accuracy * (0.8 + Math.random() * 0.2);
+    const trendConfidence = trendModel.accuracy;
     
     if (trendConfidence >= minConfidence) {
       const trendDirection = trendModel.marketConditions.trend;
@@ -2221,18 +2221,18 @@ class EnhancedNeuralLearningService extends EventEmitter {
     
     // Patterns to potentially identify
     const patterns = [
-      { name: 'Double Bottom', bullish: true, confidence: 0.85 + Math.random() * 0.1 },
-      { name: 'Head and Shoulders', bullish: false, confidence: 0.82 + Math.random() * 0.1 },
-      { name: 'Cup and Handle', bullish: true, confidence: 0.88 + Math.random() * 0.1 },
-      { name: 'Descending Triangle', bullish: false, confidence: 0.84 + Math.random() * 0.1 },
-      { name: 'Bull Flag', bullish: true, confidence: 0.87 + Math.random() * 0.1 }
+      { name: 'Double Bottom', bullish: true, confidence: 0 },
+      { name: 'Head and Shoulders', bullish: false, confidence: 0 },
+      { name: 'Cup and Handle', bullish: true, confidence: 0 },
+      { name: 'Descending Triangle', bullish: false, confidence: 0 },
+      { name: 'Bull Flag', bullish: true, confidence: 0 }
     ];
-    
-    // Select a random pattern with sufficient confidence
+
+    // Select first pattern with sufficient confidence
     const validPatterns = patterns.filter(p => p.confidence >= minConfidence);
-    
+
     if (validPatterns.length > 0) {
-      const pattern = validPatterns[Math.floor(Math.random() * validPatterns.length)];
+      const pattern = validPatterns[0];
       
       const insight: EnhancedNeuralInsight = {
         id: `pattern_recognition_${Date.now()}`,
@@ -2288,11 +2288,11 @@ class EnhancedNeuralLearningService extends EventEmitter {
     
     // Assets to analyze correlation with
     const correlations = [
-      { asset: 'S&P 500', correlation: 0.35 + Math.random() * 0.2, confidence: 0.88 + Math.random() * 0.1 },
-      { asset: 'Gold', correlation: -0.15 + Math.random() * 0.3, confidence: 0.82 + Math.random() * 0.1 },
-      { asset: 'US Dollar Index', correlation: -0.45 + Math.random() * 0.2, confidence: 0.85 + Math.random() * 0.1 },
-      { asset: 'Tech Stocks', correlation: 0.55 + Math.random() * 0.2, confidence: 0.87 + Math.random() * 0.1 },
-      { asset: 'Ethereum', correlation: 0.75 + Math.random() * 0.15, confidence: 0.92 + Math.random() * 0.05 }
+      { asset: 'S&P 500', correlation: 0, confidence: 0 },
+      { asset: 'Gold', correlation: 0, confidence: 0 },
+      { asset: 'US Dollar Index', correlation: 0, confidence: 0 },
+      { asset: 'Tech Stocks', correlation: 0, confidence: 0 },
+      { asset: 'Ethereum', correlation: 0, confidence: 0 }
     ];
     
     // Select correlations with sufficient confidence
@@ -2370,37 +2370,37 @@ class EnhancedNeuralLearningService extends EventEmitter {
     
     // Potential anomalies to detect
     const anomalies = [
-      { 
-        type: 'volume_spike', 
-        confidence: 0.90 + Math.random() * 0.08,
+      {
+        type: 'volume_spike',
+        confidence: 0,
         description: 'Unusual trading volume spike detected',
         details: 'Trading volume has increased by over 150% compared to the 30-day average, which may indicate significant market interest or potential price volatility.',
         severity: 'medium'
       },
-      { 
-        type: 'price_volatility', 
-        confidence: 0.88 + Math.random() * 0.1,
+      {
+        type: 'price_volatility',
+        confidence: 0,
         description: 'Abnormal price volatility detected',
         details: 'Price volatility has increased to 2.5x the 30-day average, suggesting potential market uncertainty or reaction to news events.',
         severity: 'high'
       },
-      { 
-        type: 'whale_transaction', 
-        confidence: 0.92 + Math.random() * 0.07,
+      {
+        type: 'whale_transaction',
+        confidence: 0,
         description: 'Large whale transaction detected',
         details: 'A transaction of over 1,000 BTC was detected moving from a long-term holder wallet to an exchange, which may indicate potential selling pressure.',
         severity: 'high'
       },
-      { 
-        type: 'exchange_flow', 
-        confidence: 0.85 + Math.random() * 0.12,
+      {
+        type: 'exchange_flow',
+        confidence: 0,
         description: 'Unusual exchange inflow pattern detected',
         details: 'Exchange inflows have increased by 85% over the past 24 hours, which historically has preceded price corrections.',
         severity: 'medium'
       },
-      { 
-        type: 'funding_rate', 
-        confidence: 0.87 + Math.random() * 0.1,
+      {
+        type: 'funding_rate',
+        confidence: 0,
         description: 'Extreme funding rate detected',
         details: 'Funding rates on perpetual futures have reached unusually high levels, indicating potential over-leveraged long positions that may be vulnerable to liquidation.',
         severity: 'medium'

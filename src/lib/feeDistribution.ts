@@ -240,19 +240,14 @@ export class CypherFeeDistributor {
     // Simula delay de processamento
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Simula sucesso (95% das vezes)
-    if (Math.random() > 0.05) {
-      transaction.status = 'confirmed';
-      transaction.txHash = `dist_${Date.now()}_${transaction.network}`;
-      
-      // Simula custos de gas (apenas para EVMs)
-      if (transaction.network !== 'bitcoin' && transaction.network !== 'solana') {
-        transaction.gasUsed = Math.floor(Math.random() * 50000) + 21000;
-        transaction.gasCost = transaction.gasUsed * 0.00001; // Simula gas price
-      }
-    } else {
-      transaction.status = 'failed';
-      throw new Error('Distribution simulation failed');
+    // Deterministic: always succeed
+    transaction.status = 'confirmed';
+    transaction.txHash = `dist_${Date.now()}_${transaction.network}`;
+
+    // Simula custos de gas (apenas para EVMs)
+    if (transaction.network !== 'bitcoin' && transaction.network !== 'solana') {
+      transaction.gasUsed = 21000;
+      transaction.gasCost = transaction.gasUsed * 0.00001; // Simula gas price
     }
   }
 

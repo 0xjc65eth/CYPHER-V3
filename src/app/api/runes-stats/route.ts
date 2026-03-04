@@ -9,33 +9,33 @@ const VERIFIED_RUNES = [
 
 // Dados reais de marketplaces para cada runa
 const RUNE_MARKETPLACES = {
-  'ORDI': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'SATS': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'MEME': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'PEPE': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'DOGE': ['unisat.io', 'magiceden.io', 'ordswap.io'],
+  'ORDI': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'SATS': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'MEME': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'PEPE': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'DOGE': ['unisat.io', 'gamma.io', 'ordswap.io'],
   'TRAC': ['unisat.io', 'ordswap.io'],
-  'CATS': ['unisat.io', 'magiceden.io'],
+  'CATS': ['unisat.io', 'gamma.io'],
   'RATS': ['unisat.io', 'ordswap.io'],
-  'MOON': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'SHIB': ['unisat.io', 'magiceden.io'],
+  'MOON': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'SHIB': ['unisat.io', 'gamma.io'],
   'WOJAK': ['unisat.io', 'ordswap.io'],
-  'BITCOIN': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'NAKAMOTO': ['unisat.io', 'magiceden.io'],
+  'BITCOIN': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'NAKAMOTO': ['unisat.io', 'gamma.io'],
   'HODL': ['unisat.io', 'ordswap.io'],
-  'BULL': ['unisat.io', 'magiceden.io'],
+  'BULL': ['unisat.io', 'gamma.io'],
   'BEAR': ['unisat.io', 'ordswap.io'],
-  'WHALE': ['unisat.io', 'magiceden.io'],
+  'WHALE': ['unisat.io', 'gamma.io'],
   'FROG': ['unisat.io', 'ordswap.io'],
-  'PUNK': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'WIZARD': ['unisat.io', 'magiceden.io'],
+  'PUNK': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'WIZARD': ['unisat.io', 'gamma.io'],
   'MAGIC': ['unisat.io', 'ordswap.io'],
-  'GOLD': ['unisat.io', 'magiceden.io', 'ordswap.io'],
-  'SILVER': ['unisat.io', 'magiceden.io'],
+  'GOLD': ['unisat.io', 'gamma.io', 'ordswap.io'],
+  'SILVER': ['unisat.io', 'gamma.io'],
   'DIAMOND': ['unisat.io', 'ordswap.io'],
-  'RUBY': ['unisat.io', 'magiceden.io'],
+  'RUBY': ['unisat.io', 'gamma.io'],
   'EMERALD': ['unisat.io', 'ordswap.io'],
-  'SAPPHIRE': ['unisat.io', 'magiceden.io']
+  'SAPPHIRE': ['unisat.io', 'gamma.io']
 };
 
 export async function GET() {
@@ -270,7 +270,7 @@ export async function GET() {
         const marketplaces = isVerified ? RUNE_MARKETPLACES[runeName as keyof typeof RUNE_MARKETPLACES] || [] : [];
 
         // Garantir que temos marketplaces mesmo para runas não verificadas
-        const finalMarketplaces = marketplaces.length > 0 ? marketplaces : ['unisat.io', 'magiceden.io'];
+        const finalMarketplaces = marketplaces.length > 0 ? marketplaces : ['unisat.io', 'gamma.io'];
 
         return {
           name: runeName,
@@ -317,7 +317,7 @@ export async function GET() {
       const volume = (10000 + (1000000 * popularity))
 
       // Obter marketplaces para esta runa
-      const marketplaces = RUNE_MARKETPLACES[runeName as keyof typeof RUNE_MARKETPLACES] || ['unisat.io', 'magiceden.io'];
+      const marketplaces = RUNE_MARKETPLACES[runeName as keyof typeof RUNE_MARKETPLACES] || ['unisat.io', 'gamma.io'];
 
       return {
         name: runeName,

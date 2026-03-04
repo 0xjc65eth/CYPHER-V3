@@ -244,9 +244,9 @@ class QuickTradeAnalytics {
       // Mock system metrics - in production, use actual system monitoring
       const healthMetrics: SystemHealthMetrics = {
         timestamp,
-        cpu: Math.random() * 100,
-        memory: Math.random() * 100,
-        activeConnections: Math.floor(Math.random() * 1000),
+        cpu: 0,
+        memory: 0,
+        activeConnections: 0,
         cacheHitRate: await this.calculateCacheHitRate(),
         errorRate: this.calculateErrorRate(),
         responseTime: this.calculateAverageResponseTime(),

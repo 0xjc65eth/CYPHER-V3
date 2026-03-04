@@ -280,23 +280,18 @@ class BrazilianGPTService {
   
   private getFallbackResponse(message: string): string {
     const lowerMessage = message.toLowerCase();
-    
+
     if (lowerMessage.includes('preço') || lowerMessage.includes('bitcoin') || lowerMessage.includes('btc')) {
-      return this.getRandomResponse('analysis');
+      return BRAZILIAN_RESPONSES.analysis[0];
     } else if (lowerMessage.includes('portfolio') || lowerMessage.includes('carteira')) {
-      return this.getRandomResponse('portfolio');
+      return BRAZILIAN_RESPONSES.portfolio[0];
     } else if (lowerMessage.includes('comprar') || lowerMessage.includes('vender')) {
-      return this.getRandomResponse('tradingOpportunity');
+      return BRAZILIAN_RESPONSES.tradingOpportunity[0];
     } else if (lowerMessage.includes('mercado')) {
-      return Math.random() > 0.5 ? this.getRandomResponse('marketBullish') : this.getRandomResponse('marketBearish');
+      return BRAZILIAN_RESPONSES.marketBullish[0];
     } else {
-      return this.getRandomResponse('confused');
+      return BRAZILIAN_RESPONSES.confused[0];
     }
-  }
-  
-  private getRandomResponse(category: keyof typeof BRAZILIAN_RESPONSES): string {
-    const responses = BRAZILIAN_RESPONSES[category];
-    return responses[Math.floor(Math.random() * responses.length)];
   }
 }
 
@@ -524,15 +519,15 @@ export default function CypherAI() {
   };
   
   const generateTradingOpportunities = (marketData: MarketData) => {
-    // Simulate opportunity generation based on market data
+    // Generate opportunities based on real market data without random values
     const opportunities: TradingOpportunity[] = [];
-    
+
     if (Math.abs(marketData.change24h) > 5) {
       opportunities.push({
         id: Date.now().toString(),
         symbol: marketData.symbol,
         type: marketData.change24h > 0 ? 'BUY' : 'SELL',
-        confidence: 75 + Math.random() * 20,
+        confidence: 80,
         entry: marketData.price,
         target: marketData.price * (marketData.change24h > 0 ? 1.05 : 0.95),
         stopLoss: marketData.price * (marketData.change24h > 0 ? 0.98 : 1.02),
@@ -540,7 +535,7 @@ export default function CypherAI() {
         timeframe: '4H'
       });
     }
-    
+
     setTradingOpportunities(opportunities);
   };
   

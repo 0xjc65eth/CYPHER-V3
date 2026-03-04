@@ -614,7 +614,7 @@ class WalletConnector {
       decimals: 8,
       price: btcPrice,
       value: btcValue,
-      change24h: Math.random() * 10 - 5, // Mock data
+      change24h: 0, // No real data available
       txCount: 0,
       firstSeen: Date.now(),
       lastActivity: Date.now()

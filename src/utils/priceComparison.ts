@@ -42,8 +42,8 @@ export class PriceComparisonEngine {
     const mockPrices: PriceData[] = this.exchanges.map(exchange => ({
       exchange,
       price: this.generateMockPrice(symbol),
-      volume: Math.random() * 1000000,
-      spread: Math.random() * 0.005,
+      volume: 0,
+      spread: 0,
       timestamp: Date.now()
     }));
 
@@ -79,8 +79,7 @@ export class PriceComparisonEngine {
     };
 
     const basePrice = basePrices[symbol] || 100;
-    const variation = (Math.random() - 0.5) * 0.02; // ±1% variation
-    return basePrice * (1 + variation);
+    return basePrice; // Deterministic: return base price (no random variation)
   }
 
   static async getArbitrageOpportunities(): Promise<PriceComparison[]> {

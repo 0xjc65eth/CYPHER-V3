@@ -269,7 +269,7 @@ class RealTimeGasEstimator {
       priorityFee: gasData.result?.ProposeGasPrice || gasData.result?.SafeGasPrice || '20',
       gasPrice: gasData.result?.ProposeGasPrice || '20',
       networkCongestion: this.calculateCongestion(gasData),
-      blockUtilization: Math.random() * 100, // Mock - would need block data
+      blockUtilization: 50, // Mock - would need block data
       averageBlockTime: this.getAverageBlockTime(network),
       timestamp: Date.now()
     };
@@ -300,7 +300,7 @@ class RealTimeGasEstimator {
       priorityFee: gasPriceGwei.toString(),
       gasPrice: gasPriceGwei.toString(),
       networkCongestion: this.estimateCongestionFromGasPrice(gasPriceGwei, network),
-      blockUtilization: Math.random() * 100,
+      blockUtilization: 50,
       averageBlockTime: this.getAverageBlockTime(network),
       timestamp: Date.now()
     };
@@ -341,7 +341,7 @@ class RealTimeGasEstimator {
     };
 
     const gasPrice = baseGasPrices[network] || 20;
-    const congestion = Math.random() * 100;
+    const congestion = 50;
 
     return {
       chainId: this.getChainId(network),
@@ -350,7 +350,7 @@ class RealTimeGasEstimator {
       priorityFee: (gasPrice * 0.2).toString(),
       gasPrice: gasPrice.toString(),
       networkCongestion: congestion,
-      blockUtilization: Math.random() * 100,
+      blockUtilization: 50,
       averageBlockTime: this.getAverageBlockTime(network),
       timestamp: Date.now()
     };

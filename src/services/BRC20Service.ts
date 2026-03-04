@@ -358,8 +358,8 @@ class BRC20Service {
         liquidity: 'medium'
       },
       {
-        name: 'Magic Eden',
-        url: `https://magiceden.io/ordinals/marketplace/brc20/${ticker}`,
+        name: 'Gamma.io',
+        url: `https://gamma.io/ordinals/collections/brc20/${ticker}`,
         type: 'marketplace',
         fee: '2.0%',
         liquidity: 'high'
@@ -457,11 +457,11 @@ class BRC20Service {
   private estimateHolders(ticker: string, txCount: number): number {
     if (ticker?.toLowerCase() === 'ordi') return 15000;
     if (ticker?.toLowerCase() === 'sats') return 25000;
-    return Math.floor((txCount || 1000) * 0.1) + Math.floor(Math.random() * 1000);
+    return Math.floor((txCount || 1000) * 0.1);
   }
 
   private generateAddress(): string {
-    return `bc1q${Math.random().toString(36).substring(2, 15)}`;
+    return '';
   }
 
   private isVerifiedToken(ticker: string): boolean {

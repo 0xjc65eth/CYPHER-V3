@@ -211,6 +211,7 @@ export function useNeuralLearning(options: UseNeuralLearningOptions = {}) {
         return allInsights
       }
     },
+    staleTime: 30000, // 30s - AI insights
     refetchInterval: refreshInterval,
     enabled: isInitialized
   })
@@ -234,6 +235,7 @@ export function useNeuralLearning(options: UseNeuralLearningOptions = {}) {
         return neuralLearningService.getStatus()
       }
     },
+    staleTime: 10000, // 10s - status changes frequently
     refetchInterval: refreshInterval,
     enabled: true
   })

@@ -146,8 +146,8 @@ export function useEnhancedOrdinalsData(options: EnhancedOrdinalsOptions = {}): 
   const enhancedCollections: CollectionData[] = (queryData?.popular_collections || []).map((collection: any) => {
     // Calculate enhanced metrics
     const liquidityScore = Math.min(100, (collection.volume_24h || 0) / 1000) // Normalize to 0-100
-    const volumeChange = (Math.random() - 0.5) * 20 // Mock change -10% to +10%
-    const priceChange = (Math.random() - 0.5) * 15 // Mock change -7.5% to +7.5%
+    const volumeChange = 0 // No real change data available
+    const priceChange = 0 // No real change data available
     
     let trendDirection: 'up' | 'down' | 'stable' = 'stable'
     if (priceChange > 2) trendDirection = 'up'

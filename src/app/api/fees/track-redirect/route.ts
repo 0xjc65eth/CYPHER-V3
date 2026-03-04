@@ -53,14 +53,6 @@ export async function POST(request: NextRequest) {
       redirectLogs = redirectLogs.slice(-1000);
     }
 
-    console.log('💰 CYPHER Fee Redirect Tracked:', {
-      dex: data.dex,
-      network: data.network,
-      fee: `${data.feePercentage}%`,
-      feeUSD: feeUSD.toFixed(4),
-      timestamp: data.timestamp
-    });
-
     // In production, you would:
     // 1. Store in database
     // 2. Send to analytics service

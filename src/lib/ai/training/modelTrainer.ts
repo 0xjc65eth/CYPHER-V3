@@ -79,7 +79,7 @@ export class ModelTrainer {
     devLogger.log('TRAINER', `Evaluating model with ${testData.length} test samples`);
     
     // Simulate evaluation
-    const predictions = testData.map(() => Math.random() > 0.5 ? 1 : 0);
+    const predictions = testData.map(() => 0);
     const accuracy = 0.82; // Simulated accuracy
     const loss = 0.18;
     

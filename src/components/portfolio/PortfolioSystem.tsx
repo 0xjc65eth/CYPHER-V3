@@ -229,19 +229,8 @@ export function PortfolioSystem() {
       setAssets(mockAssets);
       setTransactions(transactionsData || []);
 
-      // Generate mock history data
-      const mockHistory: PortfolioHistory[] = Array.from({ length: 30 }, (_, i) => ({
-        timestamp: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000),
-        value: metrics.totalValue * (0.8 + Math.random() * 0.4),
-        cost: metrics.totalCost,
-        pnl: 0
-      }));
-      
-      mockHistory.forEach(point => {
-        point.pnl = point.value - point.cost;
-      });
-      
-      setHistory(mockHistory);
+      // No mock history data - use empty array or real data from API
+      setHistory([]);
 
     } catch (err) {
       console.error('Portfolio data error:', err);

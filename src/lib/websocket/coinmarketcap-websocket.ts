@@ -443,23 +443,20 @@ export class CoinMarketCapWebSocket {
           rank = 4;
           break;
         default:
-          basePrice = 100 + Math.random() * 1000;
-          marketCap = 1000000000 + Math.random() * 50000000000;
-          rank = Math.floor(Math.random() * 100) + 10;
+          basePrice = 0;
+          marketCap = 0;
+          rank = 0;
       }
 
-      const priceVariation = (Math.random() - 0.5) * 0.05; // ±2.5% variation
-      const change24h = (Math.random() - 0.5) * 10; // ±5% daily change
-
       const update: CMCPriceUpdate = {
-        id: Math.floor(Math.random() * 10000),
+        id: 0,
         symbol: symbol,
         name: `${symbol} Token`,
-        price: basePrice * (1 + priceVariation),
-        change24h: change24h,
-        changePercent24h: change24h,
-        volume24h: marketCap * 0.1 * (0.5 + Math.random()),
-        marketCap: marketCap * (1 + priceVariation),
+        price: basePrice,
+        change24h: 0,
+        changePercent24h: 0,
+        volume24h: 0,
+        marketCap: marketCap,
         rank: rank,
         timestamp: Date.now(),
         source: 'fallback'
@@ -472,11 +469,11 @@ export class CoinMarketCapWebSocket {
     // Update global data simulation
     if (this.hasGlobalDataSubscribers()) {
       this.globalDataCache = {
-        totalMarketCap: 2800000000000 + (Math.random() - 0.5) * 200000000000,
-        totalVolume24h: 150000000000 + (Math.random() - 0.5) * 50000000000,
-        btcDominance: 45 + (Math.random() - 0.5) * 5,
-        ethDominance: 18 + (Math.random() - 0.5) * 3,
-        activeCoins: 8500 + Math.floor(Math.random() * 500),
+        totalMarketCap: 0,
+        totalVolume24h: 0,
+        btcDominance: 0,
+        ethDominance: 0,
+        activeCoins: 0,
         timestamp: Date.now()
       };
     }

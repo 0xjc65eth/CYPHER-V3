@@ -1,11 +1,10 @@
 /**
- * Ordinals Trading API — OKX Primary + Magic Eden Fallback
+ * Ordinals Trading API — OKX Primary + Gamma.io Fallback
  * OKX Docs: https://docs.okx.com/web3/marketplace-api
- * ME Docs: https://docs.magiceden.io/reference/ordinals-overview
- * PSBT Signer: https://github.com/magiceden-oss/msigner
+ * Gamma.io: https://gamma.io
  *
  * OKX is the primary data source for collections and listings.
- * Magic Eden is used as fallback, and for runes_orders, wallet, and PSBT operations.
+ * Legacy Magic Eden endpoints used as fallback for runes_orders, wallet, and PSBT operations.
  */
 
 import { NextRequest, NextResponse } from 'next/server';

@@ -81,8 +81,6 @@ export const GuaranteedChart: React.FC<GuaranteedChartProps> = ({
         setLoading(true);
         setError(null);
         
-        console.log(`📊 Fetching chart data for ${symbol} ${interval}`);
-        
         const response = await fetch(
           `/api/binance/klines?symbol=${symbol}&interval=${interval}&limit=50`
         );
@@ -92,7 +90,6 @@ export const GuaranteedChart: React.FC<GuaranteedChartProps> = ({
         }
 
         const result = await response.json();
-        console.log('📊 Chart API Response:', result);
 
         if (result.success && result.data && result.data.length > 0) {
           // Transform data
@@ -123,11 +120,6 @@ export const GuaranteedChart: React.FC<GuaranteedChartProps> = ({
             volume: chartData.reduce((sum: number, d: any) => sum + d.volume, 0)
           });
 
-          console.log('📊 Chart data processed:', { 
-            points: chartData.length,
-            currentPrice,
-            priceChange: priceChange.toFixed(2) + '%'
-          });
         } else {
           throw new Error('No data received from API');
         }

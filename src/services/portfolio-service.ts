@@ -407,23 +407,23 @@ class PortfolioService {
     const ordiValue = totalValue * 0.25; // 25% em Ordinals
     const runeValue = totalValue * 0.15; // 15% em Runes
     
-    // Calcular mudanças percentuais
-    const dailyChangePct = Math.random() * 0.06 - 0.03; // -3% a +3%
-    const weeklyChangePct = Math.random() * 0.15 - 0.05; // -5% a +10%
-    const monthlyChangePct = Math.random() * 0.3 - 0.1; // -10% a +20%
-    const allTimeReturnPct = Math.random() * 0.5 + 0.1; // +10% a +60%
-    
+    // Calcular mudanças percentuais (default 0 - no data)
+    const dailyChangePct = 0;
+    const weeklyChangePct = 0;
+    const monthlyChangePct = 0;
+    const allTimeReturnPct = 0;
+
     // Calcular mudanças em USD
     const dailyChangeUsd = totalValue * dailyChangePct;
     const weeklyChangeUsd = totalValue * weeklyChangePct;
     const monthlyChangeUsd = totalValue * monthlyChangePct;
     const allTimeReturnUsd = totalValue * allTimeReturnPct;
-    
-    // Calcular métricas de risco
-    const volatility = Math.random() * 0.2 + 0.1; // 10% a 30%
-    const sharpeRatio = Math.random() * 1.5 + 0.5; // 0.5 a 2.0
-    const maxDrawdown = Math.random() * 0.3 + 0.05; // 5% a 35%
-    const riskScore = Math.floor(Math.random() * 10) + 1; // 1 a 10
+
+    // Calcular métricas de risco (default 0 - no data)
+    const volatility = 0;
+    const sharpeRatio = 0;
+    const maxDrawdown = 0;
+    const riskScore = 0;
     
     return {
       totalValue,
@@ -481,22 +481,22 @@ class PortfolioService {
     
     // Gerar 10 transações aleatórias
     for (let i = 0; i < 10; i++) {
-      const asset = assets[Math.floor(Math.random() * assets.length)];
-      const type = types[Math.floor(Math.random() * types.length)];
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const amount = Math.random() * 10;
-      const price = asset === 'BTC' ? 65000 + Math.random() * 5000 : 
-                   asset === 'ORDI' ? 40 + Math.random() * 10 : 
-                   15 + Math.random() * 5;
-      
+      const asset = assets[0]; // Use first element instead of random
+      const type = types[0]; // Use first element instead of random
+      const status = statuses[0]; // Use first element instead of random
+      const amount = 0; // Default amount
+      const price = asset === 'BTC' ? 65000 :
+                   asset === 'ORDI' ? 40 :
+                   15;
+
       transactions.push({
         id: `tx_${i}_${Date.now()}`,
         type,
         asset,
         amount,
         price,
-        timestamp: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        fee: Math.random() * 0.01,
+        timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
+        fee: 0, // Default fee
         status
       });
     }

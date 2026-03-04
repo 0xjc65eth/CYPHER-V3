@@ -40,10 +40,10 @@ const BTC_WALLETS = [
   },
   {
     id: 'magic_eden' as const,
-    name: 'Magic Eden',
-    description: 'NFT marketplace wallet',
+    name: 'Gamma.io',
+    description: 'Bitcoin NFT marketplace wallet',
     icon: '🎨',
-    downloadUrl: 'https://magiceden.io/wallet',
+    downloadUrl: 'https://gamma.io',
     features: ['NFT Trading', 'Marketplace Integration', 'Creator Tools'],
     recommended: false,
   },

@@ -175,16 +175,16 @@ export class PortfolioAnalyticsService {
     for (let i = 100; i >= 0; i--) {
       const timestamp = now - (i * dayMs);
       const basePrice = currentPrices['BTC'] || 42000;
-      const randomVariation = (Math.random() - 0.5) * 0.1; // ±5%
-      const price = basePrice * (1 + randomVariation);
-      
+      const variation = Math.sin(i * 0.1) * 0.05; // Deterministic ±5%
+      const price = basePrice * (1 + variation);
+
       marketData.push({
         timestamp,
         open: price * 0.99,
         high: price * 1.02,
         low: price * 0.98,
         close: price,
-        volume: Math.random() * 1000000000,
+        volume: 0,
         marketCap: price * 19700000 // Approximate BTC supply
       });
     }
@@ -230,12 +230,12 @@ export class PortfolioAnalyticsService {
   private calculateConcentrationRisk(metrics: PortfolioMetrics): number {
     // Simplified concentration risk calculation
     // In a real implementation, this would analyze actual asset allocation
-    return Math.random() * 100;
+    return 50; // Default medium risk
   }
 
   private calculateLiquidityRisk(aiInsights: any): number {
     // Simplified liquidity risk calculation
-    return Math.random() * 100;
+    return 50; // Default medium risk
   }
 
   private generateRiskRecommendations(

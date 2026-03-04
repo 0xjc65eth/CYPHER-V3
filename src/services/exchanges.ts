@@ -622,11 +622,11 @@ class ExchangeService extends EventEmitter {
       // Simulate execution delay
       await new Promise(resolve => setTimeout(resolve, opportunity.executionTime * 1000));
       
-      // Simulate success/failure (90% success rate for simulation)
-      const success = Math.random() > 0.1;
-      
+      // Deterministic: always succeed in simulation (no random success/failure)
+      const success = true;
+
       if (success) {
-        const actualProfit = opportunity.netProfit * (0.85 + Math.random() * 0.3); // Some variation
+        const actualProfit = opportunity.netProfit; // Deterministic - no random variation
         
         const result: ExecutionResult = {
           success: true,

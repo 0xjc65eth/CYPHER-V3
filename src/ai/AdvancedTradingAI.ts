@@ -830,22 +830,22 @@ export class AdvancedTradingAI extends EventEmitter {
 
   private extractTechnicalFeatures(data: MarketData[]): number[] {
     // Extract technical indicator features
-    return Array(50).fill(0).map(() => Math.random()); // Simplified
+    return Array(50).fill(0); // No real data available
   }
 
   private extractPriceFeatures(data: MarketData[]): number[] {
     // Extract price-based features
-    return Array(20).fill(0).map(() => Math.random()); // Simplified
+    return Array(20).fill(0); // No real data available
   }
 
   private extractVolumeFeatures(data: MarketData[]): number[] {
     // Extract volume-based features
-    return Array(10).fill(0).map(() => Math.random()); // Simplified
+    return Array(10).fill(0); // No real data available
   }
 
   private extractMicrostructureFeatures(data: MarketData[]): number[] {
     // Extract microstructure features
-    return Array(15).fill(0).map(() => Math.random()); // Simplified
+    return Array(15).fill(0); // No real data available
   }
 
   private prepareSequences(data: MarketData[], sequenceLength: number): number[][] {

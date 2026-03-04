@@ -383,20 +383,11 @@ export class HyperliquidTradingService {
         return cached;
       }
 
-      // Simular order book
-      const basePrice = 100000 + Math.random() * 10000;
-      const spread = 0.001; // 0.1% spread
-      
+      // Deterministic empty order book (no live data)
       const orderBook: OrderBook = {
         symbol,
-        bids: Array.from({ length: 10 }, (_, i) => [
-          basePrice * (1 - spread * (i + 1)),
-          Math.random() * 10
-        ]),
-        asks: Array.from({ length: 10 }, (_, i) => [
-          basePrice * (1 + spread * (i + 1)),
-          Math.random() * 10
-        ]),
+        bids: [],
+        asks: [],
         timestamp: Date.now()
       };
 
@@ -455,7 +446,7 @@ export class HyperliquidTradingService {
       // Simular execução da ordem após delay
       setTimeout(() => {
         this.simulateOrderExecution(orderId);
-      }, 1000 + Math.random() * 3000);
+      }, 1000);
 
       return {
         success: true,
@@ -477,8 +468,8 @@ export class HyperliquidTradingService {
     if (!order) return;
 
     try {
-      // Simular probabilidade de execução (90% de sucesso)
-      const executed = Math.random() > 0.1;
+      // Deterministic: always execute (no random success/failure)
+      const executed = true;
       
       if (executed) {
         const marketData = this.marketDataCache.get(order.symbol);

@@ -69,33 +69,12 @@ export function AIAnalytics() {
   const [selectedModel, setSelectedModel] = useState('primary');
 
   useEffect(() => {
-    // Generate training history data
-    const history: TrainingData[] = [];
-    for (let i = 1; i <= 100; i++) {
-      history.push({
-        epoch: i,
-        loss: 0.8 - (i * 0.007) + Math.random() * 0.05,
-        accuracy: 0.4 + (i * 0.005) + Math.random() * 0.02,
-        valLoss: 0.85 - (i * 0.006) + Math.random() * 0.06,
-        valAccuracy: 0.35 + (i * 0.0045) + Math.random() * 0.025
-      });
-    }
-    setTrainingHistory(history);
+    // Initialize with empty data - real training data should come from ML pipeline
+    setTrainingHistory([]);
+    setPredictions([]);
 
-    // Generate recent predictions
-    const recentPredictions: PredictionConfidence[] = [];
-    const actions = ['buy', 'sell', 'hold'];
-    const markets = ['BTC/USDT', 'ETH/USDT', 'ORDI/USDT'];
-    
-    for (let i = 0; i < 20; i++) {
-      recentPredictions.push({
-        action: actions[Math.floor(Math.random() * actions.length)],
-        confidence: 60 + Math.random() * 35,
-        market: markets[Math.floor(Math.random() * markets.length)],
-        timestamp: Date.now() - (i * 300000) // 5 min intervals
-      });
-    }
-    setPredictions(recentPredictions);
+    // In production, load real training history and predictions from API
+    // Example: loadTrainingHistory() / loadPredictions()
   }, []);
 
   const strategyDistribution = [
@@ -116,14 +95,11 @@ export function AIAnalytics() {
 
   const startTraining = async () => {
     setIsTraining(true);
-    // Simulate training process
+    // In production, trigger real model training
+    // Example: await trainModel()
     setTimeout(() => {
       setIsTraining(false);
-      setModelMetrics(prev => ({
-        ...prev,
-        accuracy: Math.min(95, prev.accuracy + Math.random() * 3),
-        trainingTime: prev.trainingTime + Math.random() * 10
-      }));
+      // Metrics should be updated from real training results, not Math.random()
     }, 5000);
   };
 

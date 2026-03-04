@@ -312,7 +312,7 @@ export function ComprehensiveProfessionalPortfolio({ portfolioData, walletAddres
       
       // Simulate price movement for demonstration
       const basePrice = 42000;
-      const priceVariation = Math.sin((i / 24) * Math.PI / 7) * 0.05 + (Math.random() - 0.5) * 0.02;
+      const priceVariation = Math.sin((i / 24) * Math.PI / 7) * 0.05;
       const currentPrice = basePrice * (1 + priceVariation);
       
       portfolioValue = btcAmount * currentPrice;
@@ -333,7 +333,7 @@ export function ComprehensiveProfessionalPortfolio({ portfolioData, walletAddres
         pnlPercentage,
         hourReturn,
         price: currentPrice,
-        volume: Math.random() * 1000000 + 500000,
+        volume: 0,
         volatility: Math.abs(priceVariation) * 100
       });
     }

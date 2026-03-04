@@ -201,7 +201,7 @@ class AdvancedRouteOptimizer {
             token0,
             token1,
             fee: variant.fee,
-            liquidity: (Math.random() * 10000000 + 100000).toString(), // $100k - $10M
+            liquidity: '1000000', // Default $1M liquidity
             dex: variant.dex,
             version: variant.version,
             sqrtPriceX96: this.calculateSqrtPriceX96(token0, token1)

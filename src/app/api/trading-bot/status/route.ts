@@ -79,7 +79,7 @@ async function getAgentStatus() {
       source: state.status === 'active' ? 'agent-orchestrator' : 'agent-idle',
     };
   } catch (err) {
-    console.warn('[Trading Bot] Agent orchestrator not available:', err instanceof Error ? err.message : err);
+    // Agent not available, return offline status
   }
 
   // Return honest zeros when agent isn't running

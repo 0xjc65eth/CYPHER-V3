@@ -1,0 +1,366 @@
+# CYPHER V3 - Full QA Audit Automation
+# 12-Team Comprehensive Testing Suite
+# Date: 2026-02-28
+# Target: cypherordifuture.xyz
+
+meta:
+  version: "1.0"
+  target_url: "https://cypherordifuture.xyz"
+  local_url: "http://localhost:4444"
+  teams: 12
+  mode: "full-assault"
+
+# ============================================
+# TEAM 1: Page Navigation & Routing
+# ============================================
+team_1_navigation:
+  name: "Navigation & Routing"
+  tests:
+    - id: NAV-001
+      desc: "All pages return HTTP 200"
+      pages:
+        - /
+        - /miners/
+        - /swap/
+        - /portfolio/
+        - /runes/
+        - /pricing/
+        - /hacker-yields/
+        - /trading-agent/
+        - /trading/
+        - /ordinals/
+        - /lightning/
+        - /global-markets/
+        - /settings/
+        - /social/
+        - /tax/
+        - /training/
+        - /wallet/
+        - /quick-trade/
+        - /rare-sats/
+        - /rare-sats/scanner/
+        - /whitepaper/
+        - /simple/
+    - id: NAV-002
+      desc: "Trailing slash redirect (308)"
+    - id: NAV-003
+      desc: "404 on invalid routes"
+    - id: NAV-004
+      desc: "Sidebar navigation links"
+    - id: NAV-005
+      desc: "Mobile responsive navigation"
+
+# ============================================
+# TEAM 2: API Endpoints Health
+# ============================================
+team_2_api:
+  name: "API Endpoints"
+  tests:
+    - id: API-001
+      endpoints:
+        - path: /api/health/
+          method: GET
+          expected: 200
+        - path: /api/agent/
+          method: GET
+          expected: 400  # requires walletAddress
+        - path: /api/agent/?walletAddress=test
+          method: GET
+          expected: 200
+        - path: /api/bitcoin/price/
+          method: GET
+          expected: 200
+        - path: /api/bitcoin/mempool/
+          method: GET
+          expected: 200
+        - path: /api/bitcoin/blocks/
+          method: GET
+          expected: 200
+        - path: /api/bitcoin/mining/
+          method: GET
+          expected: 200
+        - path: /api/bitcoin/fees/
+          method: GET
+          expected: 200
+        - path: /api/bitcoin/network/
+          method: GET
+          expected: 200
+        - path: /api/coingecko/simple/price/?ids=bitcoin&vs_currencies=usd
+          method: GET
+          expected: 200
+        - path: /api/market-overview/
+          method: GET
+          expected: 200
+        - path: /api/fear-greed/
+          method: GET
+          expected: 200
+        - path: /api/ordinals/
+          method: GET
+          expected: 200
+        - path: /api/runes/
+          method: GET
+          expected: 200
+        - path: /api/admin/fees/
+          method: GET
+          expected: 401  # requires admin auth
+        - path: /api/webhooks/stripe/
+          method: POST
+          expected: 400  # requires stripe signature
+        - path: /api/premium/check/
+          method: GET
+          expected: 200
+        - path: /api/lightning/
+          method: GET
+          expected: 200
+        - path: /api/mining/pools/
+          method: GET
+          expected: 200
+        - path: /api/dex/prices/
+          method: GET
+          expected: 200
+
+# ============================================
+# TEAM 3: Security Penetration Testing
+# ============================================
+team_3_security:
+  name: "Security Testing"
+  tests:
+    - id: SEC-001
+      desc: "XSS injection in query params"
+      vectors:
+        - "<script>alert(1)</script>"
+        - "javascript:alert(1)"
+        - "<img onerror=alert(1) src=x>"
+    - id: SEC-002
+      desc: "SQL injection in API params"
+      vectors:
+        - "' OR 1=1--"
+        - "1; DROP TABLE users--"
+        - "UNION SELECT * FROM users"
+    - id: SEC-003
+      desc: "CSRF protection"
+    - id: SEC-004
+      desc: "Rate limiting (10 req/min)"
+    - id: SEC-005
+      desc: "Agent API session token validation"
+    - id: SEC-006
+      desc: "Stripe webhook signature validation"
+    - id: SEC-007
+      desc: "Admin auth bypass attempts"
+    - id: SEC-008
+      desc: "CORS headers validation"
+    - id: SEC-009
+      desc: "Security headers (X-Frame, XSS-Protection, CSP)"
+    - id: SEC-010
+      desc: "Env variable exposure check"
+    - id: SEC-011
+      desc: "Private key exposure in client bundle"
+
+# ============================================
+# TEAM 4: Stress Testing
+# ============================================
+team_4_stress:
+  name: "Stress Testing"
+  tests:
+    - id: STRESS-001
+      desc: "Concurrent page loads (50 simultaneous)"
+      concurrency: 50
+    - id: STRESS-002
+      desc: "API burst (100 requests in 10s)"
+      concurrency: 100
+      duration: 10
+    - id: STRESS-003
+      desc: "WebSocket connection flood"
+    - id: STRESS-004
+      desc: "Large payload handling"
+    - id: STRESS-005
+      desc: "Memory leak detection under load"
+
+# ============================================
+# TEAM 5: Wallet Integration
+# ============================================
+team_5_wallet:
+  name: "Wallet Integration"
+  tests:
+    - id: WAL-001
+      desc: "EVM wallet connect (MetaMask/wagmi)"
+    - id: WAL-002
+      desc: "Bitcoin wallet connect (Xverse)"
+    - id: WAL-003
+      desc: "Solana wallet connect (Phantom)"
+    - id: WAL-004
+      desc: "Wallet disconnect flow"
+    - id: WAL-005
+      desc: "Multi-wallet support"
+    - id: WAL-006
+      desc: "Address display and truncation"
+    - id: WAL-007
+      desc: "Wallet state persistence across navigation"
+
+# ============================================
+# TEAM 6: CYPHER AI Analytics
+# ============================================
+team_6_ai:
+  name: "CYPHER AI"
+  tests:
+    - id: AI-001
+      desc: "AI chat responses"
+    - id: AI-002
+      desc: "Market sentiment analysis"
+    - id: AI-003
+      desc: "Trading signals generation"
+    - id: AI-004
+      desc: "Risk assessment output"
+    - id: AI-005
+      desc: "LLM API integration (Grok/Gemini)"
+
+# ============================================
+# TEAM 7: Hacker Yields / Trading Agent
+# ============================================
+team_7_agent:
+  name: "Hacker Yields Trading Agent"
+  tests:
+    - id: AGT-001
+      desc: "Setup wizard 5-step flow"
+    - id: AGT-002
+      desc: "Agent start/stop/pause/resume"
+    - id: AGT-003
+      desc: "Multi-user isolation (walletAddress)"
+    - id: AGT-004
+      desc: "Credential handling (memory only)"
+    - id: AGT-005
+      desc: "LP operations (Raydium/Uniswap)"
+    - id: AGT-006
+      desc: "Market Making operations"
+    - id: AGT-007
+      desc: "Scalping strategy (SMC)"
+    - id: AGT-008
+      desc: "Risk management (drawdown, liquidation)"
+    - id: AGT-009
+      desc: "Consensus system (multi-agent voting)"
+    - id: AGT-010
+      desc: "Real-time PnL tracking"
+    - id: AGT-011
+      desc: "Session token security"
+
+# ============================================
+# TEAM 8: Subscription & Pricing
+# ============================================
+team_8_pricing:
+  name: "Pricing & Subscriptions"
+  tests:
+    - id: PRC-001
+      desc: "Pricing page display (3 tiers)"
+    - id: PRC-002
+      desc: "Stripe checkout flow"
+    - id: PRC-003
+      desc: "Premium feature gating"
+    - id: PRC-004
+      desc: "Super admin bypass"
+    - id: PRC-005
+      desc: "Free tier limitations"
+    - id: PRC-006
+      desc: "Webhook subscription activation"
+
+# ============================================
+# TEAM 9: Data Integrity
+# ============================================
+team_9_data:
+  name: "Data Integrity"
+  tests:
+    - id: DAT-001
+      desc: "Bitcoin price accuracy (vs CoinGecko)"
+    - id: DAT-002
+      desc: "Mining stats accuracy (vs mempool.space)"
+    - id: DAT-003
+      desc: "Fear & Greed index accuracy"
+    - id: DAT-004
+      desc: "Ordinals data accuracy"
+    - id: DAT-005
+      desc: "Runes market data accuracy"
+    - id: DAT-006
+      desc: "Lightning network stats"
+    - id: DAT-007
+      desc: "Global markets data"
+    - id: DAT-008
+      desc: "Fee collector stats"
+
+# ============================================
+# TEAM 10: UX / UI Quality
+# ============================================
+team_10_ux:
+  name: "UX/UI Quality"
+  tests:
+    - id: UX-001
+      desc: "Bloomberg Terminal theme consistency"
+    - id: UX-002
+      desc: "Loading states and skeletons"
+    - id: UX-003
+      desc: "Error boundaries"
+    - id: UX-004
+      desc: "Empty states"
+    - id: UX-005
+      desc: "Responsive design (mobile/tablet/desktop)"
+    - id: UX-006
+      desc: "Chart rendering (TradingView style)"
+    - id: UX-007
+      desc: "Real-time updates"
+    - id: UX-008
+      desc: "WhitepaperGate flow"
+
+# ============================================
+# TEAM 11: Code Quality
+# ============================================
+team_11_code:
+  name: "Code Quality"
+  tests:
+    - id: CODE-001
+      desc: "Build succeeds (npm run build)"
+    - id: CODE-002
+      desc: "No hardcoded secrets in source"
+    - id: CODE-003
+      desc: "Dead code / unused imports"
+    - id: CODE-004
+      desc: "Error handling patterns"
+    - id: CODE-005
+      desc: "TypeScript strict compliance"
+    - id: CODE-006
+      desc: "Bundle size analysis"
+    - id: CODE-007
+      desc: "Dependency vulnerabilities"
+
+# ============================================
+# TEAM 12: Infrastructure & Performance
+# ============================================
+team_12_infra:
+  name: "Infrastructure"
+  tests:
+    - id: INF-001
+      desc: "Vercel deployment health"
+    - id: INF-002
+      desc: "Response times (p50, p95, p99)"
+    - id: INF-003
+      desc: "CDN caching headers"
+    - id: INF-004
+      desc: "Supabase connectivity"
+    - id: INF-005
+      desc: "Redis cache behavior"
+    - id: INF-006
+      desc: "Error rate monitoring"
+    - id: INF-007
+      desc: "SSL/TLS configuration"
+
+# ============================================
+# Scoring
+# ============================================
+scoring:
+  pass: "PASS"
+  fail: "FAIL"
+  warn: "WARN"
+  skip: "SKIP"
+  grades:
+    A: "95-100% pass"
+    B: "85-94% pass"
+    C: "70-84% pass"
+    D: "50-69% pass"
+    F: "< 50% pass"

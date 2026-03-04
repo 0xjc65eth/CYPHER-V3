@@ -121,44 +121,13 @@ class RedditApiService {
   private async fetchPosts(query: string, limit: number): Promise<any[]> {
     try {
       // In a real implementation, this would call the Reddit API
-      // For now, we'll just return simulated data
+      // For now, we'll just return empty array (no data available)
       loggerService.debug(`Fetching Reddit posts for "${query}"`);
-      
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const posts = [];
-      
-      for (let i = 0; i < limit; i++) {
-        const date = new Date();
-        date.setHours(date.getHours() - i);
-        
-        posts.push({
-          id: Math.random().toString(36).substring(2, 10),
-          title: `Post about ${query} - ${i}`,
-          selftext: `This is a post about ${query}. It contains some information about ${query} that might be interesting.`,
-          author: `user${i % 20}`,
-          created_utc: Math.floor(date.getTime() / 1000),
-          score: Math.floor(Math.random() * 1000),
-          upvote_ratio: 0.5 + Math.random() * 0.5,
-          num_comments: Math.floor(Math.random() * 100),
-          subreddit: query.includes('bitcoin') ? 'Bitcoin' : (
-            query.includes('crypto') ? 'CryptoCurrency' : 'investing'
-          ),
-          permalink: `/r/${query.includes('bitcoin') ? 'Bitcoin' : (
-            query.includes('crypto') ? 'CryptoCurrency' : 'investing'
-          )}/comments/${Math.random().toString(36).substring(2, 10)}/${
-            query.replace(/\s+/g, '_')
-          }_${i}/`,
-          url: `https://reddit.com/r/${query.includes('bitcoin') ? 'Bitcoin' : (
-            query.includes('crypto') ? 'CryptoCurrency' : 'investing'
-          )}/comments/${Math.random().toString(36).substring(2, 10)}/${
-            query.replace(/\s+/g, '_')
-          }_${i}/`
-        });
-      }
-      
-      return posts;
+
+      return [];
     } catch (error) {
       loggerService.error(`Error fetching Reddit posts for "${query}"`, error);
       throw error;
@@ -192,42 +161,13 @@ class RedditApiService {
   private async fetchSubredditPosts(subreddit: string, sort: 'hot' | 'new' | 'top', limit: number): Promise<any[]> {
     try {
       // In a real implementation, this would call the Reddit API
-      // For now, we'll just return simulated data
+      // For now, we'll just return empty array (no data available)
       loggerService.debug(`Fetching Reddit posts for subreddit ${subreddit} (sort: ${sort})`);
-      
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const posts = [];
-      
-      for (let i = 0; i < limit; i++) {
-        const date = new Date();
-        
-        // Adjust date based on sort
-        if (sort === 'new') {
-          date.setMinutes(date.getMinutes() - i * 10);
-        } else if (sort === 'top') {
-          date.setHours(date.getHours() - i * 2);
-        } else {
-          date.setHours(date.getHours() - i);
-        }
-        
-        posts.push({
-          id: Math.random().toString(36).substring(2, 10),
-          title: `Post in r/${subreddit} - ${i}`,
-          selftext: `This is a post in r/${subreddit}. It contains some information that might be interesting.`,
-          author: `user${i % 20}`,
-          created_utc: Math.floor(date.getTime() / 1000),
-          score: Math.floor(Math.random() * 1000),
-          upvote_ratio: 0.5 + Math.random() * 0.5,
-          num_comments: Math.floor(Math.random() * 100),
-          subreddit: subreddit,
-          permalink: `/r/${subreddit}/comments/${Math.random().toString(36).substring(2, 10)}/post_${i}/`,
-          url: `https://reddit.com/r/${subreddit}/comments/${Math.random().toString(36).substring(2, 10)}/post_${i}/`
-        });
-      }
-      
-      return posts;
+
+      return [];
     } catch (error) {
       loggerService.error(`Error fetching Reddit posts for subreddit ${subreddit}`, error);
       throw error;
@@ -261,98 +201,19 @@ class RedditApiService {
   private async fetchPostComments(postId: string): Promise<any[]> {
     try {
       // In a real implementation, this would call the Reddit API
-      // For now, we'll just return simulated data
+      // For now, we'll just return empty array (no data available)
       loggerService.debug(`Fetching Reddit comments for post ${postId}`);
-      
+
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const comments = [];
-      const commentCount = Math.floor(Math.random() * 50) + 10;
-      
-      for (let i = 0; i < commentCount; i++) {
-        const date = new Date();
-        date.setMinutes(date.getMinutes() - i * 5);
-        
-        comments.push({
-          id: Math.random().toString(36).substring(2, 10),
-          body: `This is comment ${i} on post ${postId}. It contains some thoughts about the post.`,
-          author: `user${i % 20}`,
-          created_utc: Math.floor(date.getTime() / 1000),
-          score: Math.floor(Math.random() * 100),
-          permalink: `/r/subreddit/comments/${postId}/comment/${Math.random().toString(36).substring(2, 10)}/`,
-          replies: i < 5 ? this.generateReplies(i, postId) : { data: { children: [] } }
-        });
-      }
-      
-      return comments;
+
+      return [];
     } catch (error) {
       loggerService.error(`Error fetching Reddit comments for post ${postId}`, error);
       throw error;
     }
   }
   
-  /**
-   * Generate replies for a comment
-   */
-  private generateReplies(commentIndex: number, postId: string): any {
-    const replyCount = Math.floor(Math.random() * 3) + 1;
-    const replies = [];
-    
-    for (let i = 0; i < replyCount; i++) {
-      const date = new Date();
-      date.setMinutes(date.getMinutes() - (commentIndex * 5) - (i * 2));
-      
-      replies.push({
-        data: {
-          id: Math.random().toString(36).substring(2, 10),
-          body: `This is a reply to comment ${commentIndex} on post ${postId}.`,
-          author: `user${(commentIndex * 10 + i) % 20}`,
-          created_utc: Math.floor(date.getTime() / 1000),
-          score: Math.floor(Math.random() * 50),
-          permalink: `/r/subreddit/comments/${postId}/comment/${Math.random().toString(36).substring(2, 10)}/`,
-          replies: i === 0 && commentIndex < 2 ? this.generateNestedReplies(commentIndex, i, postId) : { data: { children: [] } }
-        }
-      });
-    }
-    
-    return {
-      data: {
-        children: replies
-      }
-    };
-  }
-  
-  /**
-   * Generate nested replies for a reply
-   */
-  private generateNestedReplies(commentIndex: number, replyIndex: number, postId: string): any {
-    const nestedReplyCount = Math.floor(Math.random() * 2) + 1;
-    const nestedReplies = [];
-    
-    for (let i = 0; i < nestedReplyCount; i++) {
-      const date = new Date();
-      date.setMinutes(date.getMinutes() - (commentIndex * 5) - (replyIndex * 2) - i);
-      
-      nestedReplies.push({
-        data: {
-          id: Math.random().toString(36).substring(2, 10),
-          body: `This is a nested reply to comment ${commentIndex} on post ${postId}.`,
-          author: `user${(commentIndex * 100 + replyIndex * 10 + i) % 20}`,
-          created_utc: Math.floor(date.getTime() / 1000),
-          score: Math.floor(Math.random() * 20),
-          permalink: `/r/subreddit/comments/${postId}/comment/${Math.random().toString(36).substring(2, 10)}/`,
-          replies: { data: { children: [] } }
-        }
-      });
-    }
-    
-    return {
-      data: {
-        children: nestedReplies
-      }
-    };
-  }
   
   /**
    * Get sentiment analysis for a specific symbol
@@ -398,51 +259,22 @@ class RedditApiService {
         allPosts.push(...posts);
       }
       
-      // Filter posts related to the symbol
-      const symbolPosts = allPosts.filter(post => 
-        post.title.toLowerCase().includes(symbol.toLowerCase()) || 
-        post.selftext.toLowerCase().includes(symbol.toLowerCase())
-      );
-      
-      // Simulate sentiment analysis
-      const sentimentScores = symbolPosts.map(() => Math.random() * 2 - 1); // -1 to 1
-      
-      // Calculate overall sentiment
-      const overallSentiment = sentimentScores.length > 0
-        ? sentimentScores.reduce((sum, score) => sum + score, 0) / sentimentScores.length
-        : 0;
-      
-      // Calculate sentiment distribution
-      const positivePosts = sentimentScores.filter(score => score > 0.3).length;
-      const neutralPosts = sentimentScores.filter(score => score >= -0.3 && score <= 0.3).length;
-      const negativePosts = sentimentScores.filter(score => score < -0.3).length;
-      
       return {
         symbol,
-        overall_sentiment: overallSentiment,
+        overall_sentiment: 0,
         sentiment_distribution: {
-          positive: sentimentScores.length > 0 ? positivePosts / sentimentScores.length : 0,
-          neutral: sentimentScores.length > 0 ? neutralPosts / sentimentScores.length : 0,
-          negative: sentimentScores.length > 0 ? negativePosts / sentimentScores.length : 0
+          positive: 0,
+          neutral: 0,
+          negative: 0
         },
-        post_count: symbolPosts.length,
-        post_volume_24h: Math.floor(Math.random() * 1000),
-        top_subreddits: [
-          { name: 'Bitcoin', post_count: Math.floor(Math.random() * 100) },
-          { name: 'CryptoCurrency', post_count: Math.floor(Math.random() * 100) },
-          { name: 'investing', post_count: Math.floor(Math.random() * 50) }
-        ],
-        influential_posts: symbolPosts.slice(0, 5).map((post, index) => ({
-          id: post.id,
-          title: post.title,
-          url: post.url,
-          score: post.score,
-          sentiment_score: sentimentScores[index]
-        })),
+        post_count: 0,
+        post_volume_24h: 0,
+        top_subreddits: [],
+        influential_posts: [],
         sentiment_trend: {
-          '1h': overallSentiment + (Math.random() * 0.2 - 0.1),
-          '24h': overallSentiment + (Math.random() * 0.4 - 0.2),
-          '7d': overallSentiment + (Math.random() * 0.6 - 0.3)
+          '1h': 0,
+          '24h': 0,
+          '7d': 0
         },
         last_updated: new Date().toISOString()
       };

@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
 
     // If the Binance API failed, return empty data instead of fake candles
     if (klineData.length === 0) {
-      console.warn('[binance/klines] API failed, returning empty data');
       return NextResponse.json({
         success: false,
         data: [],

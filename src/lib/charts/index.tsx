@@ -154,9 +154,9 @@ export function generateFallbackData(length: number = 10): Array<{
 }> {
   return Array.from({ length }, (_, i) => ({
     time: Date.now() - (length - 1 - i) * 24 * 60 * 60 * 1000,
-    value: Math.random() * 0.5 + 0.25,
-    price: 40000 + Math.random() * 20000,
-    volume: Math.random() * 1000000,
+    value: 0.5,
+    price: 50000,
+    volume: 0,
   }));
 }
 

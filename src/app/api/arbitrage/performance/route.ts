@@ -52,7 +52,6 @@ export async function GET(request: NextRequest) {
 
     const { data: executions, error: queryError } = await queryBuilder;
     if (queryError) {
-      console.warn('Performance query error:', queryError.message);
       throw queryError;
     }
 
@@ -174,7 +173,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     // Database may not have the arbitrage_executions table — return empty metrics
-    console.warn('Performance API: DB unavailable, returning empty metrics', error instanceof Error ? error.message : error);
     const { searchParams: sp } = new URL(request.url);
     return NextResponse.json({
       strategy: sp.get('strategy') || 'all',

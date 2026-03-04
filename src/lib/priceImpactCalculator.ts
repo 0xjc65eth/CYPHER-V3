@@ -440,7 +440,7 @@ export class AdvancedPriceImpactCalculator {
     }
 
     // Simulação - em produção obter de APIs históricas
-    const volatility = Math.random() * 0.1 + 0.02; // 2-12% volatilidade diária
+    const volatility = 0.05; // Default 5% daily volatility
     this.volatilityCache.set(cacheKey, { volatility, timestamp: Date.now() });
     
     return volatility;

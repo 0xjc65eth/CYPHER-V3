@@ -207,7 +207,7 @@ async function fetchOrdinalsData(): Promise<unknown> {
       })
     }
   } catch (okxError) {
-    console.warn('[Ordinals API] OKX primary fetch failed, falling back to Magic Eden:', okxError instanceof Error ? okxError.message : okxError)
+    // OKX primary fetch failed, falling back to Magic Eden
   }
 
   // ─── Fallback to Magic Eden if OKX returned nothing ───────────────────────
@@ -351,7 +351,7 @@ async function fetchOrdinalsData(): Promise<unknown> {
       }
     }
   } catch (enrichError) {
-    console.warn('[Ordinals API] Collection stats enrichment failed (non-fatal):', enrichError)
+    // Collection stats enrichment failed (non-fatal)
   }
 
   // Sort by 24h volume descending (fallback to all-time volume)

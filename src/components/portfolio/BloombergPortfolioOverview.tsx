@@ -70,7 +70,7 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
     // Calculate volatility from recent price movements
     const recentPrices = Array.from({ length: 24 }, (_, i) => {
       const basePrice = 42000;
-      const variation = Math.sin((i / 24) * Math.PI * 2) * 0.02 + (Math.random() - 0.5) * 0.01;
+      const variation = Math.sin((i / 24) * Math.PI * 2) * 0.02;
       return basePrice * (1 + variation);
     });
 

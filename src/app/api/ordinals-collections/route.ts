@@ -26,21 +26,21 @@ export async function GET() {
 
     // Dados de marketplaces para coleções populares
     const COLLECTION_MARKETPLACES = {
-      'Ordinal Maxi Biz': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'Taproot Wizards': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'Quantum Cats': ['magiceden.io', 'gamma.io'],
-      'Bitcoin Frogs': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'Ordinal Punks': ['magiceden.io', 'gamma.io'],
-      'Bitcoin Puppets': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'OCM GENESIS': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'SEIZE CTRL': ['magiceden.io', 'gamma.io'],
-      'N0 0RDINARY KIND': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'THE WIZARDS OF LORDS': ['magiceden.io', 'gamma.io'],
-      'YIELD HACKER PASS': ['magiceden.io', 'ordswap.io'],
-      'STACK SATS': ['magiceden.io', 'gamma.io'],
-      'OCM KATOSHI PRIME': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'OCM KATOSHI CLASSIC': ['magiceden.io', 'gamma.io'],
-      'MULTIVERSO PASS': ['magiceden.io', 'ordswap.io']
+      'Ordinal Maxi Biz': ['gamma.io', 'ordswap.io'],
+      'Taproot Wizards': ['gamma.io', 'ordswap.io'],
+      'Quantum Cats': ['gamma.io'],
+      'Bitcoin Frogs': ['gamma.io', 'ordswap.io'],
+      'Ordinal Punks': ['gamma.io'],
+      'Bitcoin Puppets': ['gamma.io', 'ordswap.io'],
+      'OCM GENESIS': ['gamma.io', 'ordswap.io'],
+      'SEIZE CTRL': ['gamma.io'],
+      'N0 0RDINARY KIND': ['gamma.io', 'ordswap.io'],
+      'THE WIZARDS OF LORDS': ['gamma.io'],
+      'YIELD HACKER PASS': ['gamma.io', 'ordswap.io'],
+      'STACK SATS': ['gamma.io'],
+      'OCM KATOSHI PRIME': ['gamma.io', 'ordswap.io'],
+      'OCM KATOSHI CLASSIC': ['gamma.io'],
+      'MULTIVERSO PASS': ['gamma.io', 'ordswap.io']
     };
 
     // Garantir que as coleções populares estejam incluídas
@@ -141,7 +141,7 @@ export async function GET() {
       }
 
       const collectionName = collection.name.split(' (')[0]; // Remove any suffix in parentheses
-      const marketplaces = COLLECTION_MARKETPLACES[collectionName as keyof typeof COLLECTION_MARKETPLACES] || ['magiceden.io', 'gamma.io'];
+      const marketplaces = COLLECTION_MARKETPLACES[collectionName as keyof typeof COLLECTION_MARKETPLACES] || ['gamma.io'];
       const slug = collection.slug || collectionName.toLowerCase().replace(/\s+/g, '-');
 
       // Adicionar marketplaces
@@ -158,19 +158,19 @@ export async function GET() {
 
       // Adicionar dados de exchanges
       collection.exchanges = [
-        { 
-          name: "Magic Eden", 
-          url: `https://magiceden.io/ordinals/collection/${slug}`, 
+        {
+          name: "Gamma.io",
+          url: `https://gamma.io/ordinals/collections/${slug}`,
           price: parseFloat(collection.floor_price) * 1.02,
-          buyUrl: `https://magiceden.io/ordinals/collection/${slug}?listed=true&sort=price-asc`,
-          sellUrl: `https://magiceden.io/ordinals/collection/${slug}?action=sell`
-        },
-        { 
-          name: "Gamma.io", 
-          url: `https://gamma.io/ordinals/collections/${slug}`, 
-          price: parseFloat(collection.floor_price) * 0.98,
           buyUrl: `https://gamma.io/ordinals/collections/${slug}?listed=true&sort=price-asc`,
           sellUrl: `https://gamma.io/ordinals/collections/${slug}?action=sell`
+        },
+        {
+          name: "Ordinals Market",
+          url: `https://ordinals.market/collections/${slug}`,
+          price: parseFloat(collection.floor_price) * 0.98,
+          buyUrl: `https://ordinals.market/collections/${slug}?sort=price&order=asc&listed=true`,
+          sellUrl: `https://ordinals.market/collections/${slug}?action=sell`
         }
       ];
 
@@ -186,11 +186,11 @@ export async function GET() {
 
     // Dados de marketplaces para coleções populares
     const COLLECTION_MARKETPLACES = {
-      'Ordinal Maxi Biz': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'Taproot Wizards': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'Quantum Cats': ['magiceden.io', 'gamma.io'],
-      'Bitcoin Frogs': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'Ordinal Punks': ['magiceden.io', 'gamma.io']
+      'Ordinal Maxi Biz': ['gamma.io', 'ordswap.io'],
+      'Taproot Wizards': ['gamma.io', 'ordswap.io'],
+      'Quantum Cats': ['gamma.io'],
+      'Bitcoin Frogs': ['gamma.io', 'ordswap.io'],
+      'Ordinal Punks': ['gamma.io']
     };
 
     // Dados de fallback em caso de erro
@@ -215,12 +215,12 @@ export async function GET() {
           info: `https://ordiscan.com/collection/ordinal-maxi-biz`
         },
         exchanges: [
-          { 
-            name: "Magic Eden", 
-            url: "https://magiceden.io/ordinals/collection/ordinal-maxi-biz", 
+          {
+            name: "Ordinals Market",
+            url: "https://ordinals.market/collections/ordinal-maxi-biz",
             price: 0.0332,
-            buyUrl: "https://magiceden.io/ordinals/collection/ordinal-maxi-biz?listed=true&sort=price-asc",
-            sellUrl: "https://magiceden.io/ordinals/collection/ordinal-maxi-biz?action=sell"
+            buyUrl: "https://ordinals.market/collections/ordinal-maxi-biz?sort=price&order=asc&listed=true",
+            sellUrl: "https://ordinals.market/collections/ordinal-maxi-biz?action=sell"
           },
           { 
             name: "Gamma.io", 
@@ -251,12 +251,12 @@ export async function GET() {
           info: `https://ordiscan.com/collection/taproot-wizards`
         },
         exchanges: [
-          { 
-            name: "Magic Eden", 
-            url: "https://magiceden.io/ordinals/collection/taproot-wizards", 
+          {
+            name: "Ordinals Market",
+            url: "https://ordinals.market/collections/taproot-wizards",
             price: 0.867,
-            buyUrl: "https://magiceden.io/ordinals/collection/taproot-wizards?listed=true&sort=price-asc",
-            sellUrl: "https://magiceden.io/ordinals/collection/taproot-wizards?action=sell"
+            buyUrl: "https://ordinals.market/collections/taproot-wizards?sort=price&order=asc&listed=true",
+            sellUrl: "https://ordinals.market/collections/taproot-wizards?action=sell"
           },
           { 
             name: "Gamma.io", 
@@ -287,12 +287,12 @@ export async function GET() {
           info: `https://ordiscan.com/collection/quantum-cats`
         },
         exchanges: [
-          { 
-            name: "Magic Eden", 
-            url: "https://magiceden.io/ordinals/collection/quantum-cats", 
+          {
+            name: "Ordinals Market",
+            url: "https://ordinals.market/collections/quantum-cats",
             price: 0.0219,
-            buyUrl: "https://magiceden.io/ordinals/collection/quantum-cats?listed=true&sort=price-asc",
-            sellUrl: "https://magiceden.io/ordinals/collection/quantum-cats?action=sell"
+            buyUrl: "https://ordinals.market/collections/quantum-cats?sort=price&order=asc&listed=true",
+            sellUrl: "https://ordinals.market/collections/quantum-cats?action=sell"
           },
           { 
             name: "Gamma.io", 
@@ -323,12 +323,12 @@ export async function GET() {
           info: `https://ordiscan.com/collection/bitcoin-frogs`
         },
         exchanges: [
-          { 
-            name: "Magic Eden", 
-            url: "https://magiceden.io/ordinals/collection/bitcoin-frogs", 
+          {
+            name: "Ordinals Market",
+            url: "https://ordinals.market/collections/bitcoin-frogs",
             price: 0.0189,
-            buyUrl: "https://magiceden.io/ordinals/collection/bitcoin-frogs?listed=true&sort=price-asc",
-            sellUrl: "https://magiceden.io/ordinals/collection/bitcoin-frogs?action=sell"
+            buyUrl: "https://ordinals.market/collections/bitcoin-frogs?sort=price&order=asc&listed=true",
+            sellUrl: "https://ordinals.market/collections/bitcoin-frogs?action=sell"
           },
           { 
             name: "Gamma.io", 
@@ -359,12 +359,12 @@ export async function GET() {
           info: `https://ordiscan.com/collection/ordinal-punks`
         },
         exchanges: [
-          { 
-            name: "Magic Eden", 
-            url: "https://magiceden.io/ordinals/collection/ordinal-punks", 
+          {
+            name: "Ordinals Market",
+            url: "https://ordinals.market/collections/ordinal-punks",
             price: 2.55,
-            buyUrl: "https://magiceden.io/ordinals/collection/ordinal-punks?listed=true&sort=price-asc",
-            sellUrl: "https://magiceden.io/ordinals/collection/ordinal-punks?action=sell"
+            buyUrl: "https://ordinals.market/collections/ordinal-punks?sort=price&order=asc&listed=true",
+            sellUrl: "https://ordinals.market/collections/ordinal-punks?action=sell"
           },
           { 
             name: "Gamma.io", 

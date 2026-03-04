@@ -98,8 +98,8 @@ class FeeCollectionService {
       // Simulate transaction execution
       await this.sleep(2000); // Simulate network delay
       
-      const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-      const success = Math.random() > 0.02; // 98% success rate
+      const mockTxHash = `0x${Date.now().toString(16).padStart(64, '0').substr(0, 64)}`;
+      const success = true; // Deterministic success in simulation
 
       if (!success) {
         throw new Error('Transaction failed on blockchain');
@@ -146,8 +146,8 @@ class FeeCollectionService {
 
       await this.sleep(1500); // Simulate Solana network delay
       
-      const mockTxHash = Math.random().toString(36).substr(2, 88); // Solana tx format
-      const success = Math.random() > 0.01; // 99% success rate
+      const mockTxHash = Date.now().toString(36).padStart(88, '0').substr(0, 88); // Solana tx format
+      const success = true; // Deterministic success in simulation
 
       if (!success) {
         throw new Error('Solana transaction failed');
@@ -192,7 +192,7 @@ class FeeCollectionService {
       // Mock contract interaction
       await this.sleep(3000);
       
-      const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+      const mockTxHash = `0x${Date.now().toString(16).padStart(64, '0').substr(0, 64)}`;
       
       return {
         success: true,
@@ -217,7 +217,7 @@ class FeeCollectionService {
       // Mock relayer service
       await this.sleep(4000);
       
-      const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+      const mockTxHash = `0x${Date.now().toString(16).padStart(64, '0').substr(0, 64)}`;
       
       return {
         success: true,
@@ -320,7 +320,7 @@ class FeeCollectionService {
     const gasPrice = 20; // 20 gwei
     const ethPrice = 2850;
     
-    const gasUsed = baseGas + Math.floor(Math.random() * 30000);
+    const gasUsed = baseGas; // Deterministic gas usage
     const gasCostETH = (gasUsed * gasPrice * 1e-9);
     const gasCostUSD = gasCostETH * ethPrice;
     
@@ -333,13 +333,13 @@ class FeeCollectionService {
   ): Promise<WalletBalance> {
     // Mock balance check - in production, use Web3 providers
     const balances: Record<string, number> = {
-      'ethereum': Math.random() * 10 + 1,
-      'solana': Math.random() * 100 + 10,
-      'polygon': Math.random() * 1000 + 100
+      'ethereum': 1,
+      'solana': 10,
+      'polygon': 100
     };
-    
+
     const chainKey = typeof chainId === 'string' ? chainId : 'ethereum';
-    const balance = balances[chainKey] || Math.random() * 5 + 0.1;
+    const balance = balances[chainKey] || 1;
     
     const prices: Record<string, number> = {
       'ethereum': 2850,

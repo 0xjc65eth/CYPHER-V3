@@ -65,25 +65,10 @@ export function WalletConnectDirect() {
   // Simular conexao para fins de demonstracao
   const simulateConnection = () => {
     setConnecting(true)
-
-    setTimeout(() => {
-      const mockAddress = `bc1${Math.random().toString(36).substring(2, 10)}...${Math.random().toString(36).substring(2, 6)}`
-      setAddress(mockAddress)
-      setConnected(true)
-      setConnecting(false)
-      setShowModal(false)
-
-      // Emitir evento de conexao
-      const walletConnectedEvent = new CustomEvent('walletConnected', {
-        detail: {
-          address: mockAddress,
-          connected: true,
-          isPremium: true
-        }
-      })
-      window.dispatchEvent(walletConnectedEvent)
-
-    }, 1500)
+    setConnected(false)
+    setShowModal(false)
+    alert('Please install a Bitcoin wallet (UniSat, Xverse, or Magic Eden) to connect.')
+    setConnecting(false)
   }
 
   return (

@@ -65,7 +65,7 @@ export class ActionsModule extends EventEmitter {
           
           this.emit('tradeCompleted', trade);
         }
-      }, 1000 + Math.random() * 2000); // 1-3 seconds
+      }, 1000); // 1 second
       
     } catch (error) {
       console.error('Erro ao executar trade:', error);
@@ -314,16 +314,16 @@ export class ActionsModule extends EventEmitter {
   }
 
   private getSimulatedPrice(asset: string): number {
-    // Simulate current market prices
+    // Deterministic fallback prices (no live data)
     switch (asset.toUpperCase()) {
       case 'BTC':
       case 'BITCOIN':
-        return 95000 + (Math.random() - 0.5) * 2000; // ±$1000 variation
+        return 0;
       case 'ETH':
       case 'ETHEREUM':
-        return 3500 + (Math.random() - 0.5) * 200; // ±$100 variation
+        return 0;
       default:
-        return 100; // Default price
+        return 0;
     }
   }
 

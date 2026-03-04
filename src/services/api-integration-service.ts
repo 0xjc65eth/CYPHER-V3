@@ -182,16 +182,16 @@ class ApiIntegrationService {
       price,
       market_cap: marketCap,
       volume_24h: volume,
-      change_percent_24h: Math.random() * 10 - 5, // -5% to +5%
-      change_percent_7d: Math.random() * 20 - 10, // -10% to +10%
-      high_24h: price * (1 + Math.random() * 0.05), // Up to 5% higher
-      low_24h: price * (1 - Math.random() * 0.05), // Up to 5% lower
+      change_percent_24h: 0,
+      change_percent_7d: 0,
+      high_24h: price,
+      low_24h: price,
       supply: {
         circulating: supply,
         total: supply,
         max: symbol === 'BTC:USD' ? 21000000 : undefined
       },
-      social_sentiment: Math.random() * 2 - 1, // -1 to 1
+      social_sentiment: 0,
       last_updated: now
     };
   }
@@ -216,11 +216,11 @@ class ApiIntegrationService {
       
       // Return default sentiment if there's an error
       return {
-        twitter: Math.random() * 2 - 1, // -1 to 1
-        reddit: Math.random() * 2 - 1, // -1 to 1
-        telegram: Math.random() * 2 - 1, // -1 to 1
-        discord: Math.random() * 2 - 1, // -1 to 1
-        overall: Math.random() * 2 - 1 // -1 to 1
+        twitter: 0,
+        reddit: 0,
+        telegram: 0,
+        discord: 0,
+        overall: 0
       };
     }
   }
@@ -284,13 +284,13 @@ class ApiIntegrationService {
       
       // Return default activity if there's an error
       return {
-        commits: Math.floor(Math.random() * 100),
-        contributors: Math.floor(Math.random() * 20),
-        stars: Math.floor(Math.random() * 1000),
-        forks: Math.floor(Math.random() * 500),
-        issues: Math.floor(Math.random() * 50),
-        pull_requests: Math.floor(Math.random() * 30),
-        activity_score: Math.random()
+        commits: 0,
+        contributors: 0,
+        stars: 0,
+        forks: 0,
+        issues: 0,
+        pull_requests: 0,
+        activity_score: 0
       };
     }
   }
@@ -399,11 +399,11 @@ class ApiIntegrationService {
       
       // Return default correlations if there's an error
       return {
-        'BTC:USD': symbol === 'BTC:USD' ? 1 : 0.7 + Math.random() * 0.3,
-        'ETH:USD': 0.5 + Math.random() * 0.4,
-        'SPX:USD': 0.2 + Math.random() * 0.3,
-        'GOLD:USD': Math.random() * 0.4 - 0.2,
-        'DXY:USD': Math.random() * 0.6 - 0.5
+        'BTC:USD': symbol === 'BTC:USD' ? 1 : 0,
+        'ETH:USD': 0,
+        'SPX:USD': 0,
+        'GOLD:USD': 0,
+        'DXY:USD': 0
       };
     }
   }
@@ -414,13 +414,13 @@ class ApiIntegrationService {
   private async calculateMarketCorrelations(symbol: string): Promise<Record<string, number>> {
     try {
       // In a real implementation, this would calculate correlations based on historical data
-      // For now, we'll just return simulated correlations
+      // For now, we'll just return default correlations
       return {
-        'BTC:USD': symbol === 'BTC:USD' ? 1 : 0.7 + Math.random() * 0.3,
-        'ETH:USD': 0.5 + Math.random() * 0.4,
-        'SPX:USD': 0.2 + Math.random() * 0.3,
-        'GOLD:USD': Math.random() * 0.4 - 0.2,
-        'DXY:USD': Math.random() * 0.6 - 0.5
+        'BTC:USD': symbol === 'BTC:USD' ? 1 : 0,
+        'ETH:USD': 0,
+        'SPX:USD': 0,
+        'GOLD:USD': 0,
+        'DXY:USD': 0
       };
     } catch (error) {
       loggerService.error(`Error calculating market correlations for ${symbol}`, error);
@@ -464,96 +464,54 @@ class ApiIntegrationService {
       const indicators = [];
       
       // RSI (Relative Strength Index)
-      const rsi = 30 + Math.random() * 40; // 30-70 range
-      let rsiSignal: 'buy' | 'sell' | 'neutral';
-      
-      if (rsi < 30) {
-        rsiSignal = 'buy'; // Oversold
-      } else if (rsi > 70) {
-        rsiSignal = 'sell'; // Overbought
-      } else {
-        rsiSignal = 'neutral';
-      }
-      
+      const rsi = 0;
+      const rsiSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+
       indicators.push({
         name: 'RSI (14)',
         value: rsi,
         signal: rsiSignal
       });
-      
+
       // MACD (Moving Average Convergence Divergence)
-      const macd = Math.random() * 200 - 100;
-      const macdSignal = Math.random() * 200 - 100;
-      let macdIndicatorSignal: 'buy' | 'sell' | 'neutral';
-      
-      if (macd > macdSignal) {
-        macdIndicatorSignal = 'buy'; // MACD above signal line
-      } else if (macd < macdSignal) {
-        macdIndicatorSignal = 'sell'; // MACD below signal line
-      } else {
-        macdIndicatorSignal = 'neutral';
-      }
-      
+      const macd = 0;
+      const macdSignal = 0;
+      const macdIndicatorSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+
       indicators.push({
         name: 'MACD',
         value: macd,
         signal: macdIndicatorSignal
       });
-      
+
       // Moving Averages
       const price = marketData.price;
-      const sma20 = price * (1 + (Math.random() * 0.05 - 0.025));
-      const sma50 = price * (1 + (Math.random() * 0.1 - 0.05));
-      const sma200 = price * (1 + (Math.random() * 0.2 - 0.1));
-      
-      let maSignal: 'buy' | 'sell' | 'neutral';
-      
-      if (sma20 > sma50 && sma50 > sma200) {
-        maSignal = 'buy'; // Uptrend
-      } else if (sma20 < sma50 && sma50 < sma200) {
-        maSignal = 'sell'; // Downtrend
-      } else {
-        maSignal = 'neutral';
-      }
-      
+      const sma20 = price;
+      const sma50 = price;
+      const sma200 = price;
+      const maSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+
       indicators.push({
         name: 'Moving Averages',
-        value: sma20 / sma50,
+        value: 1,
         signal: maSignal
       });
-      
+
       // Bollinger Bands
-      const bollingerWidth = Math.random() * 0.1 + 0.02; // 2-12%
-      const bollingerValue = Math.random(); // 0-1 (position within bands)
-      let bollingerSignal: 'buy' | 'sell' | 'neutral';
-      
-      if (bollingerValue < 0.2) {
-        bollingerSignal = 'buy'; // Near lower band
-      } else if (bollingerValue > 0.8) {
-        bollingerSignal = 'sell'; // Near upper band
-      } else {
-        bollingerSignal = 'neutral';
-      }
-      
+      const bollingerValue = 0;
+      const bollingerSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+
       indicators.push({
         name: 'Bollinger Bands',
         value: bollingerValue,
         signal: bollingerSignal
       });
-      
+
       // Stochastic Oscillator
-      const stochasticK = Math.random() * 100;
-      const stochasticD = Math.random() * 100;
-      let stochasticSignal: 'buy' | 'sell' | 'neutral';
-      
-      if (stochasticK < 20 && stochasticD < 20) {
-        stochasticSignal = 'buy'; // Oversold
-      } else if (stochasticK > 80 && stochasticD > 80) {
-        stochasticSignal = 'sell'; // Overbought
-      } else {
-        stochasticSignal = 'neutral';
-      }
-      
+      const stochasticK = 0;
+      const stochasticD = 0;
+      const stochasticSignal: 'buy' | 'sell' | 'neutral' = 'neutral';
+
       indicators.push({
         name: 'Stochastic Oscillator',
         value: stochasticK,

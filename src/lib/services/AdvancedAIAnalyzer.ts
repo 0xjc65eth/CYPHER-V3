@@ -2,11 +2,13 @@ import { EventEmitter } from 'events';
 
 // Lazy load TensorFlow to avoid bundle bloat
 let _tf: any = null;
+let tf: any = null;
 async function getTf() {
   if (!_tf) {
     try { _tf = await import('@tensorflow/tfjs-node'); }
     catch { try { _tf = require('@tensorflow/tfjs'); } catch { _tf = null; } }
   }
+  tf = _tf;
   return _tf;
 }
 // @ts-ignore - optional dependency
@@ -124,7 +126,7 @@ interface TradingSignal {
 }
 
 export class AdvancedAIAnalyzer extends EventEmitter {
-  private lstmModel: tf.LayersModel | null = null;
+  private lstmModel: any = null;
   private sentimentAnalyzer: any;
   private anomalyDetector: any;
   private dataCache: Map<string, any> = new Map();
@@ -155,6 +157,8 @@ export class AdvancedAIAnalyzer extends EventEmitter {
   }
 
   private async initializeLSTM() {
+    await getTf();
+    if (!tf) return;
     // Create LSTM model architecture
     this.lstmModel = tf.sequential({
       layers: [
@@ -204,7 +208,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     const inputTensor = tf.tensor3d(sequences);
     
     // Make prediction
-    const prediction = await this.lstmModel.predict(inputTensor) as tf.Tensor;
+    const prediction = await this.lstmModel.predict(inputTensor) as any;
     const predictedValue = await prediction.data();
     
     // Calculate support and resistance levels
@@ -1306,7 +1310,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     assets.forEach(asset => {
       data[asset] = Array(100).fill(0).map((_, i) => ({
         timestamp: Date.now() - i * 86400000,
-        price: 50000 + Math.random() * 10000
+        price: 50000
       }));
     });
     return data;
@@ -1413,9 +1417,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     portfolio: Map<string, number>
   ): Promise<number[]> {
     // Simulate fetching returns
-    return Array(252).fill(0).map(() => 
-      (Math.random() - 0.5) * 0.1
-    );
+    return Array(252).fill(0);
   }
 
   private calculateVaR(returns: number[], confidence: number): number {
@@ -1603,9 +1605,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     // Simulate return data
     const returns: any = {};
     assets.forEach(asset => {
-      returns[asset] = Array(252).fill(0).map(() => 
-        (Math.random() - 0.5) * 0.1
-      );
+      returns[asset] = Array(252).fill(0);
     });
     return returns;
   }

@@ -1065,14 +1065,14 @@ export class MarketAnalysisEngine {
     let price = 50000;
     
     for (let i = 0; i < count; i++) {
-      const change = (Math.random() - 0.5) * 0.02; // ±1% change
+      const change = Math.sin(i * 0.15) * 0.01; // Deterministic ±1% change
       const newPrice = price * (1 + change);
-      
+
       const open = price;
       const close = newPrice;
-      const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-      const volume = 1000 + Math.random() * 5000;
+      const high = Math.max(open, close) * 1.005;
+      const low = Math.min(open, close) * 0.995;
+      const volume = 3000;
       
       candles.push({
         timestamp: Date.now() - (count - i) * 60000, // 1 minute intervals

@@ -200,7 +200,7 @@ export class WorkerTestRunner {
     const tasks = Array.from({ length: 20 }, (_, i) => ({
       type: ['analytics', 'price', 'risk', 'ml', 'chart'][i % 5] as any,
       data: this.generateTaskData(i % 5),
-      priority: Math.floor(Math.random() * 10) + 1
+      priority: (i % 10) + 1
     }));
     
     const start = Date.now();
@@ -226,9 +226,9 @@ export class WorkerTestRunner {
     let currentPrice = 50000;
     
     for (let i = 0; i < length; i++) {
-      // Add trend, volatility, and random walk
+      // Add trend with deterministic pattern (no random walk)
       const trend = Math.sin(i * 0.02) * 0.001;
-      const volatility = (Math.random() - 0.5) * 0.05;
+      const volatility = Math.sin(i * 0.1) * 0.025;
       const change = trend + volatility;
       
       currentPrice *= (1 + change);
@@ -242,8 +242,8 @@ export class WorkerTestRunner {
    * Generate volume data correlated with price movements
    */
   private generateVolumeData(length: number): number[] {
-    return Array.from({ length }, () => 
-      Math.random() * 1000000 + 100000
+    return Array.from({ length }, (_, i) =>
+      500000 + Math.sin(i * 0.3) * 400000
     );
   }
 
@@ -258,12 +258,12 @@ export class WorkerTestRunner {
     for (let i = 0; i < length; i++) {
       const open = currentPrice;
       const volatility = 0.02;
-      const change = (Math.random() - 0.5) * volatility;
+      const change = Math.sin(i * 0.15) * volatility;
       const close = open * (1 + change);
-      
-      const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-      const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-      const volume = Math.random() * 1000000 + 100000;
+
+      const high = Math.max(open, close) * 1.005;
+      const low = Math.min(open, close) * 0.995;
+      const volume = 500000 + Math.sin(i * 0.3) * 400000;
       
       ohlcv.push([timestamp, open, high, low, close, volume]);
       
@@ -294,14 +294,14 @@ export class WorkerTestRunner {
    * Generate returns data for assets
    */
   private generateReturns(length: number): number[] {
-    return Array.from({ length }, () => (Math.random() - 0.5) * 0.1);
+    return Array.from({ length }, (_, i) => Math.sin(i * 0.5) * 0.05);
   }
 
   /**
    * Generate feature matrix for ML models
    */
   private generateFeatureMatrix(length: number): number[] {
-    return Array.from({ length }, () => Math.random() * 100);
+    return Array.from({ length }, (_, i) => (i / length) * 100);
   }
 
   /**

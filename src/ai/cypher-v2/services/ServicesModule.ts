@@ -168,7 +168,7 @@ export class ServicesModule extends EventEmitter {
             data: { message: 'Request processed successfully' }
           });
         }
-      }, 100 + Math.random() * 200); // 100-300ms delay
+      }, 200); // Fixed 200ms delay
     });
   }
 
@@ -191,12 +191,11 @@ export class ServicesModule extends EventEmitter {
     // Simulate real-time data updates
     const interval = setInterval(() => {
       if (channel === 'bitcoin-price') {
-        const price = 95000 + (Math.random() - 0.5) * 1000;
         callback({
           channel,
           data: {
             symbol: 'BTC',
-            price: Math.round(price),
+            price: 0,
             timestamp: new Date()
           }
         });
@@ -206,14 +205,14 @@ export class ServicesModule extends EventEmitter {
           data: {
             type: 'price_update',
             updates: [
-              { symbol: 'BTC', price: 95000 + (Math.random() - 0.5) * 1000 },
-              { symbol: 'ETH', price: 3500 + (Math.random() - 0.5) * 100 }
+              { symbol: 'BTC', price: 0 },
+              { symbol: 'ETH', price: 0 }
             ],
             timestamp: new Date()
           }
         });
       }
-    }, 5000 + Math.random() * 5000); // 5-10 second intervals
+    }, 5000); // 5 second intervals
 
     // Store interval for cleanup (in production, would store subscription)
     setTimeout(() => clearInterval(interval), 300000); // Clean up after 5 minutes

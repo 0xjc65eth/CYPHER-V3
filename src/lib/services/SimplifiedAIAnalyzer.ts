@@ -93,7 +93,7 @@ export class SimplifiedAIAnalyzer {
     
     // Predict next price (simplified)
     const priceChange = trend === 'bullish' ? 0.02 : trend === 'bearish' ? -0.02 : 0;
-    const predictedPrice = currentPrice * (1 + priceChange + (Math.random() - 0.5) * 0.01);
+    const predictedPrice = currentPrice * (1 + priceChange);
     
     // Calculate confidence based on trend strength and volatility
     const trendStrength = Math.abs(sma20[sma20.length - 1] - sma50[sma50.length - 1]) / currentPrice;
@@ -158,21 +158,21 @@ export class SimplifiedAIAnalyzer {
     healthScore: number;
     predictions: Map<string, number>;
   }> {
-    // Mock on-chain data (in production, fetch from real APIs)
+    // Deterministic defaults (no real on-chain data available without API)
     const metrics: OnChainMetrics = {
-      nvt: 50 + Math.random() * 50,
-      nvtSignal: 35 + Math.random() * 30,
-      mvrv: 1.5 + Math.random() * 2,
-      sopr: 0.98 + Math.random() * 0.1,
-      puellMultiple: 0.8 + Math.random() * 0.8,
-      hashRate: 400000000 + Math.random() * 100000000,
-      difficulty: 40000000000000 + Math.random() * 10000000000000,
-      activeAddresses: 800000 + Math.random() * 400000,
-      transactionVolume: 20000000000 + Math.random() * 20000000000,
+      nvt: 0,
+      nvtSignal: 0,
+      mvrv: 0,
+      sopr: 0,
+      puellMultiple: 0,
+      hashRate: 0,
+      difficulty: 0,
+      activeAddresses: 0,
+      transactionVolume: 0,
       exchangeFlows: {
-        inflow: 5000 + Math.random() * 10000,
-        outflow: 6000 + Math.random() * 10000,
-        netFlow: Math.random() * 4000 - 2000
+        inflow: 0,
+        outflow: 0,
+        netFlow: 0
       }
     };
 
@@ -202,8 +202,8 @@ export class SimplifiedAIAnalyzer {
     portfolio: Map<string, number>,
     marketConditions: any
   ): Promise<RiskMetrics> {
-    // Generate mock portfolio returns for calculations
-    const returns = Array.from({ length: 252 }, () => (Math.random() - 0.5) * 0.1);
+    // Deterministic zero returns (no real portfolio data available)
+    const returns = Array.from({ length: 252 }, () => 0);
     
     const avgReturn = returns.reduce((sum, r) => sum + r, 0) / returns.length;
     const variance = returns.reduce((sum, r) => sum + Math.pow(r - avgReturn, 2), 0) / returns.length;
@@ -240,8 +240,8 @@ export class SimplifiedAIAnalyzer {
     const cvar95 = sortedReturns.slice(0, Math.floor(returns.length * 0.05))
       .reduce((sum, r) => sum + Math.abs(r), 0) / Math.floor(returns.length * 0.05) || var95;
 
-    // Beta (simplified - assume correlation with Bitcoin)
-    const beta = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+    // Beta (no real correlation data available)
+    const beta = 0;
 
     // Liquidation risk
     const leverage = marketConditions.leverage || 1;

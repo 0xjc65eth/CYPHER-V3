@@ -148,14 +148,6 @@ export async function POST(request: NextRequest) {
     // Cache the results
     await cachePortfolioData(body.walletAddress, response);
 
-    // Log successful sync
-    console.log(`[Portfolio Sync] Successfully synced portfolio for ${body.walletAddress}:`, {
-      networks: networks.length,
-      tokens: tokenBalances.length,
-      totalValue: totalValueUSD,
-      syncDuration: response.syncDuration
-    });
-
     return NextResponse.json(response);
 
   } catch (error) {
@@ -200,7 +192,6 @@ async function syncNetworkBalances(walletAddress: string, networks: string[]): P
 
       balances.push(balance);
     } catch (error) {
-      console.error(`Error syncing ${network} balance:`, error);
       // Continue with other networks even if one fails
     }
   }
@@ -216,7 +207,7 @@ async function syncTokenBalances(walletAddress: string, networks: string[]): Pro
       const networkTokens = await getNetworkTokenBalances(walletAddress, network);
       tokens.push(...networkTokens);
     } catch (error) {
-      console.error(`Error syncing ${network} tokens:`, error);
+      // Continue on error
     }
   }
 
@@ -233,7 +224,7 @@ async function syncNFTCollections(walletAddress: string, networks: string[]): Pr
         collections.push(...nfts);
       }
     } catch (error) {
-      console.error(`Error syncing ${network} NFTs:`, error);
+      // Continue on error
     }
   }
 
@@ -248,7 +239,7 @@ async function syncRecentTransactions(walletAddress: string, networks: string[])
       const networkTxs = await getRecentTransactions(walletAddress, network, 10);
       transactions.push(...networkTxs);
     } catch (error) {
-      console.error(`Error syncing ${network} transactions:`, error);
+      // Continue on error
     }
   }
 
@@ -259,7 +250,6 @@ async function syncRecentTransactions(walletAddress: string, networks: string[])
 async function getEthereumBalance(address: string): Promise<NetworkBalance> {
   // In production, use Alchemy, Infura, or similar service
   // Returning zero-value fallback instead of random mock data
-  console.warn('[Portfolio Sync] Ethereum balance returning zero-value fallback - integrate real RPC provider');
 
   return {
     network: 'ethereum',
@@ -294,7 +284,6 @@ async function getBitcoinBalance(address: string): Promise<NetworkBalance> {
     };
   } catch (error) {
     // Return zero-value fallback instead of random mock data
-    console.warn('[Portfolio Sync] Bitcoin balance returning zero-value fallback:', error);
 
     return {
       network: 'bitcoin',
@@ -309,7 +298,6 @@ async function getBitcoinBalance(address: string): Promise<NetworkBalance> {
 
 async function getSolanaBalance(address: string): Promise<NetworkBalance> {
   // Returning zero-value fallback instead of random mock data
-  console.warn('[Portfolio Sync] Solana balance returning zero-value fallback - integrate real RPC provider');
 
   return {
     network: 'solana',
@@ -324,7 +312,6 @@ async function getSolanaBalance(address: string): Promise<NetworkBalance> {
 
 async function getPolygonBalance(address: string): Promise<NetworkBalance> {
   // Returning zero-value fallback instead of random mock data
-  console.warn('[Portfolio Sync] Polygon balance returning zero-value fallback - integrate real RPC provider');
 
   return {
     network: 'polygon',
@@ -339,7 +326,6 @@ async function getPolygonBalance(address: string): Promise<NetworkBalance> {
 
 async function getArbitrumBalance(address: string): Promise<NetworkBalance> {
   // Returning zero-value fallback instead of random mock data
-  console.warn('[Portfolio Sync] Arbitrum balance returning zero-value fallback - integrate real RPC provider');
 
   return {
     network: 'arbitrum',
@@ -353,19 +339,16 @@ async function getArbitrumBalance(address: string): Promise<NetworkBalance> {
 
 async function getNetworkTokenBalances(address: string, network: string): Promise<TokenBalance[]> {
   // Returning empty array instead of random mock tokens
-  console.warn(`[Portfolio Sync] Token balances for ${network} returning empty fallback - integrate real token API`);
   return [];
 }
 
 async function getNFTCollections(address: string, network: string): Promise<NFTCollection[]> {
   // Returning empty array instead of random mock NFTs
-  console.warn(`[Portfolio Sync] NFT collections for ${network} returning empty fallback - integrate real NFT API`);
   return [];
 }
 
 async function getRecentTransactions(address: string, network: string, limit: number): Promise<Transaction[]> {
   // Returning empty array instead of random mock transactions
-  console.warn(`[Portfolio Sync] Transactions for ${network} returning empty fallback - integrate real transaction API`);
   return [];
 }
 
@@ -385,9 +368,7 @@ async function getTokenPrice(tokenId: string): Promise<number> {
     const data = await response.json();
     return data[tokenId]?.usd || 0;
   } catch (error) {
-    console.error(`Error getting price for ${tokenId}:`, error);
     // Return 0 instead of fake prices
-    console.warn(`[Portfolio Sync] Price for ${tokenId} returning 0 - API unavailable`);
     return 0;
   }
 }

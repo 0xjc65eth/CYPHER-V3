@@ -98,16 +98,14 @@ function generateSocialMetrics(): SocialMetric[] {
                          platform.name === 'Discord' ? 45000 :
                          platform.name === 'YouTube' ? 30000 : 25000;
     
-    const mentions = Math.round(baseMentions * (0.9 + Math.random() * 0.2));
-    const engagement = Math.round(mentions * (0.1 + Math.random() * 0.3));
-    const sentiment = Math.round((Math.random() * 120) - 20); // -20 to 100
-    const change24h = Math.round((Math.random() * 40) - 10); // -10% to 30%
-    const reach = Math.round(mentions * (5 + Math.random() * 10));
-    
-    // Selecionar 3-5 hashtags aleatórios
-    const hashtagCount = Math.floor(Math.random() * 3) + 3;
-    const shuffled = [...bitcoinHashtags].sort(() => 0.5 - Math.random());
-    const selectedHashtags = shuffled.slice(0, hashtagCount);
+    const mentions = baseMentions;
+    const engagement = 0;
+    const sentiment = 0;
+    const change24h = 0;
+    const reach = 0;
+
+    // Select first 3 hashtags
+    const selectedHashtags = bitcoinHashtags.slice(0, 3);
     
     return {
       platform: platform.name,
@@ -150,12 +148,12 @@ function generateInfluencerData(): InfluencerData[] {
     "Bitcoin's volatility is decreasing as adoption increases. Bullish!"
   ];
   
-  return influencers.map(influencer => {
-    const engagement = Math.round((Math.random() * 5) + 2); // 2-7%
-    const sentiment = Math.round((Math.random() * 140) - 20); // -20 to 120
-    const impact = Math.round((Math.random() * 30) + 50); // 50-80
-    const randomPost = recentPosts[Math.floor(Math.random() * recentPosts.length)];
-    const randomTime = new Date(Date.now() - Math.floor(Math.random() * 86400000)).toISOString(); // Last 24 hours
+  return influencers.map((influencer, index) => {
+    const engagement = 0;
+    const sentiment = 0;
+    const impact = 0;
+    const randomPost = recentPosts[0];
+    const randomTime = new Date(Date.now() - 86400000).toISOString();
     
     return {
       name: influencer.name,
@@ -196,15 +194,13 @@ function generateNewsItems(): NewsItem[] {
   const categories = ["Markets", "Regulation", "Technology", "Adoption", "Mining", "NFTs", "DeFi", "Macro", "Security", "Innovation"];
   
   return newsTitles.map((title, index) => {
-    const source = newsSources[Math.floor(Math.random() * newsSources.length)];
-    const sentiment = Math.round((Math.random() * 160) - 30); // -30 to 130
-    const impact = Math.round((Math.random() * 70) + 30); // 30-100
-    const timestamp = new Date(Date.now() - Math.floor(Math.random() * 172800000)).toISOString(); // Last 48 hours
-    
-    // Select 1-3 random categories
-    const categoryCount = Math.floor(Math.random() * 3) + 1;
-    const shuffledCategories = [...categories].sort(() => 0.5 - Math.random());
-    const selectedCategories = shuffledCategories.slice(0, categoryCount);
+    const source = newsSources[0];
+    const sentiment = 0;
+    const impact = 0;
+    const timestamp = new Date(Date.now() - 172800000).toISOString();
+
+    // Select first category
+    const selectedCategories = categories.slice(0, 1);
     
     // Generate a summary
     const summaries = [
@@ -229,51 +225,37 @@ function generateNewsItems(): NewsItem[] {
       sentiment,
       impact,
       categories: selectedCategories,
-      summary: summaries[Math.floor(Math.random() * summaries.length)]
+      summary: summaries[0]
     };
   }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 }
 
 // Função para gerar análise de sentimento
 function generateSentimentAnalysis(): SentimentAnalysis {
-  const overall = Math.round((Math.random() * 100) - 10); // -10 to 90
-  
-  // Calcular percentuais com base no sentimento geral
-  let bullish, bearish, neutral;
-  if (overall > 50) {
-    bullish = Math.round(50 + (overall - 50) * 0.8);
-    bearish = Math.round((100 - bullish) * 0.3);
-    neutral = 100 - bullish - bearish;
-  } else if (overall < 0) {
-    bearish = Math.round(50 + Math.abs(overall) * 0.8);
-    bullish = Math.round((100 - bearish) * 0.3);
-    neutral = 100 - bullish - bearish;
-  } else {
-    bullish = Math.round(overall + 10);
-    bearish = Math.round(40 - (overall / 2));
-    neutral = 100 - bullish - bearish;
-  }
-  
-  const change24h = Math.round((Math.random() * 30) - 10); // -10 to 20
-  const volumeChange = Math.round((Math.random() * 40) - 10); // -10 to 30
-  const priceCorrelation = Math.round((Math.random() * 1.6) - 0.3) / 10; // -0.3 to 1.3, rounded to 1 decimal
-  
+  const overall = 0;
+  const bullish = 0;
+  const bearish = 0;
+  const neutral = 0;
+  const change24h = 0;
+  const volumeChange = 0;
+  const priceCorrelation = 0;
+
   // Gerar nuvem de palavras
   const words = [
-    "Bitcoin", "ETF", "Bullish", "Bearish", "Halving", "Mining", "Adoption", 
-    "Regulation", "Institutional", "Volatility", "HODL", "Ordinals", "Runes", 
-    "Lightning", "Scalability", "Security", "Decentralization", "Inflation", 
-    "Store of Value", "Digital Gold", "Satoshi", "Blockchain", "Hash Rate", 
+    "Bitcoin", "ETF", "Bullish", "Bearish", "Halving", "Mining", "Adoption",
+    "Regulation", "Institutional", "Volatility", "HODL", "Ordinals", "Runes",
+    "Lightning", "Scalability", "Security", "Decentralization", "Inflation",
+    "Store of Value", "Digital Gold", "Satoshi", "Blockchain", "Hash Rate",
     "Difficulty", "Wallet", "Exchange", "Trading", "Investment", "Future"
   ];
-  
+
   const wordCloud = words.map(word => {
     return {
       word,
-      count: Math.floor(Math.random() * 1000) + 100,
-      sentiment: Math.round((Math.random() * 200) - 50) // -50 to 150
+      count: 0,
+      sentiment: 0
     };
-  }).sort((a, b) => b.count - a.count);
+  });
   
   return {
     overall,
@@ -307,14 +289,12 @@ function generateTrendingTopics(): TrendingTopic[] {
   const assets = ["BTC", "ETH", "SOL", "BNB", "XRP", "DOGE", "ADA", "AVAX"];
   
   return topics.map(topic => {
-    const mentions = Math.floor(Math.random() * 50000) + 10000;
-    const sentiment = Math.round((Math.random() * 140) - 20); // -20 to 120
-    const change24h = Math.round((Math.random() * 60) - 10); // -10 to 50
-    
-    // Select 1-3 related assets
-    const assetCount = Math.floor(Math.random() * 3) + 1;
-    const shuffledAssets = [...assets].sort(() => 0.5 - Math.random());
-    const selectedAssets = shuffledAssets.slice(0, assetCount);
+    const mentions = 0;
+    const sentiment = 0;
+    const change24h = 0;
+
+    // Select first asset
+    const selectedAssets = assets.slice(0, 1);
     
     return {
       topic: topic.topic,
@@ -340,12 +320,12 @@ function generateSocialProjections(): SocialProjection[] {
   ];
   
   return timeframes.map(timeframe => {
-    const sentimentProjection = Math.round((Math.random() * 140) - 20); // -20 to 120
-    const priceImpact = Math.round((Math.random() * 20) - 5); // -5 to 15
-    const confidence = Math.round((Math.random() * 30) + 60); // 60-90
-    
-    // Select a random set of factors
-    const selectedFactors = factorSets[Math.floor(Math.random() * factorSets.length)];
+    const sentimentProjection = 0;
+    const priceImpact = 0;
+    const confidence = 0;
+
+    // Select first set of factors
+    const selectedFactors = factorSets[0];
     
     return {
       timeframe,

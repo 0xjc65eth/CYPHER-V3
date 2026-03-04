@@ -39,7 +39,7 @@ async function fetchHashRateAndDifficulty(): Promise<{ hashRate: number; difficu
 
     return { hashRate, difficulty, difficultyChange };
   } catch (err) {
-    console.warn('[Indicators] Mempool hashrate failed:', err);
+    // Mempool API unavailable
     return { hashRate: 0, difficulty: 0, difficultyChange: 0 };
   }
 }
@@ -54,7 +54,7 @@ async function fetchFundingRate(): Promise<{ value: number; change: number }> {
     const change = prev !== 0 ? ((current - prev) / Math.abs(prev)) * 100 : 0;
     return { value: current, change };
   } catch (err) {
-    console.warn('[Indicators] Binance funding failed:', err);
+    // Binance funding API unavailable
     return { value: 0, change: 0 };
   }
 }
@@ -69,7 +69,7 @@ async function fetchLongShortRatio(): Promise<{ value: number; change: number }>
     const change = prev !== 0 ? ((current - prev) / prev) * 100 : 0;
     return { value: current, change };
   } catch (err) {
-    console.warn('[Indicators] Binance long/short failed:', err);
+    // Binance long/short API unavailable
     return { value: 0, change: 0 };
   }
 }
@@ -87,7 +87,7 @@ async function fetchMVRV(): Promise<{ value: number; change: number }> {
     const mvrv = ath > 0 ? (currentPrice / ath) * 3 : 0; // Rough proxy
     return { value: mvrv, change: data.market_data?.price_change_percentage_24h || 0 };
   } catch (err) {
-    console.warn('[Indicators] MVRV failed:', err);
+    // MVRV calculation unavailable
     return { value: 0, change: 0 };
   }
 }

@@ -153,8 +153,8 @@ export async function getTwitterMetrics(query: string = 'bitcoin OR ordinals OR 
       .map(([hashtag]) => `#${hashtag}`);
     
     // Calcular variação nas últimas 24h (simulado)
-    const change24h = Math.round((Math.random() * 40) - 10); // -10% a 30%
-    
+    const change24h = 0; // No real data available
+
     // Calcular alcance (baseado no número de seguidores)
     const reach = tweets.statuses.reduce((sum, tweet) => sum + tweet.user.followers_count, 0);
     
@@ -367,7 +367,7 @@ export async function getTwitterTrendingTopics(): Promise<TrendingTopic[]> {
           }
           
           // Calcular variação nas últimas 24h (simulado)
-          const change24h = Math.round((Math.random() * 60) - 10); // -10% a 50%
+          const change24h = 0; // No real data available
           
           // Determinar ativos relacionados
           const relatedAssets = ['BTC'];
@@ -448,11 +448,11 @@ export async function getTwitterSentimentAnalysis(): Promise<SentimentAnalysis> 
     const overall = convertSentimentScore(averageSentiment);
     
     // Calcular variação nas últimas 24h (simulado)
-    const change24h = Math.round((Math.random() * 30) - 10); // -10% a 20%
-    const volumeChange = Math.round((Math.random() * 40) - 10); // -10% a 30%
-    
-    // Correlação com o preço (simulado)
-    const priceCorrelation = Math.round((Math.random() * 1.6) - 0.3) / 10; // -0.3 a 1.3
+    const change24h = 0; // No real data available
+    const volumeChange = 0; // No real data available
+
+    // Correlação com o preço (no real data)
+    const priceCorrelation = 0;
     
     // Extrair palavras mais comuns
     const allWords = sentimentResults.flatMap(result => result.words);

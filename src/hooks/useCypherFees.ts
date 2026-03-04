@@ -138,11 +138,6 @@ export function useCypherFees(config: UseCypherFeesConfig): UseCypherFeesReturn 
         // Adicionar ao distribuidor
         await cypherFeeDistributor.addCollectedFee(calculatedFee);
 
-        console.log('💰 FEE COLLECTION SUCCESS:', {
-          transactionId,
-          amount: calculatedFee.feeAmountUSD,
-          network: config.network
-        });
       }
 
       // Callback para componente pai

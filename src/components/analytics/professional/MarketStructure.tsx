@@ -78,7 +78,7 @@ const MarketStructure: FC<MarketStructureProps> = ({ timeRange, isLive }) => {
                       <div className="h-2 bg-green-600/20 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-green-600"
-                          style={{ width: `${Math.random() * 100}%` }}
+                          style={{ width: '50%' }}
                         />
                       </div>
                     </div>
@@ -90,7 +90,7 @@ const MarketStructure: FC<MarketStructureProps> = ({ timeRange, isLive }) => {
                       <div className="h-2 bg-red-600/20 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-red-600"
-                          style={{ width: `${Math.random() * 100}%` }}
+                          style={{ width: '50%' }}
                         />
                       </div>
                     </div>

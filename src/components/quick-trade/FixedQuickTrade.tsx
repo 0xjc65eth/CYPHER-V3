@@ -345,12 +345,6 @@ const FixedQuickTrade: React.FC = () => {
         timestamp: Date.now()
       });
       
-      console.log('✅ Trade executed:', {
-        ...fractionalOrder,
-        wallet: activeWalletInfo,
-        txHash
-      });
-      
       // Reset form after success
       setTimeout(() => {
         setInputValue('10');

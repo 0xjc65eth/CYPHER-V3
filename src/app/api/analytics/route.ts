@@ -49,7 +49,7 @@ async function fetchBTCData(): Promise<{ price: number; change24h: number; volum
     setCache('btc_data', result);
     return result;
   } catch (error) {
-    console.warn('[Analytics API] Failed to fetch BTC data from CoinGecko, returning fallback zeros:', error);
+    // CoinGecko API unavailable, returning fallback zeros
     return {
       price: 0,
       change24h: 0,

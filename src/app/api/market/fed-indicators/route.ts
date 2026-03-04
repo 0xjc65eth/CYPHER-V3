@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
       const redis = getRedisClient();
       cached = await redis.get(CACHE_KEY) as string | null;
     } catch (redisErr) {
-      console.warn('[fed-indicators] Redis unavailable, trying memCache');
+      // Redis unavailable, trying memCache
       const memData = memGet(CACHE_KEY);
       if (memData) {
         return NextResponse.json(memData, {

@@ -512,10 +512,10 @@ export class DexTrustSystem {
       ...current,
       metrics: {
         ...current.metrics,
-        uptime: Math.max(85, Math.min(100, current.metrics.uptime + (Math.random() - 0.5) * 2)),
-        responseTime: Math.max(500, current.metrics.responseTime + (Math.random() - 0.5) * 1000),
-        successRate: Math.max(85, Math.min(100, current.metrics.successRate + (Math.random() - 0.5) * 2)),
-        volume24h: current.metrics.volume24h * (1 + (Math.random() - 0.5) * 0.2)
+        uptime: current.metrics.uptime,
+        responseTime: current.metrics.responseTime,
+        successRate: current.metrics.successRate,
+        volume24h: current.metrics.volume24h
       },
       lastUpdated: Date.now()
     };

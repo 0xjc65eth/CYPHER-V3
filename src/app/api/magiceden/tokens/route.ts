@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
           });
         }
       } catch (okxError) {
-        console.warn('[API] OKX tokens fetch failed, falling back to ME:', okxError instanceof Error ? okxError.message : okxError);
+        // OKX failed, continue to ME fallback
       }
     }
 

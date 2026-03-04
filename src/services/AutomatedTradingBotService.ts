@@ -282,9 +282,9 @@ export class AutomatedTradingBotService {
   private async scanArbitrageOpportunities(symbol: string, basePrice: number) {
     // Simular preços de diferentes exchanges
     const exchanges = {
-      binance: basePrice * (1 + (Math.random() - 0.5) * 0.01), // ±0.5%
-      okx: basePrice * (1 + (Math.random() - 0.5) * 0.01),
-      hyperliquid: basePrice * (1 + (Math.random() - 0.5) * 0.01)
+      binance: basePrice, // No random variance
+      okx: basePrice,
+      hyperliquid: basePrice
     };
 
     // Encontrar maior spread
@@ -316,9 +316,9 @@ export class AutomatedTradingBotService {
   }
 
   private async scanMomentumOpportunities(symbol: string, price: number, change24h: number, volume: number) {
-    // Simular indicadores técnicos
-    const rsi = 50 + Math.random() * 50; // RSI entre 50-100
-    const macdSignal = Math.random() > 0.5 ? 'bullish' : 'bearish';
+    // Default neutral indicators - no real data available
+    const rsi = 50; // Neutral RSI
+    const macdSignal = 'bullish'; // Use first option instead of random
     const volumeIncrease = volume > 1000000000; // Volume > 1B
 
     // Condições de compra
@@ -342,8 +342,8 @@ export class AutomatedTradingBotService {
   }
 
   private async executeDCAStrategy(symbol: string, price: number, change24h: number) {
-    // DCA apenas em dips ou condições favoráveis
-    if (change24h < -2 || Math.random() > 0.9) { // Em quedas ou 10% das vezes
+    // DCA apenas em dips
+    if (change24h < -2) { // Em quedas apenas (remove random condition)
       const opportunity: TradingOpportunity = {
         id: `dca_${Date.now()}`,
         type: 'buy',
@@ -365,9 +365,9 @@ export class AutomatedTradingBotService {
   }
 
   private async executeArbitrageOpportunity(opportunity: TradingOpportunity) {
-    
-    // Simular execução de trade
-    const success = Math.random() > 0.1; // 90% de sucesso
+
+    // Deterministic success in simulation
+    const success = true;
     
     if (success) {
       const position: TradingPosition = {
@@ -429,8 +429,8 @@ export class AutomatedTradingBotService {
         } else {
         }
       } else {
-        // Fallback para simulação
-        const success = Math.random() > 0.25; // 75% de sucesso
+        // Fallback para simulação - deterministic success
+        const success = true;
         
         if (success) {
           const position: TradingPosition = {
@@ -802,7 +802,7 @@ export class AutomatedTradingBotService {
     for (const strategy of this.strategies) {
       if (strategy.active) {
         // Trigger strategy execution
-        console.log(`Executing strategy: ${strategy.name}`);
+        // Strategy execution triggered
       }
     }
   }

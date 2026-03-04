@@ -91,20 +91,16 @@ class EnhancedNeuralService {
     const cachedPrediction = await cacheService.get(
       cacheKey,
       async () => {
-        // Generate a prediction if cache miss
-        // Gerar uma previsão aleatória para demonstração
-        const trends: Array<'up' | 'down' | 'sideways'> = ['up', 'down', 'sideways'];
-        const volatilities: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
-        
+        // No real prediction model available - return neutral defaults
         return {
           asset,
-          trend: trends[Math.floor(Math.random() * trends.length)],
-          confidenceScore: 0.5 + Math.random() * 0.5, // 0.5 a 1.0
+          trend: 'sideways' as const,
+          confidenceScore: 0, // 0 = no confidence, no real prediction
           timeframe,
-          predictedChangePercent: (Math.random() * 20) - 10, // -10% a +10%
-          supportLevel: asset === 'BTC' ? 50000 + Math.random() * 5000 : undefined,
-          resistanceLevel: asset === 'BTC' ? 60000 + Math.random() * 5000 : undefined,
-          volatilityPrediction: volatilities[Math.floor(Math.random() * volatilities.length)],
+          predictedChangePercent: 0, // neutral
+          supportLevel: undefined, // no data
+          resistanceLevel: undefined, // no data
+          volatilityPrediction: 'medium' as const, // neutral default
           timestamp: Date.now()
         };
       }
@@ -116,27 +112,23 @@ class EnhancedNeuralService {
     
     try {
       // Aqui seria feita a chamada para a API do serviço neural
-      // Por enquanto, vamos simular com dados de exemplo
-      
-      // Gerar uma previsão aleatória para demonstração
-      const trends: Array<'up' | 'down' | 'sideways'> = ['up', 'down', 'sideways'];
-      const volatilities: Array<'high' | 'medium' | 'low'> = ['high', 'medium', 'low'];
-      
+      // No real prediction model available - return neutral defaults
+
       const prediction: MarketPrediction = {
         asset,
-        trend: trends[Math.floor(Math.random() * trends.length)],
-        confidenceScore: 0.5 + Math.random() * 0.5, // 0.5 a 1.0
+        trend: 'sideways',
+        confidenceScore: 0, // 0 = no confidence, no real prediction
         timeframe,
-        predictedChangePercent: (Math.random() * 20) - 10, // -10% a +10%
-        supportLevel: asset === 'BTC' ? 50000 + Math.random() * 5000 : undefined,
-        resistanceLevel: asset === 'BTC' ? 60000 + Math.random() * 5000 : undefined,
-        volatilityPrediction: volatilities[Math.floor(Math.random() * volatilities.length)],
+        predictedChangePercent: 0, // neutral
+        supportLevel: undefined, // no data
+        resistanceLevel: undefined, // no data
+        volatilityPrediction: 'medium', // neutral default
         timestamp: Date.now()
       };
-      
+
       // Salvar no cache
       await cacheService.set(cacheKey, prediction, { ttl: 3600 * 1000 }); // 1 hora
-      
+
       return prediction;
     } catch (error) {
       console.error('Failed to get market prediction:', error);
@@ -155,31 +147,17 @@ class EnhancedNeuralService {
     const cachedAnalysis = await cacheService.get(
       cacheKey,
       async () => {
-        // Generate sentiment analysis if cache miss
-        const sentimentScore = Math.random() * 2 - 1; // -1 a 1
-        let overallSentiment: 'bullish' | 'bearish' | 'neutral';
-        
-        if (sentimentScore > 0.3) {
-          overallSentiment = 'bullish';
-        } else if (sentimentScore < -0.3) {
-          overallSentiment = 'bearish';
-        } else {
-          overallSentiment = 'neutral';
-        }
-        
-        const volumeIndicators: Array<'increasing' | 'decreasing' | 'stable'> = ['increasing', 'decreasing', 'stable'];
-        
+        // No real sentiment analysis available - return neutral defaults
         return {
           asset,
-          overallSentiment,
-          sentimentScore,
-          // Sentiment analysis requires external API integration
+          overallSentiment: 'neutral' as const,
+          sentimentScore: 0, // 0 = neutral, no real sentiment data
           sources: {
             twitter: 0,
             reddit: 0,
             news: 0
           },
-          volumeIndicator: 'unavailable' as typeof volumeIndicators[number],
+          volumeIndicator: 'stable' as const, // neutral default
           timestamp: Date.now()
         };
       }
@@ -191,39 +169,24 @@ class EnhancedNeuralService {
     
     try {
       // Aqui seria feita a chamada para a API do serviço neural
-      // Por enquanto, vamos simular com dados de exemplo
-      
-      // Gerar uma análise aleatória para demonstração
-      const sentiments: Array<'bullish' | 'bearish' | 'neutral'> = ['bullish', 'bearish', 'neutral'];
-      const volumeIndicators: Array<'increasing' | 'decreasing' | 'stable'> = ['increasing', 'decreasing', 'stable'];
-      
-      const sentimentScore = Math.random() * 2 - 1; // -1 a 1
-      let overallSentiment: 'bullish' | 'bearish' | 'neutral';
-      
-      if (sentimentScore > 0.3) {
-        overallSentiment = 'bullish';
-      } else if (sentimentScore < -0.3) {
-        overallSentiment = 'bearish';
-      } else {
-        overallSentiment = 'neutral';
-      }
-      
+      // No real sentiment analysis available - return neutral defaults
+
       const analysis: SentimentAnalysis = {
         asset,
-        overallSentiment,
-        sentimentScore,
+        overallSentiment: 'neutral',
+        sentimentScore: 0, // 0 = neutral, no real sentiment data
         sources: {
-          twitter: Math.random() * 2 - 1,
-          reddit: Math.random() * 2 - 1,
-          news: Math.random() * 2 - 1
+          twitter: 0,
+          reddit: 0,
+          news: 0
         },
-        volumeIndicator: volumeIndicators[Math.floor(Math.random() * volumeIndicators.length)],
+        volumeIndicator: 'stable', // neutral default
         timestamp: Date.now()
       };
-      
+
       // Salvar no cache
       await cacheService.set(cacheKey, analysis, { ttl: 1800 * 1000 }); // 30 minutos
-      
+
       return analysis;
     } catch (error) {
       console.error('Failed to get sentiment analysis:', error);
@@ -245,38 +208,8 @@ class EnhancedNeuralService {
     const cachedPatterns = await cacheService.get(
       cacheKey,
       async () => {
-        // Generate pattern detection if cache miss
-        // Lista de possíveis padrões
-        const possiblePatterns = [
-          'double top',
-          'double bottom',
-          'head and shoulders',
-          'inverse head and shoulders',
-          'triangle',
-          'wedge',
-          'flag',
-          'pennant',
-          'cup and handle'
-        ];
-        
-        const actions: Array<'buy' | 'sell' | 'hold'> = ['buy', 'sell', 'hold'];
-        
-        // Gerar 1-3 padrões aleatórios
-        const numPatterns = Math.floor(Math.random() * 3) + 1;
-        const patterns: PatternDetection[] = [];
-        
-        for (let i = 0; i < numPatterns; i++) {
-          patterns.push({
-            asset,
-            pattern: possiblePatterns[Math.floor(Math.random() * possiblePatterns.length)],
-            significance: 0.5 + Math.random() * 0.5, // 0.5 a 1.0
-            suggestedAction: actions[Math.floor(Math.random() * actions.length)],
-            timeframe,
-            timestamp: Date.now()
-          });
-        }
-        
-        return patterns;
+        // No real pattern detection available - return empty array
+        return [] as PatternDetection[];
       }
     );
     
@@ -286,41 +219,13 @@ class EnhancedNeuralService {
     
     try {
       // Aqui seria feita a chamada para a API do serviço neural
-      // Por enquanto, vamos simular com dados de exemplo
-      
-      // Lista de possíveis padrões
-      const possiblePatterns = [
-        'double top',
-        'double bottom',
-        'head and shoulders',
-        'inverse head and shoulders',
-        'triangle',
-        'wedge',
-        'flag',
-        'pennant',
-        'cup and handle'
-      ];
-      
-      const actions: Array<'buy' | 'sell' | 'hold'> = ['buy', 'sell', 'hold'];
-      
-      // Gerar 1-3 padrões aleatórios
-      const numPatterns = Math.floor(Math.random() * 3) + 1;
+      // No real pattern detection available - return empty array
+
       const patterns: PatternDetection[] = [];
-      
-      for (let i = 0; i < numPatterns; i++) {
-        patterns.push({
-          asset,
-          pattern: possiblePatterns[Math.floor(Math.random() * possiblePatterns.length)],
-          significance: 0.5 + Math.random() * 0.5, // 0.5 a 1.0
-          suggestedAction: actions[Math.floor(Math.random() * actions.length)],
-          timeframe,
-          timestamp: Date.now()
-        });
-      }
-      
+
       // Salvar no cache
       await cacheService.set(cacheKey, patterns, { ttl: 3600 * 1000 }); // 1 hora
-      
+
       return patterns;
     } catch (error) {
       console.error('Failed to detect patterns:', error);

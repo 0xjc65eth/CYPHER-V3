@@ -894,16 +894,16 @@ export class HyperliquidBot extends EventEmitter {
   }
 
   private calculateRSI(symbol: string, period: number): number {
-    // Simplified RSI calculation
-    return 50 + Math.random() * 50 - 25;
+    // Deterministic neutral RSI (no live data)
+    return 50;
   }
 
   private calculateMACD(symbol: string, fast: number, slow: number, signal: number): any {
-    // Simplified MACD calculation
+    // Deterministic neutral MACD (no live data)
     return {
-      macd: Math.random() * 2 - 1,
-      signal: Math.random() * 2 - 1,
-      histogram: Math.random() * 2 - 1
+      macd: 0,
+      signal: 0,
+      histogram: 0
     };
   }
 

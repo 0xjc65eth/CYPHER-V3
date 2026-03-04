@@ -1,0 +1,29 @@
+{
+  "name": "cypher-git",
+  "description": "Operações Git no repositório CYPHER V3 — commits, logs, diffs, branches",
+  "type": "mcp-server",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "/Users/juliocesar/CYPHER-V3"],
+  "config": {
+    "repositoryPath": "/Users/juliocesar/CYPHER-V3",
+    "allowedBranches": ["main", "staging", "feat/*", "fix/*", "hotfix/*"],
+    "conventionalCommits": true,
+    "signCommits": false
+  },
+  "capabilities": [
+    "git_status",
+    "git_log",
+    "git_diff",
+    "git_commit",
+    "git_branch",
+    "git_checkout",
+    "git_stash"
+  ],
+  "commitRules": {
+    "format": "<type>(<scope>): <description>",
+    "types": ["feat", "fix", "perf", "security", "refactor", "style", "test", "docs", "chore", "revert"],
+    "scopes": ["ordinals", "runes", "brc20", "rare-sats", "trading", "agent", "wallet", "auth", "api", "ui", "redis", "stripe", "performance", "security", "types", "deps", "config"],
+    "maxLength": 72
+  },
+  "notes": "Usar Conventional Commits SEMPRE. Branch main é protegida."
+}

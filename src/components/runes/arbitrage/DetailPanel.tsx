@@ -9,8 +9,8 @@ const safeFixed = (value: any, decimals = 2): string =>
 function getMarketplaceUrl(marketplace: string, rune: string): string {
   const encoded = encodeURIComponent(rune);
   switch (marketplace) {
-    case 'Magic Eden':
-      return `https://magiceden.io/runes/${encoded}`;
+    case 'Gamma.io':
+      return `https://gamma.io/ordinals/collections/${encoded}`;
     case 'OKX':
       return `https://www.okx.com/web3/marketplace/runes/token/${encoded}`;
     case 'UniSat':
@@ -22,7 +22,7 @@ function getMarketplaceUrl(marketplace: string, rune: string): string {
 
 export function DetailPanel({ opp }: { opp: ArbitrageOpportunity }) {
   const prices = [
-    { name: 'Magic Eden', price: opp.magicEdenPrice, color: 'bg-pink-500' },
+    { name: 'Gamma.io', price: opp.magicEdenPrice, color: 'bg-green-500' },
     { name: 'UniSat', price: opp.uniSatPrice, color: 'bg-yellow-500' },
   ];
   const maxPrice = Math.max(...prices.map((p) => p.price));

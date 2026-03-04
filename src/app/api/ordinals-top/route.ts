@@ -50,22 +50,22 @@ export async function GET() {
         arbitrage: 'N/A', // Require real arbitrage calculation, not random
         rank: idx + 1,
         collectionLink: `https://ordiscan.com/collections/${slug}`,
-        detailsLink: `https://magiceden.io/ordinals/collection/${slug}`,
+        detailsLink: `https://gamma.io/ordinals/collections/${slug}`,
         explorerLink: `https://ordinals.com/collections/${slug}`,
         inscriptionLink: `https://ordinals.com/inscription/${inscriptionId}`,
-        buyLink: `https://magiceden.io/ordinals/collection/${slug}?listed=true&sort=price-asc`,
-        sellLink: `https://magiceden.io/ordinals/collection/${slug}?action=sell`,
+        buyLink: `https://gamma.io/ordinals/collections/${slug}?listed=true&sort=price-asc`,
+        sellLink: `https://gamma.io/ordinals/collections/${slug}?action=sell`,
         marketplaceLinks: [
-          { name: "Magic Eden", url: `https://magiceden.io/ordinals/collection/${slug}` },
+          { name: "Gamma.io", url: `https://gamma.io/ordinals/collections/${slug}` },
           { name: "Gamma.io", url: `https://gamma.io/ordinals/collections/${slug}` },
           { name: "Ordinals Market", url: `https://ordinals.market/collections/${slug}` }
         ],
         exchanges: [
           {
-            name: "Magic Eden",
-            url: `https://magiceden.io/ordinals/collection/${slug}`,
-            buyUrl: `https://magiceden.io/ordinals/collection/${slug}?listed=true&sort=price-asc`,
-            sellUrl: `https://magiceden.io/ordinals/collection/${slug}?action=sell`,
+            name: "Gamma.io",
+            url: `https://gamma.io/ordinals/collections/${slug}`,
+            buyUrl: `https://gamma.io/ordinals/collections/${slug}?listed=true&sort=price-asc`,
+            sellUrl: `https://gamma.io/ordinals/collections/${slug}?action=sell`,
             price: parseFloat(floorPrice) * 1.02
           },
           {
@@ -164,22 +164,22 @@ export async function GET() {
         arbitrage: 'N/A', // Require real arbitrage calculation, not random
         rank: idx + 1,
         collectionLink: `https://ordiscan.com/collections/${slug}`,
-        detailsLink: `https://magiceden.io/ordinals/collection/${slug}`,
+        detailsLink: `https://gamma.io/ordinals/collections/${slug}`,
         explorerLink: `https://ordinals.com/collections/${slug}`,
         inscriptionLink: `https://ordinals.com/inscription/${inscriptionId}`,
-        buyLink: `https://magiceden.io/ordinals/collection/${slug}?listed=true&sort=price-asc`,
-        sellLink: `https://magiceden.io/ordinals/collection/${slug}?action=sell`,
+        buyLink: `https://gamma.io/ordinals/collections/${slug}?listed=true&sort=price-asc`,
+        sellLink: `https://gamma.io/ordinals/collections/${slug}?action=sell`,
         marketplaceLinks: [
-          { name: "Magic Eden", url: `https://magiceden.io/ordinals/collection/${slug}` },
+          { name: "Gamma.io", url: `https://gamma.io/ordinals/collections/${slug}` },
           { name: "Gamma.io", url: `https://gamma.io/ordinals/collections/${slug}` },
           { name: "Ordinals Market", url: `https://ordinals.market/collections/${slug}` }
         ],
         exchanges: [
           {
-            name: "Magic Eden",
-            url: `https://magiceden.io/ordinals/collection/${slug}`,
-            buyUrl: `https://magiceden.io/ordinals/collection/${slug}?listed=true&sort=price-asc`,
-            sellUrl: `https://magiceden.io/ordinals/collection/${slug}?action=sell`,
+            name: "Gamma.io",
+            url: `https://gamma.io/ordinals/collections/${slug}`,
+            buyUrl: `https://gamma.io/ordinals/collections/${slug}?listed=true&sort=price-asc`,
+            sellUrl: `https://gamma.io/ordinals/collections/${slug}?action=sell`,
             price: parseFloat(floorPrice) * 1.02
           },
           {

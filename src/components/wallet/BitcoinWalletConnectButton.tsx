@@ -50,8 +50,6 @@ export const BitcoinWalletConnectButton: React.FC<BitcoinWalletConnectButtonProp
   const handleConnect = async () => {
     setLoading(true);
     try {
-      console.log('🔗 Iniciando conexão com carteira Bitcoin...');
-      
       const result = await walletService.connect('xverse') as any;
 
       if (result.address) {
@@ -62,14 +60,6 @@ export const BitcoinWalletConnectButton: React.FC<BitcoinWalletConnectButtonProp
           setConnected(true);
           onConnect?.(data);
 
-          console.log('✅ Carteira Bitcoin conectada:', {
-            provider: result.walletType,
-            payment: data.addresses.payment,
-            ordinals: data.addresses.ordinals,
-            balance: data.balance.total,
-            ordinalsCount: data.ordinals.length,
-            runesCount: data.runes.length
-          });
         }
       }
     } catch (error: any) {
@@ -97,7 +87,6 @@ export const BitcoinWalletConnectButton: React.FC<BitcoinWalletConnectButtonProp
     setConnected(false);
     setWalletData(null);
     onDisconnect?.();
-    console.log('🔌 Carteira Bitcoin desconectada');
   };
 
   const formatSats = (sats: number) => {

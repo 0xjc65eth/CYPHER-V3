@@ -73,21 +73,20 @@ export async function GET() {
     // Calculate daily inscription rate
     const inscriptionRate = Math.round(totalInscriptions / 365) // Daily average estimate
 
-    // Dados de marketplaces para coleções populares
     const COLLECTION_MARKETPLACES = {
-      'Bitcoin Puppets': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'OCM GENESIS': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'SEIZE CTRL': ['magiceden.io', 'gamma.io'],
-      'N0 0RDINARY KIND': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'THE WIZARDS OF LORDS': ['magiceden.io', 'gamma.io'],
-      'YIELD HACKER PASS': ['magiceden.io', 'ordswap.io'],
-      'STACK SATS': ['magiceden.io', 'gamma.io'],
-      'OCM KATOSHI PRIME': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'OCM KATOSHI CLASSIC': ['magiceden.io', 'gamma.io'],
-      'MULTIVERSO PASS': ['magiceden.io', 'ordswap.io']
+      'Bitcoin Puppets': ['gamma.io', 'ordswap.io'],
+      'OCM GENESIS': ['gamma.io', 'ordswap.io'],
+      'SEIZE CTRL': ['gamma.io'],
+      'N0 0RDINARY KIND': ['gamma.io', 'ordswap.io'],
+      'THE WIZARDS OF LORDS': ['gamma.io'],
+      'YIELD HACKER PASS': ['gamma.io', 'ordswap.io'],
+      'STACK SATS': ['gamma.io'],
+      'OCM KATOSHI PRIME': ['gamma.io', 'ordswap.io'],
+      'OCM KATOSHI CLASSIC': ['gamma.io'],
+      'MULTIVERSO PASS': ['gamma.io', 'ordswap.io']
     };
 
-    // Calculate real volume and price changes (NO MORE Math.random()!)
+    // Calculate real volume and price changes
     let totalVolumeChange = 0;
     let totalPriceChange = 0;
     let collectionsWithData = 0;
@@ -117,7 +116,7 @@ export async function GET() {
       total_collections: collectionsData.length || 1500,
       popular_collections: collectionsData.slice(0, 10).map((collection: CollectionEntry) => {
         const collectionName = collection.name;
-        const marketplaces = COLLECTION_MARKETPLACES[collectionName as keyof typeof COLLECTION_MARKETPLACES] || ['magiceden.io', 'gamma.io'];
+        const marketplaces = COLLECTION_MARKETPLACES[collectionName as keyof typeof COLLECTION_MARKETPLACES] || ['gamma.io'];
         const slug = (collection.slug || collectionName.toLowerCase().replace(/\s+/g, '-'));
 
         return {
@@ -151,18 +150,10 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching Ordinals stats:', error)
 
-    // Dados de marketplaces para coleções populares
     const COLLECTION_MARKETPLACES = {
-      'Bitcoin Puppets': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'OCM GENESIS': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'SEIZE CTRL': ['magiceden.io', 'gamma.io'],
-      'N0 0RDINARY KIND': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'THE WIZARDS OF LORDS': ['magiceden.io', 'gamma.io'],
-      'YIELD HACKER PASS': ['magiceden.io', 'ordswap.io'],
-      'STACK SATS': ['magiceden.io', 'gamma.io'],
-      'OCM KATOSHI PRIME': ['magiceden.io', 'gamma.io', 'ordswap.io'],
-      'OCM KATOSHI CLASSIC': ['magiceden.io', 'gamma.io'],
-      'MULTIVERSO PASS': ['magiceden.io', 'ordswap.io']
+      'Bitcoin Puppets': ['gamma.io', 'ordswap.io'],
+      'OCM GENESIS': ['gamma.io', 'ordswap.io'],
+      'SEIZE CTRL': ['gamma.io'],
     };
 
     // Return fallback data

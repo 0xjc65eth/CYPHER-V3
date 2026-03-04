@@ -97,20 +97,20 @@ export function WalletConnector() {
         {
           name: 'Ordinals',
           type: 'ordinals',
-          amount: Math.floor(Math.random() * 5) + 1,
-          value: (Math.floor(Math.random() * 5) + 1) * 1000
+          amount: 0,
+          value: 0
         },
         {
           name: 'Runes',
           type: 'runes',
-          amount: Math.floor(Math.random() * 100) + 10,
-          value: (Math.floor(Math.random() * 100) + 10) * 50
+          amount: 0,
+          value: 0
         },
         {
           name: 'Rare Sats',
           type: 'rare_sats',
-          amount: Math.floor(Math.random() * 10000) + 1000,
-          value: (Math.floor(Math.random() * 10000) + 1000) * 0.1
+          amount: 0,
+          value: 0
         }
       ];
     } catch (error) {
@@ -184,25 +184,10 @@ export function WalletConnector() {
         transactions = await getBitcoinTransactions(address);
         balance = await getBitcoinBalance(address);
       } else {
-        // Mock data for other networks
-        balance = Math.random() * 10 + 1;
-        assets = [
-          {
-            name: selectedNetwork === 'ethereum' ? 'Ethereum' : 'Solana',
-            type: selectedNetwork,
-            amount: balance,
-            value: balance * (selectedNetwork === 'ethereum' ? 2500 : 100)
-          }
-        ];
-        transactions = [
-          {
-            hash: 'abc123...def456',
-            type: 'Transfer',
-            amount: 0.5,
-            timestamp: new Date().toLocaleDateString(),
-            status: 'confirmed'
-          }
-        ];
+        // No mock data - return empty state
+        balance = 0;
+        assets = [];
+        transactions = [];
       }
       
       setWalletInfo({
@@ -239,24 +224,10 @@ export function WalletConnector() {
         transactions = await getBitcoinTransactions(manualAddress);
         balance = await getBitcoinBalance(manualAddress);
       } else {
-        balance = Math.random() * 10 + 1;
-        assets = [
-          {
-            name: selectedNetwork === 'ethereum' ? 'Ethereum' : 'Solana',
-            type: selectedNetwork,
-            amount: balance,
-            value: balance * (selectedNetwork === 'ethereum' ? 2500 : 100)
-          }
-        ];
-        transactions = [
-          {
-            hash: 'manual123...address456',
-            type: 'Transfer',
-            amount: 0.3,
-            timestamp: new Date().toLocaleDateString(),
-            status: 'confirmed'
-          }
-        ];
+        // No mock data - return empty state
+        balance = 0;
+        assets = [];
+        transactions = [];
       }
       
       setWalletInfo({

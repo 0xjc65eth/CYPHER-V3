@@ -7,11 +7,13 @@
 import type { Exchange as CCXTExchange, Ticker as CCXTTicker } from 'ccxt';
 
 // Lazy load CCXT to avoid bundle bloat (130+ exchanges)
-let _ccxt: typeof import('ccxt')['default'] | null = null;
+let _ccxt: any = null;
+let ccxt: any = null;
 async function getCcxt() {
   if (!_ccxt) {
     const mod = await import('ccxt');
     _ccxt = mod.default;
+    ccxt = _ccxt;
   }
   return _ccxt;
 }
@@ -89,6 +91,8 @@ class CCXTIntegration {
    * Initialize all supported exchanges
    */
   private async initializeExchanges() {
+    await getCcxt();
+    if (!ccxt) return;
     for (const exchangeId of this.SUPPORTED_EXCHANGES) {
       try {
         const ExchangeClass = ccxt[exchangeId as keyof typeof ccxt] as typeof CCXTExchange;

@@ -548,8 +548,8 @@ class RealAnalyticsDataService {
       price: 0.001, // Would need market data
       marketCap: parseInt(rune.total_supply || '0') * 0.001,
       holders: parseInt(rune.holders || '0'),
-      volume24h: Math.random() * 1000, // Would need trading data
-      change24h: (Math.random() - 0.5) * 20,
+      volume24h: 0, // Would need trading data
+      change24h: 0,
     }));
   }
 

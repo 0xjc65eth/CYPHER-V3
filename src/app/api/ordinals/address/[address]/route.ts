@@ -247,7 +247,7 @@ async function fetchFromOrdScan(address: string, page = 0, limit = 50): Promise<
 }
 
 /**
- * Magic Eden API Client
+ * Legacy Magic Eden API Client (deprecated — migrating to Gamma.io)
  */
 async function fetchFromMagicEden(address: string, page = 0, limit = 50): Promise<OrdinalsBalance> {
   const baseUrl = 'https://api-mainnet.magiceden.io/v2';

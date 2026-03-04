@@ -31,7 +31,7 @@ async function fetchFearAndGreed(): Promise<{ score: number; classification: str
       })),
     };
   } catch (err) {
-    console.warn('[Sentiment] F&G failed:', err);
+    // F&G API unavailable, return neutral sentiment
     return { score: 50, classification: 'Neutral', history: [] };
   }
 }
@@ -50,7 +50,7 @@ async function fetchGlobalData(): Promise<{ btcDominance: number; totalMarketCap
       activeCryptos: d.active_cryptocurrencies || 0,
     };
   } catch (err) {
-    console.warn('[Sentiment] CoinGecko global failed:', err);
+    // CoinGecko global API unavailable
     return { btcDominance: 0, totalMarketCap: 0, totalVolume: 0, activeCryptos: 0 };
   }
 }

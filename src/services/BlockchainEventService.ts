@@ -406,8 +406,8 @@ export class BlockchainEventService {
 
   private createExchangeFlowEvent(tx: any): BlockchainEvent {
     const amount = this.calculateTransactionAmount(tx);
-    const direction = Math.random() > 0.5 ? 'inflow' : 'outflow';
-    const exchange = ['Binance', 'Coinbase', 'Kraken', 'Bitfinex'][Math.floor(Math.random() * 4)];
+    const direction = 'inflow';
+    const exchange = 'Binance';
     
     return {
       id: `exchange-${tx.txid || Date.now()}`,
@@ -441,7 +441,7 @@ export class BlockchainEventService {
   private looksLikeExchangeFlow(tx: any): boolean {
     // Simple heuristic - in production, you'd check against known exchange addresses
     const amount = this.calculateTransactionAmount(tx);
-    return amount > 10 && Math.random() < 0.1; // 10% chance for demo
+    return amount > 10; // Deterministic: flag all large transactions as exchange flows
   }
 
   private shouldCreateLightningEvent(stats: any): boolean {
@@ -469,7 +469,7 @@ export class BlockchainEventService {
     if (tx.vout && Array.isArray(tx.vout)) {
       return tx.vout.reduce((sum: number, output: any) => sum + (output.value || 0), 0) / 100000000;
     }
-    return Math.random() * 100; // Fallback for incomplete data
+    return 0; // Fallback for incomplete data
   }
 
   private async getRecentLargeTransactions(): Promise<any[]> {

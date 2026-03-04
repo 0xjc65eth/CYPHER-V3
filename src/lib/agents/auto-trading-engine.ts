@@ -711,7 +711,7 @@ export class AutoTradingEngine extends EventEmitter {
     const basePrice = basePrices[symbol] || 1000;
     const volatility = 0.01; // 1% volatility
     
-    return basePrice * (1 + (Math.random() - 0.5) * volatility);
+    return basePrice; // Deterministic: return base price without random variation
   }
 
   /**

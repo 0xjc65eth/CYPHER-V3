@@ -73,108 +73,35 @@ export default function ProfessionalOrderBook() {
   const [priceChange, setPriceChange] = useState(0);
   const [volume24h, setVolume24h] = useState(0);
   
-  // Generate realistic order book data
+  // Order book should come from real exchange data, not Math.random()
   useEffect(() => {
     if (!isLive) return;
 
-    const generateOrderBook = () => {
-      const basePrice = currentPrice;
-      const bids: OrderBookEntry[] = [];
-      const asks: OrderBookEntry[] = [];
-      
-      // Generate bids (buy orders - below current price)
-      for (let i = 0; i < 20; i++) {
-        const price = basePrice - (i + 1) * (1 + Math.random() * 10);
-        const volume = Math.random() * 10 + 0.1;
-        const count = Math.floor(Math.random() * 20) + 1;
-        const intensity = Math.random();
-        
-        bids.push({
-          price,
-          volume,
-          count,
-          total: volume * price,
-          side: 'bid',
-          timestamp: Date.now(),
-          intensity
-        });
-      }
-      
-      // Generate asks (sell orders - above current price)
-      for (let i = 0; i < 20; i++) {
-        const price = basePrice + (i + 1) * (1 + Math.random() * 10);
-        const volume = Math.random() * 10 + 0.1;
-        const count = Math.floor(Math.random() * 20) + 1;
-        const intensity = Math.random();
-        
-        asks.push({
-          price,
-          volume,
-          count,
-          total: volume * price,
-          side: 'ask',
-          timestamp: Date.now(),
-          intensity
-        });
-      }
-      
-      // Sort bids descending, asks ascending
-      bids.sort((a, b) => b.price - a.price);
-      asks.sort((a, b) => a.price - b.price);
-      
-      const spread = asks[0]?.price - bids[0]?.price || 0;
-      const midPrice = (asks[0]?.price + bids[0]?.price) / 2 || basePrice;
-      const totalBidVolume = bids.reduce((sum, bid) => sum + bid.volume, 0);
-      const totalAskVolume = asks.reduce((sum, ask) => sum + ask.volume, 0);
-      
-      setMarketDepth({
-        bids,
-        asks,
-        spread,
-        midPrice,
-        totalBidVolume,
-        totalAskVolume
-      });
-    };
+    // Initialize with empty order book
+    setMarketDepth({
+      bids: [],
+      asks: [],
+      spread: 0,
+      midPrice: currentPrice,
+      totalBidVolume: 0,
+      totalAskVolume: 0
+    });
 
-    const interval = setInterval(generateOrderBook, 500);
-    return () => clearInterval(interval);
+    // In production, connect to real WebSocket feed here
+    // Example: connectToExchangeOrderBook(symbol)
   }, [isLive, currentPrice]);
 
-  // Generate trades
+  // Trades should come from real exchange data, not Math.random()
   useEffect(() => {
     if (!isLive) return;
 
-    const generateTrade = () => {
-      const side: 'buy' | 'sell' = Math.random() > 0.5 ? 'buy' : 'sell';
-      const price = currentPrice + (Math.random() - 0.5) * 100;
-      const volume = Math.random() * 5 + 0.01;
-      const aggressive = Math.random() > 0.7;
-      
-      const newTrade: Trade = {
-        id: `trade-${Date.now()}-${Math.random()}`,
-        price,
-        volume,
-        side,
-        timestamp: Date.now(),
-        aggressive
-      };
-      
-      setTrades(prev => [newTrade, ...prev.slice(0, 49)]);
-      
-      // Update current price based on trade
-      setCurrentPrice(prev => {
-        const change = (price - prev) * 0.1;
-        const newPrice = prev + change;
-        setPriceChange(change);
-        return newPrice;
-      });
-      
-      setVolume24h(prev => prev + volume);
-    };
+    // Initialize with empty trades
+    setTrades([]);
+    setPriceChange(0);
+    setVolume24h(0);
 
-    const interval = setInterval(generateTrade, 100 + Math.random() * 400);
-    return () => clearInterval(interval);
+    // In production, connect to real trade feed here
+    // Example: connectToExchangeTrades(symbol)
   }, [isLive, currentPrice]);
 
   const handleOrderBookClick = (price: number) => {

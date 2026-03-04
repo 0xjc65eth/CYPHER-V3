@@ -254,12 +254,24 @@ export const FeeHistoryTracker: React.FC<FeeHistoryTrackerProps> = ({
   }
 
   const generateMonthlyTrend = (history: FeeHistoryData[]) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-    return months.map((month, index) => ({
+    // Calculate real monthly aggregates from history
+    const monthlyMap = new Map<string, { fees: number; trades: number; volume: number }>()
+
+    history.forEach(fee => {
+      const date = new Date(fee.timestamp)
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short' })
+
+      const existing = monthlyMap.get(monthKey) || { fees: 0, trades: 0, volume: 0 }
+      monthlyMap.set(monthKey, {
+        fees: existing.fees + fee.amountUSD,
+        trades: existing.trades + 1,
+        volume: existing.volume + fee.tradeVolume
+      })
+    })
+
+    return Array.from(monthlyMap.entries()).map(([month, data]) => ({
       month,
-      fees: Math.random() * 500 + 100,
-      trades: Math.floor(Math.random() * 50 + 10),
-      volume: Math.random() * 50000 + 10000
+      ...data
     }))
   }
 

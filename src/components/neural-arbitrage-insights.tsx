@@ -70,69 +70,8 @@ export function NeuralArbitrageInsights() {
     }
   };
 
-  // Função para gerar insights simulados para demonstração
-  const generateSimulatedInsights = (count: number): ArbitrageInsight[] => {
-    const exchanges = ['Unisat', 'OrdinalHub', 'Magic Eden', 'Gamma.io', 'Binance', 'Coinbase'];
-
-    // Lista de runas verificadas para garantir que usamos apenas runas reais
-    const verifiedRunes = [
-      'ORDI', 'SATS', 'MEME', 'PEPE', 'DOGE', 'TRAC', 'CATS', 'RATS', 'MOON', 'SHIB',
-      'WOJAK', 'BITCOIN', 'NAKAMOTO', 'HODL', 'BULL', 'BEAR'
-    ];
-
-    // Outros ativos para arbitragem
-    const otherAssets = ['Bitcoin Puppets', 'OCM GENESIS', 'BTC/USDT', 'Taproot Wizards'];
-
-    return Array.from({ length: count }, (_, i) => {
-      // Selecionar exchanges diferentes
-      const sourceExchange = exchanges[i % exchanges.length];
-      const targetExchange = exchanges[(i + 1) % exchanges.length];
-
-      // Decidir se vamos usar uma runa ou outro ativo (first 70% are runes)
-      const useRune = i % 10 < 7;
-
-      // Selecionar um ativo
-      let asset;
-      if (useRune) {
-        const selectedRune = verifiedRunes[i % verifiedRunes.length];
-        asset = `Rune20/${selectedRune}`;
-      } else {
-        asset = otherAssets[i % otherAssets.length];
-      }
-
-      // Gerar preços e lucro
-      const basePrice = asset.includes('BTC') ? 65000 : asset.includes('Rune') ? 0.0001 : 0.5;
-      const spreadFactor = 0.97 + (i % 5) * 0.01;
-      const sourceBuyPrice = basePrice * spreadFactor;
-      const targetSellPrice = sourceBuyPrice * (1.05 + (i % 10) * 0.01);
-      const profitPercent = ((targetSellPrice - sourceBuyPrice) / sourceBuyPrice * 100).toFixed(2);
-      const estimatedProfit = (targetSellPrice - sourceBuyPrice) * (asset.includes('BTC') ? 0.1 : asset.includes('Rune') ? 1000 : 1);
-
-      // Gerar timestamp recente
-      const timestamp = new Date(Date.now() - i * 180000).toISOString();
-
-      return {
-        id: `neural-arb-${i + 1}`,
-        timestamp,
-        modelId: 'arbitrage-opportunities',
-        confidence: 75 + Math.floor(Math.random() * 20),
-        type: 'arbitrage',
-        prediction: {
-          sourceExchange,
-          targetExchange,
-          asset,
-          sourceBuyPrice,
-          targetSellPrice,
-          profitPercent,
-          estimatedProfit,
-          timeWindow: `${5 + Math.floor(Math.random() * 15)} minutos`
-        },
-        explanation: `Nosso sistema neural identificou uma oportunidade de arbitragem para ${asset} entre ${sourceExchange} e ${targetExchange} com potencial de lucro de ${profitPercent}%. A análise de padrões de preços e volume sugere uma janela de oportunidade nas próximas horas.`,
-        relatedMetrics: ['priceDifference', 'volume', 'fees', 'liquidity'],
-        dataPoints: 1000 + Math.floor(Math.random() * 5000)
-      };
-    });
-  };
+  // No simulated insights - this function is not used anymore
+  // Real insights come from neuralLearningService.getRecentInsights()
 
   // Buscar dados iniciais
   useEffect(() => {

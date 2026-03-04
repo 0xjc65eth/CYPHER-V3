@@ -626,7 +626,7 @@ export class ServiceOrchestrator extends EventEmitter {
         try {
           // FALLBACK: Simulated health check. Replace with real HTTP health check
           // to service.config.health.endpoint once services are deployed.
-          const isHealthy = Math.random() > 0.05;
+          const isHealthy = true;
           
           service.status = isHealthy ? 'healthy' : 'unhealthy';
           service.lastHealth = Date.now();
@@ -658,9 +658,9 @@ export class ServiceOrchestrator extends EventEmitter {
         // FALLBACK: Simulated resource metrics. Replace with real metrics
         // from container orchestrator (Docker/K8s) or process monitoring.
         service.metrics.resources = {
-          cpu: Math.random() * 100,
-          memory: Math.random() * 100,
-          network: Math.random() * 1000
+          cpu: 0,
+          memory: 0,
+          network: 0
         };
 
         service.metrics.health.uptime = Date.now() - service.metrics.health.uptime;

@@ -141,8 +141,8 @@ export class HiroOrdinalsService {
         total_inscriptions: 52300000, // Estimated
         total_fees: inscriptions.reduce((sum, i) => sum + (i.genesis_fee || 0), 0),
         total_size: inscriptions.reduce((sum, i) => sum + (i.content_length || 0), 0),
-        inscriptions_24h: Math.floor(Math.random() * 50000) + 10000,
-        volume_24h: Math.random() * 100 + 50
+        inscriptions_24h: 0, // No real data available
+        volume_24h: 0 // No real data available
       };
       
       this.setCache(cacheKey, stats);
@@ -413,16 +413,16 @@ export class HiroOrdinalsService {
 
   private getMockMarketData(collectionId: string, timeframe: string): CollectionMarketData {
     const days = timeframe === '24h' ? 1 : timeframe === '7d' ? 7 : 30;
-    const generateHistory = (baseValue: number, variance: number) => {
+    const generateHistory = (baseValue: number) => {
       return Array.from({ length: days * 24 }, (_, i) => ({
         timestamp: Date.now() - (days * 24 - i) * 60 * 60 * 1000,
-        price: baseValue + (Math.random() - 0.5) * variance,
-        volume: baseValue * 100 + (Math.random() - 0.5) * variance * 100,
-        sales_count: Math.floor(baseValue * 10 + (Math.random() - 0.5) * variance * 10)
+        price: baseValue, // No random variance
+        volume: baseValue * 100, // No random variance
+        sales_count: Math.floor(baseValue * 10) // No random variance
       }));
     };
 
-    const history = generateHistory(0.045, 0.01);
+    const history = generateHistory(0.045);
 
     return {
       floor_price_history: history.map(h => ({ 
@@ -436,11 +436,11 @@ export class HiroOrdinalsService {
       })),
       sales_history: Array.from({ length: 50 }, (_, i) => ({
         inscription_number: 17000000 + i,
-        price: 0.045 + (Math.random() - 0.5) * 0.02,
+        price: 0.045, // No random variance
         timestamp: Date.now() - i * 60 * 60 * 1000,
-        from_address: `bc1q${Math.random().toString(36).substring(2, 10)}`,
-        to_address: `bc1q${Math.random().toString(36).substring(2, 10)}`,
-        tx_id: `${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`
+        from_address: `bc1q${i.toString(36).padStart(8, '0')}`,
+        to_address: `bc1q${(i+1).toString(36).padStart(8, '0')}`,
+        tx_id: `${i.toString(36).padStart(30, '0')}`
       }))
     };
   }
@@ -453,7 +453,7 @@ export class HiroOrdinalsService {
         name: c.name,
         floor_price: c.floor_price,
         volume_24h: c.volume_24h,
-        change_24h: Math.random() * 50 - 25, // Random change for demo
+        change_24h: 0, // No real data available
         listed_count: c.listed_count,
         owner_count: c.holders_count
       })),

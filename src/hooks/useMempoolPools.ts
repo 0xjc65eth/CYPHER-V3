@@ -20,6 +20,7 @@ export function useMempoolPools() {
         }
       })
     },
+    staleTime: 300000, // 5min - pool stats change slowly
     refetchInterval: 60000,
   })
 } 

@@ -13,15 +13,21 @@ interface ChartSkeletonProps {
   className?: string;
 }
 
-export function ChartSkeleton({ 
+export function ChartSkeleton({
   variant = 'line',
   height = 300,
   showLegend = true,
   showControls = true,
   showToolbar = true,
-  className 
+  className
 }: ChartSkeletonProps) {
   const heightClass = typeof height === 'number' ? `h-[${height}px]` : height;
+
+  // Deterministic patterns for skeleton loading (prevents hydration mismatch)
+  const lineHeights = [60, 35, 80, 45, 70, 55, 90, 40, 65, 50, 75, 30, 85, 50, 60, 45, 70, 55, 80, 40];
+  const barHeights = [65, 45, 80, 55, 70, 50, 85, 40, 75, 60, 50, 70];
+  const candleHeights = [15, 22, 18, 25, 20, 16, 28, 19, 24, 17, 21, 26, 15, 23, 19, 22, 18, 25, 20, 16, 28, 19, 24, 17, 21, 26, 15, 23, 19, 22];
+  const isGreen = (i: number) => i % 3 !== 0; // 2/3 green, 1/3 red for visual variety
 
   const renderChartContent = () => {
     switch (variant) {
@@ -39,9 +45,9 @@ export function ChartSkeleton({
             <div className="ml-16 mr-4 h-full flex items-end">
               {Array.from({ length: 20 }).map((_, i) => (
                 <div key={i} className="flex-1 flex flex-col justify-end mx-1">
-                  <Skeleton 
-                    className="w-full bg-blue-500/20" 
-                    style={{ height: `${Math.random() * 80 + 20}%` }}
+                  <Skeleton
+                    className="w-full bg-blue-500/20"
+                    style={{ height: `${lineHeights[i]}%` }}
                   />
                 </div>
               ))}
@@ -69,10 +75,10 @@ export function ChartSkeleton({
             {/* Chart area */}
             <div className="ml-16 mr-4 h-full flex items-end justify-between px-2">
               {Array.from({ length: 12 }).map((_, i) => (
-                <Skeleton 
-                  key={i} 
-                  className="w-8 bg-green-500/20" 
-                  style={{ height: `${Math.random() * 70 + 20}%` }}
+                <Skeleton
+                  key={i}
+                  className="w-8 bg-green-500/20"
+                  style={{ height: `${barHeights[i]}%` }}
                 />
               ))}
             </div>
@@ -103,9 +109,9 @@ export function ChartSkeleton({
                   {/* Wick top */}
                   <Skeleton className="w-px h-4 bg-gray-500" />
                   {/* Body */}
-                  <Skeleton 
-                    className={`w-2 ${Math.random() > 0.5 ? 'bg-green-500/30' : 'bg-red-500/30'}`}
-                    style={{ height: `${Math.random() * 20 + 10}px` }}
+                  <Skeleton
+                    className={`w-2 ${isGreen(i) ? 'bg-green-500/30' : 'bg-red-500/30'}`}
+                    style={{ height: `${candleHeights[i]}px` }}
                   />
                   {/* Wick bottom */}
                   <Skeleton className="w-px h-4 bg-gray-500" />
@@ -164,15 +170,18 @@ export function ChartSkeleton({
       case 'heatmap':
         return (
           <div className="grid grid-cols-10 gap-1 h-full p-4">
-            {Array.from({ length: 100 }).map((_, i) => (
-              <Skeleton 
-                key={i} 
-                className={`aspect-square ${
-                  Math.random() > 0.7 ? 'bg-red-500/30' : 
-                  Math.random() > 0.4 ? 'bg-green-500/30' : 'bg-gray-500/20'
-                }`} 
-              />
-            ))}
+            {Array.from({ length: 100 }).map((_, i) => {
+              // Deterministic heatmap colors: ~30% red, ~30% green, ~40% gray
+              const colorClass = i % 10 < 3 ? 'bg-red-500/30' :
+                                i % 10 < 6 ? 'bg-green-500/30' :
+                                'bg-gray-500/20';
+              return (
+                <Skeleton
+                  key={i}
+                  className={`aspect-square ${colorClass}`}
+                />
+              );
+            })}
           </div>
         );
 

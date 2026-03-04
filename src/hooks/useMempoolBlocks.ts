@@ -21,6 +21,7 @@ export function useMempoolBlocks() {
         }
       })
     },
+    staleTime: 30000, // 30s - blocks change every ~10min
     refetchInterval: 60000,
   })
 } 

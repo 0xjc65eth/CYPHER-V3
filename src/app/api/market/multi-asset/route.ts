@@ -115,7 +115,6 @@ export async function GET(request: NextRequest) {
       try {
         const batch1 = await fetchTwelveDataBatch(BATCH1_SYMBOLS, apiKey);
         const count = Object.keys(batch1).length;
-        console.log(`[multi-asset] L1 TwelveData: ${count} symbols (single batch, rate-limit safe)`);
 
         // Convert TwelveData quotes to YahooQuoteResult format for uniform handling
         for (const [sym, q] of Object.entries(batch1)) {
@@ -146,11 +145,10 @@ export async function GET(request: NextRequest) {
       try {
         const v8Data = await fetchViaV8Chart(missingAfterTD);
         const count = Object.keys(v8Data).length;
-        console.log(`[multi-asset] L2 Yahoo v8: ${count}/${missingAfterTD.length} symbols`);
         Object.assign(combinedQuotes, v8Data);
         if (count > 0 && source === 'static') source = 'yahoo-v8';
       } catch (v8Err) {
-        console.warn('[multi-asset] L2 Yahoo v8 failed:', v8Err);
+        // Yahoo v8 unavailable, continue to v7
       }
     }
 
@@ -161,7 +159,6 @@ export async function GET(request: NextRequest) {
       try {
         const yahooData = await fetchYahooQuotes(allSymbols);
         const count = Object.keys(yahooData).length;
-        console.log(`[multi-asset] L3 Yahoo v7: ${count}/${allSymbols.length} symbols`);
         // Only fill missing symbols, don't overwrite existing data
         for (const [sym, q] of Object.entries(yahooData)) {
           if (!combinedQuotes[sym]) {
@@ -170,7 +167,7 @@ export async function GET(request: NextRequest) {
         }
         if (count > 0 && source === 'static') source = 'yahoo';
       } catch (yahooErr) {
-        console.warn('[multi-asset] L3 Yahoo v7 failed:', yahooErr);
+        // Yahoo v7 unavailable, continue to static fallback
       }
     }
 
@@ -193,9 +190,6 @@ export async function GET(request: NextRequest) {
           };
           staticFilled++;
         }
-      }
-      if (staticFilled > 0) {
-        console.log(`[multi-asset] L4 Static fallback: ${staticFilled} symbols`);
       }
     }
 

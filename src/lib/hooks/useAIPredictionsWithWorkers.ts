@@ -167,8 +167,8 @@ export function useAIPredictionsWithWorkers(autoRefresh: boolean = true) {
     
     for (let i = 0; i < dataPoints; i++) {
       const time = Date.now() - (dataPoints - i) * 3600000; // 1 hora por ponto
-      prices.push(50000 + Math.random() * 5000);
-      volumes.push(1000000000 + Math.random() * 500000000);
+      prices.push(50000);
+      volumes.push(1000000000);
       timestamps.push(time);
     }
     

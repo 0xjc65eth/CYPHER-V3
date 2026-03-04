@@ -696,24 +696,24 @@ export class NewsSentimentAnalyzer extends EventEmitter {
   }
 
   private analyzeAspects(text: string, keywords: string[]): SentimentScore['aspects'] {
-    // Mock aspect analysis - in production would use more sophisticated NLP
+    // Default neutral aspects - no real data available
     return {
-      financial: Math.random() * 2 - 1,
-      technological: Math.random() * 2 - 1,
-      regulatory: Math.random() * 2 - 1,
-      adoption: Math.random() * 2 - 1,
-      security: Math.random() * 2 - 1
+      financial: 0,
+      technological: 0,
+      regulatory: 0,
+      adoption: 0,
+      security: 0
     };
   }
 
   private analyzeEmotions(text: string, keywords: string[]): SentimentScore['emotions'] {
-    // Mock emotion analysis
+    // Default neutral emotions - no real data available
     return {
-      fear: Math.random(),
-      greed: Math.random(),
-      uncertainty: Math.random(),
-      optimism: Math.random(),
-      excitement: Math.random()
+      fear: 0,
+      greed: 0,
+      uncertainty: 0,
+      optimism: 0,
+      excitement: 0
     };
   }
 
@@ -966,18 +966,18 @@ export class NewsSentimentAnalyzer extends EventEmitter {
   }
 
   private calculateHourlyTrends(): number[] {
-    // Mock hourly sentiment trends for last 24 hours
-    return Array.from({ length: 24 }, () => Math.random() * 2 - 1);
+    // No real data available - return zeros
+    return Array.from({ length: 24 }, () => 0);
   }
 
   private calculateDailyTrends(): number[] {
-    // Mock daily sentiment trends for last 30 days
-    return Array.from({ length: 30 }, () => Math.random() * 2 - 1);
+    // No real data available - return zeros
+    return Array.from({ length: 30 }, () => 0);
   }
 
   private calculateWeeklyTrends(): number[] {
-    // Mock weekly sentiment trends for last 12 weeks
-    return Array.from({ length: 12 }, () => Math.random() * 2 - 1);
+    // No real data available - return zeros
+    return Array.from({ length: 12 }, () => 0);
   }
 
   private startNewsCrawlers(): void {
@@ -1024,7 +1024,7 @@ export class NewsSentimentAnalyzer extends EventEmitter {
       'Major Exchange Lists New Token'
     ];
 
-    const randomTitle = mockTitles[Math.floor(Math.random() * mockTitles.length)];
+    const randomTitle = mockTitles[0]; // Use first element instead of random
     const mockContent = `${randomTitle}. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.`;
 
     await this.processArticle(

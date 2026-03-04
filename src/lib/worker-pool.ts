@@ -127,7 +127,7 @@ export class WorkerPool {
       
       // Funções auxiliares
       function calculateRisk(portfolio) {
-        return Math.random() * 100; // Simplificado
+        return 50; // Deterministic default risk score
       }
       
       function generateSuggestions(portfolio) {
@@ -157,7 +157,7 @@ export class WorkerPool {
       }
       
       function runMLModel(dataset, model) {
-        return { prediction: Math.random(), confidence: 0.85 };
+        return { prediction: 0.5, confidence: 0.85 };
       }
     `;
     

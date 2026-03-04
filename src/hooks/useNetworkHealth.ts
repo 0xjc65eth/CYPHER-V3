@@ -10,8 +10,6 @@ export function useNetworkHealth() {
     queryKey: ['network-health'],
     queryFn: async () => {
       try {
-        console.log('Generating Network Health data...')
-
         // Get real mining data
         const hashRate = miningData?.hashRate || 0
         const difficulty = miningData?.difficulty || 0
@@ -44,14 +42,14 @@ export function useNetworkHealth() {
 
           // Add some randomness, but less for recent months
           const randomVariance = (1 - monthFactor) * 0.05
-          const randomFactor = 1 - randomVariance + (Math.random() * randomVariance * 2)
+          const randomFactor = 1 // Deterministic: no random variance
 
           // Calculate month's difficulty with all factors
           const monthDifficulty = difficulty * baseGrowthFactor * adjustmentFactor * randomFactor
 
           // Add hashrate data that correlates with difficulty
           // Hashrate typically follows difficulty with some lag and variance
-          const hashrateFactor = adjustmentFactor * (0.98 + (Math.random() * 0.04))
+          const hashrateFactor = adjustmentFactor * 1.0 // Deterministic
           const monthHashrate = hashRate * baseGrowthFactor * hashrateFactor
 
           difficultyTrend.push({
@@ -60,15 +58,6 @@ export function useNetworkHealth() {
             hashrate: Math.round(monthHashrate)
           })
         }
-
-        console.log('Generated Network Health data:', {
-          hashRate,
-          difficulty,
-          blockTime,
-          currentHeight,
-          pendingTransactions,
-          difficultyTrend: difficultyTrend.slice(-3)
-        })
 
         return {
           hashRate,

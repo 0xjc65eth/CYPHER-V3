@@ -414,7 +414,7 @@ class HyperliquidService {
               price2: otherPrice,
               spread,
               profitPotential,
-              volume: Math.random() * 2000000,
+              volume: 0,
               confidence
             });
           }

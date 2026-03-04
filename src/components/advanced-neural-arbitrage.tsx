@@ -91,14 +91,14 @@ export function AdvancedNeuralArbitrage() {
         setDataPoints(arbitrageModel.dataPoints);
       }
       
-      // Market trends - static curated content (not randomized)
+      // Market trends - static curated content
       setMarketTrends({
         twitter: [
           "Aumento de menções de #Ordinals nas últimas 24h",
           "Influenciadores destacam oportunidades em #Runes"
         ],
         reddit: [
-          "Análises detalhadas de arbitragem entre Magic Eden e UniSat",
+          "Análises detalhadas de arbitragem entre OKX NFT e UniSat",
           "Comunidade r/Bitcoin discute oportunidades em Ordinals"
         ],
         telegram: [
@@ -125,104 +125,11 @@ export function AdvancedNeuralArbitrage() {
     }
   };
 
-  // Gerar tendências de mercado simuladas
-  const generateMarketTrends = () => {
-    const twitterTrends = [
-      "Aumento de 35% nas menções de #Ordinals nas últimas 24h",
-      "Influenciadores destacam oportunidades em #Runes",
-      "Crescimento de 28% em discussões sobre arbitragem de Bitcoin",
-      "Sentimento positivo sobre coleções premium de Ordinals",
-      "Aumento de interesse em #BRC20 e tokens Rune"
-    ];
-    
-    const redditTrends = [
-      "Análises detalhadas de arbitragem entre Magic Eden e Gamma.io",
-      "Comunidade r/Bitcoin discute oportunidades em Ordinals",
-      "Guias de arbitragem com alto engajamento em r/CryptoCurrency",
-      "Discussões sobre diferenças de preço entre exchanges",
-      "Análises técnicas de coleções de Ordinals em alta"
-    ];
-    
-    const telegramTrends = [
-      "Grupos de trading compartilhando oportunidades em Runes",
-      "Alertas de arbitragem em tempo real nos canais premium",
-      "Discussões sobre novas listagens de Ordinals",
-      "Comunidades focadas em estratégias de arbitragem",
-      "Análises de liquidez em diferentes marketplaces"
-    ];
-    
-    const newsTrends = [
-      "Bloomberg: 'Arbitragem em Bitcoin atrai investidores institucionais'",
-      "CoinDesk: 'Mercado de Ordinals mostra disparidades de preço significativas'",
-      "Forbes: 'Como traders estão lucrando com arbitragem de Runes'",
-      "Cointelegraph: 'Diferenças de preço entre exchanges criam oportunidades'",
-      "The Block: 'Análise de liquidez em marketplaces de Ordinals'"
-    ];
-    
-    // Selecionar aleatoriamente 2-3 tendências de cada fonte
-    const getRandomTrends = (trends: string[], count: number) => {
-      const shuffled = [...trends].sort(() => 0.5 - Math.random());
-      return shuffled.slice(0, count);
-    };
-    
-    setMarketTrends({
-      twitter: getRandomTrends(twitterTrends, 2 + Math.floor(Math.random() * 2)),
-      reddit: getRandomTrends(redditTrends, 2 + Math.floor(Math.random() * 2)),
-      telegram: getRandomTrends(telegramTrends, 2 + Math.floor(Math.random() * 2)),
-      news: getRandomTrends(newsTrends, 2 + Math.floor(Math.random() * 2))
-    });
-  };
+  // REMOVED: generateMarketTrends() - was generating randomized fake data
+  // Market trends are now set as static curated content in fetchNeuralInsights()
 
-  // Função para gerar insights simulados
-  const generateSimulatedInsights = (count: number): ArbitrageInsight[] => {
-    const assets = [
-      'Ordinal Punks', 'Bitcoin Puppets', 'Ordinal Maxi', 'Rune20/PEPE', 
-      'Rune20/MEME', 'Rune20/TRAC', 'BTC/USDT', 'Ordinal Satoshi', 
-      'OCM Genesis', 'Taproot Wizards', 'Rune20/ORDI', 'Rune20/SATS'
-    ];
-    
-    const exchanges = [
-      'Magic Eden', 'Gamma.io', 'Ordinals Market', 'Ordswap', 
-      'Unisat', 'Ordinals Wallet', 'OrdinalHub', 'Xverse'
-    ];
-    
-    return Array.from({ length: count }, (_, i) => {
-      const asset = assets[i % assets.length];
-      const sourceExchange = exchanges[i % exchanges.length];
-      const targetExchange = exchanges[(i + 1) % exchanges.length];
-
-      const profitPercent = (3 + (i % 12)).toFixed(2);
-      const sourceBuyPrice = asset.includes('BTC') ?
-        30000 + (i % 5) * 1000 :
-        0.05 + (i % 10) * 0.2;
-      const targetSellPrice = sourceBuyPrice * (1 + parseFloat(profitPercent) / 100);
-      const estimatedProfit = (targetSellPrice - sourceBuyPrice) * (asset.includes('BTC') ? 0.1 : 10);
-
-      // Gerar timestamp recente
-      const timestamp = new Date(Date.now() - i * 120000).toISOString();
-      
-      return {
-        id: `neural-arb-${i + 1}`,
-        timestamp,
-        modelId: 'arbitrage-opportunities',
-        confidence: 75 + (i % 20),
-        type: 'arbitrage',
-        prediction: {
-          sourceExchange,
-          targetExchange,
-          asset,
-          sourceBuyPrice,
-          targetSellPrice,
-          profitPercent,
-          estimatedProfit,
-          timeWindow: `${5 + Math.floor(Math.random() * 15)} minutos`
-        },
-        explanation: `Nosso sistema neural identificou uma oportunidade de arbitragem para ${asset} entre ${sourceExchange} e ${targetExchange} com potencial de lucro de ${profitPercent}%. A análise de padrões de preços e volume sugere uma janela de oportunidade nas próximas horas.`,
-        relatedMetrics: ['priceDifference', 'volume', 'fees', 'liquidity'],
-        dataPoints: 1000 + Math.floor(Math.random() * 5000)
-      };
-    });
-  };
+  // REMOVED: generateSimulatedInsights() - was generating fake random data
+  // Real insights now come from runesArbitrageService and neuralLearningService
 
   // Buscar dados iniciais
   useEffect(() => {

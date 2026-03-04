@@ -76,8 +76,8 @@ const EntityClustering: FC<EntityClusteringProps> = ({ timeRange, isLive }) => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-medium">{(Math.random() * 1000).toFixed(0)} BTC</p>
-                    <p className="text-xs text-green-600">+{(Math.random() * 20).toFixed(1)}%</p>
+                    <p className="text-sm font-medium">0 BTC</p>
+                    <p className="text-xs text-green-600">0.0%</p>
                   </div>
                 </div>
               ))}

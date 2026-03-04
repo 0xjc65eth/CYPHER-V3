@@ -61,12 +61,12 @@ const BITCOIN_WALLETS: BitcoinWallet[] = [
   },
   {
     id: 'MAGIC_EDEN',
-    name: 'Magic Eden',
-    icon: '🟡',
-    description: 'The leading NFT marketplace wallet',
+    name: 'Gamma.io',
+    icon: '🟢',
+    description: 'The leading Bitcoin NFT marketplace',
     supported: ['Bitcoin', 'Ordinals', 'Runes'],
-    website: 'https://magiceden.io',
-    downloadUrl: 'https://chrome.google.com/webstore/detail/magic-eden-wallet/mkpegjkblkdkibbdndbgdefmfcdpbcpa'
+    website: 'https://gamma.io',
+    downloadUrl: 'https://gamma.io'
   }
 ];
 

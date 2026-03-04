@@ -666,7 +666,7 @@ export class LiquidationProtectionSystem extends EventEmitter {
     };
 
     const basePrice = basePrices[symbol] || 1000;
-    const price = basePrice * (1 + (Math.random() - 0.5) * 0.01); // ±0.5% random
+    const price = basePrice; // Deterministic fallback price (no live data)
 
     this.priceFeeds.set(symbol, { price, timestamp: Date.now() });
     return price;
@@ -1019,8 +1019,8 @@ export class LiquidationProtectionSystem extends EventEmitter {
   }
 
   private calculateRiskTrends(positions: ProtectedPosition[]): number[] {
-    // Mock risk trend data for last 30 days
-    return Array.from({ length: 30 }, () => Math.random() * 100);
+    // No live risk trend data
+    return Array.from({ length: 30 }, () => 0);
   }
 
   private generateActionId(): string {

@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         clearTimeout(okxTimeout);
       }
     } catch (error) {
-      console.warn('[Marketplace API] OKX primary error:', error);
+      // OKX failed, continue to fallbacks
     }
 
     // Fallback 1: Magic Eden
@@ -97,7 +97,7 @@ export async function GET(request: Request) {
             }
           }
         } catch (error) {
-          console.warn(`[Marketplace API] ME fallback error for ${endpoint}:`, error);
+          // ME endpoint failed, try next
         } finally {
           clearTimeout(meTimeout);
         }
@@ -124,7 +124,7 @@ export async function GET(request: Request) {
           if (data && data.length > 0) source = 'ordiscan';
         }
       } catch (error) {
-        console.warn('[Marketplace API] Ordiscan fallback error:', error);
+        // Ordiscan failed, continue to next fallback
       } finally {
         clearTimeout(ordTimeout);
       }

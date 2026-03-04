@@ -661,9 +661,8 @@ export class MagicEdenService {
           // 🔧 FIX: Cap retry-after to max 60 seconds (Magic Eden sometimes returns 60000 seconds!)
           const cappedRetryAfter = Math.min(retryAfter, 60);
           const waitMs = cappedRetryAfter * 1000;
-          console.log(
-            `[MagicEdenService] Rate limited (429). Original retry-after: ${retryAfter}s, ` +
-            `capped to ${cappedRetryAfter}s. Waiting ${waitMs}ms before retry.`
+          console.warn(
+            `[MagicEdenService] Rate limited (429). Waiting ${cappedRetryAfter}s before retry.`
           );
           await this.sleep(waitMs);
           if (retryCount < CONFIG.MAX_RETRIES) {
@@ -690,9 +689,8 @@ export class MagicEdenService {
 
       if (retryCount < CONFIG.MAX_RETRIES) {
         const delay = CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-        console.log(
-          `[MagicEdenService] Request failed (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}), ` +
-          `retrying in ${delay}ms: ${path}`
+        console.warn(
+          `[MagicEdenService] Request failed (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}), retrying in ${delay}ms: ${path}`
         );
         await this.sleep(delay);
         return this.executeRequest<T>(path, options, retryCount + 1);

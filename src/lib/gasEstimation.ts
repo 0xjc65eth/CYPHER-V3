@@ -590,9 +590,9 @@ export class AdvancedGasEstimator {
   }> {
     // Simulação - em produção obter dados reais de APIs
     return {
-      volatility: Math.random() * 0.1, // 0-10%
-      volume24h: Math.random() * 1000000000, // Volume em USD
-      priceChange24h: (Math.random() - 0.5) * 0.2 // -10% a +10%
+      volatility: 0.05, // Default 5%
+      volume24h: 0, // No data available
+      priceChange24h: 0 // No data available
     };
   }
 
@@ -676,7 +676,7 @@ export class AdvancedGasEstimator {
     const recommendations: string[] = [];
     
     // Simular verificação de status
-    const isConfirmed = Math.random() > 0.3; // 70% chance de confirmação
+    const isConfirmed = true; // Deterministic: assume confirmed
     
     if (isConfirmed) {
       return {

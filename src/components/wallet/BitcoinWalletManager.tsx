@@ -27,9 +27,9 @@ const BITCOIN_WALLETS: Omit<WalletInfo, 'installed' | 'connected'>[] = [
     icon: '🟡'
   },
   {
-    name: 'Magic Eden',
+    name: 'Gamma.io',
     id: 'magiceden',
-    icon: '🪄'
+    icon: '🟢'
   },
   {
     name: 'OYL',
@@ -238,7 +238,7 @@ function getWalletDownloadUrl(walletId: string): string {
   const urls = {
     xverse: 'https://www.xverse.app/',
     unisat: 'https://unisat.io/',
-    magiceden: 'https://magiceden.io/wallet',
+    magiceden: 'https://gamma.io',
     oyl: 'https://oyl.io/',
     leather: 'https://leather.io/'
   }

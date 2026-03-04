@@ -1,0 +1,53 @@
+{
+  "name": "cypher-shell",
+  "description": "Execução de comandos shell no contexto do CYPHER V3 — builds, testes, linting, type-check",
+  "type": "mcp-server",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-shell"],
+  "config": {
+    "workingDirectory": "/Users/juliocesar/CYPHER-V3",
+    "shell": "/bin/zsh",
+    "timeout": 120000,
+    "allowedCommands": [
+      "npm run *",
+      "npx *",
+      "node *",
+      "git *",
+      "grep *",
+      "find *",
+      "cat *",
+      "ls *",
+      "echo *",
+      "mkdir *",
+      "cp *",
+      "mv *"
+    ],
+    "blockedCommands": [
+      "rm -rf /",
+      "curl * | bash",
+      "wget * | sh",
+      "npm publish",
+      "git push --force origin main"
+    ],
+    "environment": {
+      "NODE_ENV": "development",
+      "PORT": "4444"
+    }
+  },
+  "capabilities": [
+    "execute_command",
+    "run_script",
+    "check_output"
+  ],
+  "quickCommands": {
+    "typecheck": "npm run type-check",
+    "lint": "npm run lint",
+    "build": "npm run build",
+    "test": "npm test",
+    "audit": "npm audit --audit-level=high",
+    "scan-mock": "grep -rn 'mockData\\|MOCK_DATA\\|isMock' src/ --include='*.ts' --include='*.tsx'",
+    "scan-console": "grep -rn 'console\\.log' src/ --include='*.ts' --include='*.tsx'",
+    "scan-any": "grep -rn ': any\\|as any' src/ --include='*.ts' --include='*.tsx'"
+  },
+  "notes": "Sandboxed no diretório do projeto. Não executar comandos destrutivos."
+}

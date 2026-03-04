@@ -371,13 +371,10 @@ export class SmartFractionalTrading extends EventEmitter {
   }
 
   private async simulateOrderExecution(order: FractionalOrder, wallet: any): Promise<void> {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+    // Simulate network delay (deterministic)
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Random chance of failure for demo
-    if (Math.random() < 0.05) {
-      throw new Error('Transaction failed: Insufficient liquidity');
-    }
+    // Deterministic: no random failures
   }
 
   public getQuickExamples(): Array<{ amount: number; description: string }> {

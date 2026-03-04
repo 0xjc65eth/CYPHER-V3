@@ -1036,11 +1036,9 @@ export default function PortfolioPage() {
                           {Array.from(portfolioPnL.assetPnL.keys()).slice(0, 5).map((asset2, j) => (
                             <div key={j} className={`text-center p-1 rounded ${
                               i === j ? 'bg-orange-500/20 text-orange-500' :
-                              Math.random() > 0.7 ? 'bg-red-500/20 text-red-400' :
-                              Math.random() > 0.4 ? 'bg-yellow-500/20 text-yellow-400' :
                               'bg-green-500/20 text-green-400'
                             }`}>
-                              {i === j ? '1.00' : (Math.random() * 0.8 + 0.1).toFixed(2)}
+                              {i === j ? '1.00' : '0.50'}
                             </div>
                           ))}
                         </div>

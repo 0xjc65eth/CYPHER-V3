@@ -8,8 +8,6 @@ export function useMarketAnalysis() {
     queryKey: ['market-analysis'],
     queryFn: async () => {
       try {
-        console.log('Generating Market Analysis data...')
-
         // Get real market data
         const volume = marketData?.volume24h?.total || 0
         const marketCap = marketData?.marketCap?.total || 0
@@ -43,7 +41,7 @@ export function useMarketAnalysis() {
 
           // Add some randomness, but less for recent months
           const randomVariance = (1 - monthFactor) * 0.2
-          const randomFactor = 1 - randomVariance + (Math.random() * randomVariance * 2)
+          const randomFactor = 1 // Deterministic: no random variance
 
           // Calculate volume with all factors
           const monthVolume = volume * seasonalFactor * cycleFactor * trendFactor * randomFactor * 0.8
@@ -60,12 +58,6 @@ export function useMarketAnalysis() {
             price: Math.round(monthPrice)
           })
         }
-
-        console.log('Generated Market Analysis data:', {
-          volume,
-          marketCap,
-          marketTrends: marketTrends.slice(-3)
-        })
 
         return {
           volume,

@@ -57,7 +57,6 @@ export async function GET(request: NextRequest) {
       }
     } catch (dbError) {
       // Table might not exist - fall through to real-time detection
-      console.warn('SMC signals DB query failed (table may not exist):', dbError instanceof Error ? dbError.message : dbError);
     }
 
     // If no results, fetch candles and detect signals in real-time

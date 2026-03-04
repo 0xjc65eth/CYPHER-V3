@@ -453,7 +453,7 @@ export class UniSatRunesService {
 
         if (attempt < this.maxRetries - 1) {
           const backoff = this.retryBaseDelay * Math.pow(2, attempt);
-          console.log(
+          console.warn(
             `[UniSatRunesService] Request failed (attempt ${attempt + 1}/${this.maxRetries}): ${lastError.message}. Retrying in ${backoff}ms...`
           );
           await new Promise((resolve) => setTimeout(resolve, backoff));

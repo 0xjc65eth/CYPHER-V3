@@ -96,8 +96,6 @@ export function useMultiWallet() {
    */
   const initializeWallets = useCallback(async () => {
     try {
-      console.log('🚀 Initializing multi-wallet system...');
-      
       // Detectar carteiras EVM disponíveis
       const evmWallets = await evmService.detectAvailableWallets();
       
@@ -116,11 +114,6 @@ export function useMultiWallet() {
         },
         isInitialized: true
       }));
-      
-      console.log('✅ Multi-wallet system initialized:', {
-        evm: evmWallets,
-        solana: solanaWallets
-      });
       
     } catch (error) {
       console.error('❌ Error initializing wallets:', error);

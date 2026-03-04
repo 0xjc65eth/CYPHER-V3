@@ -541,11 +541,11 @@ export class HiroApiService {
           name: this.generateCollectionName(collectionKey),
           description: `Collection of inscriptions with pattern: ${collectionKey}`,
           supply: 0,
-          floor_price: Math.random() * 0.5 + 0.01,
-          volume_24h: Math.random() * 100000,
-          volume_change_24h: (Math.random() - 0.5) * 50,
+          floor_price: 0,
+          volume_24h: 0,
+          volume_change_24h: 0,
           unique_holders: 0,
-          sales_24h: Math.floor(Math.random() * 100),
+          sales_24h: 0,
           image: null,
           verified: false,
           category: this.categorizeCollection(inscription),
@@ -691,21 +691,21 @@ export class HiroApiService {
         this.apiRequest(`${this.baseUrl}/extended/v1/fee_rates`)
       ]);
 
-      // Generate realistic mempool stats
+      // Generate default mempool stats
       const baseStats = {
-        count: Math.floor(Math.random() * 50000) + 10000,
-        vsize: Math.floor(Math.random() * 200000000) + 50000000,
-        total_fee: Math.floor(Math.random() * 10000000) + 1000000
+        count: 0,
+        vsize: 0,
+        total_fee: 0
       };
 
       const result: MempoolStatsData = {
         ...baseStats,
         count_unconfirmed: baseStats.count,
-        size_bytes: baseStats.vsize * 1.1,
+        size_bytes: 0,
         fee_range: {
-          min: 1,
-          max: Math.floor(baseStats.total_fee / baseStats.count * 2),
-          avg: Math.floor(baseStats.total_fee / baseStats.count)
+          min: 0,
+          max: 0,
+          avg: 0
         },
         fee_histogram: this.generateFeeHistogram(),
         size_distribution: this.generateSizeDistribution(),
@@ -745,25 +745,25 @@ export class HiroApiService {
 
   private generateFeeHistogram(): Array<[number, number]> {
     return [
-      [0, Math.floor(Math.random() * 10000) + 2000],
-      [1, Math.floor(Math.random() * 15000) + 5000],
-      [2, Math.floor(Math.random() * 12000) + 4000],
-      [5, Math.floor(Math.random() * 8000) + 2000],
-      [10, Math.floor(Math.random() * 5000) + 1000],
-      [20, Math.floor(Math.random() * 3000) + 500],
-      [50, Math.floor(Math.random() * 1000) + 200],
-      [100, Math.floor(Math.random() * 500) + 100]
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [5, 0],
+      [10, 0],
+      [20, 0],
+      [50, 0],
+      [100, 0]
     ];
   }
 
   private generateSizeDistribution(): Array<[string, number]> {
     return [
-      ['0-500', Math.floor(Math.random() * 8000) + 3000],
-      ['500-1000', Math.floor(Math.random() * 10000) + 5000],
-      ['1000-2000', Math.floor(Math.random() * 8000) + 4000],
-      ['2000-5000', Math.floor(Math.random() * 5000) + 2000],
-      ['5000-10000', Math.floor(Math.random() * 3000) + 1000],
-      ['10000+', Math.floor(Math.random() * 2000) + 500]
+      ['0-500', 0],
+      ['500-1000', 0],
+      ['1000-2000', 0],
+      ['2000-5000', 0],
+      ['5000-10000', 0],
+      ['10000+', 0]
     ];
   }
 
@@ -782,23 +782,23 @@ export class HiroApiService {
       
       if (feeData) {
         const result: FeeEstimates = {
-          fastestFee: feeData.high || Math.floor(Math.random() * 200) + 100,
-          halfHourFee: feeData.medium || Math.floor(Math.random() * 150) + 50,
-          hourFee: feeData.low || Math.floor(Math.random() * 100) + 20,
-          economyFee: Math.floor((feeData.low || 20) * 0.7),
+          fastestFee: feeData.high || 0,
+          halfHourFee: feeData.medium || 0,
+          hourFee: feeData.low || 0,
+          economyFee: feeData.low ? Math.floor(feeData.low * 0.7) : 0,
           minimumFee: 1,
           priority_levels: {
             no_priority: 1,
-            low: feeData.low || 20,
-            medium: feeData.medium || 50,
-            high: feeData.high || 100,
+            low: feeData.low || 0,
+            medium: feeData.medium || 0,
+            high: feeData.high || 0,
             custom: null
           },
           sat_per_vbyte: {
-            fastest: feeData.high || 100,
-            half_hour: feeData.medium || 50,
-            hour: feeData.low || 20,
-            economy: Math.floor((feeData.low || 20) * 0.7),
+            fastest: feeData.high || 0,
+            half_hour: feeData.medium || 0,
+            hour: feeData.low || 0,
+            economy: feeData.low ? Math.floor(feeData.low * 0.7) : 0,
             minimum: 1
           },
           time_estimates: {

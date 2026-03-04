@@ -388,21 +388,21 @@ export class HiroAPIExtensions {
     try {
       devLogger.log('HiroAPIExtensions', 'Fetching mempool statistics');
       
-      // Generate realistic mempool stats since Hiro doesn't have direct endpoint
+      // Return deterministic defaults since Hiro doesn't have direct endpoint
       const baseStats = {
-        count: Math.floor(Math.random() * 50000) + 10000,
-        vsize: Math.floor(Math.random() * 200000000) + 50000000,
-        total_fee: Math.floor(Math.random() * 10000000) + 1000000
+        count: 0,
+        vsize: 0,
+        total_fee: 0
       };
 
       const result: MempoolStatsData = {
         ...baseStats,
-        count_unconfirmed: baseStats.count,
-        size_bytes: Math.floor(baseStats.vsize * 1.1),
+        count_unconfirmed: 0,
+        size_bytes: 0,
         fee_range: {
-          min: 1,
-          max: Math.floor(baseStats.total_fee / baseStats.count * 2),
-          avg: Math.floor(baseStats.total_fee / baseStats.count)
+          min: 0,
+          max: 0,
+          avg: 0
         },
         fee_histogram: this.generateFeeHistogram(),
         size_distribution: this.generateSizeDistribution(),
@@ -442,25 +442,25 @@ export class HiroAPIExtensions {
 
   private generateFeeHistogram(): Array<[number, number]> {
     return [
-      [0, Math.floor(Math.random() * 10000) + 2000],
-      [1, Math.floor(Math.random() * 15000) + 5000],
-      [2, Math.floor(Math.random() * 12000) + 4000],
-      [5, Math.floor(Math.random() * 8000) + 2000],
-      [10, Math.floor(Math.random() * 5000) + 1000],
-      [20, Math.floor(Math.random() * 3000) + 500],
-      [50, Math.floor(Math.random() * 1000) + 200],
-      [100, Math.floor(Math.random() * 500) + 100]
+      [0, 0],
+      [1, 0],
+      [2, 0],
+      [5, 0],
+      [10, 0],
+      [20, 0],
+      [50, 0],
+      [100, 0]
     ];
   }
 
   private generateSizeDistribution(): Array<[string, number]> {
     return [
-      ['0-500', Math.floor(Math.random() * 8000) + 3000],
-      ['500-1000', Math.floor(Math.random() * 10000) + 5000],
-      ['1000-2000', Math.floor(Math.random() * 8000) + 4000],
-      ['2000-5000', Math.floor(Math.random() * 5000) + 2000],
-      ['5000-10000', Math.floor(Math.random() * 3000) + 1000],
-      ['10000+', Math.floor(Math.random() * 2000) + 500]
+      ['0-500', 0],
+      ['500-1000', 0],
+      ['1000-2000', 0],
+      ['2000-5000', 0],
+      ['5000-10000', 0],
+      ['10000+', 0]
     ];
   }
 
@@ -479,9 +479,9 @@ export class HiroAPIExtensions {
       
       if (feeData) {
         const result: FeeEstimates = {
-          fastestFee: feeData.high || Math.floor(Math.random() * 200) + 100,
-          halfHourFee: feeData.medium || Math.floor(Math.random() * 150) + 50,
-          hourFee: feeData.low || Math.floor(Math.random() * 100) + 20,
+          fastestFee: feeData.high || 0,
+          halfHourFee: feeData.medium || 0,
+          hourFee: feeData.low || 0,
           economyFee: Math.floor((feeData.low || 20) * 0.7),
           minimumFee: 1,
           priority_levels: {

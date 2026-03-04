@@ -114,14 +114,6 @@ export function SwapInterface() {
     
     setLoading(true)
     try {
-      // Simulate swap execution
-      console.log('Executing swap:', {
-        from: fromToken.symbol,
-        to: toToken.symbol,
-        amount: fromAmount,
-        route: selectedRoute
-      })
-      
       await new Promise(resolve => setTimeout(resolve, 2000))
       
       // Show success message

@@ -226,13 +226,6 @@ class OptimizedQuickTradeAggregator {
         }
       });
 
-      // Log performance metrics
-      console.log(`Quote fetching completed: ${quotes.length}/${supportedDEXs.length} successful`, {
-        duration: endTimer(),
-        failures,
-        cacheHitRate: this.calculateCacheHitRate()
-      });
-
       return quotes.sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount));
     } catch (error) {
       endTimer();
@@ -545,13 +538,13 @@ class OptimizedQuickTradeAggregator {
   ): Promise<Quote | null> {
     try {
       const mockPrice = this.getMockPrice(tokenIn, tokenOut);
-      const outputAmount = (parseFloat(amountIn) * mockPrice * (0.995 + Math.random() * 0.01)).toString();
+      const outputAmount = (parseFloat(amountIn) * mockPrice * 0.997).toString(); // Deterministic 0.3% fee estimate
       
       return {
         dex,
         inputAmount: amountIn,
         outputAmount,
-        priceImpact: Math.random() * 0.6,
+        priceImpact: 0,
         estimatedGas: '100000',
         route: [{
           dex,
@@ -559,12 +552,12 @@ class OptimizedQuickTradeAggregator {
           tokenOut,
           amountIn,
           amountOut: outputAmount,
-          priceImpact: Math.random() * 0.6
+          priceImpact: 0
         }],
         fee: '0.3',
         slippage: 0.5,
         executionTime: 30,
-        confidence: 85 + Math.random() * 10,
+        confidence: 85,
         timestamp: Date.now()
       };
     } catch (error) {

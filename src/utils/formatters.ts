@@ -228,3 +228,54 @@ export const formatNumber = (
  * Alias para formatPercentage para compatibilidade
  */
 export const formatPercent = formatPercentage;
+
+// ─── Bloomberg-style aliases (CLAUDE.md standard) ───
+
+/** Format USD price: formatUSD(95420.50) → "$95,420.50" */
+export const formatUSD = (value: number | null | undefined, fallback = '—'): string => {
+  if (value == null || isNaN(value)) return fallback;
+  return formatCurrency(value, 'USD', 2);
+};
+
+/** Format BTC amount: formatBTC(0.0432) → "0.0432 BTC" */
+export const formatBTC = (value: number | null | undefined, fallback = '—'): string => {
+  if (value == null || isNaN(value)) return fallback;
+  return `${value.toFixed(value < 0.001 ? 8 : 4)} BTC`;
+};
+
+/** Format satoshis: formatSats(546) → "546 sats" */
+export const formatSats = (value: number | null | undefined, fallback = '—'): string => {
+  if (value == null || isNaN(value)) return fallback;
+  return `${formatNumber(Math.round(value))} sats`;
+};
+
+/** Format percentage with sign and color hint: formatPct(2.34) → "+2.34%" */
+export const formatPct = (value: number | null | undefined, fallback = '—'): string => {
+  if (value == null || isNaN(value)) return fallback;
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(2)}%`;
+};
+
+/** Format compact number: formatCompact(1234567890) → "$1.23B" */
+export const formatCompact = (value: number | null | undefined, fallback = '—'): string => {
+  if (value == null || isNaN(value)) return fallback;
+  return `$${formatCompactNumber(value, 2)}`;
+};
+
+/** Format relative time: formatTimeAgo(timestamp) → "2m ago" */
+export const formatTimeAgo = (timestamp: number | null | undefined, fallback = '—'): string => {
+  if (timestamp == null || isNaN(timestamp)) return fallback;
+  const diff = Date.now() - timestamp;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  return `${Math.floor(diff / 86400000)}d ago`;
+};
+
+/** Safe value fallback: safe(value, '—') → returns value or fallback */
+export const safe = <T>(value: T | null | undefined, fallback: string = '—'): T | string => {
+  if (value == null) return fallback;
+  if (typeof value === 'number' && isNaN(value)) return fallback;
+  if (typeof value === 'string' && value === '') return fallback;
+  return value;
+};

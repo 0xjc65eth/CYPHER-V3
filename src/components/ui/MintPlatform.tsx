@@ -30,12 +30,12 @@ const MINT_PLATFORMS = {
     features: ['Pro tools', 'Advanced charts', 'Low fees']
   },
   magiceden: {
-    name: 'Magic Eden',
-    icon: '🪄',
-    baseUrl: 'https://magiceden.io/ordinals',
-    description: 'Premier NFT marketplace',
-    color: 'purple',
-    features: ['Curated collections', 'Analytics', 'Mobile app']
+    name: 'Gamma.io',
+    icon: '🟢',
+    baseUrl: 'https://gamma.io/ordinals/collections',
+    description: 'Premier Bitcoin NFT marketplace',
+    color: 'green',
+    features: ['Curated collections', 'Analytics', 'Bitcoin native']
   },
   ordinalsbot: {
     name: 'OrdinalsBot',

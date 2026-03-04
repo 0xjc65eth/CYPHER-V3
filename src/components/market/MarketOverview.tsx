@@ -312,15 +312,13 @@ export default function MarketOverview() {
             className={styles.matrixColumn}
             style={{
               left: `${i * 5}%`,
-              animationDelay: `${Math.random() * 8}s`,
-              animationDuration: `${8 + Math.random() * 4}s`
+              animationDelay: `${i * 0.4}s`,
+              animationDuration: `${10}s`
             }}
           >
             {Array.from({ length: 20 }).map((_, j) => (
               <div key={j}>
-                {Math.random() > 0.7 ? String.fromCharCode(0x30A0 + Math.random() * 96) : 
-                 Math.random() > 0.5 ? Math.floor(Math.random() * 10) : 
-                 String.fromCharCode(65 + Math.random() * 26)}
+                {String.fromCharCode(0x30A0 + ((i + j) % 96))}
               </div>
             ))}
           </div>

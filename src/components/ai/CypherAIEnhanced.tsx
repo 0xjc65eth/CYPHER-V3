@@ -236,23 +236,21 @@ export default function CypherAIEnhanced() {
   // Funções auxiliares para resposta brasileira
   const generateBrazilianResponse = (message: string): string => {
     const lowerMessage = message.toLowerCase();
-    
+
     if (lowerMessage.includes('olá') || lowerMessage.includes('oi') || lowerMessage.includes('hey')) {
-      return BRAZILIAN_RESPONSES.greeting[Math.floor(Math.random() * BRAZILIAN_RESPONSES.greeting.length)];
+      return BRAZILIAN_RESPONSES.greeting[0];
     }
-    
+
     if (lowerMessage.includes('bitcoin') || lowerMessage.includes('btc')) {
-      const analysis = BRAZILIAN_RESPONSES.analysis[Math.floor(Math.random() * BRAZILIAN_RESPONSES.analysis.length)];
-      const trend = Math.random() > 0.5 ? 
-        BRAZILIAN_RESPONSES.bullish[Math.floor(Math.random() * BRAZILIAN_RESPONSES.bullish.length)] :
-        BRAZILIAN_RESPONSES.bearish[Math.floor(Math.random() * BRAZILIAN_RESPONSES.bearish.length)];
+      const analysis = BRAZILIAN_RESPONSES.analysis[0];
+      const trend = BRAZILIAN_RESPONSES.bullish[0];
       return `${analysis} o Bitcoin ${trend}`;
     }
-    
+
     if (lowerMessage.includes('trade') || lowerMessage.includes('comprar') || lowerMessage.includes('vender')) {
-      return BRAZILIAN_RESPONSES.trading[Math.floor(Math.random() * BRAZILIAN_RESPONSES.trading.length)];
+      return BRAZILIAN_RESPONSES.trading[0];
     }
-    
+
     return "Interessante! Me conta mais sobre isso que quero te ajudar melhor. Sou especialista em crypto, principalmente Bitcoin, Ordinals e Runes!";
   };
 

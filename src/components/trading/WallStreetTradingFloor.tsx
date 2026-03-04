@@ -91,14 +91,14 @@ export default function WallStreetTradingFloor() {
         name,
         avatar: `👨‍💼`,
         position: {
-          x: Math.random() * 800,
-          y: Math.random() * 400
+          x: (index * 60) % 800,
+          y: (Math.floor(index / 13) * 100) % 400
         },
-        status: Math.random() > 0.5 ? 'buying' : 'selling',
-        pnl: (Math.random() - 0.5) * 1000000,
-        volume: Math.random() * 10000000,
-        energy: Math.random() * 100,
-        reputation: Math.random() * 1000
+        status: 'neutral',
+        pnl: 0,
+        volume: 0,
+        energy: 0,
+        reputation: 0
       }));
 
       setTraders(newTraders);
@@ -107,64 +107,20 @@ export default function WallStreetTradingFloor() {
     initTraders();
   }, []);
 
-  // Generate market shouts
+  // No fake market shouts - remove this entirely
+  // Market shouts should come from real trading data, not Math.random()
   useEffect(() => {
-    const generateShout = () => {
-      const trader = traders[Math.floor(Math.random() * traders.length)];
-      if (!trader) return;
+    // Clear fake shouts on mount
+    setMarketShouts([]);
+  }, []);
 
-      const symbols = ['BTC', 'ETH', 'SOL', 'RUNE•GOD', 'DOG•GO•TO•THE•MOON'];
-      const symbol = symbols[Math.floor(Math.random() * symbols.length)];
-      const price = Math.random() * 100000;
-      const volume = Math.random() * 1000;
-
-      const shoutTypes = [
-        `🔥 ${symbol} BREAKING OUT! ${price.toFixed(0)}!!!`,
-        `💎 MASSIVE ${symbol} BUY WALL AT ${price.toFixed(0)}`,
-        `⚡ ${symbol} SQUEEZE INCOMING! ALL ABOARD!`,
-        `🚨 ${symbol} DUMP ALERT! PROTECT PROFITS!`,
-        `🎯 ${symbol} TARGET HIT! TAKING PROFITS!`,
-        `💪 ${symbol} BULLISH DIVERGENCE! LOAD UP!`,
-        `🔔 ${symbol} INSTITUTIONAL BUYING ${volume.toFixed(0)}K`,
-        `⭐ ${symbol} MOONSHOT SETUP! DON'T MISS!`
-      ];
-
-      const message = shoutTypes[Math.floor(Math.random() * shoutTypes.length)];
-
-      const newShout: MarketShout = {
-        id: `shout-${Date.now()}`,
-        trader: trader.name,
-        message,
-        type: Math.random() > 0.5 ? 'BUY' : 'SELL',
-        timestamp: Date.now(),
-        priority: Math.random() > 0.7 ? 'urgent' : 'high',
-        symbol,
-        price,
-        volume
-      };
-
-      setMarketShouts(prev => [newShout, ...prev.slice(0, 19)]);
-    };
-
-    const interval = setInterval(generateShout, 2000 + Math.random() * 3000);
-    return () => clearInterval(interval);
-  }, [traders]);
-
-  // Update market metrics
+  // Market metrics should come from real data, not random generation
   useEffect(() => {
-    const updateMetrics = () => {
-      setTotalVolume(prev => prev + Math.random() * 1000000);
-      setActiveDeals(prev => Math.max(0, prev + (Math.random() - 0.5) * 10));
-      setMarketTemperature(prev => Math.max(0, Math.min(100, prev + (Math.random() - 0.5) * 10)));
-      
-      const moods: Array<'bull' | 'bear' | 'volatile' | 'calm'> = ['bull', 'bear', 'volatile', 'calm'];
-      if (Math.random() > 0.9) {
-        setMarketMood(moods[Math.floor(Math.random() * moods.length)]);
-      }
-    };
-
-    const interval = setInterval(updateMetrics, 1000);
-    return () => clearInterval(interval);
+    // Initialize with zero/neutral values
+    setTotalVolume(0);
+    setActiveDeals(0);
+    setMarketTemperature(50);
+    setMarketMood('calm');
   }, []);
 
   // Draw trading floor visualization
@@ -235,7 +191,7 @@ export default function WallStreetTradingFloor() {
             ctx.beginPath();
             ctx.moveTo(trader1.position.x, trader1.position.y);
             ctx.lineTo(trader2.position.x, trader2.position.y);
-            ctx.strokeStyle = `rgba(255, 165, 0, ${0.1 + Math.random() * 0.3})`;
+            ctx.strokeStyle = `rgba(255, 165, 0, 0.2)`;
             ctx.lineWidth = 1;
             ctx.stroke();
           }

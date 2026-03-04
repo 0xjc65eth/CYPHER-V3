@@ -316,17 +316,17 @@ export class MempoolAPIService {
         id: `mock_block_${i}`,
         height: 840000 - i,
         timestamp: Date.now() - (i * 600000), // 10 minutes apart
-        tx_count: 2500 + Math.floor(Math.random() * 1000),
-        size: 1500000 + Math.floor(Math.random() * 500000),
+        tx_count: 2500,
+        size: 1500000,
         weight: 4000000,
         merkle_root: `mock_merkle_${i}`,
         previousblockhash: `mock_prev_${i}`,
         mediantime: Date.now() - (i * 600000),
-        nonce: Math.floor(Math.random() * 1000000000),
+        nonce: 0,
         bits: '17038a6d',
         difficulty: 72723138748.54,
         chainwork: '00000000000000000000000000000000000000007b0b8b8b8b8b8b8b8b8b8b',
-        nTx: 2500 + Math.floor(Math.random() * 1000)
+        nTx: 2500
       });
     }
     return blocks;

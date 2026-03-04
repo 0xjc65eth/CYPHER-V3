@@ -130,7 +130,7 @@ function aggregateCollectionStats(runes: any[]) {
 function buildMarketplaces(name: string) {
   const slug = encodeURIComponent(name)
   return [
-    { name: 'magiceden.io', url: `https://magiceden.io/runes/${slug}` },
+    { name: 'gamma.io', url: `https://gamma.io/ordinals/collections/${slug}` },
     { name: 'unisat.io', url: `https://unisat.io/runes/market?rune=${slug}` },
   ]
 }
@@ -138,7 +138,7 @@ function buildMarketplaces(name: string) {
 function buildLinks(name: string) {
   const slug = encodeURIComponent(name)
   return {
-    buy: `https://magiceden.io/runes/${slug}`,
+    buy: `https://gamma.io/ordinals/collections/${slug}`,
     info: `https://unisat.io/runes/market?rune=${slug}`,
   }
 }

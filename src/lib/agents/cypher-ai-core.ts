@@ -566,12 +566,12 @@ export class CypherAICore extends EventEmitter {
   private async calculateTechnicalIndicators(asset: string): Promise<TechnicalIndicators> {
     // Simulate technical indicators
     return {
-      rsi: 45 + Math.random() * 20,
-      macd: { value: 100, signal: 95, histogram: 5 },
-      bollinger: { upper: 47000, middle: 45000, lower: 43000 },
-      ema20: 44800,
-      ema50: 44000,
-      volume: 1500000 + Math.random() * 500000,
+      rsi: 50,
+      macd: { value: 0, signal: 0, histogram: 0 },
+      bollinger: { upper: 0, middle: 0, lower: 0 },
+      ema20: 0,
+      ema50: 0,
+      volume: 0,
       support: 43000,
       resistance: 47000
     };
@@ -580,11 +580,11 @@ export class CypherAICore extends EventEmitter {
   private async analyzeSentiment(asset: string): Promise<SentimentAnalysis> {
     // Simulate sentiment analysis
     return {
-      score: (Math.random() - 0.5) * 0.6, // -0.3 to 0.3
-      sources: ['Twitter', 'Reddit', 'News'],
-      keywords: ['bullish', 'growth', 'adoption'],
-      socialVolume: 1500,
-      newsImpact: 0.2
+      score: 0,
+      sources: [],
+      keywords: [],
+      socialVolume: 0,
+      newsImpact: 0
     };
   }
 
@@ -593,16 +593,16 @@ export class CypherAICore extends EventEmitter {
     const volatility = 0.02; // 2% volatility
     
     return {
-      nextHour: currentPrice * (1 + (Math.random() - 0.5) * volatility),
-      next4Hours: currentPrice * (1 + (Math.random() - 0.5) * volatility * 2),
-      next24Hours: currentPrice * (1 + (Math.random() - 0.5) * volatility * 4),
-      confidence: 0.65 + Math.random() * 0.25,
+      nextHour: currentPrice,
+      next4Hours: currentPrice,
+      next24Hours: currentPrice,
+      confidence: 0,
       factors: ['technical_indicators', 'market_sentiment', 'volume_analysis']
     };
   }
 
   private calculatePriceChange(asset: string): number {
-    return (Math.random() - 0.5) * 10; // -5% to +5%
+    return 0; // No real data available
   }
 
   private calculateAnalysisConfidence(indicators: TechnicalIndicators, sentiment: SentimentAnalysis): number {

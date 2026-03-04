@@ -164,15 +164,6 @@ export function QuickTradeWidget() {
         amount: calculatedAmount,
       })
 
-      console.log('🔗 Trading options:', {
-        platform,
-        directUrl: targetUrl,
-        deepLink,
-        network: selectedNetwork,
-        tokens: { from: fromToken, to: toToken },
-        amount: calculatedAmount
-      })
-      
       // Preferir URL direto, depois deep link, depois fallback
       let finalUrl = targetUrl
       if (!targetUrl && deepLink && deepLink !== '#' && deepLink.startsWith('http')) {
@@ -180,17 +171,14 @@ export function QuickTradeWidget() {
       }
       
       if (finalUrl && finalUrl.startsWith('http')) {
-        console.log('✅ Opening trading URL:', finalUrl)
         window.open(finalUrl, '_blank', 'noopener,noreferrer')
       } else {
         // Fallback para página QuickTrade completa
-        console.log('⚠️ Using fallback - opening QuickTrade page')
         window.open('/quicktrade', '_blank', 'noopener,noreferrer')
       }
     } catch (error) {
-      console.error('❌ Error generating trade link:', error)
+      console.error('[QuickTradeWidget] Error generating trade link:', error)
       // Fallback final
-      console.log('⚠️ Error fallback - opening QuickTrade page')
       window.open('/quicktrade', '_blank', 'noopener,noreferrer')
     }
   }

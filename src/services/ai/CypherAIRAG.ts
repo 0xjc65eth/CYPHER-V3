@@ -576,9 +576,9 @@ INSTRUÇÕES:
   private addPersonalityTouches(text: string, emotion: string): string {
     let response = text;
     
-    // Add greeting if appropriate
-    if (!response.startsWith('Fala') && Math.random() > 0.7) {
-      response = `${this.brazilianSlang[Math.floor(Math.random() * this.brazilianSlang.length)]} ${response}`;
+    // Add greeting if appropriate (deterministic - no random)
+    if (!response.startsWith('Fala')) {
+      response = `${this.brazilianSlang[0]} ${response}`;
     }
     
     // Add emojis based on emotion
@@ -593,18 +593,16 @@ INSTRUÇÕES:
       
       const emojis = emojiMap[emotion] || '💡';
       response = response.replace(/\./g, (match, offset, string) => {
-        // Add emoji to some sentence endings
-        return offset === string.lastIndexOf('.') || Math.random() > 0.7 
-          ? `. ${emojis.charAt(Math.floor(Math.random() * emojis.length))}` 
+        // Add emoji only to last sentence ending (deterministic)
+        return offset === string.lastIndexOf('.')
+          ? `. ${emojis.charAt(0)}`
           : '.';
       });
     }
     
-    // Add catchphrase occasionally
-    if (Math.random() > 0.8 && this.config.personality.catchPhrases.length > 0) {
-      const catchphrase = this.config.personality.catchPhrases[
-        Math.floor(Math.random() * this.config.personality.catchPhrases.length)
-      ];
+    // Add catchphrase (deterministic - no random)
+    if (this.config.personality.catchPhrases.length > 0) {
+      const catchphrase = this.config.personality.catchPhrases[0];
       response += `\n\n${catchphrase}`;
     }
     
@@ -864,8 +862,8 @@ INSTRUÇÕES:
       'Xiii, bugou aqui. Tenta de novo aí, por favor! 🛠️',
       'Desculpa, mano! Tive uma falha técnica. Bora tentar de novo? 💪'
     ];
-    
-    return responses[Math.floor(Math.random() * responses.length)];
+
+    return responses[0]; // Use first response instead of random
   }
 
   private getOrCreateContext(userId: string, sessionId?: string): ConversationContext {

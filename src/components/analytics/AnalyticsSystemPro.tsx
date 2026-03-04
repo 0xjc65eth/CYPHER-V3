@@ -536,8 +536,8 @@ export function AnalyticsSystemPro() {
       
       switch (chartType) {
         case 'price':
-          const priceValues = dataPoints.map((_, i) => 
-            marketMetrics.price + (Math.sin(i * 0.1) * 2000) + (Math.random() - 0.5) * 3000
+          const priceValues = dataPoints.map((_, i) =>
+            marketMetrics.price + (Math.sin(i * 0.1) * 2000)
           ).reverse();
           
           datasets = [{
@@ -551,8 +551,8 @@ export function AnalyticsSystemPro() {
           break;
           
         case 'volume':
-          const volumeValues = dataPoints.map(() => 
-            marketMetrics.volume24h * (0.7 + Math.random() * 0.6) / 1000000000
+          const volumeValues = dataPoints.map(() =>
+            marketMetrics.volume24h / 1000000000
           ).reverse();
           
           datasets = [{
@@ -566,8 +566,8 @@ export function AnalyticsSystemPro() {
           break;
           
         case 'onchain':
-          const addressValues = dataPoints.map(() => 
-            onChainMetrics.activeAddresses * (0.9 + Math.random() * 0.2) / 1000000
+          const addressValues = dataPoints.map(() =>
+            onChainMetrics.activeAddresses / 1000000
           ).reverse();
           
           datasets = [{
@@ -581,8 +581,8 @@ export function AnalyticsSystemPro() {
           break;
           
         case 'derivatives':
-          const oiValues = dataPoints.map(() => 
-            marketMetrics.derivatives.openInterest * (0.95 + Math.random() * 0.1) / 1000000000
+          const oiValues = dataPoints.map(() =>
+            marketMetrics.derivatives.openInterest / 1000000000
           ).reverse();
           
           datasets = [{
@@ -598,7 +598,7 @@ export function AnalyticsSystemPro() {
         default:
           datasets = [{
             label: 'Data',
-            data: dataPoints.map(() => Math.random() * 100).reverse(),
+            data: dataPoints.map(() => 0).reverse(),
             borderColor: '#6366F1',
             backgroundColor: 'rgba(99, 102, 241, 0.1)',
             fill: true,
@@ -650,42 +650,17 @@ export function AnalyticsSystemPro() {
   };
 
   const updatePredictions = useCallback(() => {
-    // Simulate prediction model updates
+    // No fake prediction updates - keep models static
     setPredictionModels(prev => prev.map(model => ({
       ...model,
-      prediction: {
-        ...model.prediction,
-        confidence: Math.max(0.3, Math.min(0.95, model.prediction.confidence + (Math.random() - 0.5) * 0.1))
-      },
       lastUpdated: new Date()
     })));
   }, []);
 
   const checkAlerts = useCallback(() => {
-    // Simulate alert checking
-    setAlertRules(prev => prev.map(rule => {
-      if (!rule.enabled) return rule;
-      
-      // Simple mock alert logic
-      const triggered = Math.random() > 0.95; // 5% chance of triggering
-      
-      if (triggered && !rule.triggered && soundEnabled) {
-        const audio = new Audio('/sounds/alert.mp3');
-        audio.volume = 0.3;
-        audio.play().catch(() => {});
-        
-        toast.success(`Alert triggered: ${rule.name}`, {
-          duration: 5000,
-          icon: '🚨'
-        });
-      }
-      
-      return {
-        ...rule,
-        triggered,
-        lastTriggered: triggered ? new Date() : rule.lastTriggered
-      };
-    }));
+    // Alert checking without fake random triggers - real alerts only
+    // In production, this would check actual market conditions
+    setAlertRules(prev => prev.map(rule => rule));
   }, [soundEnabled]);
 
   // Enhanced metric cards based on view mode

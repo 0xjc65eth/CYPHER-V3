@@ -72,7 +72,7 @@ interface ArbitrageOptions {
 }
 
 const MARKETPLACE_FEES: Record<string, number> = {
-  'Magic Eden': 0.025,
+  'Gamma.io': 0.02,
   'Unisat': 0.02,
 };
 
@@ -227,11 +227,11 @@ export function useArbitrageOpportunities(_symbol?: string, _options?: Arbitrage
 
             if (unisatPriceBtc < mePriceBtc) {
               buyMarketplace = 'Unisat';
-              sellMarketplace = 'Magic Eden';
+              sellMarketplace = 'Gamma.io';
               buyPrice = unisatPriceBtc;
               sellPrice = mePriceBtc;
             } else {
-              buyMarketplace = 'Magic Eden';
+              buyMarketplace = 'Gamma.io';
               sellMarketplace = 'Unisat';
               buyPrice = mePriceBtc;
               sellPrice = unisatPriceBtc;
@@ -312,11 +312,11 @@ export function useArbitrageOpportunities(_symbol?: string, _options?: Arbitrage
               buyLink:
                 buyMarketplace === 'Unisat'
                   ? `https://unisat.io/runes/market?tick=${encodeURIComponent(uniRune.rune)}`
-                  : `https://magiceden.io/runes/${encodeURIComponent(meInfo.rune)}`,
+                  : `https://gamma.io/ordinals/collections/${encodeURIComponent(meInfo.rune)}`,
               sellLink:
                 sellMarketplace === 'Unisat'
                   ? `https://unisat.io/runes/market?tick=${encodeURIComponent(uniRune.rune)}`
-                  : `https://magiceden.io/runes/${encodeURIComponent(meInfo.rune)}`,
+                  : `https://gamma.io/ordinals/collections/${encodeURIComponent(meInfo.rune)}`,
             };
           } catch {
             return null;

@@ -85,7 +85,7 @@ export const CollectionDetailsModal = memo<CollectionDetailsModalProps>(({
 
   // Marketplace links (placeholder URLs)
   const marketplaces = [
-    { name: 'Magic Eden', url: `https://magiceden.io/ordinals/marketplace/${collection.symbol}` },
+    { name: 'Gamma.io', url: `https://gamma.io/ordinals/collections/${collection.symbol}` },
     { name: 'UniSat', url: `https://unisat.io/market/collection/${collection.symbol}` },
     { name: 'OKX', url: `https://www.okx.com/web3/marketplace/ordinals/collection/${collection.symbol}` }
   ];

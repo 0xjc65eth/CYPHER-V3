@@ -230,7 +230,6 @@ class QuoteEngine {
         
         return quote;
       } catch (error) {
-        console.error(`Erro ao obter cotação de ${dexConfig.name}:`, error);
         return null;
       }
     });
@@ -545,19 +544,6 @@ export async function POST(request: NextRequest) {
         dataFreshness: Date.now()
       }
     };
-
-    // Log para auditoria
-    console.log('Advanced Quote Request:', {
-      timestamp: new Date().toISOString(),
-      userIP: request.headers.get('x-forwarded-for') || 'unknown',
-      fromToken,
-      toToken,
-      amount,
-      network,
-      bestDex: bestQuote.dex,
-      responseTime,
-      quotesFound: quotes.length
-    });
 
     return NextResponse.json(response);
 

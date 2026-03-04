@@ -25,7 +25,6 @@ export async function GET() {
     const message = error instanceof Error ? error.message : 'Unknown error';
 
     // Return fallback data instead of error - atualizado 2026-02-24
-    console.warn('[market/price] Using fallback data:', message);
     return NextResponse.json(
       {
         price: 63500,

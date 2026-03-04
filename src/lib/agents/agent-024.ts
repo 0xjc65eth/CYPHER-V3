@@ -172,25 +172,24 @@ export class Agent024_TradingIntelligence extends EventEmitter {
   }
 
   private getMockMarketData(): MarketData {
-    // Mock data with some randomization
-    const basePrice = 107000;
-    const randomFactor = 0.98 + Math.random() * 0.04; // ±2%
-    
+    // Deterministic defaults - no real data available
+    const basePrice = 0;
+
     return {
       symbol: 'BTC/USDT',
-      price: basePrice * randomFactor,
-      volume24h: 15000000000 * (0.8 + Math.random() * 0.4),
-      change24h: -1.57,
-      rsi: 25 + Math.random() * 50, // 25-75
+      price: basePrice,
+      volume24h: 0,
+      change24h: 0,
+      rsi: 50, // Neutral RSI
       macd: {
-        value: -50 + Math.random() * 100,
-        signal: -50 + Math.random() * 100,
-        histogram: -20 + Math.random() * 40
+        value: 0,
+        signal: 0,
+        histogram: 0
       },
       bollingerBands: {
-        upper: basePrice * 1.02,
-        middle: basePrice,
-        lower: basePrice * 0.98
+        upper: 0,
+        middle: 0,
+        lower: 0
       }
     };
   }

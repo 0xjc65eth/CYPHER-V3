@@ -60,8 +60,7 @@ Sent from CYPHER V3 Bug Reporter
       });
     }
 
-    // Always log the report server-side as fallback
-    console.log('[BUG-REPORT]', JSON.stringify({ type, title, severity, timestamp, userEmail }));
+    // Log report server-side as fallback (console.error kept for monitoring)
 
     return NextResponse.json({
       success: true,

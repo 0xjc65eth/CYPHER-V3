@@ -954,12 +954,8 @@ export class StakingRewardsSystem extends EventEmitter {
 
   private async updatePoolMetrics(): Promise<void> {
     for (const pool of this.pools.values()) {
-      // Update APY based on market conditions
-      pool.apy += (Math.random() - 0.5) * 0.5; // Small random variation
-      pool.apy = Math.max(0, pool.apy);
-
-      // Update TVL
-      pool.tvl += (Math.random() - 0.5) * pool.tvl * 0.05; // ±5% variation
+      // APY and TVL remain unchanged without live market data
+      // pool.apy and pool.tvl stay at their loaded values
 
       this.pools.set(pool.id, pool);
     }

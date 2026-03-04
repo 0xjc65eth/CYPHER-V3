@@ -27,7 +27,7 @@ export class MachineLearningPredictor {
 
   static getCompositePrediction(prices: number[]): PredictionResult {
     const currentPrice = prices[prices.length - 1];
-    const predictedPrice = currentPrice + (Math.random() - 0.5) * currentPrice * 0.05;
+    const predictedPrice = currentPrice; // No prediction without real model
     const direction = predictedPrice > currentPrice * 1.01 ? 'UP' : 
                      predictedPrice < currentPrice * 0.99 ? 'DOWN' : 'SIDEWAYS';
     

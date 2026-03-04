@@ -26,15 +26,15 @@ export class BacktestingEngine {
     this.historicalData = Array.from({ length: days }, (_, i) => {
       const date = new Date(this.config.startDate);
       date.setDate(date.getDate() + i);
-      
-      const basePrice = 50000 + Math.random() * 20000;
+
+      // Deterministic defaults - no real data available
       return {
         date,
-        open: basePrice,
-        high: basePrice * (1 + Math.random() * 0.03),
-        low: basePrice * (1 - Math.random() * 0.03),
-        close: basePrice * (0.98 + Math.random() * 0.04),
-        volume: 1000000 + Math.random() * 5000000
+        open: 0,
+        high: 0,
+        low: 0,
+        close: 0,
+        volume: 0
       };
     });
   }
@@ -99,7 +99,7 @@ export class BacktestingEngine {
 
   private calculateRSI(data: any[], period: number): number {
     // Simplified RSI calculation
-    return 30 + Math.random() * 40; // Mock value between 30-70
+    return 50; // Neutral RSI - no real data available
   }
 
   private shouldEnter(indicators: any, candle: any): boolean {

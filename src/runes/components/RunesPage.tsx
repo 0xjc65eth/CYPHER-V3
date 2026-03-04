@@ -181,7 +181,7 @@ export function RunesPage() {
 
   const handleRuneClick = useCallback((rune: ProcessedRune) => {
     window.open(
-      `https://magiceden.io/runes/${encodeURIComponent(rune.spacedName)}`,
+      `https://gamma.io/ordinals/collections/${encodeURIComponent(rune.spacedName)}`,
       '_blank'
     );
   }, []);

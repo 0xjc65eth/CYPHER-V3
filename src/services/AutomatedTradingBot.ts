@@ -185,11 +185,11 @@ class AutomatedTradingBot {
    * Analyze individual coin
    */
   private async analyzeCoin(symbol: string): Promise<TradingSignal | null> {
-    // Simulate technical analysis
+    // Default neutral analysis - no real data available
     const price = this.simulatePrice(symbol);
-    const rsi = Math.random() * 100;
-    const macd = (Math.random() - 0.5) * 0.02;
-    const volume = Math.random() * 1000000;
+    const rsi = 50; // Neutral RSI
+    const macd = 0; // Neutral MACD
+    const volume = 0; // No volume data
     
     let action: 'BUY' | 'SELL' | 'HOLD' = 'HOLD';
     let confidence = 50;
@@ -252,9 +252,9 @@ class AutomatedTradingBot {
     };
     
     const basePrice = basePrices[symbol] || 100;
-    const variation = (Math.random() - 0.5) * 0.1; // ±5% variation
-    
-    return basePrice * (1 + variation);
+    // No variation - deterministic price
+
+    return basePrice;
   }
   
   /**
@@ -269,14 +269,14 @@ class AutomatedTradingBot {
     }
     
     try {
-      // Simulate trade execution
-      const isSuccessful = Math.random() > 0.25; // 75% success rate
+      // Deterministic success in simulation
+      const isSuccessful = true;
       
       this.status.totalTrades++;
       
       if (isSuccessful) {
         this.status.successfulTrades++;
-        const profit = signal.price * 0.02 * (Math.random() + 0.5); // 1-3% profit
+        const profit = signal.price * 0.02; // 2% profit (deterministic)
         this.status.totalProfit += profit;
         
         this.status.winRate = (this.status.successfulTrades / this.status.totalTrades) * 100;
@@ -287,7 +287,7 @@ class AutomatedTradingBot {
           data: { profit, signal }
         };
       } else {
-        const loss = signal.price * 0.01 * Math.random(); // Small loss
+        const loss = signal.price * 0.01; // Small loss (deterministic)
         this.status.totalProfit -= loss;
         this.status.winRate = (this.status.successfulTrades / this.status.totalTrades) * 100;
         
@@ -356,7 +356,7 @@ class AutomatedTradingBot {
     else category = 'poor';
     
     const categoryMessages = messages[category];
-    return categoryMessages[Math.floor(Math.random() * categoryMessages.length)];
+    return categoryMessages[0]; // Use first message instead of random
   }
 }
 

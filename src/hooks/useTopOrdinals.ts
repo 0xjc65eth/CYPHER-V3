@@ -8,6 +8,7 @@ export function useTopOrdinals() {
       if (!res.ok) throw new Error('Erro ao buscar Ordinals')
       return res.json()
     },
+    staleTime: 30000, // 30s - rankings change moderately
     refetchInterval: 60000, // 1 minuto
   })
 } 

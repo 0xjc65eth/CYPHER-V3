@@ -229,7 +229,7 @@ General Market Reference Points (approximate ranges):
 • Emerging (<0.02 BTC): Various newer collections
 
 For exact current prices, check:
-- Magic Eden: magiceden.io/ordinals
+- Gamma.io: gamma.io/ordinals
 - OKX Marketplace: okx.com/web3/marketplace/ordinals
 - UniSat: unisat.io/market`;
 
@@ -239,7 +239,7 @@ For exact current prices, check:
 Real-time data temporarily unavailable. Using general market knowledge and historical context for analysis.
 
 For current floor prices and volume, please check:
-• Magic Eden: magiceden.io/ordinals
+• Gamma.io: gamma.io/ordinals
 • OKX: okx.com/web3/marketplace/ordinals`;
   }
 }

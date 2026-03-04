@@ -16,6 +16,7 @@ export function useTopRunes() {
       }
       return []
     },
+    staleTime: 30000, // 30s - rankings change moderately
     refetchInterval: 60000,
   })
 }

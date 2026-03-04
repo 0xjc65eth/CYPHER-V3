@@ -480,11 +480,11 @@ export function PortfolioRefined() {
         const date = new Date(now - i * getTimeInterval(timeRange));
         return format(date, timeRange === '24h' ? 'HH:mm' : 'MMM dd');
       }).reverse();
-      
-      const portfolioValues = dataPoints.map((_, i) => 
-        portfolioSummary.totalUsdValue * (0.9 + Math.random() * 0.2)
+
+      const portfolioValues = dataPoints.map(() =>
+        portfolioSummary.totalUsdValue
       ).reverse();
-      
+
       setPortfolioChart({
         labels,
         datasets: [{

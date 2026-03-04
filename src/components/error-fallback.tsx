@@ -66,7 +66,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps)
             If the problem persists, please contact our support team at support@example.com
           </Text>
           <Text className="text-xs text-gray-500 mt-1">
-            Error ID: {Math.random().toString(36).substring(2, 10).toUpperCase()} • {new Date().toLocaleString()}
+            Error ID: ERR-{Date.now().toString(36).toUpperCase()}
           </Text>
         </div>
       </Card>

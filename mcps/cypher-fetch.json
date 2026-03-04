@@ -1,0 +1,52 @@
+{
+  "name": "cypher-fetch",
+  "description": "Fetch de APIs externas de crypto para pesquisa e validação — Hiro, OKX, Ordiscan, CoinGecko",
+  "type": "mcp-server",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-fetch"],
+  "config": {
+    "allowedDomains": [
+      "api.hiro.so",
+      "api.coingecko.com",
+      "api.coinmarketcap.com",
+      "open-api.unisat.io",
+      "ordiscan.com",
+      "www.okx.com",
+      "gamma.io",
+      "mempool.space",
+      "api.glassnode.com",
+      "api.hyperliquid.xyz",
+      "api.binance.com",
+      "docs.hiro.so",
+      "github.com",
+      "raw.githubusercontent.com"
+    ],
+    "blockedDomains": [
+      "magiceden.io",
+      "magiceden.us"
+    ],
+    "defaultHeaders": {
+      "User-Agent": "CYPHER-V3-Agent/1.0",
+      "Accept": "application/json"
+    },
+    "timeout": 15000,
+    "rateLimit": {
+      "requestsPerMinute": 30,
+      "perDomain": true
+    }
+  },
+  "capabilities": [
+    "http_get",
+    "http_post",
+    "check_api_status",
+    "fetch_documentation"
+  ],
+  "usefulEndpoints": {
+    "bitcoin_price": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
+    "ordinals_collections": "https://api.hiro.so/ordinals/v1/collections?limit=20&order_by=volume_24h",
+    "runes_market": "https://api.hiro.so/runes/v1/etchings?limit=20",
+    "bitcoin_fees": "https://mempool.space/api/v1/fees/recommended",
+    "ordinals_stats": "https://api.hiro.so/ordinals/v1/stats/inscriptions"
+  },
+  "notes": "Magic Eden BLOQUEADO — usar OKX NFT ou Gamma.io"
+}

@@ -247,7 +247,7 @@ export const DEFAULT_CONFIG = {
  * Marketplace display names
  */
 export const MARKETPLACE_NAMES: Record<OrdinalsMarketplace, string> = {
-  magic_eden: 'Magic Eden',
+  magic_eden: 'Gamma.io',
   unisat: 'UniSat',
   okx: 'OKX',
   hiro: 'Hiro/Ordiscan',
@@ -259,7 +259,7 @@ export const MARKETPLACE_NAMES: Record<OrdinalsMarketplace, string> = {
  * Marketplace URLs
  */
 export const MARKETPLACE_URLS: Record<OrdinalsMarketplace, string> = {
-  magic_eden: 'https://magiceden.io/ordinals',
+  magic_eden: 'https://gamma.io/ordinals',
   unisat: 'https://unisat.io/market',
   okx: 'https://www.okx.com/web3/marketplace/ordinals',
   hiro: 'https://ordinals.hiro.so',

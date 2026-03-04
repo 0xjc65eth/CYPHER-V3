@@ -347,12 +347,12 @@ export function OrdinalsStatsCard() {
                       ) : (
                         <>
                           <a
-                            href={`https://magiceden.io/ordinals/collection/${collection.name.toLowerCase().replace(/\s+/g, '-')}`}
+                            href={`https://gamma.io/ordinals/collections/${collection.name.toLowerCase().replace(/\s+/g, '-')}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`text-xs px-2 py-1 rounded ${colorScheme.bg} ${colorScheme.text} border ${colorScheme.border} hover:bg-opacity-80 transition-colors`}
                           >
-                            Magic Eden
+                            Gamma.io
                           </a>
                           <a
                             href={`https://gamma.io/ordinals/collections/${collection.name.toLowerCase().replace(/\s+/g, '-')}`}

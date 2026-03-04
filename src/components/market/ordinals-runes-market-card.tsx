@@ -42,7 +42,7 @@ export function OrdinalsRunesMarketCard() {
       floorPrice: 0.175,
       holders: 2850,
       inscriptionCount: 10000,
-      link: 'https://magiceden.io/ordinals/marketplace/bitcoin-puppets'
+      link: 'https://gamma.io/ordinals/collections/bitcoin-puppets'
     },
     {
       name: 'Ordinal Punks',
@@ -53,7 +53,7 @@ export function OrdinalsRunesMarketCard() {
       floorPrice: 2.35,
       holders: 1250,
       inscriptionCount: 100,
-      link: 'https://magiceden.io/ordinals/marketplace/ordinal-punks'
+      link: 'https://gamma.io/ordinals/collections/ordinal-punks'
     },
     {
       name: 'Bitcoin Frogs',
@@ -64,7 +64,7 @@ export function OrdinalsRunesMarketCard() {
       floorPrice: 0.092,
       holders: 3450,
       inscriptionCount: 10000,
-      link: 'https://magiceden.io/ordinals/marketplace/bitcoin-frogs'
+      link: 'https://gamma.io/ordinals/collections/bitcoin-frogs'
     },
     {
       name: 'Taproot Wizards',
@@ -75,7 +75,7 @@ export function OrdinalsRunesMarketCard() {
       floorPrice: 1.78,
       holders: 1850,
       inscriptionCount: 2121,
-      link: 'https://magiceden.io/ordinals/marketplace/taproot-wizards'
+      link: 'https://gamma.io/ordinals/collections/taproot-wizards'
     },
     {
       name: 'Ordinal Maxi Biz',
@@ -86,7 +86,7 @@ export function OrdinalsRunesMarketCard() {
       floorPrice: 0.315,
       holders: 2250,
       inscriptionCount: 5000,
-      link: 'https://magiceden.io/ordinals/marketplace/ordinal-maxi-biz'
+      link: 'https://gamma.io/ordinals/collections/ordinal-maxi-biz'
     },
   ]
 

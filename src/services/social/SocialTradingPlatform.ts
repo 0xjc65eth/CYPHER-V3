@@ -575,9 +575,9 @@ export class SocialTradingPlatform extends EventEmitter {
       totalVolume,
       topPerformers,
       engagement: {
-        dailyActiveUsers: Math.floor(this.traders.size * 0.3), // Mock
-        avgSessionDuration: 45, // minutes
-        signalAccuracy: 78.5 // percentage
+        dailyActiveUsers: 0,
+        avgSessionDuration: 0,
+        signalAccuracy: 0
       }
     };
   }
@@ -637,31 +637,28 @@ export class SocialTradingPlatform extends EventEmitter {
       const performance: TraderPerformance = {
         traderId,
         period,
-        totalReturn: 15 + Math.random() * 30, // 15-45%
-        winRate: 60 + Math.random() * 20, // 60-80%
-        profitFactor: 1.2 + Math.random() * 0.8, // 1.2-2.0
-        maxDrawdown: Math.random() * 15, // 0-15%
-        sharpeRatio: 0.5 + Math.random() * 1.5, // 0.5-2.0
-        sortinRatio: 0.8 + Math.random() * 1.2, // 0.8-2.0
-        volatility: 10 + Math.random() * 20, // 10-30%
-        averageWin: 2 + Math.random() * 3, // 2-5%
-        averageLoss: -1 - Math.random() * 2, // -1 to -3%
-        totalTrades: 50 + Math.floor(Math.random() * 200),
+        totalReturn: 0,
+        winRate: 0,
+        profitFactor: 0,
+        maxDrawdown: 0,
+        sharpeRatio: 0,
+        sortinRatio: 0,
+        volatility: 0,
+        averageWin: 0,
+        averageLoss: 0,
+        totalTrades: 0,
         winningTrades: 0,
         losingTrades: 0,
-        averageHoldTime: 6 + Math.random() * 18, // 6-24 hours
-        bestTrade: 10 + Math.random() * 15, // 10-25%
-        worstTrade: -5 - Math.random() * 10, // -5 to -15%
-        consecutiveWins: Math.floor(Math.random() * 10),
-        consecutiveLosses: Math.floor(Math.random() * 5),
-        roi: 12 + Math.random() * 25, // 12-37%
-        pnl: 5000 + Math.random() * 15000,
-        volume: 100000 + Math.random() * 500000,
-        fees: 500 + Math.random() * 2000
+        averageHoldTime: 0,
+        bestTrade: 0,
+        worstTrade: 0,
+        consecutiveWins: 0,
+        consecutiveLosses: 0,
+        roi: 0,
+        pnl: 0,
+        volume: 0,
+        fees: 0
       };
-
-      performance.winningTrades = Math.floor(performance.totalTrades * performance.winRate / 100);
-      performance.losingTrades = performance.totalTrades - performance.winningTrades;
 
       performances.set(period, performance);
     }
@@ -807,8 +804,7 @@ export class SocialTradingPlatform extends EventEmitter {
     // Update real-time performance for active copy trades
     for (const copyTrade of this.copyTrades.values()) {
       if (copyTrade.status === 'active') {
-        // Mock performance updates
-        copyTrade.performance.totalReturn += (Math.random() - 0.5) * 2;
+        // No performance updates without real data
       }
     }
   }

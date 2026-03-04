@@ -740,7 +740,7 @@ export class DerivativesEngine extends EventEmitter {
     };
 
     const basePrice = basePrices[symbol] || 1000;
-    const price = basePrice * (1 + (Math.random() - 0.5) * 0.02); // ±1% random variation
+    const price = basePrice; // Deterministic: use base price (no random variation)
 
     this.priceFeeds.set(symbol, { price, timestamp: Date.now() });
     return price;
@@ -878,7 +878,7 @@ export class DerivativesEngine extends EventEmitter {
   private updateFundingRates(): void {
     for (const [symbol, contract] of this.perpetualContracts) {
       // Mock funding rate calculation
-      const newRate = (Math.random() - 0.5) * 0.0005; // ±0.05%
+      const newRate = 0.0001; // Deterministic default funding rate
       contract.fundingRate = newRate;
       contract.nextFundingTime = Date.now() + contract.fundingInterval * 60 * 60 * 1000;
       

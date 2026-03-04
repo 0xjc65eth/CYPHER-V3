@@ -334,8 +334,8 @@ Siempre proporciona insights accionables y explica tu razonamiento claramente.`,
     // In production, this would connect to real market data APIs
     return {
       sentiment: this.determineSentiment(marketData),
-      confidence: Math.random() * 0.4 + 0.6, // 60-100%
-      priceTarget: marketData.btcPrice * (1 + (Math.random() * 0.1 - 0.05)),
+      confidence: 0, // No real data available
+      priceTarget: marketData.btcPrice,
       timeframe: '4h',
       keyLevels: {
         support: [
@@ -357,8 +357,8 @@ Siempre proporciona insights accionables y explica tu razonamiento claramente.`,
       },
       riskAssessment: {
         riskLevel: this.assessRiskLevel(marketData),
-        volatility: Math.random() * 0.05 + 0.02,
-        maxDrawdown: Math.random() * 0.15 + 0.05
+        volatility: 0,
+        maxDrawdown: 0
       }
     };
   }
@@ -375,14 +375,14 @@ Siempre proporciona insights accionables y explica tu razonamiento claramente.`,
       {
         price: marketData.btcPrice * 0.98,
         type: 'bullish',
-        strength: Math.random() * 0.5 + 0.5,
+        strength: 0,
         timeframe: '4h',
         created: new Date()
       },
       {
         price: marketData.btcPrice * 1.03,
         type: 'bearish',
-        strength: Math.random() * 0.5 + 0.5,
+        strength: 0,
         timeframe: '1h',
         created: new Date()
       }
@@ -395,8 +395,8 @@ Siempre proporciona insights accionables y explica tu razonamiento claramente.`,
         high: marketData.btcPrice * 1.02,
         low: marketData.btcPrice * 0.99,
         type: 'buy',
-        volume: Math.random() * 1000000 + 500000,
-        significance: Math.random() * 0.5 + 0.5
+        volume: 0,
+        significance: 0
       }
     ];
   }
@@ -417,8 +417,8 @@ Siempre proporciona insights accionables y explica tu razonamiento claramente.`,
     return {
       level: marketData.btcPrice * 1.05,
       direction: 'bullish',
-      strength: Math.random() * 0.5 + 0.5,
-      confirmation: Math.random() > 0.5
+      strength: 0,
+      confirmation: false
     };
   }
 

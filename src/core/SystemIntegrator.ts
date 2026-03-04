@@ -501,7 +501,7 @@ export class SystemIntegrator extends EventEmitter {
 
   private async checkServiceHealth(service: any): Promise<boolean> {
     // Mock health check - in production would check actual service health
-    return Math.random() > 0.1; // 90% healthy
+    return true; // Deterministic: assume healthy
   }
 
   private startMetricsCollection(): void {

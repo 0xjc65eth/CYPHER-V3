@@ -1034,7 +1034,7 @@ export class OKXWeb3Service {
         if (response.status === 429) {
           const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
           const cappedRetryAfter = Math.min(retryAfter, 60);
-          console.log(
+          console.warn(
             `[OKXWeb3Service] Rate limited (429). Waiting ${cappedRetryAfter}s before retry.`
           );
           await this.sleep(cappedRetryAfter * 1000);
@@ -1069,9 +1069,8 @@ export class OKXWeb3Service {
 
       if (retryCount < CONFIG.MAX_RETRIES) {
         const delay = CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-        console.log(
-          `[OKXWeb3Service] Request failed (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}), ` +
-          `retrying in ${delay}ms`
+        console.warn(
+          `[OKXWeb3Service] Request failed (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}), retrying in ${delay}ms`
         );
         await this.sleep(delay);
         return this.executeRequest<T>(url, options, retryCount + 1);

@@ -138,15 +138,15 @@ class OrdinalsAPI {
     // Mock implementation
     return {
       id,
-      number: Math.floor(Math.random() * 1000000),
+      number: 0,
       contentType: 'image/png',
       contentUrl: `https://ordinals.com/content/${id}`,
       owner: 'bc1p...',
       satPoint: `${id}:0:0`,
-      genesisHeight: 700000 + Math.floor(Math.random() * 100000),
+      genesisHeight: 700000,
       genesisTransaction: id,
-      listed: Math.random() > 0.5,
-      price: Math.random() > 0.5 ? Math.random() * 0.1 : undefined
+      listed: false,
+      price: undefined
     };
   }
 

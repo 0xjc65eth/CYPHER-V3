@@ -28,8 +28,8 @@ export function BitcoinInstitutionalCard() {
     },
     timeframe: '48 hours',
     impact: 'High',
-    walletCount: Math.floor(Math.random() * 50) + 100,
-    btcAmount: Math.floor(Math.random() * 5000) + 5000
+    walletCount: 0,
+    btcAmount: 0
   }
 
   return (

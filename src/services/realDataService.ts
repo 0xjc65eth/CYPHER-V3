@@ -214,7 +214,7 @@ class RealDataService {
 
         return {
           totalInscriptions,
-          inscriptionsToday: Math.floor(Math.random() * 50000) + 5000,
+          inscriptionsToday: 0,
           totalVolume: 125000,
           floorPrice: 0.005,
           avgPrice: 0.025,
@@ -374,8 +374,8 @@ class RealDataService {
         for (let i = days; i >= 0; i--) {
           fallbackData.push({
             timestamp: now - (i * 24 * 60 * 60 * 1000),
-            price: 65000 + Math.random() * 10000 - 5000,
-            volume: 20000000000 + Math.random() * 10000000000
+            price: 65000,
+            volume: 20000000000
           });
         }
         return fallbackData;

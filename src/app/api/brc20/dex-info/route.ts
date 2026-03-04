@@ -26,12 +26,12 @@ export async function GET() {
           description: 'Major exchange-backed marketplace for BRC-20 tokens'
         },
         {
-          name: 'Magic Eden Bitcoin',
-          url: 'https://magiceden.io/ordinals',
+          name: 'Gamma.io',
+          url: 'https://gamma.io/ordinals',
           type: 'marketplace',
           api_available: false,
           features: ['Ordinals', 'BRC-20', 'Inscriptions'],
-          description: 'Multi-chain NFT marketplace with Bitcoin support'
+          description: 'Bitcoin-native Ordinals marketplace'
         }
       ],
       dex_landscape: {

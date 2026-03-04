@@ -1,0 +1,26 @@
+{
+  "name": "cypher-filesystem",
+  "description": "Acesso seguro ao filesystem do CYPHER V3 — leitura, escrita e navegação do projeto",
+  "type": "mcp-server",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/juliocesar/CYPHER-V3"],
+  "config": {
+    "rootPath": "/Users/juliocesar/CYPHER-V3",
+    "allowedOperations": ["read", "write", "list", "search"],
+    "restrictedPaths": [
+      ".env.local",
+      ".env.production",
+      "node_modules",
+      ".git/objects"
+    ],
+    "sandbox": true
+  },
+  "capabilities": [
+    "read_file",
+    "write_file",
+    "list_directory",
+    "search_files",
+    "get_file_info"
+  ],
+  "notes": "MCP principal para navegação e edição de código do CYPHER V3"
+}

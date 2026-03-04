@@ -57,7 +57,7 @@ const generatePerformanceData = (days: number) => {
     const date = new Date();
     date.setDate(date.getDate() - (days - i));
     
-    const dailyReturn = (Math.random() - 0.48) * 0.03; // Slight positive bias
+    const dailyReturn = Math.sin(i * 0.3) * 0.01; // Deterministic pattern
     value *= (1 + dailyReturn);
     
     data.push({
