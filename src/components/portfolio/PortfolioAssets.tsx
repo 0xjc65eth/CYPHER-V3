@@ -42,7 +42,7 @@ interface PortfolioMetrics {
 
 export function PortfolioAssets() {
   const { isConnected, address, balance } = useWallet()
-  const { data: bitcoinPrice } = useBitcoinPrice()
+  const { price: bitcoinPrice } = useBitcoinPrice()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(false)
   const [metrics, setMetrics] = useState<PortfolioMetrics>({
@@ -108,7 +108,7 @@ export function PortfolioAssets() {
       }
     })
 
-    const currentBtcBalance = balance?.bitcoin || 0
+    const currentBtcBalance = balance || 0
     const currentValue = currentBtcBalance * (bitcoinPrice || 0)
     const averageBuyPrice = btcBought > 0 ? totalBoughtValue / btcBought : 0
     const averageSellPrice = btcSold > 0 ? totalSoldValue / btcSold : 0
@@ -182,8 +182,8 @@ export function PortfolioAssets() {
           {/* Bitcoin Balance */}
           <div className="space-y-2">
             <p className="text-sm text-gray-600 dark:text-gray-400">Bitcoin Balance</p>
-            <p className="text-2xl font-bold">{formatBTC(balance?.bitcoin || 0)} BTC</p>
-            <p className="text-sm text-gray-500">{formatCurrency(balance?.usd || 0)}</p>
+            <p className="text-2xl font-bold">{formatBTC(balance || 0)} BTC</p>
+            <p className="text-sm text-gray-500">{formatCurrency((balance || 0) * (bitcoinPrice || 0))}</p>
           </div>
 
           {/* Total P&L */}

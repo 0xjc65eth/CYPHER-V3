@@ -134,7 +134,13 @@ export const FinalChart: React.FC<FinalChartProps> = ({
           wickDownColor: '#ef4444',
         });
 
-        candleSeries.setData(rawData);
+        candleSeries.setData(rawData.map(d => ({
+          time: d.time as import('lightweight-charts').Time,
+          open: d.open,
+          high: d.high,
+          low: d.low,
+          close: d.close,
+        })));
         chart.timeScale().fitContent();
         
         chartInstanceRef.current = chart;

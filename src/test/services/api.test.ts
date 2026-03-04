@@ -12,7 +12,7 @@ describe('API Services', () => {
   let fetchMock: ReturnType<typeof mockFetch>;
 
   beforeEach(() => {
-    fetchMock = mockFetch();
+    fetchMock = mockFetch({});
     vi.clearAllMocks();
   });
 

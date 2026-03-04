@@ -127,10 +127,10 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
   const portfolioMetrics = useMemo(() => {
     if (!portfolioData) {
       return {
-        totalValue: balance?.usd || 0,
+        totalValue: (balance || 0) * 42000,
         totalPNL: 0,
         totalPNLPercentage: 0,
-        bitcoinValue: (balance?.bitcoin || 0) * 42000, // Mock BTC price
+        bitcoinValue: (balance || 0) * 42000, // Mock BTC price
         ordinalsValue: 0,
         runesValue: 0,
         realizedPNL: 0,
@@ -215,7 +215,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
         <StatCard
           title="Bitcoin Holdings"
           value={formatCurrency(portfolioMetrics.bitcoinValue)}
-          subtitle={`${balance?.bitcoin?.toFixed(8) || '0.00000000'} BTC`}
+          subtitle={`${balance?.toFixed(8) || '0.00000000'} BTC`}
           icon={<Activity size={20} />}
           colorScheme="orange"
           showValues={showValues}

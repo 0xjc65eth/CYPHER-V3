@@ -172,7 +172,7 @@ export class ArbitrageSystem {
       (credentials.okx?.apiKey && credentials.okx?.apiSecret && credentials.okx?.passphrase) ||
       (credentials.coinapi?.apiKey);
 
-    return hasValidCredentials;
+    return !!hasValidCredentials;
   }
 
   static getSupportedExchanges(): string[] {

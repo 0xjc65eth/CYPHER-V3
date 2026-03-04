@@ -4,6 +4,11 @@
  */
 
 import React from 'react';
+import {
+  LineChart as _LineChart,
+  AreaChart as _AreaChart,
+  BarChart as _BarChart,
+} from 'recharts';
 
 // Re-export all Recharts components with proper aliases
 export {
@@ -156,9 +161,9 @@ export function generateFallbackData(length: number = 10): Array<{
 }
 
 export default {
-  LineChart,
-  AreaChart,
-  BarChart,
+  LineChart: _LineChart,
+  AreaChart: _AreaChart,
+  BarChart: _BarChart,
   CHART_COLORS,
   CHART_GRADIENTS,
   DEFAULT_CHART_CONFIG,

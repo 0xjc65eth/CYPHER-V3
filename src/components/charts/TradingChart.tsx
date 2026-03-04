@@ -112,13 +112,13 @@ export default function TradingChart({
       mode: CrosshairMode.Normal,
       vertLine: {
         color: '#00ff00',
-        width: 1,
+        width: 1 as const,
         style: LineStyle.Dashed,
         labelBackgroundColor: '#000000'
       },
       horzLine: {
         color: '#00ff00',
-        width: 1,
+        width: 1 as const,
         style: LineStyle.Dashed,
         labelBackgroundColor: '#000000'
       }
@@ -163,13 +163,9 @@ export default function TradingChart({
   const volumeOptions = {
     color: '#444444',
     priceFormat: {
-      type: 'volume'
+      type: 'volume' as const
     },
     priceScaleId: 'volume',
-    scaleMargins: {
-      top: 0.7,
-      bottom: 0
-    }
   };
 
   // Returns empty data - real candle data should be fetched from API and passed as props.
@@ -217,6 +213,9 @@ export default function TradingChart({
       // Criar série de volume se habilitado
       if (indicators.volume) {
         volumeSeriesRef.current = chartRef.current.addSeries(HistogramSeries, volumeOptions);
+        chartRef.current.priceScale('volume').applyOptions({
+          scaleMargins: { top: 0.7, bottom: 0 },
+        });
       }
 
       // Criar médias móveis se habilitadas

@@ -337,7 +337,7 @@ class AutomatedArbitrageExecutor extends EventEmitter {
   /**
    * Process the execution queue
    */
-  private async processExecutionQueue(): void {
+  private async processExecutionQueue(): Promise<void> {
     if (!this.config.enabled || !this.isRunning || this.executionQueue.length === 0) return;
 
     // Check if we can execute more trades

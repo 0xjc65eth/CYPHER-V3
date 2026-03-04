@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Wallet, 
-  X, 
-  CheckCircle, 
+import {
+  Wallet,
+  X,
+  CheckCircle,
   AlertCircle,
   ExternalLink,
   Coins,
@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useLaserEyes } from '@/hooks/useSafeLaserEyes';
+import { useSafeLaserEyes } from '@/hooks/useSafeLaserEyes';
 
 export interface BitcoinWallet {
   id: string;
@@ -80,45 +80,42 @@ export default function BitcoinWalletConnector({ onClose, onConnect }: BitcoinWa
   const [connecting, setConnecting] = useState(false);
   const [installedWallets, setInstalledWallets] = useState<string[]>([]);
   const [showBalance, setShowBalance] = useState(true);
-  
+
   const {
     connected,
     address,
     balance,
     connect: laserEyesConnect,
     disconnect,
-    getInscriptions,
-    getOrdinals,
-    getRunes
-  } = useLaserEyes();
+  } = useSafeLaserEyes() as any;
 
   // Check installed wallets
   useEffect(() => {
     const checkInstalledWallets = () => {
       const installed: string[] = [];
-      
+
       if (typeof window !== 'undefined') {
         // Check for Xverse
         if (window.XverseProviders?.BitcoinProvider) {
           installed.push('XVERSE');
         }
-        
+
         // Check for UniSat
         if (window.unisat) {
           installed.push('UNISAT');
         }
-        
+
         // Check for OYL
         if (window.oyl) {
           installed.push('OYL');
         }
-        
+
         // Check for Magic Eden
         if (window.magicEden?.bitcoin) {
           installed.push('MAGIC_EDEN');
         }
       }
-      
+
       setInstalledWallets(installed);
     };
 
@@ -247,10 +244,10 @@ export default function BitcoinWalletConnector({ onClose, onConnect }: BitcoinWa
                     </Button>
                   </div>
                   <div className="text-lg font-bold text-orange-400">
-                    {formatBalance(balance.cardinal)} BTC
+                    {formatBalance(balance?.cardinal ?? balance)} BTC
                   </div>
                   <div className="text-sm text-gray-400">
-                    ${(balance.cardinal * 67000).toLocaleString()} USD
+                    ${((balance?.cardinal ?? balance) * 67000).toLocaleString()} USD
                   </div>
                 </CardContent>
               </Card>
@@ -354,8 +351,8 @@ export default function BitcoinWalletConnector({ onClose, onConnect }: BitcoinWa
               <Card
                 key={wallet.id}
                 className={`cursor-pointer transition-all duration-200 ${
-                  isInstalled 
-                    ? 'bg-gray-800/50 border-gray-600 hover:bg-gray-800 hover:border-orange-500/50' 
+                  isInstalled
+                    ? 'bg-gray-800/50 border-gray-600 hover:bg-gray-800 hover:border-orange-500/50'
                     : 'bg-gray-800/30 border-gray-700 hover:bg-gray-800/50'
                 }`}
                 onClick={() => handleWalletConnect(wallet.id)}
@@ -425,7 +422,7 @@ export default function BitcoinWalletConnector({ onClose, onConnect }: BitcoinWa
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-300">
-                <strong>Security Note:</strong> Only download wallets from official sources. 
+                <strong>Security Note:</strong> Only download wallets from official sources.
                 Always verify the authenticity of wallet extensions before installing.
               </div>
             </div>

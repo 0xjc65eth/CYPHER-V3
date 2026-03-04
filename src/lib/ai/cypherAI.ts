@@ -209,7 +209,7 @@ export class CypherAI {
    * Assess trading risk
    */
   private assessRisk(prices: number[]): any {
-    const returns = [];
+    const returns: number[] = [];
     for (let i = 1; i < prices.length; i++) {
       returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
     }

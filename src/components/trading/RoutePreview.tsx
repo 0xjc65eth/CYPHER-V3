@@ -256,7 +256,7 @@ export function RoutePreview({ tradeDetails, onConfirm, onBack, slippageToleranc
               <div className="space-y-3">
                 <Slider
                   value={[customSlippage]}
-                  onValueChange={([value]) => setCustomSlippage(value)}
+                  onValueChange={([value]: number[]) => setCustomSlippage(value)}
                   max={5}
                   min={0.1}
                   step={0.1}

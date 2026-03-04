@@ -22,6 +22,9 @@ const ALLOWED_HOSTS = [
   'ordinals.com',
   'ordinals.hiro.so',
   'api.hiro.so',
+  'www.okx.com',
+  'static.okx.com',
+  'static.coinall.ltd',
 ];
 
 /**

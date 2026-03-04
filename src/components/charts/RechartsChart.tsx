@@ -17,10 +17,11 @@ import {
 } from 'recharts'
 import type { ChartType, ChartData, ChartConfig, CandlestickData, LineData, BarData } from './UnifiedChartSystem'
 
-interface RechartsChartProps {
+export interface RechartsChartProps {
   type: ChartType
-  data: ChartData
+  data: ChartData | any[]
   config: ChartConfig
+  className?: string
 }
 
 export function RechartsChart({ type, data, config }: RechartsChartProps) {

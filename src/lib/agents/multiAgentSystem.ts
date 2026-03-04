@@ -42,15 +42,12 @@ export class MultiAgentSystem extends EventEmitter {
   constructor() {
     super();
     
-    // Initialize trading engine
-    this.tradingEngine = new TradingEngine({
-      maxDrawdown: 2,
-      positionSize: 5,
-      stopLoss: 3,
-      takeProfit: 6,
-      dailyTradeLimit: 20,
-      riskRewardRatio: 2
-    });
+    // Initialize trading engine (legacy - using default exchange config)
+    this.tradingEngine = new TradingEngine(
+      'binance',
+      process.env.BINANCE_API_KEY || '',
+      process.env.BINANCE_SECRET_KEY || ''
+    );
 
     // Initialize agents
     this.agent024 = new Agent024_TradingIntelligence();
@@ -86,10 +83,7 @@ export class MultiAgentSystem extends EventEmitter {
     if (this.isRunning) return;
     
     
-    // Start trading engine
-    this.tradingEngine.start();
-    
-    // Start agents
+    // Start agents (TradingEngine is stateless, no start needed)
     this.agent024.start();
     this.agent025.start();
     
@@ -106,9 +100,6 @@ export class MultiAgentSystem extends EventEmitter {
     this.agent024.stop();
     this.agent025.stop();
     
-    // Stop trading engine
-    this.tradingEngine.stop();
-    
     this.isRunning = false;
     this.emit('system:stopped');
     
@@ -118,7 +109,6 @@ export class MultiAgentSystem extends EventEmitter {
     
     this.agent025.emergencyStop();
     this.agent024.stop();
-    this.tradingEngine.stop();
     
     this.isRunning = false;
     this.emit('emergency:stop');
@@ -132,7 +122,7 @@ export class MultiAgentSystem extends EventEmitter {
   getSystemStatus(): SystemStatus {
     const agent024Status = this.agent024.getStatus();
     const agent025Status = this.agent025.getStatus();
-    const engineStatus = this.tradingEngine.getStatus();
+    // TradingEngine is stateless, no getStatus available
     
     // Calculate performance metrics
     const executions = this.agent025.getExecutionHistory();

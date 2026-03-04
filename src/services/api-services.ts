@@ -106,8 +106,8 @@ export class HiroAPIService {
   async fetchOrdinals(address: string, offset = 0, limit = 20): Promise<any> {
     try {
       const url = `${API_CONFIG.HIRO.BASE_URL}${API_CONFIG.HIRO.ENDPOINTS.INSCRIPTIONS}?address=${address}&offset=${offset}&limit=${limit}`;
-      
-      const response = await fetchWithRetry(url, {
+
+      const response = await fetchWithRetry<any>(url, {
         method: 'GET',
         headers: API_CONFIG.HIRO.HEADERS,
         service: 'HIRO',
@@ -137,7 +137,7 @@ export class HiroAPIService {
     try {
       const url = `${API_CONFIG.HIRO.BASE_URL}${API_CONFIG.HIRO.ENDPOINTS.RUNES}/tokens`;
       
-      const response = await fetchWithRetry(url, {
+      const response = await fetchWithRetry<any>(url, {
         method: 'GET',
         headers: API_CONFIG.HIRO.HEADERS,
         service: 'HIRO',
@@ -231,8 +231,8 @@ export class MempoolAPIService {
   async fetchBlocks(count = 10): Promise<any> {
     try {
       const url = `${API_CONFIG.MEMPOOL.BASE_URL}${API_CONFIG.MEMPOOL.ENDPOINTS.BLOCKS}`;
-      
-      const response = await fetchWithRetry(url, {
+
+      const response = await fetchWithRetry<any>(url, {
         method: 'GET',
         headers: API_CONFIG.MEMPOOL.HEADERS,
         service: 'MEMPOOL',

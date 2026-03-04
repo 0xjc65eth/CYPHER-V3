@@ -175,11 +175,11 @@ export default function RarityCalculator() {
                         <Badge variant="outline">{trait.value}</Badge>
                       </div>
                       <div className="flex items-center gap-4">
-                        <span className="text-sm text-muted-foreground">{trait.rarity}% have this</span>
+                        <span className="text-sm text-muted-foreground">{(trait as any).rarity ?? trait.percentage}% have this</span>
                         <span className="font-mono font-bold w-20 text-right">+{trait.score.toFixed(2)}</span>
                       </div>
                     </div>
-                    <Progress value={100 - trait.rarity} className="h-2" />
+                    <Progress value={100 - ((trait as any).rarity ?? trait.percentage)} className="h-2" />
                   </div>
                 ))}
               </div>

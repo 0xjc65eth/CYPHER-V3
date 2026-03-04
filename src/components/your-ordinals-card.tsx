@@ -5,7 +5,7 @@ import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider'
 import { RiImageLine, RiWallet3Line, RiLoader4Line } from 'react-icons/ri'
 
 export function YourOrdinalsCard() {
-  const { address, isConnected, getOrdinals, connect } = useLaserEyes()
+  const { address, connected: isConnected, getOrdinals, connect } = useLaserEyes()
   const [ordinals, setOrdinals] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +37,7 @@ export function YourOrdinalsCard() {
 
   const handleConnect = async () => {
     try {
-      await connect()
+      await connect('xverse')
     } catch (err) {
       console.error('Error connecting wallet:', err)
       setError('Failed to connect wallet')

@@ -378,7 +378,7 @@ export class HiroApiService {
     const cached = this.cache.get(key);
     if (!cached) return null;
 
-    const timeout = cached.customTimeout ?? this.cacheTimeout;
+    const timeout = (cached as any).customTimeout ?? this.cacheTimeout;
     if (Date.now() - cached.timestamp > timeout) {
       this.cache.delete(key);
       return null;

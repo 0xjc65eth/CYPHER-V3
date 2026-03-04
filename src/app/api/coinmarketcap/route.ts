@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
 
     // Process the data
     const processedData = {
-      current: {},
+      current: {} as Record<string, any>,
       historical: [],
     };
 

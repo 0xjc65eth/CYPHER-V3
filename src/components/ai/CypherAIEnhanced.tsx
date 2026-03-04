@@ -195,7 +195,7 @@ export default function CypherAIEnhanced() {
         text: generateBrazilianResponse(userMessage),
         emotion: getEmotionFromMessage(userMessage),
         intent: {
-          name: getIntentFromMessage(userMessage),
+          name: getIntentFromMessage(userMessage) as import('@/types/ai').Intent,
           category: 'crypto',
           entities: {},
           confidence: 0.85
@@ -227,7 +227,7 @@ export default function CypherAIEnhanced() {
       return {
         text: "Opa, deu um probleminha aqui... Mas relaxa, tô voltando já!",
         emotion: 'concerned',
-        intent: { name: 'error', category: 'system', entities: {} },
+        intent: { name: 'help' as import('@/types/ai').Intent, category: 'system', entities: {}, confidence: 0.1 },
         confidence: 0.1
       };
     }

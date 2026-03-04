@@ -23,13 +23,14 @@ export function PriceTrackerSection() {
   const { collections: ordinals, loading: ordinalsLoading } = useOrdinalsFloorPrices();
   const { tokens: runes, loading: runesLoading } = useRunesTokenPrices();
   
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   useEffect(() => {
+    setLastUpdate(new Date());
     const interval = setInterval(() => {
       setLastUpdate(new Date());
     }, 60000); // Update every minute
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -71,7 +72,7 @@ export function PriceTrackerSection() {
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-400">Last update</p>
-              <p className="text-sm text-gray-300">{lastUpdate.toLocaleTimeString()}</p>
+              <p className="text-sm text-gray-300">{lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}</p>
               <RefreshCw className="w-4 h-4 text-gray-500 mt-1 animate-spin" />
             </div>
           </div>
@@ -149,7 +150,7 @@ export function PriceTrackerSection() {
                   <div key={token.symbol} className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg hover:bg-gray-800/70 transition-colors">
                     <div>
                       <p className="font-medium text-white">{token.symbol}</p>
-                      <p className="text-xs text-gray-400">ID: {token.runeId}</p>
+                      <p className="text-xs text-gray-400">ID: {token.id}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-white">{formatPrice(token.price)}</p>

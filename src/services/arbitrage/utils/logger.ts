@@ -6,7 +6,8 @@ export const logger = {
   warn: (message: string, ...args: any[]) => {
     console.warn(`[WARN] ${new Date().toISOString()} ${message}`, ...args);
   },
-  error: (message: string, ...args: any[]) => {
+  error: (messageOrError: string | Error, ...args: any[]) => {
+    const message = messageOrError instanceof Error ? messageOrError.message : messageOrError;
     console.error(`[ERROR] ${new Date().toISOString()} ${message}`, ...args);
   },
   debug: (message: string, ...args: any[]) => {

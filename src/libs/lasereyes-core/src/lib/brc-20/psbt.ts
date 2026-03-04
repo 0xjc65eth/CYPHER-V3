@@ -106,13 +106,13 @@ export const sendBrc20 = async ({
       index: 0,
       witnessUtxo: {
         script,
-        value: BigInt(546),
+        value: Number(BigInt(546)),
       },
       tapInternalKey: toXOnly(Buffer.from(ordinalPublicKey!, 'hex')),
     })
     sendPsbt.addOutput({
       address: toAddress,
-      value: BigInt(546),
+      value: Number(BigInt(546)),
     })
 
     let counter = 0
@@ -123,7 +123,7 @@ export const sendBrc20 = async ({
       sendPsbt.addInput({
         hash: utxo.txid,
         index: utxo.vout,
-        witnessUtxo: { value: BigInt(utxo.value), script: paymentScript },
+        witnessUtxo: { value: Number(BigInt(utxo.value)), script: paymentScript },
         tapInternalKey: toXOnly(Buffer.from(paymentPublicKey!, 'hex')),
       })
 
@@ -143,7 +143,7 @@ export const sendBrc20 = async ({
     const reimbursement = accSats - sendInscriptionSatsNeeded
     if (reimbursement > 546) {
       sendPsbt.addOutput({
-        value: BigInt(reimbursement),
+        value: Number(BigInt(reimbursement)),
         address: paymentAddress,
       })
     }

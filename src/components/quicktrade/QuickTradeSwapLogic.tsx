@@ -216,14 +216,14 @@ export function QuickTradeSwapLogic({
 
       // Construir URL com taxa usando generateSwapDeeplink
       const chainType = network === 'solana' ? 'solana' : network === 'bitcoin' ? 'bitcoin' : 'ethereum';
-      const swapUrl = generateSwapDeeplink(
-        swapResult.bestQuote.exchange.toLowerCase(),
+      const swapUrl = generateSwapDeeplink({
+        exchange: swapResult.bestQuote.exchange.toLowerCase(),
         fromToken,
         toToken,
         amount,
         chainType,
         userAddress
-      );
+      } as any);
 
       // Fee recorded via swap result
 

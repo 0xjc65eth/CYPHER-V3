@@ -413,7 +413,7 @@ export class OKXOrdinalsAPI {
   }
 
   // Market Statistics API
-  async getMarketStats(timeframe: '24h' | '7d' | '30d' | 'all' = '24h'): Promise<OKXMarketStats> {
+  async getMarketStats(timeframe: '24h' | '7d' | '30d' | 'all' = '24h'): Promise<OKXMarketStats | null> {
     const cacheKey = `market-stats-${timeframe}`;
     const cached = this.getCached<OKXMarketStats>(cacheKey);
     if (cached) return cached;

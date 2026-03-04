@@ -209,7 +209,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
    */
 
   private async connectToMarketplace(marketplace: OrdinalsMarketplace): Promise<void> {
-    const endpoint = this.WEBSOCKET_ENDPOINTS[marketplace];
+    const endpoint = (this.WEBSOCKET_ENDPOINTS as Record<string, string>)[marketplace];
     if (!endpoint) {
       return;
     }
@@ -388,7 +388,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
     const interval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
         const pingTime = Date.now();
-        ws.ping();
+        (ws as any).ping();
         
         // Measure latency (simplified)
         setTimeout(() => {

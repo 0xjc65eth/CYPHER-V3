@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { walletIntegrationService, WalletIntegration, UniversalWalletAccount } from '@/services/WalletIntegrationService';
-import { walletConnector, WalletInfo, PortfolioAsset, WalletPerformance } from '@/services/wallet-connector';
+import { walletConnector, WalletInfo, PortfolioAsset } from '@/services/wallet-connector';
+import type { WalletPerformance } from '@/types/wallet';
 import { pnlCalculator, PortfolioPnL, CostBasisMethod } from '@/services/pnl-calculator';
 import { portfolioAnalytics, RiskMetrics, PortfolioHealthScore, StressTestResult } from '@/services/portfolio-analytics';
 import { WalletType } from '@/types/wallet';
@@ -278,9 +279,11 @@ export default function PortfolioPage() {
             beta: realRiskMetrics.beta,
             sharpeRatio: realRiskMetrics.sharpeRatio,
             maxDrawdown: realRiskMetrics.maxDrawdown,
-            var95: realRiskMetrics.valueAtRisk,
-            concentrationRisk: correlationMatrix.averageCorrelation,
-            liquidityRisk: Math.max(0, 1 - (positions.length / 10)),
+            valueAtRisk: realRiskMetrics.valueAtRisk,
+            expectedShortfall: realRiskMetrics.expectedShortfall,
+            informationRatio: realRiskMetrics.informationRatio,
+            trackingError: realRiskMetrics.trackingError,
+            sortinoRatio: realRiskMetrics.sortinoRatio,
             alpha: realRiskMetrics.alpha,
           },
           healthScore: {
@@ -288,29 +291,36 @@ export default function PortfolioPage() {
             diversification: realHealthScore.diversification,
             riskManagement: realHealthScore.riskManagement,
             performance: realHealthScore.performance,
-            liquidity: realHealthScore.efficiency,
-            recommendations: realHealthScore.recommendations.map(r => ({
+            efficiency: realHealthScore.efficiency,
+            strengths: realHealthScore.strengths || [],
+            weaknesses: realHealthScore.weaknesses || [],
+            recommendations: realHealthScore.recommendations.map((r: any) => ({
               type: r.type,
               priority: r.priority as 'high' | 'medium' | 'low',
               description: r.description,
-              impact: r.impact.riskReduction || r.impact.returnIncrease || 0,
-              timeframe: r.priority === 'high' ? '1-2 weeks' : '1-3 months',
-              actionRequired: r.priority === 'high',
-              category: r.type === 'reduce_risk' ? 'risk' : 'optimization'
+              impact: {
+                riskReduction: r.impact?.riskReduction || 0,
+                returnIncrease: r.impact?.returnIncrease || 0,
+                diversificationImprovement: r.impact?.diversificationImprovement || 0,
+              },
+              actions: {
+                sell: [],
+                buy: [],
+              },
             }))
           },
           stressTests: realStressTests.map(st => ({
             scenario: st.scenario,
-            impact: {
-              percentChange: st.impact.percentChange,
-              absoluteChange: st.impact.portfolioValue - metrics.totalValue
-            },
-            probability: st.probability,
             description: st.description,
-            timeframe: `~${st.timeToRecover} days to recover`,
-            mitigationStrategies: st.impact.worstAsset.name
-              ? [`Reduce ${st.impact.worstAsset.name} exposure`, 'Diversify into uncorrelated assets']
-              : ['Reduce exposure', 'Add hedges']
+            impact: {
+              portfolioValue: st.impact.portfolioValue,
+              percentChange: st.impact.percentChange,
+              worstAsset: st.impact.worstAsset,
+              bestAsset: st.impact.bestAsset,
+            },
+            riskMeasures: st.riskMeasures,
+            timeToRecover: st.timeToRecover,
+            probability: st.probability,
           })),
           costBasisMethod: selectedCostBasis
         });
@@ -323,6 +333,18 @@ export default function PortfolioPage() {
           totalUnrealizedPnL: metrics.totalPnL,
           totalRealizedPnL: 0,
           totalPnL: metrics.totalPnL,
+          totalPnLPercent: metrics.totalValue > 0 ? (metrics.totalPnL / metrics.totalValue) * 100 : 0,
+          totalValue: metrics.totalValue,
+          totalCost: 0,
+          totalShortTermGains: 0,
+          totalLongTermGains: 0,
+          taxLiability: 0,
+          bestPerformer: '',
+          worstPerformer: '',
+          winRate: 0,
+          portfolioVolatility: 0,
+          portfolioSharpe: 0,
+          maxDrawdown: 0,
           assetPnL: new Map(positions.map((pos: any) => [
             pos.symbol,
             {
@@ -332,11 +354,8 @@ export default function PortfolioPage() {
               percentChange: pos.unrealizedPnLPercent
             }
           ])),
-          dailyPnL,
-          weeklyPnL: dailyPnL * 7,
-          monthlyPnL: dailyPnL * 30,
-          portfolioValue: metrics.totalValue
-        });
+          lastUpdated: Date.now()
+        } as any);
         
       } else {
         throw new Error(result.message || 'Failed to fetch portfolio data');
@@ -453,7 +472,7 @@ export default function PortfolioPage() {
       addAlert('info', 'Connecting Wallet', `Connecting to ${getWalletName(walletType)}...`);
       
       // Try LaserEyes connection first
-      const success = await laserEyesConnect(walletType);
+      const success = await laserEyesConnect(walletType as any);
       
       if (success) {
         addAlert('success', 'Wallet Connected', `${getWalletName(walletType)} connected successfully`);
@@ -464,15 +483,25 @@ export default function PortfolioPage() {
             // Add the wallet to connected wallets
             const newWallet: WalletInfo = {
               address: laserEyesAddress,
-              type: walletType,
-              balance: laserEyesBalance || { confirmed: 0, unconfirmed: 0, total: 0 },
+              walletType: walletType as any,
+              network: 'mainnet',
+              connected: true,
+              name: walletType || 'Bitcoin Wallet',
+              balance: typeof laserEyesBalance === 'number' ? laserEyesBalance : (laserEyesBalance?.total || laserEyesBalance?.confirmed || 0),
               assets: [],
+              transactions: [],
+              lastSync: Date.now(),
               performance: {
                 totalValue: 0,
-                totalChange: 0,
-                percentChange: 0,
-                lastUpdated: new Date()
-              }
+                totalCost: 0,
+                unrealizedPnL: 0,
+                realizedPnL: 0,
+                totalReturn: 0,
+                totalReturnPercent: 0,
+                bestPerformer: '',
+                worstPerformer: '',
+                diversificationScore: 0
+              } as any
             };
             
             const updatedWallets = new Map(connectedWallets);
@@ -844,7 +873,7 @@ export default function PortfolioPage() {
                         lots: calc.lots.length
                       })) : []}
                       size="sm"
-                      variant="ghost"
+                      variant={"ghost" as any}
                       className="text-orange-500/60 hover:text-orange-500"
                     />
                   </div>
@@ -1286,7 +1315,7 @@ export default function PortfolioPage() {
                           {wallet.balance.toFixed(5)} BTC
                         </div>
                         <div className="text-xs text-green-400 font-mono">
-                          ${wallet.usdValue.toLocaleString()}
+                          ${((wallet as any).usdValue || 0).toLocaleString()}
                         </div>
                       </div>
                     </div>

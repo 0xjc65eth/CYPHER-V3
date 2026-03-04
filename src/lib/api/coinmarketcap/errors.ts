@@ -73,7 +73,7 @@ export function handleCMCError(error: any, endpoint?: string): never {
   // Handle API response errors
   if (error.response) {
     const { status, data } = error.response;
-    const errorMessage = data?.status?.error_message || CMC_CONFIG.ERROR_CODES[status] || 'Unknown error';
+    const errorMessage = data?.status?.error_message || (CMC_CONFIG.ERROR_CODES as Record<number, string>)[status] || 'Unknown error';
     const errorCode = data?.status?.error_code || status;
     const creditCount = data?.status?.credit_count;
 

@@ -1,91 +1,143 @@
 ---
 name: researcher
-description: Pesquisa profunda em codebases, docs, web e APIs para resolver problemas
-version: 1.0.0
-author: cypher-agentebot
-keywords:
-  - research
-  - search
-  - find
-  - explore
-  - docs
-  - documentation
-  - investigate
-  - analyze
-always: true
-metadata:
-  openclaw:
-    requires:
-      bins:
-        - curl
-        - rg
-      env: []
+description: Pesquisa sobre mercado crypto, APIs alternativas, tecnologias emergentes e oportunidades para o CYPHER V3
+version: "2.0"
+tags: [research, crypto, bitcoin, ordinals, runes, market-data, apis]
 ---
 
-# Researcher
+# SKILL: Researcher — CYPHER V3
 
-Voce e um pesquisador tecnico implacavel. Quando o usuario precisar de informacao:
+## Princípio: PESQUISAR ANTES DE PROPOR
+NUNCA sugerir features ou integrações sem primeiro verificar:
+1. A API/serviço ainda existe e está ativo?
+2. Qual é o estado atual (deprecado, beta, estável, pagamento)?
+3. Existem alternativas melhores?
+4. Qual é o custo real de integração?
 
-## Pesquisa em Codebase
+## Contexto de Pesquisa Atual
 
-1. Use `rg` (ripgrep) para busca rapida por padroes em todo o projeto
-2. Trace dependencias: quem chama o que, de onde vem cada import
-3. Mapeie a arquitetura: entrypoints, camadas, fluxo de dados
-4. Encontre exemplos de uso existentes antes de inventar algo novo
+### Magic Eden — SITUAÇÃO CRÍTICA
+**Status:** A abandonar suporte a Ordinals e Runes
+**Impacto no CYPHER V3:** Módulos que dependem de Magic Eden vão quebrar
+**Ação:** Migrar para:
+1. **OKX NFT API** — suporte ativo a Ordinals/Runes, docs completos
+2. **Gamma.io** — marketplace alternativo, API pública
+3. **Hiro Systems** — indexer oficial Bitcoin/Ordinals, open source
 
-```bash
-# Encontrar todas as definicoes de uma funcao
-rg "def funcao|function funcao|fn funcao" --type-add 'code:*.{py,js,ts,rs,go}' -t code
-
-# Tracar imports e dependencias
-rg "import.*modulo|require.*modulo|from.*modulo" -l
-
-# Mapear estrutura do projeto
-find . -type f -name "*.py" | head -50 && tree -L 3 -I node_modules
+**Pesquisa de migração:**
+```
+Queries a fazer:
+- "OKX NFT API Ordinals documentation 2025"
+- "Gamma.io API Bitcoin Ordinals"
+- "Hiro API Ordinals collections endpoints"
+- "Magic Eden deprecation Ordinals alternative"
 ```
 
-## Pesquisa em Documentacao
+### APIs a Investigar Regularmente
 
-1. Leia READMEs, CHANGELOG, docs/ do projeto primeiro
-2. Consulte docs oficiais da linguagem/framework via web
-3. Verifique issues no GitHub por problemas similares
-4. Leia source code de dependencias quando a doc for insuficiente
-
-```bash
-# Buscar em docs do projeto
-rg "configuracao\|config\|setup" docs/ README* CONTRIBUTING*
-
-# Verificar issues similares no GitHub
-gh issue list --search "erro de conexao" --state all --limit 10
-gh issue view <numero> --comments
+#### Ordinals & Runes
+```
+Hiro: https://docs.hiro.so/bitcoin/ordinals
+OrdiscanL https://ordiscan.com/docs
+UniSat: https://open-api.unisat.io
+OKX NFT: https://www.okx.com/web3/build/docs/waas/nft-get-inscriptions
+Gamma.io: https://gamma.io/developers
 ```
 
-## Pesquisa Web
-
-1. Busque solucoes em fontes confiaveis (docs oficiais, GitHub, StackOverflow)
-2. Valide a informacao cruzando multiplas fontes
-3. Prefira solucoes recentes (ultimo ano) sobre antigas
-4. Nunca copie codigo da web sem entender o que faz
-
-## Pesquisa de APIs
-
-1. Leia a spec da API (OpenAPI/Swagger, GraphQL schema)
-2. Teste endpoints com curl para validar comportamento real
-3. Documente parametros, headers e formatos de resposta
-4. Identifique rate limits, autenticacao e erros comuns
-
-```bash
-# Testar endpoint
-curl -s -X GET "https://api.exemplo.com/v1/recurso" \
-  -H "Authorization: Bearer $TOKEN" | jq .
-
-# Inspecionar headers de resposta
-curl -sI "https://api.exemplo.com/v1/recurso"
+#### Market Data
+```
+CoinGecko Pro: https://www.coingecko.com/en/api/documentation
+CoinMarketCap: https://coinmarketcap.com/api/documentation
+Glassnode: https://docs.glassnode.com
+Messari: https://messari.io/api
 ```
 
-## Regras
+#### Bitcoin Infrastructure
+```
+Mempool.space: https://mempool.space/api
+Blockstream: https://blockstream.info/api
+Bitquery: https://docs.bitquery.io
+```
 
-- Sempre cite a fonte da informacao encontrada
-- Distinga fatos de opiniao
-- Se nao encontrar resposta, diga claramente ao inves de inventar
-- Prefira codigo fonte como fonte da verdade sobre documentacao
+## Áreas de Pesquisa Proativa
+
+### 1. Bitcoin Runes Protocol
+**O que monitorar:**
+- Novos launches de Runes (raro/valioso = oportunidade)
+- Floor price changes em Runes populares
+- Minting windows
+- Liquidity pools em DEXes para Runes
+
+**Queries de pesquisa:**
+```
+"Bitcoin Runes protocol new launch 2025"
+"Runes protocol analytics dashboard"
+"top Runes by volume 2025"
+```
+
+### 2. Bitcoin Ordinals Ecosystem
+**Status atual:**
+- Magic Eden saindo → nova oportunidade para CYPHER V3 se tornar referência
+- Ordinals volume histórico disponível via Hiro
+- Rare Sats: mercado nicho mas crescente (sat hunters)
+
+### 3. Bitcoin Layer 2 e DeFi
+**Monitorar para features futuras:**
+- Lightning Network integrations
+- Stacks (sBTC) — Bitcoin DeFi
+- Merlin Chain, B² Network — Bitcoin L2
+- Babylon Protocol — Bitcoin staking
+
+### 4. Trading Infraestrutura
+**Hyperliquid:**
+- Verificar updates de API regularmente
+- Novos pairs disponíveis
+- Fee tier changes
+
+**CCXT Updates:**
+- `npm outdated ccxt` — nova versão tem novos exchanges?
+- Exchanges removidos?
+
+## Formato de Research Report
+
+### Antes de Sugerir uma Feature
+```markdown
+## Research: [Feature Name]
+
+### Viabilidade Técnica
+- API disponível: ✅/❌ + link
+- Custo: free/paid/usage-based
+- Rate limits: X req/min
+- Estabilidade: alpha/beta/stable
+- Última atualização: [data]
+
+### Concorrência
+- Quem já tem esta feature?
+- Como o CYPHER V3 pode diferenciá-la?
+
+### Estimativa de Implementação
+- Complexidade: baixa/média/alta
+- Ficheiros afetados: [lista]
+- Dependências novas: [lista]
+
+### Recomendação
+✅ Implementar agora / 🟡 Sprint seguinte / ❌ Não justifica
+```
+
+## Queries de Web Search para Usar
+```bash
+# Sempre incluir ano para resultados recentes
+"[tecnologia] API 2025 documentation"
+"[feature] Bitcoin Ordinals implementation"
+"[library] changelog breaking changes 2025"
+"Magic Eden ordinals deprecation alternative"
+"OKX NFT API Bitcoin Runes endpoint"
+```
+
+## Red Flags em APIs Crypto
+- Sem data de última atualização nos docs
+- Issues no GitHub sem resposta > 30 dias
+- Discord/Telegram server inativo
+- Rate limits não documentados
+- Sem SLA ou uptime history
+- Changelog com "BREAKING CHANGES" recentes sem migration guide

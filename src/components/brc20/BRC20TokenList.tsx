@@ -26,6 +26,18 @@ import {
   CheckCircle
 } from 'lucide-react';
 
+// Inline helper for trading platforms
+const brc20Service = {
+  getBRC20TradingPlatforms: (ticker: string) => [
+    { name: 'UniSat', url: `https://unisat.io/market/brc20?q=${ticker}` },
+    { name: 'OKX', url: `https://www.okx.com/web3/marketplace/ordinals/brc20/${ticker}` },
+  ]
+};
+
+const formatDate = (timestamp: number): string => {
+  return new Date(timestamp * 1000).toLocaleDateString();
+};
+
 interface BRC20TokenListProps {
   onTokenSelect?: (token: BRC20Token) => void;
   showPortfolioOnly?: boolean;
@@ -34,6 +46,7 @@ interface BRC20TokenListProps {
 
 // Extended token interface with computed fields
 interface ExtendedBRC20Token extends BRC20Token {
+  name?: string;
   progress: number;
   verified: boolean;
   mintable: boolean;
@@ -261,7 +274,7 @@ export function BRC20TokenList({ onTokenSelect, showPortfolioOnly = false, userA
 }
 
 interface TokenRowProps {
-  token: BRC20Token;
+  token: ExtendedBRC20Token;
   rank: number;
   onTrade: () => void;
   onViewDetails: () => void;
@@ -324,11 +337,11 @@ function TokenRow({ token, rank, onTrade, onViewDetails, onSelect }: TokenRowPro
       </td>
       
       <td className="py-4 text-right">
-        <div className="font-mono text-white">{formatNumber(token.minted_supply, true)}</div>
+        <div className="font-mono text-white">{formatNumber(Number(token.minted_supply), true)}</div>
       </td>
 
       <td className="py-4 text-right">
-        <div className="font-mono text-white">{formatNumber(token.max_supply, true)}</div>
+        <div className="font-mono text-white">{formatNumber(Number(token.max_supply), true)}</div>
       </td>
 
       <td className="py-4 text-right">

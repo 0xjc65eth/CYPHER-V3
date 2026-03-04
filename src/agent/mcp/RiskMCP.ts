@@ -112,7 +112,7 @@ async function handleToolCall(name: string, args: Record<string, unknown>): Prom
       ];
       for (const field of fields) {
         if (args[field] !== undefined && typeof args[field] === 'number') {
-          (riskLimits as Record<string, number>)[field] = args[field] as number;
+          (riskLimits as unknown as Record<string, number>)[field] = args[field] as number;
         }
       }
       return { updated: true, previous: prev, current: riskLimits };

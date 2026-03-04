@@ -153,7 +153,7 @@ export function AlertSystemPanel({ onAlertTriggered }: AlertSystemPanelProps) {
       audio.play().catch(err => console.error('Sound play failed:', err));
     }
 
-    alert('Test alert sent! Check your browser notifications.');
+    window.alert('Test alert sent! Check your browser notifications.');
   };
 
   const toggleChannel = (channel: Alert['channels'][number]) => {

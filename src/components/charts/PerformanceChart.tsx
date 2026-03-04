@@ -165,7 +165,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
     refetch
   } = useTradingEngine(walletAddress, selectedTimeframe);
 
-  const { marketData } = useMarketData();
+  const marketData = useMarketData();
 
   // Process performance data
   const performanceData = useMemo(() => {
@@ -332,7 +332,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
             <div className="flex items-center gap-2 flex-wrap">
               {/* Timeframe Selector */}
-              <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+              <Select value={selectedTimeframe} onValueChange={(v) => setSelectedTimeframe(v as typeof selectedTimeframe)}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -347,7 +347,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
 
               {/* Benchmark Selector */}
               {showBenchmark && (
-                <Select value={selectedBenchmark} onValueChange={setSelectedBenchmark}>
+                <Select value={selectedBenchmark} onValueChange={(v) => setSelectedBenchmark(v as typeof selectedBenchmark)}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>

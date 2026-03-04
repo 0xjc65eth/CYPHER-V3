@@ -6,7 +6,12 @@ import { RiLineChartLine, RiExchangeDollarLine, RiTimeLine, RiRefreshLine, RiArr
 import { useMarketData } from '@/hooks/useMarketData'
 
 export function MarketOverviewCard() {
-  const { data, isLoading, error, lastUpdated, refresh } = useMarketData(60000) // Refresh every minute
+  const marketData = useMarketData() as any // Refresh every minute
+  const data = marketData
+  const isLoading = marketData.loading || marketData.isLoading
+  const error = marketData.error
+  const lastUpdated = marketData.lastUpdated
+  const refresh = () => {} // useMarketData auto-refreshes
   const [mounted, setMounted] = useState(false)
 
   // Avoid hydration issues
@@ -157,7 +162,7 @@ export function MarketOverviewCard() {
               </div>
             </div>
             <div className="space-y-2 max-h-[150px] overflow-y-auto">
-              {data.etf.products.map((product, index) => (
+              {data.etf.products.map((product: any, index: number) => (
                 <div key={index} className="flex justify-between items-center text-xs p-2 bg-blue-500/5 rounded">
                   <div>
                     <Text className="text-white font-medium">{product.ticker}</Text>

@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable as _Droppable, Draggable as _Draggable, DropResult } from 'react-beautiful-dnd';
+const Droppable = _Droppable as any;
+const Draggable = _Draggable as any;
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

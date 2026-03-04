@@ -326,18 +326,18 @@ export class CypherAIRAG extends EventEmitter {
       
       for (const doc of documents) {
         // Split document into chunks
-        const chunks = await this.textSplitter.createDocuments(
+        const chunks = await (this.textSplitter as any).createDocuments(
           [doc.content],
           [doc.metadata]
         );
         
         // Generate embeddings for each chunk
         const embeddings = await this.generateEmbeddings(
-          chunks.map(chunk => chunk.pageContent)
+          chunks.map((chunk: any) => chunk.pageContent)
         );
-        
+
         // Store in Pinecone
-        const vectors = chunks.map((chunk, i) => ({
+        const vectors = chunks.map((chunk: any, i: number) => ({
           id: `doc-${Date.now()}-${i}`,
           values: embeddings[i],
           metadata: {
@@ -350,7 +350,7 @@ export class CypherAIRAG extends EventEmitter {
         await index.upsert(vectors);
         
         // Store in local knowledge base
-        vectors.forEach(vector => {
+        vectors.forEach((vector: any) => {
           this.knowledgeBase.set(vector.id, {
             id: vector.id,
             content: vector.metadata.content,
@@ -439,7 +439,7 @@ export class CypherAIRAG extends EventEmitter {
       });
       
       // Convert to KnowledgeDocument format
-      const documents: KnowledgeDocument[] = results.matches?.map(match => ({
+      const documents: KnowledgeDocument[] = results.matches?.map((match: any) => ({
         id: match.id,
         content: match.metadata?.content as string || '',
         metadata: {
@@ -484,7 +484,7 @@ export class CypherAIRAG extends EventEmitter {
 - Use gírias como: ${this.brazilianSlang.slice(0, 5).join(', ')}
 - ${personality.speakingStyle.emojis ? 'Use emojis relevantes' : 'Evite emojis'}
 - ${personality.speakingStyle.humor ? 'Seja bem-humorado' : 'Mantenha tom profissional'}
-- Nível técnico: ${personality.technicalLevel === 'expert' ? 'avançado' : personality.technicalLevel === 'intermediate' ? 'intermediário' : 'iniciante'}
+- Nível técnico: ${(personality as any).technicalLevel === 'expert' ? 'avançado' : (personality as any).technicalLevel === 'intermediate' ? 'intermediário' : 'iniciante'}
 
 ESPECIALIZAÇÕES:
 ${personality.specializations.join(', ')}
@@ -618,7 +618,7 @@ INSTRUÇÕES:
         : audio;
       
       const transcription = await this.openai.audio.transcriptions.create({
-        file: audioFile,
+        file: audioFile as any,
         model: 'whisper-1',
         language: 'pt'
       });
@@ -976,7 +976,7 @@ INSTRUÇÕES:
     await this.openai.models.list();
     
     // Test Pinecone
-    await this.pinecone.describeIndex(this.config.pineconeIndex);
+    await (this.pinecone as any).describeIndex(this.config.pineconeIndex);
     
     this.logger.info('All AI connections tested successfully');
   }

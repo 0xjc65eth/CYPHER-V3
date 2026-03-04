@@ -31,7 +31,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `tokens:${JSON.stringify({ ...params, limit, offset })}`
 
     // Check cache
-    const cached = this.cache.get<BRC20ListResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20ListResponse | null
     if (cached) return cached
 
     // Make request
@@ -64,7 +64,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `token:${ticker}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Token>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Token | null
     if (cached) return cached
 
     // Make request
@@ -89,7 +89,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `holders:${ticker}:${limit}:${offset}`
 
     // Check cache
-    const cached = this.cache.get<BRC20HoldersResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20HoldersResponse | null
     if (cached) return cached
 
     // Make request
@@ -119,7 +119,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `activity:${ticker}:${JSON.stringify({ ...params, limit, offset })}`
 
     // Check cache
-    const cached = this.cache.get<BRC20ActivityResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20ActivityResponse | null
     if (cached) return cached
 
     // Make request
@@ -149,7 +149,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `balances:${address}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Balance[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Balance[] | null
     if (cached) return cached
 
     // Make request
@@ -176,7 +176,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = 'stats:global'
 
     // Check cache
-    const cached = this.cache.get<BRC20Stats>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Stats | null
     if (cached) return cached
 
     // Make request
@@ -195,7 +195,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `search:${query}:${limit}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Token[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Token[] | null
     if (cached) return cached
 
     // Make request
@@ -219,7 +219,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `trending:${period}:${limit}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Token[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Token[] | null
     if (cached) return cached
 
     // Make request
@@ -240,7 +240,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `new:${limit}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Token[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Token[] | null
     if (cached) return cached
 
     // Make request
@@ -261,7 +261,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `top:holders:${limit}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Token[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Token[] | null
     if (cached) return cached
 
     // Make request
@@ -282,7 +282,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const cacheKey = `top:activity:${limit}`
 
     // Check cache
-    const cached = this.cache.get<BRC20Token[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as BRC20Token[] | null
     if (cached) return cached
 
     // Make request
@@ -362,7 +362,7 @@ export class HiroBRC20API extends HiroAPIBase {
     const uncachedTickers: string[] = []
     
     for (const ticker of tickers) {
-      const cached = this.cache.get<BRC20Token>(`token:${ticker}`)
+      const cached = this.cache.get(`token:${ticker}`) as BRC20Token | null
       if (cached) {
         results.set(ticker, cached)
       } else {

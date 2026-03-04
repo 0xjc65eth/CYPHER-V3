@@ -8,9 +8,10 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
 
     // Fetch collections from Hiro Ordinals API
-    const response = await hiroOrdinalsService.getCollections({ limit, offset });
+    const response = await hiroOrdinalsService.getCollections() as any;
 
-    if (!response || !Array.isArray(response.results)) {
+    const results = Array.isArray(response) ? response : response?.results;
+    if (!results || !Array.isArray(results)) {
       return NextResponse.json({
         code: 0,
         msg: 'fallback',
@@ -19,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform to standardized format
-    const collections = response.results.map((c: any) => ({
+    const collections = results.map((c: any) => ({
       id: c.id,
       name: c.name || c.id,
       symbol: c.symbol || c.id,
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: collections,
       count: collections.length,
-      total: response.total,
+      total: response?.total ?? collections.length,
       source: 'hiro',
       timestamp: new Date().toISOString(),
     });

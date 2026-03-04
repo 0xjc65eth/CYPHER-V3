@@ -86,12 +86,12 @@ export const useMultiChainBalance = (options: UseMultiChainBalanceOptions = {}) 
       // For current chain, use wagmi data if available
       if (chain.id === chainId && currentBalance) {
         const formatted = formatEther(currentBalance.value)
-        const usdValue = enablePriceData ? parseFloat(formatted) * (FALLBACK_PRICES[chain.currency] || 0) : 0
+        const usdValue = enablePriceData ? parseFloat(formatted) * (FALLBACK_PRICES[chain.nativeCurrency.symbol] || 0) : 0
         
         return {
           chainId: chain.id,
           chainName: chain.name,
-          symbol: chain.currency,
+          symbol: chain.nativeCurrency.symbol,
           balance: currentBalance.value.toString(),
           formattedBalance: parseFloat(formatted).toFixed(6),
           usdValue,
@@ -104,7 +104,7 @@ export const useMultiChainBalance = (options: UseMultiChainBalanceOptions = {}) 
       return {
         chainId: chain.id,
         chainName: chain.name,
-        symbol: chain.currency,
+        symbol: chain.nativeCurrency.symbol,
         balance: '0',
         formattedBalance: '0.000000',
         usdValue: 0,
@@ -115,7 +115,7 @@ export const useMultiChainBalance = (options: UseMultiChainBalanceOptions = {}) 
       return {
         chainId: chain.id,
         chainName: chain.name,
-        symbol: chain.currency,
+        symbol: chain.nativeCurrency.symbol,
         balance: '0',
         formattedBalance: '0.000000',
         usdValue: 0,

@@ -178,7 +178,7 @@ describe('API Integration Tests', () => {
 
       // Simulate WebSocket connection
       const ws = mockWs;
-      ws.addEventListener('message', (event) => {
+      ws.addEventListener('message', (event: MessageEvent) => {
         const data = JSON.parse(event.data);
         expect(data.type).toBe('price_update');
         expect(data.symbol).toBe('BTC');
@@ -194,7 +194,7 @@ describe('API Integration Tests', () => {
       try {
         await fetch('/api/market-data');
       } catch (error) {
-        expect(error.message).toBe('Network error');
+        expect((error as Error).message).toBe('Network error');
       }
     });
 

@@ -1,11 +1,11 @@
-import { getWorkerService } from './workerService';
+import { workerService } from './workerService';
 
 /**
  * Test runner for Worker Pool functionality
  * Demonstrates real workloads with parallel processing
  */
 export class WorkerTestRunner {
-  private workerService = getWorkerService();
+  private workerService: any = workerService;
 
   /**
    * Run comprehensive test suite
@@ -207,7 +207,7 @@ export class WorkerTestRunner {
     const results = await this.workerService.processBatch(tasks);
     const duration = Date.now() - start;
     
-    const successful = results.filter(r => !r.error).length;
+    const successful = results.filter((r: any) => !r.error).length;
     const failed = results.length - successful;
     
     console.log(`✓ Stress test completed in ${duration}ms`, {
@@ -379,7 +379,7 @@ export class WorkerTestRunner {
     
     console.log('\nWorker Utilization by Type:');
     Object.entries(metrics.workerUtilization).forEach(([type, utilization]) => {
-      console.log(`- ${type}: ${Math.round(utilization)}%`);
+      console.log(`- ${type}: ${Math.round(utilization as number)}%`);
     });
     
     console.log('\n✅ Test suite completed successfully!');

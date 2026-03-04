@@ -267,17 +267,14 @@ const BRC20Page = () => {
 
           <TabsContent value="market" className="space-y-4">
             <BRC20TokenList
-              tokens={filteredTokens}
-              loading={loading}
-              onSelectToken={setSelectedToken}
+              onTokenSelect={(token: any) => setSelectedToken(token)}
             />
           </TabsContent>
 
           <TabsContent value="portfolio" className="space-y-4">
             <NoSSRWrapper>
               <BRC20Portfolio
-                address={address}
-                tokens={brc20Tokens}
+                address={address || undefined}
               />
             </NoSSRWrapper>
           </TabsContent>
@@ -291,18 +288,11 @@ const BRC20Page = () => {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-4">
-            <BRC20Analytics
-              tokens={brc20Tokens}
-              marketStats={marketStats}
-            />
+            <BRC20Analytics />
           </TabsContent>
 
           <TabsContent value="trading" className="space-y-4">
-            <BRC20Trading
-              selectedToken={selectedToken}
-              tokens={brc20Tokens}
-              onSelectToken={setSelectedToken}
-            />
+            <BRC20Trading />
           </TabsContent>
 
           <TabsContent value="mint" className="space-y-4">
@@ -314,7 +304,7 @@ const BRC20Page = () => {
                 <p className="text-gray-400 mb-6">
                   Deploy and mint BRC-20 tokens on trusted platforms
                 </p>
-                <MintPlatformGrid type="brc20" />
+                <MintPlatformGrid tokenType="brc20" />
               </div>
             </Card>
           </TabsContent>

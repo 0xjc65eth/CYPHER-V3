@@ -199,14 +199,14 @@ interface TradingState {
   setActiveStrategy: (strategy: string | null) => void;
   setBotRunning: (running: boolean) => void;
   addArbitrageOpportunity: (opportunity: ArbitrageOpportunity) => void;
-  updateArbitrageSettings: (settings: Partial<typeof arbitrageSettings>) => void;
+  updateArbitrageSettings: (settings: Partial<TradingState['arbitrageSettings']>) => void;
   addInscription: (inscription: Inscription) => void;
   addRune: (rune: Rune) => void;
   connectWallet: (wallet: Wallet) => void;
   disconnectWallet: (address: string) => void;
   setActiveWallet: (wallet: Wallet | null) => void;
   updatePortfolio: (portfolio: Portfolio) => void;
-  addAlert: (alert: Omit<Alert, 'id' | 'timestamp'>) => void;
+  addAlert: (alert: Omit<Alert, 'id' | 'timestamp' | 'read'>) => void;
   markAlertRead: (id: string) => void;
   clearAlerts: () => void;
   setActiveTab: (tab: string) => void;
@@ -361,10 +361,10 @@ export const useTradingStore = create<TradingState>()(
       
       addAlert: (alertData) => {
         const alert: Alert = {
+          ...alertData,
           id: Date.now().toString(),
           timestamp: Date.now(),
-          read: false,
-          ...alertData
+          read: false
         };
         
         set((state) => ({

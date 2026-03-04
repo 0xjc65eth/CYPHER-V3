@@ -211,7 +211,7 @@ export class XversePortfolioService extends EventEmitter {
    */
   async getWallet(address: string): Promise<XverseWallet> {
     const cacheKey = `wallet-${address}`;
-    const cached = this.getFromCache(cacheKey);
+    const cached = this.getFromCache<XverseWallet>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -235,7 +235,7 @@ export class XversePortfolioService extends EventEmitter {
    */
   async getAssets(address: string): Promise<XverseAsset[]> {
     const cacheKey = `assets-${address}`;
-    const cached = this.getFromCache(cacheKey);
+    const cached = this.getFromCache<XverseAsset[]>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -261,7 +261,7 @@ export class XversePortfolioService extends EventEmitter {
    */
   async getPortfolioAnalytics(address: string): Promise<PortfolioAnalytics> {
     const cacheKey = `analytics-${address}`;
-    const cached = this.getFromCache(cacheKey);
+    const cached = this.getFromCache<PortfolioAnalytics>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -487,7 +487,7 @@ export class XversePortfolioService extends EventEmitter {
   }
 
   private async getBTCPrice(): Promise<number> {
-    const cached = this.getFromCache('btc-price');
+    const cached = this.getFromCache<number>('btc-price');
     if (cached) return cached;
 
     try {
@@ -776,7 +776,7 @@ export class XversePortfolioService extends EventEmitter {
 
     // Check performance alerts
     if (alerts.performanceAlerts) {
-      const change = analytics.totalValue[`change${alerts.performanceAlerts.timeframe}`];
+      const change = (analytics.totalValue as any)[`change${alerts.performanceAlerts.timeframe}`];
       if (Math.abs(change) > alerts.performanceAlerts.threshold) {
         this.emit('alert', {
           type: 'performance',

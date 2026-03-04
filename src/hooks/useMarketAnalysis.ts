@@ -11,8 +11,8 @@ export function useMarketAnalysis() {
         console.log('Generating Market Analysis data...')
 
         // Get real market data
-        const volume = marketData?.volume24h || 0
-        const marketCap = marketData?.marketCap || 0
+        const volume = marketData?.volume24h?.total || 0
+        const marketCap = marketData?.marketCap?.total || 0
         const priceChange = marketData?.btcChange24h || 0
 
         // Generate realistic market trends data

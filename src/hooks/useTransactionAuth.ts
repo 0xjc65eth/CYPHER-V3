@@ -108,7 +108,7 @@ export function useTransactionAuth(options?: UseTransactionAuthOptions) {
           data: {
             transactionId,
             signature,
-            publicKey: wallet.publicKey,
+            publicKey: wallet.address,
             address: wallet.address
           }
         })
@@ -144,7 +144,7 @@ export function useTransactionAuth(options?: UseTransactionAuthOptions) {
     } finally {
       setState(prev => ({ ...prev, isLoading: false }))
     }
-  }, [wallet.address, wallet.publicKey, toast, options])
+  }, [wallet.address, wallet.address, toast, options])
 
   // Check transaction status
   const checkTransactionStatus = useCallback(async (

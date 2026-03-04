@@ -9,6 +9,7 @@ interface BaseCardProps {
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 interface AnimatedCardProps extends BaseCardProps {
@@ -87,7 +88,8 @@ export const BaseCard: React.FC<BaseCardProps> = ({
   className,
   children,
   onClick,
-  disabled = false
+  disabled = false,
+  style
 }) => {
   return (
     <div
@@ -98,6 +100,7 @@ export const BaseCard: React.FC<BaseCardProps> = ({
         disabled && 'opacity-50 cursor-not-allowed',
         className
       )}
+      style={style}
       onClick={!disabled ? onClick : undefined}
     >
       {children}

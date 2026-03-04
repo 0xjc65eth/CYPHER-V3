@@ -113,8 +113,8 @@ class BloombergApiService {
         async () => this.fetchHistoricalMarketData(symbol, interval, startTime, endTime),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Bloomberg historical market data for ${symbol}`, error);
       return [];
@@ -155,8 +155,8 @@ class BloombergApiService {
         async () => this.fetchNewsArticles(query, limit),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Bloomberg news articles for "${query}"`, error);
       return [];

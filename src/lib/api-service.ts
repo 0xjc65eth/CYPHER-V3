@@ -219,7 +219,7 @@ class UnifiedAPIService {
     try {
       const response = await fetch(url.toString(), {
         headers: {
-          'X-API-KEY': apiKey,
+          'X-API-KEY': apiKey || '',
           'Accept': 'application/json'
         },
         signal: controller.signal
@@ -462,7 +462,7 @@ class UnifiedAPIService {
 
       } catch (error) {
         lastError = error as Error;
-        devLogger.warn('APIService', `${sourceToTry} failed for ${category}/${endpoint}: ${error.message}`);
+        devLogger.warn(`${sourceToTry} failed for ${category}/${endpoint}: ${(error as Error).message}`);
         continue;
       }
     }
@@ -471,7 +471,7 @@ class UnifiedAPIService {
     const responseTime = Date.now() - startTime;
     return {
       success: false,
-      data: null,
+      data: null as unknown as T,
       source: API_SOURCES.FALLBACK,
       responseTime,
       cached: false,

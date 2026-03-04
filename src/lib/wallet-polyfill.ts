@@ -5,12 +5,6 @@
 
 declare global {
   interface Window {
-    ethereum?: any
-    BitcoinProvider?: any
-    phantom?: any
-    magicEden?: any
-    unisat?: any
-    xverse?: any
     oyl?: any
   }
 }
@@ -138,7 +132,7 @@ if (typeof window !== 'undefined') {
     
     // Call original rejection handler if exists
     if (originalRejection) {
-      return originalRejection.call(this, event)
+      return (originalRejection as Function).call(this, event)
     }
   }
 }

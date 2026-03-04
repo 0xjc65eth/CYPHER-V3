@@ -373,7 +373,7 @@ export function EnhancedMiningCard() {
             <div className="p-2 bg-gray-800/40 rounded-lg mt-2 border border-gray-700/30">
               <div className="flex justify-between items-center">
                 <Text className="text-gray-400 text-sm">Blocks in last 24h:</Text>
-                <Text className="text-white font-medium">{Math.round(1440 / data?.blockTime)}</Text>
+                <Text className="text-white font-medium">{Math.round(1440 / (data?.blockTime ?? 10))}</Text>
               </div>
             </div>
           </div>
@@ -398,13 +398,13 @@ export function EnhancedMiningCard() {
             <div className="p-2 bg-gray-800/40 rounded-lg mt-3 border border-gray-700/30">
               <div className="flex justify-between items-center">
                 <Text className="text-gray-400 text-sm">Current difficulty:</Text>
-                <Text className="text-white font-medium">{(data?.difficulty / 1e12).toFixed(2)} T</Text>
+                <Text className="text-white font-medium">{((data?.difficulty ?? 0) / 1e12).toFixed(2)} T</Text>
               </div>
             </div>
             <div className="p-2 bg-gray-800/40 rounded-lg mt-2 border border-gray-700/30">
               <div className="flex justify-between items-center">
                 <Text className="text-gray-400 text-sm">Blocks until adjustment:</Text>
-                <Text className="text-white font-medium">~{Math.round((2016 - (data?.blockHeight % 2016)) || 0)}</Text>
+                <Text className="text-white font-medium">~{Math.round((2016 - ((data?.blockHeight ?? 0) % 2016)) || 0)}</Text>
               </div>
             </div>
           </div>
@@ -456,7 +456,7 @@ export function EnhancedMiningCard() {
             <div className="mt-3 p-3 rounded-lg bg-gray-800/40 border border-amber-500/30 shadow-md">
               <div className="flex justify-between items-center">
                 <Text className="text-amber-400 font-medium">Outros pools combinados:</Text>
-                <Text className="text-lg font-bold text-white">{(100 - data?.pools.slice(0, 5).reduce((sum, pool) => sum + pool.share, 0) || 0).toFixed(2)}%</Text>
+                <Text className="text-lg font-bold text-white">{(100 - (data?.pools.slice(0, 5).reduce((sum: number, pool: MiningPool) => sum + pool.share, 0) ?? 0)).toFixed(2)}%</Text>
               </div>
             </div>
           </div>

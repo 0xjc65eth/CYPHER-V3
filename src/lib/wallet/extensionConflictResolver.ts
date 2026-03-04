@@ -13,18 +13,12 @@ interface WindowProviders {
 
 declare global {
   interface Window extends WindowProviders {
-    ethereum?: any;
-    solana?: any;
-    unisat?: any;
-    xverse?: any;
-    magicEden?: any;
-    BitcoinProvider?: any;
-    phantom?: any;
     cypherWalletProviders?: {
       ethereum: any[];
       bitcoin: any[];
       solana: any[];
     };
+    cypherExtensionResolver?: any;
   }
 }
 
@@ -158,7 +152,7 @@ class ExtensionConflictResolver {
           return target.isMetaMask || false;
         }
         
-        return target[prop];
+        return target[prop as string];
       },
       
       set(target, prop, value) {
@@ -168,7 +162,7 @@ class ExtensionConflictResolver {
           return true;
         }
         
-        target[prop] = value;
+        target[prop as string] = value;
         return true;
       }
     });
@@ -190,13 +184,13 @@ class ExtensionConflictResolver {
 
     const originalSolana = window.solana;
     
-    const solanaProxy = new Proxy(originalSolana, {
+    const solanaProxy = new Proxy(originalSolana as any, {
       get(target, prop) {
         if (prop === 'isPhantom') {
           return target.isPhantom || false;
         }
         
-        return target[prop];
+        return target[prop as string];
       },
       
       set(target, prop, value) {
@@ -206,7 +200,7 @@ class ExtensionConflictResolver {
           return true;
         }
         
-        target[prop] = value;
+        target[prop as string] = value;
         return true;
       }
     });

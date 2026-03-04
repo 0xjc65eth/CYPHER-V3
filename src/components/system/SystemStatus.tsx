@@ -151,7 +151,7 @@ export function SystemStatus() {
           </div>
           
           <div className="flex items-center gap-2">
-            {wallet.isPremium && (
+            {(wallet as any).isPremium && (
               <RiShieldCheckLine className="w-4 h-4 text-yellow-400" />
             )}
             <button

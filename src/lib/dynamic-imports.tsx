@@ -32,8 +32,8 @@ export function createDynamicComponent<T = {}>(
     ssr?: boolean;
   }
 ) {
-  return dynamic(importFunction, {
-    loading: options?.loading || LoadingSpinner,
+  return dynamic(importFunction as any, {
+    loading: (options?.loading || LoadingSpinner) as any,
     ssr: options?.ssr ?? false,
   });
 }
@@ -42,19 +42,19 @@ export function createDynamicComponent<T = {}>(
  * Chart Components - Dynamically loaded to reduce initial bundle size
  */
 export const DynamicRechartsLineChart = createDynamicComponent(
-  () => import('recharts').then(mod => ({ default: mod.LineChart }))
+  (() => import('recharts').then(mod => ({ default: mod.LineChart }))) as any
 );
 
 export const DynamicRechartsAreaChart = createDynamicComponent(
-  () => import('recharts').then(mod => ({ default: mod.AreaChart }))
+  (() => import('recharts').then(mod => ({ default: mod.AreaChart }))) as any
 );
 
 export const DynamicRechartsBarChart = createDynamicComponent(
-  () => import('recharts').then(mod => ({ default: mod.BarChart }))
+  (() => import('recharts').then(mod => ({ default: mod.BarChart }))) as any
 );
 
 export const DynamicLightweightChart = createDynamicComponent(
-  () => import('lightweight-charts').then(mod => ({ default: mod.createChart }))
+  (() => import('lightweight-charts').then(mod => ({ default: mod.createChart }))) as any
 );
 
 /**

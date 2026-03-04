@@ -15,13 +15,17 @@ interface FOMCMeeting {
 }
 
 export interface FedData {
-  currentRate: number;
-  nextMeeting: string;
+  currentRate: number | string;
+  nextMeeting: {
+    date: string;
+    type: string;
+    daysUntil: number;
+  };
   yieldCurveInverted: boolean;
   yieldSpread2s10s: number;
   recentDecisions: FedDecision[];
   fomcSchedule: FOMCMeeting[];
-  timestamp: number;
+  timestamp?: number;
 }
 
 export function useFedIndicators(refreshInterval = 1800000) {

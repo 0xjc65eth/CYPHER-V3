@@ -318,7 +318,7 @@ export class WebSocketServer extends EventEmitter {
       this.emit('clientAuthenticated', { clientId: client.id, userId: client.userId });
 
     } catch (error) {
-      EnhancedLogger.warn('Client authentication failed', { clientId: client.id, error: error.message });
+      EnhancedLogger.warn('Client authentication failed', { clientId: client.id, error: error instanceof Error ? error.message : String(error) });
       
       this.sendToClient(client, {
         type: 'auth_error',
@@ -456,7 +456,7 @@ export class WebSocketServer extends EventEmitter {
       this.sendToClient(client, {
         type: 'error',
         id: message.id,
-        data: { message: error.message },
+        data: { message: error instanceof Error ? error.message : String(error) },
         timestamp: Date.now()
       });
     }
@@ -508,7 +508,7 @@ export class WebSocketServer extends EventEmitter {
       }
     }
 
-    logger.debug('Broadcast sent', { channel, recipients: sent, total: channelClients.size });
+    EnhancedLogger.info('Broadcast sent', { channel, recipients: sent, total: channelClients.size });
   }
 
   /**

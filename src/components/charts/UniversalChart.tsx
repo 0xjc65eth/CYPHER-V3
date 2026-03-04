@@ -103,9 +103,10 @@ export const UniversalChart: React.FC<UniversalChartProps> = ({
           />
         </div>
       ) : (
-        <SimpleChart 
-          symbol={symbol} 
-          interval={interval}
+        <SimpleChart
+          type="line"
+          data={[]}
+          config={{ title: symbol, height: height || 300 }}
         />
       )}
     </div>

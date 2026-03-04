@@ -27,13 +27,13 @@ export async function GET(request: NextRequest) {
 
     // Check cache first
     const cacheKey = `portfolio-prices:${assets.join(',')}:${currency}`;
-    let priceData = await cacheInstances.prices.get(cacheKey);
+    let priceData = await (cacheInstances as any).prices.get(cacheKey);
 
     if (!priceData) {
       priceData = await fetchAssetPrices(assets, currency);
       
       // Cache for 5 seconds (real-time pricing)
-      await cacheInstances.prices.set(cacheKey, priceData, {
+      await (cacheInstances as any).prices.set(cacheKey, priceData, {
         ttl: 5,
         tags: ['prices', 'portfolio', 'market']
       });

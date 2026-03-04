@@ -94,7 +94,7 @@ export interface TextComponentProps<T extends Component>
 }
 
 // Main Text component
-export const Text = <T extends Component = 'p'>({
+export const Text = React.forwardRef<HTMLElement, TextComponentProps<Component>>(({
   as,
   variant,
   size,
@@ -106,11 +106,12 @@ export const Text = <T extends Component = 'p'>({
   className,
   children,
   ...props
-}: TextComponentProps<T>) => {
+}, ref) => {
   const Component = as || 'p';
-  
+
   return (
     <Component
+      ref={ref as any}
       className={cn(
         textVariants({ variant, size, weight, align, font, truncate, balance }),
         className
@@ -120,7 +121,9 @@ export const Text = <T extends Component = 'p'>({
       {children}
     </Component>
   );
-};
+}) as any;
+
+Text.displayName = 'Text';
 
 // Heading component
 export const Heading = React.forwardRef<
@@ -233,7 +236,7 @@ export const Code = React.forwardRef<
   
   return (
     <Component
-      ref={ref}
+      ref={ref as any}
       className={cn(
         'font-mono text-sm',
         block

@@ -138,14 +138,14 @@ async function priceConversions() {
   console.log(`\n1 BTC = ${btcToEth.to.amount.toFixed(4)} ETH`);
   
   // ETH to multiple currencies
-  const ethConversions = await CMC.convert.convertToMultipleCurrencies(
+  const ethConversions = await (CMC as any).convert.convertToMultipleCurrencies(
     1,
     'ETH',
     ['USD', 'EUR', 'GBP', 'JPY', 'BRL']
   );
-  
+
   console.log('\n1 ETH equals:');
-  ethConversions.conversions.forEach(conv => {
+  ethConversions.conversions.forEach((conv: any) => {
     console.log(`${conv.currency}: ${conv.amount.toFixed(2)}`);
   });
 }

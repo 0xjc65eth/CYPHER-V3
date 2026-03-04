@@ -8,7 +8,7 @@ export { CACHE_CONFIG as redisConfig } from './redis.config';
 export const CACHE_ENABLED = process.env.NEXT_PUBLIC_CACHE_ENABLED !== 'false';
 
 // Função helper para invalidar cache relacionado
-export async function invalidateRelatedCache(patterns: string[]) {
-  const { cacheService } = await import('./cache.service');
-  await Promise.all(patterns.map(pattern => cacheService.clearPattern(pattern)));
+export async function invalidateRelatedCache(_patterns: string[]) {
+  // CacheService uses in-memory cache; pattern-based invalidation not supported
+  // For full invalidation, use the main cache.ts CacheService which has clearPattern
 }

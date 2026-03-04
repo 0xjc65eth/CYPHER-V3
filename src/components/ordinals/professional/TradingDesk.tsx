@@ -263,7 +263,7 @@ export default function TradingDesk() {
                       </div>
                       <div>
                         <div className="font-semibold text-white">
-                          {listing.collectionName || 'Unknown'}
+                          {(listing as any).collectionName || 'Unknown'}
                         </div>
                         <div className="text-xs text-gray-400">
                           {listing.inscriptionId?.slice(0, 12)}...
@@ -376,7 +376,7 @@ export default function TradingDesk() {
                 >
                   <div>
                     <div className="font-semibold text-white text-sm">
-                      {listing.collectionName || 'Unknown'}
+                      {(listing as any).collectionName || 'Unknown'}
                     </div>
                     <div className="text-xs text-gray-400">
                       {new Date(listing.timestamp * 1000).toLocaleTimeString()}
@@ -384,7 +384,7 @@ export default function TradingDesk() {
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-[#f59e0b]">
-                      {(listing.price / 1e8).toFixed(4)} BTC
+                      {((listing.price ?? 0) / 1e8).toFixed(4)} BTC
                     </div>
                     <div className="text-xs text-gray-500">Listed</div>
                   </div>
@@ -449,7 +449,7 @@ export default function TradingDesk() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="font-semibold text-white">
-                      {sale.collectionName || 'Unknown'}
+                      {(sale as any).collectionName || 'Unknown'}
                     </div>
                     <div className="text-xs text-gray-400">
                       {sale.inscriptionId?.slice(0, 12)}...

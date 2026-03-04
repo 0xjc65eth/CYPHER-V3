@@ -315,16 +315,16 @@ export function ProfessionalAnalytics({ portfolio, walletAddress, className = ''
               <CardContent className="px-0">
                 {portfolio.performanceHistory && portfolio.performanceHistory.length > 0 ? (
                   <RechartsChart
+                    type="area"
                     data={portfolio.performanceHistory
                       .slice(-(timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : timeframe === '90d' ? 90 : 365))
                       .map(item => ({
                         time: item.date,
                         value: item.totalValue,
-                        volume: item.volume || 0
+                        volume: (item as any).volume || 0
                       }))
                     }
                     config={{
-                      type: 'area',
                       height: 300,
                       theme: 'dark',
                       showGrid: true,
@@ -332,8 +332,7 @@ export function ProfessionalAnalytics({ portfolio, walletAddress, className = ''
                       showTooltip: true,
                       colors: ['#f97316', '#ea580c'],
                       precision: 2,
-                      realtime: false,
-                      library: 'recharts'
+                      realtime: false
                     }}
                     className="bg-transparent border-0 p-0"
                   />
@@ -361,6 +360,7 @@ export function ProfessionalAnalytics({ portfolio, walletAddress, className = ''
                   <div className="space-y-4">
                     {/* Risk visualization with professional chart */}
                     <RechartsChart
+                      type="bar"
                       data={[
                         { time: 'Volatility', value: portfolio.riskAnalysis.volatilityRisk * 20 },
                         { time: 'Concentration', value: portfolio.riskAnalysis.concentrationRisk * 20 },
@@ -369,7 +369,6 @@ export function ProfessionalAnalytics({ portfolio, walletAddress, className = ''
                         { time: 'Market', value: portfolio.riskAnalysis.marketRisk * 20 }
                       ]}
                       config={{
-                        type: 'bar',
                         height: 200,
                         theme: 'dark',
                         showGrid: false,
@@ -377,8 +376,7 @@ export function ProfessionalAnalytics({ portfolio, walletAddress, className = ''
                         showTooltip: true,
                         colors: ['#f59e0b', '#d97706'],
                         precision: 1,
-                        realtime: false,
-                        library: 'recharts'
+                        realtime: false
                       }}
                       className="bg-transparent border-0 p-0"
                     />
@@ -390,16 +388,16 @@ export function ProfessionalAnalytics({ portfolio, walletAddress, className = ''
                         <Badge 
                           variant="outline" 
                           className={`${
-                            portfolio.riskAnalysis.overallRisk < 3 ? 'text-green-400 border-green-600' :
-                            portfolio.riskAnalysis.overallRisk < 7 ? 'text-yellow-400 border-yellow-600' :
+                            portfolio.riskAnalysis.overallRiskScore < 3 ? 'text-green-400 border-green-600' :
+                            portfolio.riskAnalysis.overallRiskScore < 7 ? 'text-yellow-400 border-yellow-600' :
                             'text-red-400 border-red-600'
                           }`}
                         >
-                          {portfolio.riskAnalysis.overallRisk}/10
+                          {portfolio.riskAnalysis.overallRiskScore}/10
                         </Badge>
                       </div>
                       <Progress 
-                        value={portfolio.riskAnalysis.overallRisk * 10} 
+                        value={portfolio.riskAnalysis.overallRiskScore * 10} 
                         className="h-2"
                       />
                     </div>

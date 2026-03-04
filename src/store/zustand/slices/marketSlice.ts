@@ -258,46 +258,50 @@ export const createMarketSlice: StateCreator<
   updatePrices: (prices: Partial<PriceData>) => {
     set((state) => {
       const timestamp = Date.now()
-      
+
       Object.entries(prices).forEach(([symbol, priceData]) => {
+        if (!priceData) return
         state.market.prices[symbol] = {
-          ...priceData,
+          price: priceData.price ?? 0,
+          change24h: priceData.change24h ?? 0,
+          volume24h: priceData.volume24h ?? 0,
+          marketCap: priceData.marketCap ?? 0,
           lastUpdated: timestamp,
         }
-        
+
         // Update main data if BTC
-        if (symbol === 'BTC') {
-          state.market.data.btcPrice = priceData.price
-          state.market.data.btcChange24h = priceData.change24h
-          state.market.data.btcVolume24h = priceData.volume24h
-          state.market.data.btcMarketCap = priceData.marketCap
+        if (symbol === 'BTC' && priceData) {
+          state.market.data.btcPrice = priceData.price ?? 0
+          state.market.data.btcChange24h = priceData.change24h ?? 0
+          state.market.data.btcVolume24h = priceData.volume24h ?? 0
+          state.market.data.btcMarketCap = priceData.marketCap ?? 0
         }
-        
+
         // Add to price history
         if (!state.market.priceHistory[symbol]) {
           state.market.priceHistory[symbol] = []
         }
-        
+
         state.market.priceHistory[symbol].push({
           timestamp,
-          price: priceData.price,
-          volume: priceData.volume24h,
+          price: priceData.price ?? 0,
+          volume: priceData.volume24h ?? 0,
         })
-        
+
         // Keep only last 1000 entries
         if (state.market.priceHistory[symbol].length > 1000) {
           state.market.priceHistory[symbol] = state.market.priceHistory[symbol].slice(-1000)
         }
       })
-      
+
       state.market.data.lastPriceUpdate = timestamp
       state.market.error = null
     })
   },
-  
+
   updatePrice: (symbol: string, price: number, change24h = 0, volume24h = 0, marketCap = 0) => {
     const priceData = { price, change24h, volume24h, marketCap }
-    get().updatePrices({ [symbol]: priceData })
+    get().updatePrices({ [symbol]: priceData } as any)
   },
   
   addToWatchlist: (symbol: string) => {

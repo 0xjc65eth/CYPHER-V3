@@ -368,10 +368,20 @@ class PerformanceCache<T = any> {
     return Date.now() - entry.timestamp > entry.ttl;
   }
 
-  private updateMetrics(operation: keyof CacheMetrics, responseTime?: number): void {
+  private updateMetrics(operation: 'hit' | 'miss' | 'set' | 'delete' | 'eviction', responseTime?: number): void {
     if (!this.options.enableMetrics) return;
 
-    this.metrics[operation]++;
+    const keyMap: Record<string, keyof CacheMetrics> = {
+      hit: 'hits',
+      miss: 'misses',
+      set: 'sets',
+      delete: 'deletes',
+      eviction: 'evictions'
+    };
+    const metricKey = keyMap[operation];
+    if (metricKey) {
+      (this.metrics[metricKey] as number)++;
+    }
     
     if (responseTime) {
       const totalRequests = this.metrics.hits + this.metrics.misses;

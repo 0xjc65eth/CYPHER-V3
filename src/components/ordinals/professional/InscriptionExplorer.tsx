@@ -163,7 +163,7 @@ export default function InscriptionExplorer({ searchQuery = '' }: InscriptionExp
               <div className="px-3">
                 <Slider 
                   value={filters.feeRate}
-                  onValueChange={(value) => setFilters({...filters, feeRate: value as [number, number]})}
+                  onValueChange={(value: number[]) => setFilters({...filters, feeRate: value as [number, number]})}
                   max={1000}
                   step={10}
                   className="w-full"

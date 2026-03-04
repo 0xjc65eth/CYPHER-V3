@@ -11,7 +11,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart } from 'recharts';
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { 
   Brain, 
   TrendingUp, 
@@ -227,22 +227,16 @@ export function AIAnalytics() {
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="accuracy" 
-                    stackId="1"
-                    stroke="#10B981" 
-                    fill="#10B981"
-                    fillOpacity={0.3}
+                  <Line
+                    type="monotone"
+                    dataKey="accuracy"
+                    stroke="#10B981"
                     name="Training Accuracy"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="valAccuracy" 
-                    stackId="2"
-                    stroke="#3B82F6" 
-                    fill="#3B82F6"
-                    fillOpacity={0.3}
+                  <Line
+                    type="monotone"
+                    dataKey="valAccuracy"
+                    stroke="#3B82F6"
                     name="Validation Accuracy"
                   />
                 </LineChart>

@@ -17,7 +17,7 @@ global.console = {
 };
 
 // Environment variables for testing
-process.env.NODE_ENV = 'test';
+(process.env as Record<string, string>).NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test_jwt_secret';
 process.env.ADMIN_JWT_SECRET = 'test_admin_jwt_secret';
 process.env.REDIS_HOST = 'localhost';
@@ -27,7 +27,7 @@ process.env.REDIS_PORT = '6379';
 global.fetch = jest.fn();
 
 // Mock WebSocket
-global.WebSocket = jest.fn().mockImplementation(() => ({
+global.WebSocket = Object.assign(jest.fn().mockImplementation(() => ({
   send: jest.fn(),
   close: jest.fn(),
   addEventListener: jest.fn(),
@@ -37,7 +37,7 @@ global.WebSocket = jest.fn().mockImplementation(() => ({
   OPEN: 1,
   CLOSING: 2,
   CLOSED: 3
-}));
+})), { CONNECTING: 0 as const, OPEN: 1 as const, CLOSING: 2 as const, CLOSED: 3 as const, prototype: WebSocket.prototype }) as any;
 
 // Mock crypto for Node.js environment
 Object.defineProperty(global, 'crypto', {

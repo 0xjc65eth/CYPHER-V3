@@ -1,4 +1,4 @@
-e /**
+/**
  * Transaction List Component
  * 
  * This component displays a list of transactions in the user's portfolio
@@ -137,7 +137,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {formatDate(new Date(txTimestamp))}
+                  {formatDate(txTimestamp)}
                 </TableCell>
                 <TableCell>
                   {txData.amount ? formatCurrency(txData.amount) : '-'}

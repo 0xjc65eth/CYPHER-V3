@@ -19,8 +19,8 @@ export function useDecisionVariables() {
       const fundingRate = (priceChange * 0.005).toFixed(3) // More realistic correlation
 
       // Calculate open interest based on market cap and volume - more accurate formula
-      const marketCap = marketData?.marketCap || 0
-      const volume = marketData?.volume24h || 0
+      const marketCap = marketData?.marketCap?.total || 0
+      const volume = marketData?.volume24h?.total || 0
 
       // Open interest typically ranges from 1-3% of market cap for Bitcoin
       const openInterestPercentage = 0.015 + (Math.abs(priceChange) * 0.001) // 1.5% base + adjustment

@@ -205,6 +205,6 @@ export async function getAllFeeRecords(limit: number = 20): Promise<DBFeeRecord[
 /**
  * Get fee stats (delegates to dbService)
  */
-export async function getFeeStats(): Promise<{ totalCollected: number; totalPending: number; byProtocol: Record<string, number> }> {
+export async function getFeeStats() {
   return dbService.getFeeStats();
 }

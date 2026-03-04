@@ -181,7 +181,7 @@ class FeeCollectionService {
   ): Promise<FeeCollectionResult> {
     try {
       
-      const contractAddress = FEE_COLLECTION_CONFIG.CONTRACTS[
+      const contractAddress = (FEE_COLLECTION_CONFIG.CONTRACTS as Record<string, string>)[
         this.getChainKey(transaction.chainId)
       ];
       
@@ -295,7 +295,7 @@ class FeeCollectionService {
 
   // Utility methods
   private getCollectionMethod(chainId: number | string): string {
-    return FEE_COLLECTION_CONFIG.DEFAULT_METHOD[chainId] || 'direct';
+    return (FEE_COLLECTION_CONFIG.DEFAULT_METHOD as Record<string | number, string>)[chainId] || 'direct';
   }
 
   private getChainKey(chainId: number | string): string {

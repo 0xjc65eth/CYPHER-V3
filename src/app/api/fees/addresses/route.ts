@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getFeeAddresses } from '@/lib/fees/feeAddresses';
+import { getFeeAddresses, FeeAddresses } from '@/lib/fees/feeAddresses';
 import { validateFeeAddresses, sanitizeInput } from '@/lib/fees/validation';
 
 // Rate limiting for addresses endpoint (lighter than calculation)
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const addresses = getFeeAddresses(sanitizedNetwork);
 
     // Validate addresses for security
-    const validation = validateFeeAddresses(addresses, {
+    const validation = validateFeeAddresses(addresses as FeeAddresses, {
       strictMode: false, // Allow testnet addresses for development
     });
 

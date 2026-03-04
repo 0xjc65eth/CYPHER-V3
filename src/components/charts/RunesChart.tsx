@@ -433,7 +433,7 @@ export const RunesChart: React.FC<RunesChartProps> = ({
               </Select>
 
               {/* Timeframe Selector */}
-              <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+              <Select value={selectedTimeframe} onValueChange={(v) => setSelectedTimeframe(v as typeof selectedTimeframe)}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -1020,9 +1020,9 @@ export const RunesChart: React.FC<RunesChartProps> = ({
                               name: t.symbol,
                               size: t.marketCap,
                               fill: t.color
-                            }))}
+                            })) as any}
                             dataKey="size"
-                            ratio={4/3}
+                            {...{ ratio: 4/3 } as any}
                             stroke="#fff"
                             fill="#8884d8"
                           />

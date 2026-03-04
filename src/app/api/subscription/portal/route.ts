@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const stripeCustomerId = (user.metadata as Record<string, string>)?.stripe_customer_id
-      || (user as Record<string, unknown>).stripe_customer_id as string | undefined
+      || (user as unknown as Record<string, unknown>).stripe_customer_id as string | undefined
 
     if (!stripeCustomerId) {
       return NextResponse.json(

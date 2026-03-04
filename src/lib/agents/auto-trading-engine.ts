@@ -198,7 +198,7 @@ export class AutoTradingEngine extends EventEmitter {
       return result;
       
     } catch (error) {
-      this.emit('execution_error', { signal, error: error.message });
+      this.emit('execution_error', { signal, error: (error as any).message });
       throw error;
     }
   }
@@ -233,14 +233,14 @@ export class AutoTradingEngine extends EventEmitter {
       this.emit('markets_monitored', marketData);
       
     } catch (error) {
-      this.emit('monitoring_error', { error: error.message });
+      this.emit('monitoring_error', { error: (error as any).message });
     }
   }
 
   /**
    * 🛡️ Real-time risk monitoring and emergency protocols
    */
-  private async startRiskMonitoring(): void {
+  private async startRiskMonitoring(): Promise<void> {
     setInterval(async () => {
       if (!this.isActive) return;
       
@@ -265,7 +265,7 @@ export class AutoTradingEngine extends EventEmitter {
         this.emit('risk_monitored', portfolioStats);
         
       } catch (error) {
-        this.emit('risk_monitoring_error', { error: error.message });
+        this.emit('risk_monitoring_error', { error: (error as any).message });
       }
     }, 5000); // Check every 5 seconds
   }
@@ -306,7 +306,7 @@ export class AutoTradingEngine extends EventEmitter {
         executedPrice: 0,
         commission: 0,
         timestamp: new Date(),
-        error: error.message
+        error: (error as any).message
       };
     }
   }
@@ -337,7 +337,7 @@ export class AutoTradingEngine extends EventEmitter {
       });
       
     } catch (error) {
-      this.emit('emergency_stop_error', { error: error.message });
+      this.emit('emergency_stop_error', { error: (error as any).message });
     }
   }
 
@@ -640,7 +640,7 @@ export class AutoTradingEngine extends EventEmitter {
       }
       
     } catch (error) {
-      this.emit('position_close_error', { position, error: error.message });
+      this.emit('position_close_error', { position, error: (error as any).message });
     }
   }
 
@@ -659,7 +659,7 @@ export class AutoTradingEngine extends EventEmitter {
       return true;
       
     } catch (error) {
-      this.emit('order_cancel_error', { orderId, error: error.message });
+      this.emit('order_cancel_error', { orderId, error: (error as any).message });
       return false;
     }
   }
@@ -707,7 +707,7 @@ export class AutoTradingEngine extends EventEmitter {
    */
   private async getCurrentPrice(symbol: string): Promise<number> {
     // Simulate price movement (in production, use real exchange APIs)
-    const basePrices = { BTC: 45000, ETH: 3000, ADA: 0.5, LTC: 100 };
+    const basePrices: Record<string, number> = { BTC: 45000, ETH: 3000, ADA: 0.5, LTC: 100 };
     const basePrice = basePrices[symbol] || 1000;
     const volatility = 0.01; // 1% volatility
     

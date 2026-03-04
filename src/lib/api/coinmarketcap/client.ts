@@ -95,16 +95,16 @@ export class CMCClient {
       return withCache(
         endpoint,
         params,
-        () => options?.retry !== false 
-          ? retryWithBackoff(fetcher, options?.maxRetries)
+        () => options?.retry !== false
+          ? retryWithBackoff(fetcher, (options?.maxRetries ?? 3) as any)
           : fetcher(),
         options?.cacheTTL
       );
     }
 
     // Direct request with optional retry
-    return options?.retry !== false 
-      ? retryWithBackoff(fetcher, options?.maxRetries)
+    return options?.retry !== false
+      ? retryWithBackoff(fetcher, (options?.maxRetries ?? 3) as any)
       : fetcher();
   }
 

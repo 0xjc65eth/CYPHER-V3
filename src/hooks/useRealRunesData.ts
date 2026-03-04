@@ -50,7 +50,6 @@ export const useRealRunesData = (options: UseRealRunesDataOptions = {}) => {
               title: rune.mints === 1 ? 'New Rune Etched' : 'Rune Fully Minted',
               message: `${rune.name} - ${rune.mints === 1 ? 'First mint completed' : 'All tokens minted'}`,
               severity: 'success',
-              read: false
             });
           }
         }
@@ -72,8 +71,7 @@ export const useRealRunesData = (options: UseRealRunesDataOptions = {}) => {
                   title: `${rune.name} Activity`,
                   message: `${activity.type}: ${activity.amount || 'N/A'} tokens`,
                   severity: 'info',
-                  read: false
-                });
+                    });
               }
             }
           }

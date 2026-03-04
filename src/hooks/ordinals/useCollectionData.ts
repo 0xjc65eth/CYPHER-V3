@@ -141,7 +141,7 @@ async function fetchCollectionStats(collectionSlug: string): Promise<CollectionS
         timestamp: v.timestamp,
         volume: v.volume
       })),
-      holdersHistory: marketData.volume_history.map((v, i, arr) => ({
+      holdersHistory: marketData.volume_history.map((v: { timestamp: number; volume: number; sales_count: number; holders_count?: number }, i: number, arr: { timestamp: number; volume: number; sales_count: number }[]) => ({
         timestamp: v.timestamp,
         count: v.holders_count ?? Math.max(1, v.sales_count * (arr.length - i)) // Derive from sales activity if holders unavailable
       })),

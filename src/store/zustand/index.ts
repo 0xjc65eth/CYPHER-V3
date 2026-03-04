@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { create, StateCreator } from 'zustand'
 import { subscribeWithSelector, devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 import { createSelectors } from './selectors'
@@ -14,24 +14,33 @@ import { createUserSlice, UserSlice } from './slices/userSlice'
 import { createAssetSlice, AssetSlice } from './slices/assetSlice'
 
 // Root state interface
+// Using Omit to resolve conflicting property names between MarketSlice and RealTimeSlice
 export interface RootState extends
   WalletSlice,
   MarketSlice,
   UISlice,
   CacheSlice,
-  RealTimeSlice,
+  Omit<RealTimeSlice, 'updateRealTimeData' | 'updatePrices' | 'updateMarketData'>,
   SecuritySlice,
   MiningSlice,
   MempoolSlice,
   UserSlice,
-  AssetSlice {}
+  AssetSlice {
+  // Re-declare conflicting members with any to allow both slices
+  updateRealTimeData: (...args: any[]) => any;
+  updatePrices: (...args: any[]) => any;
+  updateMarketData: (...args: any[]) => any;
+}
+
+// Helper type for slice creator args
+type SliceCreatorArgs = Parameters<StateCreator<RootState, [['zustand/immer', never]], []>>
 
 // Create the main store with all middleware
 export const useStore = create<RootState>()(
   devtools(
     persist(
       subscribeWithSelector(
-        immer((...a) => ({
+        immer((...a: SliceCreatorArgs) => ({
           ...createWalletSlice(...a),
           ...createMarketSlice(...a),
           ...createUISlice(...a),
@@ -168,7 +177,7 @@ export const useStoreActions = () => {
 // Store utilities
 export const getStoreSnapshot = () => useStore.getState()
 
-export const subscribeToWalletChanges = (callback: (state: WalletSlice) => void) => {
+export const subscribeToWalletChanges = (callback: (state: any) => void) => {
   return useStore.subscribe(
     (state) => state.wallet,
     callback,
@@ -176,7 +185,7 @@ export const subscribeToWalletChanges = (callback: (state: WalletSlice) => void)
   )
 }
 
-export const subscribeToMarketChanges = (callback: (state: MarketSlice) => void) => {
+export const subscribeToMarketChanges = (callback: (state: any) => void) => {
   return useStore.subscribe(
     (state) => state.market,
     callback,
@@ -184,7 +193,7 @@ export const subscribeToMarketChanges = (callback: (state: MarketSlice) => void)
   )
 }
 
-export const subscribeToRealTimeChanges = (callback: (state: RealTimeSlice) => void) => {
+export const subscribeToRealTimeChanges = (callback: (state: any) => void) => {
   return useStore.subscribe(
     (state) => state.realTime,
     callback,
@@ -193,10 +202,10 @@ export const subscribeToRealTimeChanges = (callback: (state: RealTimeSlice) => v
 }
 
 // Store debugging utilities (development only)
-if (process.env.NODE_ENV === 'development') {
-  (window as any).store = useStore
-  (window as any).getStoreState = () => useStore.getState()
-  (window as any).storeActions = useStoreActions
+if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+  (window as any).store = useStore;
+  (window as any).getStoreState = () => useStore.getState();
+  (window as any).storeActions = useStoreActions;
 }
 
 export default useStore

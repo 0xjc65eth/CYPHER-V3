@@ -222,6 +222,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
   const [rarityFilter, setRarityFilter] = useState<string>('all');
 
   // Hooks
+  const ordinalsActivityData = useOrdinalsActivity() as any;
   const {
     collections,
     inscriptions,
@@ -230,13 +231,14 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
     loading,
     error,
     refetch
-  } = useOrdinalsActivity(selectedCollection, selectedTimeframe);
+  } = ordinalsActivityData;
 
+  const floorPricesData = useOrdinalsFloorPrices() as any;
   const {
     floorPrices,
     priceHistory,
     loading: floorLoading
-  } = useOrdinalsFloorPrices(selectedCollection, selectedTimeframe);
+  } = floorPricesData;
 
   // Process collections data
   const processedCollections = useMemo(() => {
@@ -314,7 +316,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
       return acc;
     }, {} as Record<string, number>);
     
-    return Object.entries(rarities).map(([rarity, count]: [string, number]) => ({
+    return Object.entries(rarities).map(([rarity, count]) => ({
       name: rarity,
       value: count,
       color: RARITY_COLORS[rarity as keyof typeof RARITY_COLORS] || '#6B7280'
@@ -431,7 +433,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Collections</SelectItem>
-                  {processedCollections.slice(0, 10).map((collection) => (
+                  {processedCollections.slice(0, 10).map((collection: any) => (
                     <SelectItem key={collection.id} value={collection.id}>
                       {collection.name}
                     </SelectItem>
@@ -440,7 +442,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
               </Select>
 
               {/* Timeframe Selector */}
-              <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+              <Select value={selectedTimeframe} onValueChange={(v) => setSelectedTimeframe(v as any)}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -790,7 +792,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                                     variant={inscription.rarity === 'mythic' ? 'destructive' : 'default'}
                                     className="text-xs"
                                     style={{ 
-                                      backgroundColor: RARITY_COLORS[inscription.rarity],
+                                      backgroundColor: RARITY_COLORS[inscription.rarity as keyof typeof RARITY_COLORS],
                                       color: 'white'
                                     }}
                                   >
@@ -894,9 +896,9 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                               name: c.symbol,
                               size: c.volume24h,
                               fill: c.color
-                            }))}
+                            })) as any}
                             dataKey="size"
-                            ratio={4/3}
+                            {...{ ratio: 4/3 } as any}
                             stroke="#fff"
                             fill="#8884d8"
                           />
@@ -950,7 +952,7 @@ export const OrdinalsChart: React.FC<OrdinalsChartProps> = ({
                             </div>
                             <div className="flex items-center gap-2">
                               <Star className="w-4 h-4 text-yellow-500" />
-                              <span>Highest rarity: {rarityDistribution.find(r => r.name === 'mythic')?.value || 0} mythic inscriptions</span>
+                              <span>Highest rarity: {String(rarityDistribution.find(r => r.name === 'mythic')?.value || 0)} mythic inscriptions</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <TrendingUp className="w-4 h-4 text-green-500" />

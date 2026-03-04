@@ -69,7 +69,7 @@ const navItems = [
 ]
 
 // Mapeamento de carteiras para nomes de exibição
-const WALLET_DISPLAY_NAMES = {
+const WALLET_DISPLAY_NAMES: Record<string, string> = {
   'unisat': 'UniSat',
   'xverse': 'Xverse',
   'magic-eden': 'Magic Eden',

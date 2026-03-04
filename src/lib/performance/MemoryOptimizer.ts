@@ -78,7 +78,7 @@ export class MemoryOptimizer {
     let connection = this.webSocketPool.get(connectionId);
 
     if (!connection) {
-      connection = await this.createWebSocketConnection(url, connectionId);
+      connection = await this.createWebSocketConnection(url, connectionId) ?? undefined;
       if (!connection) return null;
     }
 
@@ -108,7 +108,7 @@ export class MemoryOptimizer {
   /**
    * Create new WebSocket connection
    */
-  private async createWebSocketConnection(url: string, connectionId: string): Promise<WebSocketConnection | null> {
+  private async createWebSocketConnection(url: string, connectionId: string): Promise<WebSocketConnection | undefined> {
     if (this.webSocketPool.size >= this.MAX_CONNECTIONS) {
       await this.cleanupIdleConnections();
     }
@@ -154,7 +154,7 @@ export class MemoryOptimizer {
 
     } catch (error) {
       logger.error(`Failed to create WebSocket connection: ${url}`, error);
-      return null;
+      return undefined;
     }
   }
 

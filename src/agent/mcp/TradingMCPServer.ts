@@ -156,13 +156,13 @@ const TOOLS: ToolDefinition[] = [
 // ─── Tool Handlers (wired to real connectors) ──────────────────────────────
 
 function getConnector(exchange?: string) {
-  const orchestrator = getOrchestrator();
+  const orchestrator = getOrchestrator('system');
   const conn = orchestrator.getConnector(exchange || 'hyperliquid');
   return conn;
 }
 
 async function handleToolCall(name: string, args: Record<string, unknown>): Promise<unknown> {
-  const orchestrator = getOrchestrator();
+  const orchestrator = getOrchestrator('system');
 
   switch (name) {
     case 'place_order': {

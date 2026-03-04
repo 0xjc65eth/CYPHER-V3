@@ -66,11 +66,11 @@ export async function handleSubscriptionUpdated(event: Stripe.Event): Promise<vo
   }
 
   const status = subscription.status as string
-  const periodStart = subscription.current_period_start
-    ? new Date(subscription.current_period_start * 1000).toISOString()
+  const periodStart = (subscription as any).current_period_start
+    ? new Date((subscription as any).current_period_start * 1000).toISOString()
     : undefined
-  const periodEnd = subscription.current_period_end
-    ? new Date(subscription.current_period_end * 1000).toISOString()
+  const periodEnd = (subscription as any).current_period_end
+    ? new Date((subscription as any).current_period_end * 1000).toISOString()
     : undefined
 
   // Sync subscription record
@@ -146,7 +146,7 @@ export async function handleSubscriptionDeleted(event: Stripe.Event): Promise<vo
  */
 export async function handlePaymentFailed(event: Stripe.Event): Promise<void> {
   const invoice = event.data.object as Stripe.Invoice
-  const subscriptionId = invoice.subscription as string
+  const subscriptionId = (invoice as any).subscription as string
   const customerId = invoice.customer as string
 
   // Find the subscription in our DB

@@ -5,7 +5,7 @@
  */
 
 import { jobScheduler } from './job-scheduler'
-import { dbService } from '@/lib/database'
+import { dbService } from '@/lib/database/db-service'
 
 /**
  * Register all default background jobs
@@ -87,7 +87,7 @@ export function registerDefaultJobs(): void {
     handler: async () => {
       try {
         const { getOrchestrator } = await import('@/agent/core/AgentOrchestrator')
-        const orchestrator = getOrchestrator()
+        const orchestrator = getOrchestrator('system')
         const state = orchestrator.getState()
         if (state.status !== 'active') return
 
@@ -119,7 +119,7 @@ export function registerDefaultJobs(): void {
     handler: async () => {
       try {
         const { getOrchestrator } = await import('@/agent/core/AgentOrchestrator')
-        const orchestrator = getOrchestrator()
+        const orchestrator = getOrchestrator('system')
         const state = orchestrator.getState()
         if (state.status !== 'active') return
 
@@ -159,7 +159,7 @@ export function registerDefaultJobs(): void {
     handler: async () => {
       try {
         const { getOrchestrator } = await import('@/agent/core/AgentOrchestrator')
-        const orchestrator = getOrchestrator()
+        const orchestrator = getOrchestrator('system')
         const state = orchestrator.getState()
         if (state.status !== 'active') return
 
@@ -181,7 +181,7 @@ export function registerDefaultJobs(): void {
     handler: async () => {
       try {
         const { getOrchestrator } = await import('@/agent/core/AgentOrchestrator')
-        const orchestrator = getOrchestrator()
+        const orchestrator = getOrchestrator('system')
         const perf = orchestrator.getPerformance()
         const config = orchestrator.getConfig()
 

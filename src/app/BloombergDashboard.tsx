@@ -565,8 +565,8 @@ function MarketLeadersTable() {
             }))
           : [];
     return raw.slice().sort((a, b) => {
-      const valA = (a as Record<string, number>)[sortBy] ?? 0;
-      const valB = (b as Record<string, number>)[sortBy] ?? 0;
+      const valA = (a as unknown as Record<string, number>)[sortBy] ?? 0;
+      const valB = (b as unknown as Record<string, number>)[sortBy] ?? 0;
       return sortDir === 'desc' ? valB - valA : valA - valB;
     });
   }, [data, sortBy, sortDir]);

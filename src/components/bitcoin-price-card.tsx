@@ -82,7 +82,7 @@ export function BitcoinPriceCard() {
   }, [lastUpdated])
 
   // Generate realistic historical data for professional charts
-  const priceHistory = useMemo(() => {
+  const priceHistory: { time: string; value: number; open: number; high: number; low: number; close: number; volume: number; }[] = useMemo(() => {
     const basePrice = currentData?.btcPrice || 96583.51
     const volatility = 0.015 // 1.5% volatility for more realistic movement
     const hours = 24
@@ -93,32 +93,34 @@ export function BitcoinPriceCard() {
       return x - Math.floor(x)
     }
 
-    return Array.from({ length: hours }, (_, i) => {
+    const result: { time: string; value: number; open: number; high: number; low: number; close: number; volume: number; }[] = []
+    for (let i = 0; i < hours; i++) {
       const timeAgo = hours - i
       const now = new Date()
       const time = new Date(now.getTime() - timeAgo * 60 * 60 * 1000)
-      
+
       // Create more realistic price movement with trend
       const trendFactor = 1 + (Math.sin(i * 0.1) * 0.005) // Slight trend
       const randomFactor = 1 + (pseudoRandom(i) * volatility * 2 - volatility)
       const price = basePrice * trendFactor * randomFactor
-      
-      const open = i === 0 ? price : priceHistory?.[i-1]?.close || price
+
+      const openPrice = i === 0 ? price : result[i-1]?.close || price
       const close = price
-      const high = Math.max(open, close) * (1 + pseudoRandom(i + 100) * 0.008)
-      const low = Math.min(open, close) * (1 - pseudoRandom(i + 200) * 0.008)
+      const high = Math.max(openPrice, close) * (1 + pseudoRandom(i + 100) * 0.008)
+      const low = Math.min(openPrice, close) * (1 - pseudoRandom(i + 200) * 0.008)
       const volume = 500000 + pseudoRandom(i + 300) * 2000000
-      
-      return {
+
+      result.push({
         time: time.toISOString(),
         value: price,
-        open,
+        open: openPrice,
         high,
         low,
         close,
         volume
-      }
-    }).reverse()
+      })
+    }
+    return result.reverse()
   }, [currentData?.btcPrice, mounted])
 
   // Calculate additional metrics
@@ -224,9 +226,9 @@ export function BitcoinPriceCard() {
       {/* Professional Price Chart */}
       <div className="mt-6">
         <RechartsChart
-          data={priceHistory}
+          type="area"
+          data={priceHistory as any}
           config={chartConfig}
-          className="bg-transparent border-0 p-0"
         />
       </div>
 

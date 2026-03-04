@@ -540,7 +540,7 @@ export class StakingRewardsSystem extends EventEmitter {
         pools = pools.filter(pool => pool.poolType === filters.poolType);
       }
       if (filters.minApy) {
-        pools = pools.filter(pool => pool.apy >= filters.minApy);
+        pools = pools.filter(pool => pool.apy >= filters.minApy!);
       }
       if (filters.maxRisk) {
         const riskLevels = { low: 1, medium: 2, high: 3 };
@@ -548,7 +548,7 @@ export class StakingRewardsSystem extends EventEmitter {
         pools = pools.filter(pool => riskLevels[pool.riskLevel] <= maxLevel);
       }
       if (filters.minTvl) {
-        pools = pools.filter(pool => pool.tvl >= filters.minTvl);
+        pools = pools.filter(pool => pool.tvl >= filters.minTvl!);
       }
     }
 

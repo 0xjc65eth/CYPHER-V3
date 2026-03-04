@@ -59,7 +59,7 @@ export default function MarketOverviewOrganized() {
   const [isLive, setIsLive] = useState(true);
   const [timeframe, setTimeframe] = useState('1h');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [lastUpdate, setLastUpdate] = useState(0);
   
   // Market data states
   const [tickers, setTickers] = useState<MarketTicker[]>([]);
@@ -263,7 +263,7 @@ export default function MarketOverviewOrganized() {
           <div className="flex items-center space-x-4">
             <div className="text-sm text-gray-400">
               <Clock className="h-4 w-4 inline mr-1" />
-              Last update: {new Date(lastUpdate).toLocaleTimeString()}
+              Last update: {lastUpdate > 0 ? new Date(lastUpdate).toLocaleTimeString() : '--:--:--'}
             </div>
             
             <button

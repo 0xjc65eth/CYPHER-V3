@@ -314,7 +314,7 @@ export class PerformanceProfiler {
     return {
       averageResponseTime: totalResponseTime / metrics.length,
       errorRate: (errorCount / metrics.length) * 100,
-      throughput: metrics.length / (timeRange || 60000) * 1000, // requests per second
+      throughput: metrics.length / (60000) * 1000, // requests per second
       slowestEndpoints
     }
   }

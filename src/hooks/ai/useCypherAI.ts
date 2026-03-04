@@ -36,9 +36,10 @@ export function useCypherAI() {
     const analyze = async () => {
       setLoading(true);
       try {
-        const price = (btcPrice as any).price ?? btcPrice?.prices?.USD ?? 0;
-        const volume = (btcPrice as any).volume24h ?? btcPrice?.volume_24h ?? 0;
-        const change = (btcPrice as any).change24h ?? btcPrice?.change_24h ?? 0;
+        const bp = btcPrice as any;
+        const price = bp?.price ?? bp?.prices?.USD ?? 0;
+        const volume = bp?.volume24h ?? bp?.volume_24h ?? 0;
+        const change = bp?.change24h ?? bp?.change_24h ?? 0;
         const marketData = {
           price,
           volume,
@@ -71,9 +72,9 @@ export function useCypherAI() {
     setLoading(true);
     try {
       const data = customData || {
-        price: (btcPrice as any)?.price ?? btcPrice?.prices?.USD ?? 0,
-        volume: (btcPrice as any)?.volume24h ?? btcPrice?.volume_24h ?? 0,
-        change24h: (btcPrice as any)?.change24h ?? btcPrice?.change_24h ?? 0
+        price: (btcPrice as any)?.price ?? (btcPrice as any)?.prices?.USD ?? 0,
+        volume: (btcPrice as any)?.volume24h ?? (btcPrice as any)?.volume_24h ?? 0,
+        change24h: (btcPrice as any)?.change24h ?? (btcPrice as any)?.change_24h ?? 0
       };
 
       const newInsights = await cypherAI.generateInsights({

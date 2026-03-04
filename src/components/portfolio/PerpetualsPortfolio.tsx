@@ -110,10 +110,7 @@ const PerpetualsPortfolio: React.FC = () => {
     try {
       setLoading(true);
       const result = await hyperLiquidService.closePosition(
-        address,
-        position.position.coin,
-        position.size,
-        '' // privateKey would be handled by wallet integration
+        position.position.coin
       );
 
       if (result.success) {

@@ -67,7 +67,7 @@ async function removeCachedSession(sessionId: string): Promise<void> {
 // ============================================================================
 
 async function getAdminUser(adminId: string): Promise<AdminUser | null> {
-  const admin = await dbService.getAdminById(adminId);
+  const admin = await (dbService as any).getAdminById(adminId);
   if (!admin) return null;
 
   return {
@@ -121,7 +121,7 @@ export const adminAuth = async (req: AuthenticatedRequest, res: Response, next: 
 
     if (!session) {
       // Cache miss, check DB
-      const dbSession = await dbService.getAdminSession(decoded.sessionId);
+      const dbSession = await (dbService as any).getAdminSession(decoded.sessionId);
       if (dbSession) {
         session = {
           adminId: (dbSession as any).admin_id,
@@ -146,7 +146,7 @@ export const adminAuth = async (req: AuthenticatedRequest, res: Response, next: 
     // Check session expiry
     if (Date.now() - session.createdAt > SESSION_DURATION) {
       await removeCachedSession(decoded.sessionId);
-      await dbService.deactivateSession(decoded.sessionId);
+      await (dbService as any).deactivateSession(decoded.sessionId);
       return res.status(401).json({
         success: false,
         error: 'Admin session expired',
@@ -157,7 +157,7 @@ export const adminAuth = async (req: AuthenticatedRequest, res: Response, next: 
     // Update last activity (async, non-blocking)
     session.lastActivity = Date.now();
     cacheSession(decoded.sessionId, session).catch(() => {});
-    dbService.updateSessionActivity(decoded.sessionId).catch(() => {});
+    (dbService as any).updateSessionActivity(decoded.sessionId).catch(() => {});
 
     // Add admin to request
     admin.sessionId = decoded.sessionId;
@@ -295,7 +295,7 @@ export const requireRole = (roles: string | string[]) => {
 function extractToken(req: Request): string | null {
   // SECURITY: Tokens MUST come from Authorization header ONLY.
   // Query string tokens leak via referrer headers, browser history, and server logs.
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization as string | undefined;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
@@ -355,7 +355,7 @@ export const createAdminSession = async (adminId: string, ipAddress: string, use
   await cacheSession(sessionId, sessionData);
 
   // Store in DB for persistence
-  await dbService.createAdminSession({
+  await (dbService as any).createAdminSession({
     session_id: sessionId,
     admin_id: adminId,
     ip_address: ipAddress,
@@ -384,7 +384,7 @@ export const adminLogin = async (req: Request, res: Response) => {
     }
 
     // Get admin from database
-    const adminRecord = await dbService.getAdminByUsername(username);
+    const adminRecord = await (dbService as any).getAdminByUsername(username);
     if (!adminRecord) {
       EnhancedLogger.warn('Admin login failed - user not found', { username });
       return res.status(401).json({

@@ -32,8 +32,8 @@ export function SalesHistoryTable() {
     queryKey: ['ordinals-sales-history', timeRange],
     queryFn: async () => {
       const limit = timeRange === '1h' ? 10 : timeRange === '24h' ? 20 : 50
-      const sales = await ordinalsService.getRecentSales(limit)
-      return sales.map(sale => ({
+      const sales = await (ordinalsService as any).getRecentSales(limit)
+      return sales.map((sale: any) => ({
         id: sale.inscription_id,
         collection: 'Unknown', // Would need collection mapping
         item: `#${sale.inscription_number}`,
@@ -117,7 +117,7 @@ export function SalesHistoryTable() {
               </div>
             </div>
           )}
-          {(salesData || emptySales).map((sale) => (
+          {(salesData || emptySales).map((sale: any) => (
             <div key={sale.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
               <div className="flex items-start justify-between mb-2">
                 <div>

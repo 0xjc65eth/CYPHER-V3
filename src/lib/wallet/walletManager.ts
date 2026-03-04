@@ -23,7 +23,7 @@ const detectProviders = (): WalletProvider[] => {
       icon: '🦊',
       isInstalled: () => !!window.ethereum?.isMetaMask,
       connect: async () => {
-        const accounts = await window.ethereum.request({
+        const accounts = await (window.ethereum as any).request({
           method: 'eth_requestAccounts'
         });
         return accounts;
@@ -38,7 +38,7 @@ const detectProviders = (): WalletProvider[] => {
       icon: '👻',
       isInstalled: () => !!window.solana?.isPhantom,
       connect: async () => {
-        const response = await window.solana.connect();
+        const response = await window.solana!.connect();
         return [response.publicKey.toString()];
       }
     });
@@ -51,10 +51,10 @@ const detectProviders = (): WalletProvider[] => {
       icon: '🔷',
       isInstalled: () => !!window.XverseProviders?.BitcoinProvider,
       connect: async () => {
-        const response = await window.XverseProviders.BitcoinProvider.request(
+        const response = await (window as any).XverseProviders.BitcoinProvider.request(
           'getAddresses', {}
         );
-        return response.result.addresses.map((addr: any) => addr.address);
+        return (response as any).result.addresses.map((addr: any) => addr.address);
       }
     });
   }
@@ -247,12 +247,4 @@ export function useWalletManager() {
   };
 }
 
-// Tipos globais para TypeScript
-declare global {
-  interface Window {
-    ethereum?: any;
-    solana?: any;
-    unisat?: any;
-    XverseProviders?: any;
-  }
-}
+// Window types declared in global.d.ts

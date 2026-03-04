@@ -150,7 +150,7 @@ export function PerformanceMonitor() {
     return new Promise((resolve) => {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const firstEntry = entries[0];
+        const firstEntry = entries[0] as any;
         resolve(firstEntry.processingStart - firstEntry.startTime);
         observer.disconnect();
       });
@@ -196,11 +196,11 @@ export function PerformanceMonitor() {
 
   const calculateComponentLoadTime = (): number => {
     const resourceEntries = performance.getEntriesByType('resource');
-    const componentEntries = resourceEntries.filter((entry: PerformanceResourceTiming) => 
+    const componentEntries = resourceEntries.filter((entry) =>
       entry.name.includes('components') || entry.name.includes('chunk')
     );
-    
-    return componentEntries.reduce((total, entry) => 
+
+    return componentEntries.reduce((total, entry) =>
       total + (entry.duration || 0), 0) / componentEntries.length;
   };
 
@@ -208,11 +208,11 @@ export function PerformanceMonitor() {
     // This would require build-time analysis or service worker
     // For now, estimate based on resource timing
     const resourceEntries = performance.getEntriesByType('resource');
-    const jsEntries = resourceEntries.filter((entry: PerformanceResourceTiming) => 
+    const jsEntries = resourceEntries.filter((entry) =>
       entry.name.includes('.js')
     );
-    
-    return jsEntries.reduce((total, entry) => total + (entry.transferSize || 0), 0) / 1024; // KB
+
+    return jsEntries.reduce((total, entry) => total + ((entry as any).transferSize || 0), 0) / 1024; // KB
   };
 
   const calculateDownloadSpeed = (navigation: PerformanceNavigationTiming): number => {

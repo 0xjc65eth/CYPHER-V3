@@ -189,7 +189,7 @@ class PortfolioService {
           // Se não houver cache, buscar dados da carteira
           return this.syncWalletData();
         },
-        cacheConfigs.portfolioData
+        cacheConfigs.medium
       );
 
       if (cachedData) {
@@ -251,7 +251,7 @@ class PortfolioService {
       await cacheService.set(
         `portfolio_${this.walletAddress}`,
         portfolioData,
-        cacheConfigs.portfolioData
+        cacheConfigs.medium
       );
 
       // Emit update event
@@ -271,7 +271,7 @@ class PortfolioService {
   private async getBitcoinPrice(): Promise<number> {
     try {
       // Tentar obter preço do cache primeiro
-      return await cacheService.get(
+      return (await cacheService.get(
         'bitcoin_price',
         async () => {
           // Tentar múltiplas fontes para maior confiabilidade
@@ -304,7 +304,7 @@ class PortfolioService {
           ttl: 5 * 60 * 1000, // 5 minutos
           staleWhileRevalidate: true
         }
-      );
+      )) || 65000;
     } catch (error) {
       console.error('Error fetching Bitcoin price:', error);
       return 65000; // Valor de fallback

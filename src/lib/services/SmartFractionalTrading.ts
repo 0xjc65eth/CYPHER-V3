@@ -340,7 +340,7 @@ export class SmartFractionalTrading extends EventEmitter {
     };
 
     const networkFeeInCrypto = feeMap[network] || 0.001;
-    return networkFeeInCrypto * this.priceFeeds.get(this.networks.get(network)?.symbol || 'ETH')?.price || 0;
+    return networkFeeInCrypto * (this.priceFeeds.get(this.networks.get(network)?.symbol || 'ETH')?.price ?? 0);
   }
 
   public async executeOrder(order: FractionalOrder, wallet: any): Promise<FractionalOrder> {

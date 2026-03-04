@@ -149,8 +149,10 @@ export function OrdinalsSystemV2() {
       const response = await fetch('/api/ordinals/list/?' + new URLSearchParams({
         sort: sortBy,
         timeRange,
-        ...filters
-      }));
+        ...Object.fromEntries(
+          Object.entries(filters).map(([k, v]) => [k, String(v)])
+        )
+      } as Record<string, string>));
       
       if (response.ok) {
         const data = await response.json();
@@ -278,16 +280,16 @@ export function OrdinalsSystemV2() {
   // Handle search input with debouncing
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    
+
     // Clear previous search timeout
-    if (handleSearch.timeout) {
-      clearTimeout(handleSearch.timeout);
+    if ((handleSearch as any).timeout) {
+      clearTimeout((handleSearch as any).timeout);
     }
-    
+
     // Check if it's a Bitcoin address
     if (query.length > 10 && isBitcoinAddress(query.trim())) {
       // Debounce address search to avoid excessive API calls
-      handleSearch.timeout = setTimeout(() => {
+      (handleSearch as any).timeout = setTimeout(() => {
         searchByAddress(query.trim());
       }, 1000); // 1 second debounce
     } else {
@@ -364,8 +366,8 @@ export function OrdinalsSystemV2() {
                   onChange={(e) => handleSearch(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && searchQuery.length > 10 && isBitcoinAddress(searchQuery.trim())) {
-                      if (handleSearch.timeout) {
-                        clearTimeout(handleSearch.timeout);
+                      if ((handleSearch as any).timeout) {
+                        clearTimeout((handleSearch as any).timeout);
                       }
                       searchByAddress(searchQuery.trim());
                     }

@@ -28,7 +28,7 @@ interface SmartQuickTradeProps {
 export const SmartQuickTrade: React.FC<SmartQuickTradeProps> = ({ 
   defaultNetwork = 'ethereum' 
 }) => {
-  const { wallet, connected } = useWallet();
+  const { walletInfo: wallet, isConnected: connected } = useWallet();
   const [smartTrader] = useState(() => new SmartFractionalTrading());
   
   // Form state
@@ -70,7 +70,7 @@ export const SmartQuickTrade: React.FC<SmartQuickTradeProps> = ({
         inputCurrency,
         targetCurrency,
         targetNetwork,
-        walletBalance: wallet?.balance
+        walletBalance: wallet?.balance?.confirmed ?? undefined
       });
       setValidation(result);
     }
@@ -208,16 +208,16 @@ export const SmartQuickTrade: React.FC<SmartQuickTradeProps> = ({
                 placeholder="0.00"
                 className="text-xl font-mono bg-gray-800 border-gray-700"
               />
-              <Select 
-                value={inputCurrency} 
-                onChange={(e) => setInputCurrency(e.target.value)}
-                className="w-24 bg-gray-800 border-gray-700"
+              <select
+                value={inputCurrency}
+                onChange={(e: any) => setInputCurrency(e.target.value)}
+                className="w-24 bg-gray-800 border-gray-700 rounded px-2 py-1 text-white"
               >
                 <option value="USD">USD</option>
                 <option value="BTC">BTC</option>
                 <option value="ETH">ETH</option>
                 <option value="SOL">SOL</option>
-              </Select>
+              </select>
             </div>
             {inputCurrency !== 'USD' && (
               <p className="text-xs text-gray-500 mt-1">
@@ -234,16 +234,16 @@ export const SmartQuickTrade: React.FC<SmartQuickTradeProps> = ({
                   {currentOrder ? currentOrder.fractionalAmount.toFixed(8) : '0.00000000'}
                 </span>
               </div>
-              <Select 
-                value={targetCurrency} 
-                onChange={(e) => setTargetCurrency(e.target.value)}
-                className="w-24 bg-gray-800 border-gray-700"
+              <select
+                value={targetCurrency}
+                onChange={(e: any) => setTargetCurrency(e.target.value)}
+                className="w-24 bg-gray-800 border-gray-700 rounded px-2 py-1 text-white"
               >
                 <option value="BTC">BTC</option>
                 <option value="ETH">ETH</option>
                 <option value="SOL">SOL</option>
                 <option value="ORDI">ORDI</option>
-              </Select>
+              </select>
             </div>
             <p className="text-xs text-gray-500 mt-1">
               @ {getCurrentPrice(targetCurrency)}

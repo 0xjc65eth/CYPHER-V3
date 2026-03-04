@@ -78,6 +78,7 @@ try {
 }
 
 import { WalletType, WalletPerformance } from '../types/wallet';
+export type { WalletPerformance };
 
 export type LaserEyesWalletType = 
   | typeof UNISAT
@@ -135,7 +136,7 @@ export interface WalletInfo {
 }
 
 class WalletConnector {
-  private client: LaserEyesClient;
+  private client: InstanceType<typeof LaserEyesClient>;
   private connectedWallets: Map<string, WalletInfo> = new Map();
   private portfolioCache: Map<string, PortfolioAsset[]> = new Map();
   private priceCache: Map<string, number> = new Map();
@@ -218,7 +219,7 @@ class WalletConnector {
   private setupListeners(): void {
     // Listener for wallet state changes
     if (this.client && this.client.$store && typeof this.client.$store.listen === 'function') {
-      this.client.$store.listen(async (state) => {
+      this.client.$store.listen(async (state: any) => {
       if (state.connected && state.address) {
         const walletInfo: WalletInfo = {
           address: state.address,

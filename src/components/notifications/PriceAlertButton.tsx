@@ -5,7 +5,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { Bell, Plus } from 'lucide-react';
 
 export function PriceAlertButton({ currentPrice }: { currentPrice: number }) {
-  const { setPriceAlert, addNotification } = useNotifications();
+  const { addNotification } = useNotifications();
   const [showModal, setShowModal] = useState(false);
   const [alertPrice, setAlertPrice] = useState(currentPrice.toString());
   const [direction, setDirection] = useState<'above' | 'below'>('above');
@@ -31,7 +31,7 @@ export function PriceAlertButton({ currentPrice }: { currentPrice: number }) {
     });
     localStorage.setItem('priceAlerts', JSON.stringify(alerts));
 
-    setPriceAlert(price, direction);
+    addNotification({ type: 'success', title: 'Alert Set', message: `Price alert set for $${price} (${direction})` });
     setShowModal(false);
     setAlertPrice(currentPrice.toString());
   };

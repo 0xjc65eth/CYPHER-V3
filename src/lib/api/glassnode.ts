@@ -146,7 +146,7 @@ class GlassnodeService {
           lossCount: 0, // Requer plano pago
         };
       },
-      cacheTTL.analytics
+      (cacheTTL as any).analytics
     );
   }
 
@@ -176,7 +176,7 @@ class GlassnodeService {
           velocity: 0, // Requer plano pago
         };
       },
-      cacheTTL.market
+      (cacheTTL as any).market
     );
   }
 
@@ -204,7 +204,7 @@ class GlassnodeService {
           utxoVolume: 0, // Requer plano pago
         };
       },
-      cacheTTL.blockchain
+      (cacheTTL as any).blockchain
     );
   }
 
@@ -232,7 +232,7 @@ class GlassnodeService {
           feeTotal: 0, // Requer plano pago
         };
       },
-      cacheTTL.mining
+      (cacheTTL as any).mining
     );
   }
 
@@ -260,7 +260,7 @@ class GlassnodeService {
           illiquidSupply: 0, // Requer plano pago
         };
       },
-      cacheTTL.supply
+      (cacheTTL as any).supply
     );
   }
 
@@ -280,7 +280,7 @@ class GlassnodeService {
         const response = await this.request<GlassnodeResponse>(metric, params);
         return response.data;
       },
-      cacheTTL.timeseries
+      (cacheTTL as any).timeseries
     );
   }
 
@@ -305,7 +305,7 @@ class GlassnodeService {
           rhodlRatio: rhodl.data[0]?.value || 0,
         };
       },
-      cacheTTL.indicators
+      (cacheTTL as any).indicators
     );
   }
 }

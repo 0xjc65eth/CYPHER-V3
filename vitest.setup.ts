@@ -4,7 +4,7 @@ import { cleanup } from '@testing-library/react'
 
 // Mock environment variables
 beforeAll(() => {
-  process.env.NODE_ENV = 'test'
+  (process.env as Record<string, string>).NODE_ENV = 'test'
   process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:4444'
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://test.supabase.co'
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key'
@@ -70,14 +70,14 @@ beforeAll(() => {
   global.fetch = vi.fn()
 
   // Mock WebSocket
-  global.WebSocket = vi.fn().mockImplementation((url: string) => ({
+  global.WebSocket = Object.assign(vi.fn().mockImplementation((url: string) => ({
     url,
     readyState: 1,
     send: vi.fn(),
     close: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
-  }))
+  })), { CONNECTING: 0 as const, OPEN: 1 as const, CLOSING: 2 as const, CLOSED: 3 as const, prototype: WebSocket.prototype }) as any
 
   // Mock speech recognition
   // @ts-ignore

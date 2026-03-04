@@ -419,7 +419,7 @@ export function VoiceControlPanel() {
                 </label>
                 <Slider
                   value={[settings.sensitivity]}
-                  onValueChange={(value) => setSettings(prev => ({ ...prev, sensitivity: value[0] }))}
+                  onValueChange={(value: number[]) => setSettings(prev => ({ ...prev, sensitivity: value[0] }))}
                   min={0}
                   max={100}
                   step={1}
@@ -439,7 +439,7 @@ export function VoiceControlPanel() {
                 </label>
                 <Slider
                   value={[settings.volume]}
-                  onValueChange={(value) => setSettings(prev => ({ ...prev, volume: value[0] }))}
+                  onValueChange={(value: number[]) => setSettings(prev => ({ ...prev, volume: value[0] }))}
                   min={0}
                   max={100}
                   step={1}

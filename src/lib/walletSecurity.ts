@@ -423,7 +423,8 @@ export class WalletSecurityManager {
           address: '',
           error: 'No compatible wallet detected',
           securityLevel: SecurityLevel.LOW,
-          warnings: ['No wallet extensions found']
+          warnings: ['No wallet extensions found'],
+          supportedFeatures: []
         };
       }
 
@@ -437,7 +438,8 @@ export class WalletSecurityManager {
           address: '',
           error: 'Wallet provider not allowed by security policy',
           securityLevel: SecurityLevel.LOW,
-          warnings: ['Provider blocked by security policy']
+          warnings: ['Provider blocked by security policy'],
+          supportedFeatures: []
         };
       }
 
@@ -463,7 +465,8 @@ export class WalletSecurityManager {
         address: '',
         error: this.sanitizeErrorMessage(error.message),
         securityLevel: SecurityLevel.LOW,
-        warnings: ['Connection error occurred']
+        warnings: ['Connection error occurred'],
+        supportedFeatures: []
       };
     }
   }
@@ -489,7 +492,8 @@ export class WalletSecurityManager {
           address: '',
           error: 'Connection timeout',
           securityLevel: SecurityLevel.LOW,
-          warnings: ['Connection timed out']
+          warnings: ['Connection timed out'],
+          supportedFeatures: []
         });
       }, timeout);
 
@@ -579,7 +583,8 @@ export class WalletSecurityManager {
           address,
           publicKey,
           securityLevel: this.config.securityLevel,
-          warnings
+          warnings,
+          supportedFeatures: []
         });
 
       } catch (error: any) {
@@ -597,7 +602,8 @@ export class WalletSecurityManager {
           address: '',
           error: this.sanitizeErrorMessage(error.message),
           securityLevel: SecurityLevel.LOW,
-          warnings: ['Connection failed']
+          warnings: ['Connection failed'],
+          supportedFeatures: []
         });
       }
     });
@@ -1313,9 +1319,4 @@ export class WalletSecurityManager {
 // Export singleton instance
 export const walletSecurity = new WalletSecurityManager();
 
-// Export types
-export type {
-  SecurityConfig,
-  SecurityContext,
-  WalletConnectionResult
-};
+// Types already exported inline above

@@ -183,9 +183,6 @@ export const createRealTimeSlice: StateCreator<
         state.realTime.metrics.connectionUptime = Date.now()
       })
       
-      // Start mock data updates
-      get().startMockDataUpdates?.()
-      
     } catch (error: any) {
       set((state) => {
         state.realTime.connecting = false

@@ -474,13 +474,16 @@ export class PriceAnalysisService {
     const url = new URL(endpoint);
     Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SMART_ROUTING_CONSTANTS.API_TIMEOUT);
     const response = await fetch(url.toString(), {
-      timeout: SMART_ROUTING_CONSTANTS.API_TIMEOUT,
+      signal: controller.signal,
       headers: {
         'Accept': 'application/json',
         'User-Agent': 'CypherTrade/1.0'
       }
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
@@ -636,7 +639,7 @@ export class PriceAnalysisService {
     }, 60000); // Every minute
   }
 
-  private async performHealthChecks(): void {
+  private async performHealthChecks(): Promise<void> {
     // Implementation for periodic health checks
     // This would ping DEX APIs to check their status
   }

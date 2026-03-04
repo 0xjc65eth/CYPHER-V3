@@ -183,8 +183,8 @@ export default function BloombergMarketPage() {
   // Exchange sorting
   const sortedExchanges = exchanges.data
     ? [...exchanges.data].sort((a, b) => {
-        const av = (a as Record<string, unknown>)[exchangeSort.col] as number | null;
-        const bv = (b as Record<string, unknown>)[exchangeSort.col] as number | null;
+        const av = (a as unknown as Record<string, unknown>)[exchangeSort.col] as number | null;
+        const bv = (b as unknown as Record<string, unknown>)[exchangeSort.col] as number | null;
         if (av == null && bv == null) return 0;
         if (av == null) return 1;
         if (bv == null) return -1;

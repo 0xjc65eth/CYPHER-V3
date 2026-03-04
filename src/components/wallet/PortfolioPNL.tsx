@@ -4,9 +4,9 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
-  TrendingUp, 
-  TrendingDown, 
+import {
+  TrendingUp,
+  TrendingDown,
   DollarSign,
   Calendar,
   Clock,
@@ -45,7 +45,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
     try {
       const response = await fetch(`/api/portfolio/real-pnl/?address=${wallet.address}`);
       const data = await response.json();
-      
+
 
       if (data.success && data.data) {
         setPortfolioData(data.data.portfolio);
@@ -74,7 +74,8 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
     }
   };
 
-  const formatPNL = (value: number, percentage: number) => {
+  const formatPNL = (value: number, percentage: number | undefined) => {
+    const pct = percentage ?? 0;
     const isPositive = value >= 0;
     return (
       <div className={`flex items-center gap-2 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
@@ -83,13 +84,17 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
           {isPositive ? '+' : ''}{value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
         </span>
         <Badge variant={isPositive ? 'default' : 'destructive'} className="text-xs">
-          {isPositive ? '+' : ''}{percentage.toFixed(2)}%
+          {isPositive ? '+' : ''}{pct.toFixed(2)}%
         </Badge>
       </div>
     );
   };
 
   const renderAssetPNL = (asset: AssetPNL) => {
+    const totalAmount = asset.totalAmount ?? 0;
+    const averageBuyPrice = asset.averageBuyPrice ?? 0;
+    const currentPrice = asset.currentPrice ?? 0;
+
     return (
       <Card key={`${asset.assetType}-${asset.asset}`} className="bg-gradient-to-br from-gray-800 to-gray-900 border-gray-700 p-6 hover:border-gray-600 transition-all duration-200 shadow-lg">
         <div className="flex items-center justify-between mb-4">
@@ -100,7 +105,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
             <div>
               <h4 className="font-semibold text-white text-lg">{asset.assetName}</h4>
               <p className="text-sm text-gray-400">
-                {asset.totalAmount.toFixed(asset.assetType === 'bitcoin' ? 8 : 2)} 
+                {totalAmount.toFixed(asset.assetType === 'bitcoin' ? 8 : 2)}
                 {asset.assetType === 'bitcoin' ? ' BTC' : ' units'}
               </p>
             </div>
@@ -121,13 +126,13 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
           <div>
             <p className="text-xs text-gray-500 mb-1">Avg Buy Price</p>
             <p className="font-medium text-white">
-              ${asset.averageBuyPrice.toLocaleString()}
+              ${averageBuyPrice.toLocaleString()}
             </p>
           </div>
           <div>
             <p className="text-xs text-gray-500 mb-1">Current Price</p>
             <p className="font-medium text-white">
-              ${asset.currentPrice.toLocaleString()}
+              ${currentPrice.toLocaleString()}
             </p>
           </div>
         </div>
@@ -135,11 +140,11 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-400">Realized P&L</span>
-            {formatPNL(asset.realizedPNL, (asset.realizedPNL / asset.totalCost) * 100)}
+            {formatPNL(asset.realizedPNL, asset.totalCost ? (asset.realizedPNL / asset.totalCost) * 100 : 0)}
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-gray-400">Unrealized P&L</span>
-            {formatPNL(asset.unrealizedPNL, (asset.unrealizedPNL / asset.totalCost) * 100)}
+            {formatPNL(asset.unrealizedPNL, asset.totalCost ? (asset.unrealizedPNL / asset.totalCost) * 100 : 0)}
           </div>
           <div className="pt-3 border-t border-gray-700">
             <div className="flex justify-between items-center">
@@ -150,7 +155,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
         </div>
 
         <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-          <span>{asset.totalBuys} buys • {asset.totalSells} sells</span>
+          <span>{asset.totalBuys ?? 0} buys • {asset.totalSells ?? 0} sells</span>
           {asset.lastActivityDate && (
             <span>Last: {format(new Date(asset.lastActivityDate), 'MMM d, yyyy')}</span>
           )}
@@ -195,7 +200,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
           <DollarSign className="w-6 h-6 text-orange-500" />
           Portfolio Performance
         </h3>
-        
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
             <p className="text-sm text-gray-400 mb-2 flex items-center gap-1">
@@ -218,7 +223,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
           </div>
           <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
             <p className="text-sm text-gray-400 mb-2">24h Change</p>
-            {formatPNL(portfolioData.dailyPNL, (portfolioData.dailyPNL / portfolioData.totalValue) * 100)}
+            {formatPNL(portfolioData.dailyPNL, portfolioData.totalValue ? (portfolioData.dailyPNL / portfolioData.totalValue) * 100 : 0)}
           </div>
         </div>
 
@@ -257,7 +262,7 @@ export function PortfolioPNL({ onViewTransactions }: PortfolioPNLProps) {
       {/* Asset Details */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-white">Assets P&L</h3>
-        
+
         {/* Bitcoin */}
         {(portfolioData as any)?.bitcoin?.totalAmount > 0 && renderAssetPNL((portfolioData as any).bitcoin)}
 

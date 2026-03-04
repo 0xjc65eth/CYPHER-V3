@@ -170,14 +170,14 @@ export async function GET() {
     
     return NextResponse.json(healthReport, { status: httpStatus })
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Health check failed:', error)
-    
+
     return NextResponse.json({
       status: 'critical',
       score: 0,
       timestamp: new Date().toISOString(),
-      error: error.message,
+      error: error?.message,
       endpoints: {},
       performance: {},
       cache: { size: 0, keys: [], totalKeys: 0 },
@@ -261,10 +261,10 @@ export async function POST(request: Request) {
           error: 'Unknown action' 
         }, { status: 400 })
     }
-  } catch (error) {
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+  } catch (error: any) {
+    return NextResponse.json({
+      success: false,
+      error: error?.message
     }, { status: 500 })
   }
 }

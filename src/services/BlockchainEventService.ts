@@ -376,6 +376,7 @@ export class BlockchainEventService {
     return {
       id: `lightning-${Date.now()}`,
       type: 'LIGHTNING',
+      hash: `lightning-${Date.now()}`,
       description: `⚡ Lightning Network: ${stats.channel_count || 0} channels, ${(stats.total_capacity || 0) / 100000000} BTC capacity`,
       timestamp: new Date(),
       network: 'Lightning',

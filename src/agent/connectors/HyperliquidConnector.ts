@@ -5,6 +5,7 @@
  */
 
 import { ethers } from 'ethers';
+// @ts-ignore - no type declarations
 import * as msgpack from 'msgpack-lite';
 import { Candle, Order, Position } from '../core/types';
 import {

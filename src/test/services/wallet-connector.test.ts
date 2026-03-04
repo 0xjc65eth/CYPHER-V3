@@ -318,7 +318,7 @@ describe('WalletConnector', () => {
           // Attempt to initialize wallet
           return { success: true, wallet: mockWallet };
         } catch (error) {
-          return { success: false, error: error.message };
+          return { success: false, error: (error as Error).message };
         }
       };
 

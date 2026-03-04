@@ -1139,7 +1139,7 @@ class HiroAPIWithExtensions extends EnhancedHiroAPI {
     return hiroAPIExtensions.getNetworkInfo();
   }
 
-  async getOrdinalsCollections(offset = 0, limit = 20) {
+  async getOrdinalsCollections(offset = 0, limit = 20): Promise<any> {
     return hiroAPIExtensions.getOrdinalsCollections(offset, limit);
   }
 

@@ -437,7 +437,7 @@ export class NewsSentimentAnalyzer extends EventEmitter {
       }
       if (filters.category) {
         articles = articles.filter(article => 
-          article.categories.includes(filters.category)
+          article.categories.includes(filters.category!)
         );
       }
       if (filters.source) {

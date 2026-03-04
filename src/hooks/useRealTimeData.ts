@@ -21,7 +21,7 @@ export function useRealTimeData(channels: string[] = []) {
     const { signal } = abortControllerRef.current;
     
     // Conectar WebSocket se não estiver conectado
-    if (!wsManager.isConnected && !signal.aborted) {
+    if (wsManager.getConnectionStatus().status !== 'connected' && !signal.aborted) {
       wsManager.connect();
     }
 

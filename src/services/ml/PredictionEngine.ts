@@ -140,7 +140,7 @@ export class PredictionEngine extends EventEmitter {
   async initialize(): Promise<void> {
     try {
       // Initialize TensorFlow backend
-      await tf.ready();
+      await (tf as any).ready();
 
       // Load model configurations
       for (const config of this.MODEL_CONFIGS) {
@@ -280,7 +280,7 @@ export class PredictionEngine extends EventEmitter {
         validationSplit: 0.2,
         shuffle: true,
         callbacks: {
-          onEpochEnd: (epoch, logs) => {
+          onEpochEnd: (epoch: any, logs: any) => {
             if (epoch % 10 === 0) {
               EnhancedLogger.info('Training progress', {
                 modelName,

@@ -154,7 +154,7 @@ export class WalletIntegrationService {
       
       // Apply patch to ensure getAddresses method exists
       if (!xverse.provider.getAddresses) {
-        xverse.provider.getAddresses = async function() {
+        xverse.provider.getAddresses = async function(this: any) {
           try {
             const response = await this.request('getAccounts', {
               purposes: ['ordinals', 'payment'],

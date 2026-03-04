@@ -11,6 +11,9 @@ import { Progress } from '../ui/progress';
 import swapService from '../../services/SwapService';
 import { FEE_CONFIG, SUPPORTED_NETWORKS } from '../../config/quicktrade';
 
+// Cast swapService to any to handle dynamic method signatures
+const swapSvc = swapService as any;
+
 /**
  * CYPHER ORDI FUTURE - Interface de Swap Otimizada
  * Agent 3 - Componente principal para swaps multi-DEX
@@ -77,7 +80,7 @@ const OptimizedSwapInterface: React.FC = () => {
   const [revenueStats, setRevenueStats] = useState<any>(null);
 
   // Tokens populares por chain
-  const popularTokens = useMemo(() => ({
+  const popularTokens: Record<string, TokenInfo[]> = useMemo(() => ({
     ethereum: [
       { address: '0xA0b86a33E6417c99C2A95F36bfCF1c47B8f93ED6', symbol: 'WETH', name: 'Wrapped Ether', decimals: 18 },
       { address: '0xA0b86a33E6417c99C2A95F36bfCF1c47B8f93ED6', symbol: 'USDC', name: 'USD Coin', decimals: 6 },
@@ -116,7 +119,7 @@ const OptimizedSwapInterface: React.FC = () => {
 
   const initializeSwapService = async () => {
     try {
-      await swapService.init();
+      await swapSvc.init();
     } catch (error) {
       console.error('❌ Erro ao inicializar SwapService:', error);
     }
@@ -124,7 +127,7 @@ const OptimizedSwapInterface: React.FC = () => {
 
   const loadSupportedTokens = async () => {
     try {
-      const tokens = await swapService.getSupportedTokens(selectedChain);
+      const tokens = await swapSvc.getSupportedTokens(selectedChain);
       setSupportedTokens(tokens);
       
       // Set default tokens
@@ -141,7 +144,7 @@ const OptimizedSwapInterface: React.FC = () => {
 
   const loadRevenueStats = async () => {
     try {
-      const stats = await swapService.getRevenueStats();
+      const stats = await swapSvc.getRevenueStats();
       setRevenueStats(stats);
     } catch (error) {
       console.error('Erro ao carregar stats:', error);
@@ -163,7 +166,7 @@ const OptimizedSwapInterface: React.FC = () => {
         toChain: selectedChain
       };
 
-      const quote = await swapService.getQuote(params);
+      const quote = await swapSvc.getQuote(params);
       setCurrentQuote(quote);
       setToAmount(quote.outputAmount);
       
@@ -189,7 +192,7 @@ const OptimizedSwapInterface: React.FC = () => {
       }, 200);
 
       const userAddress = '0x...'; // Obter do wallet conectado
-      const result = await swapService.executeSwap(currentQuote, userAddress);
+      const result = await swapSvc.executeSwap(currentQuote, userAddress);
       
       clearInterval(progressInterval);
       setSwapProgress(100);
@@ -299,8 +302,8 @@ const OptimizedSwapInterface: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {SUPPORTED_NETWORKS.map(chain => (
-                      <SelectItem key={chain} value={chain}>
-                        {chain.charAt(0).toUpperCase() + chain.slice(1)}
+                      <SelectItem key={chain.id} value={chain.id}>
+                        {chain.name}
                       </SelectItem>
                     ))}
                   </SelectContent>

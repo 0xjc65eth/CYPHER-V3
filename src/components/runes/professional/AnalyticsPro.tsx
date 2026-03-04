@@ -158,14 +158,16 @@ export default function AnalyticsPro() {
         });
 
         // Convert to VolumeDataPoint array
-        const volumeChartData: VolumeDataPoint[] = Object.entries(hourlyVolumes)
+        const volumeChartData = Object.entries(hourlyVolumes)
           .sort(([a], [b]) => a.localeCompare(b))
           .map(([timestamp, volumes]) => ({
-            timestamp,
-            buyVolume: volumes.buy / 100_000_000, // Convert sats to BTC
+            time: new Date(timestamp).getTime(),
+            volume: volumes.total / 100_000_000,
+            isPositive: volumes.buy >= volumes.sell,
+            buyVolume: volumes.buy / 100_000_000,
             sellVolume: volumes.sell / 100_000_000,
             totalVolume: volumes.total / 100_000_000
-          }));
+          })) as VolumeDataPoint[];
 
         setVolumeData(volumeChartData);
 
@@ -422,7 +424,7 @@ export default function AnalyticsPro() {
           />
 
           {/* Technical Analysis */}
-          <TechnicalAnalysisPanel data={technicalData} />
+          <TechnicalAnalysisPanel data={technicalData as any} />
         </div>
       </div>
 

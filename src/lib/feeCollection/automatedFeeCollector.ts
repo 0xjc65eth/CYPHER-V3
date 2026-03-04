@@ -430,14 +430,8 @@ class AutomatedFeeCollector {
 
   private async getNativeTokenPrices(): Promise<Record<string, number>> {
     const cacheKey = 'native_token_prices';
-    const cached = await quickTradeCache.getPrice('all_natives');
-    
-    if (cached) {
-      return cached;
-    }
-
     // Mock prices - in production, fetch from CoinGecko or other price API
-    const prices = {
+    const prices: Record<string, number> = {
       ethereum: 2850,
       arbitrum: 2850, // Uses ETH
       optimism: 2850, // Uses ETH
@@ -448,7 +442,6 @@ class AutomatedFeeCollector {
       solana: 95      // SOL
     };
 
-    await quickTradeCache.cachePrice('all_natives', prices);
     return prices;
   }
 

@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Wallet, 
-  X, 
-  CheckCircle, 
+import {
+  Wallet,
+  X,
+  CheckCircle,
   AlertCircle,
   ExternalLink,
   ChevronRight,
@@ -121,12 +121,12 @@ interface MultiChainWalletConnectorProps {
   amount?: string;
 }
 
-export default function MultiChainWalletConnector({ 
-  onClose, 
+export default function MultiChainWalletConnector({
+  onClose,
   onWalletSelect,
   selectedFromToken,
   selectedToToken,
-  amount 
+  amount
 }: MultiChainWalletConnectorProps) {
   const [activeTab, setActiveTab] = useState('bitcoin');
   const [installedWallets, setInstalledWallets] = useState<string[]>([]);
@@ -137,20 +137,20 @@ export default function MultiChainWalletConnector({
   useEffect(() => {
     const checkInstalledWallets = () => {
       const installed: string[] = [];
-      
+
       if (typeof window !== 'undefined') {
         // Bitcoin wallets
         if (window.XverseProviders?.BitcoinProvider) installed.push('XVERSE');
         if (window.unisat) installed.push('UNISAT');
-        
+
         // EVM wallets
         if (window.ethereum?.isMetaMask) installed.push('METAMASK');
         if (window.ethereum?.isRabby) installed.push('RABBY');
-        
+
         // Solana wallets
         if (window.solana?.isPhantom) installed.push('PHANTOM');
       }
-      
+
       setInstalledWallets(installed);
     };
 
@@ -186,41 +186,38 @@ export default function MultiChainWalletConnector({
   const redirectToDEX = (wallet: WalletConfig, network: string) => {
     const dexList = DEX_CONFIGS[network as keyof typeof DEX_CONFIGS] || [];
     const primaryDex = dexList[0];
-    
+
     if (primaryDex && selectedFromToken && selectedToToken) {
       let deepLink = '';
-      
+
       // Generate appropriate deep link based on network and DEX
       switch (network) {
         case 'bitcoin':
-          deepLink = generateSwapDeeplink(
-            'runesdx',
-            selectedFromToken.symbol,
-            selectedToToken.symbol,
-            amount || '0',
-            'bitcoin'
-          );
+          deepLink = generateSwapDeeplink({
+            fromToken: selectedFromToken.symbol,
+            toToken: selectedToToken.symbol,
+            amount: amount || '0',
+            fromChain: 'bitcoin',
+          });
           break;
         case 'ethereum':
-          deepLink = generateSwapDeeplink(
-            'uniswap',
-            selectedFromToken.address,
-            selectedToToken.address,
-            amount || '0',
-            'ethereum'
-          );
+          deepLink = generateSwapDeeplink({
+            fromToken: selectedFromToken.address,
+            toToken: selectedToToken.address,
+            amount: amount || '0',
+            fromChain: 'ethereum',
+          });
           break;
         case 'solana':
-          deepLink = generateSwapDeeplink(
-            'jupiter',
-            selectedFromToken.address,
-            selectedToToken.address,
-            amount || '0',
-            'solana'
-          );
+          deepLink = generateSwapDeeplink({
+            fromToken: selectedFromToken.address,
+            toToken: selectedToToken.address,
+            amount: amount || '0',
+            fromChain: 'solana',
+          });
           break;
       }
-      
+
       if (deepLink && deepLink !== '#') {
         window.open(deepLink, '_blank');
         onClose();
@@ -317,8 +314,8 @@ export default function MultiChainWalletConnector({
                   <Card
                     key={wallet.id}
                     className={`cursor-pointer transition-all duration-200 ${
-                      isInstalled 
-                        ? 'bg-gray-800/50 border-gray-600 hover:bg-gray-800 hover:border-cyan-500/50' 
+                      isInstalled
+                        ? 'bg-gray-800/50 border-gray-600 hover:bg-gray-800 hover:border-cyan-500/50'
                         : 'bg-gray-800/30 border-gray-700 hover:bg-gray-800/50'
                     }`}
                     onClick={() => handleWalletConnect(wallet, activeTab)}
@@ -374,7 +371,7 @@ export default function MultiChainWalletConnector({
               <div className="flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                 <div className="text-sm text-blue-300">
-                  <strong>Trade Execution:</strong> You'll be redirected to the best DEX for your trade. 
+                  <strong>Trade Execution:</strong> You'll be redirected to the best DEX for your trade.
                   Our platform aggregates the top exchanges to ensure optimal pricing and execution.
                 </div>
               </div>

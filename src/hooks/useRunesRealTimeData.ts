@@ -370,7 +370,7 @@ export function useRunesRealTimeData() {
     realData: runesData?.realData || [],
     pools: comingSoonPools,
     isLoading,
-    error: error?.message || null,
+    error: error instanceof Error ? error.message : (error || null),
     lastUpdate: state.lastUpdate,
     connectionStatus: state.connectionStatus
   };

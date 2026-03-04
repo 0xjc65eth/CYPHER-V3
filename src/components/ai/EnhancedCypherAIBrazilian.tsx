@@ -25,7 +25,7 @@ interface VoiceMessage {
   text: string;
   isUser: boolean;
   timestamp: number;
-  emotion?: 'excited' | 'analysis' | 'alert' | 'trading' | 'portfolio' | 'arbitrage';
+  emotion?: 'excited' | 'analysis' | 'alert' | 'trading' | 'portfolio' | 'arbitrage' | 'confused';
   actionTaken?: string;
 }
 
@@ -279,7 +279,7 @@ export default function EnhancedCypherAIBrazilian() {
         const btcPrice = await getBitcoinPrice();
         return {
           text: `Bitcoin tá ${btcPrice}! ${btcPrice.includes('subindo') ? '🚀' : '📊'}`,
-          emotion: btcPrice.includes('subindo') ? 'excited' : 'analysis',
+          emotion: btcPrice.includes('subindo') ? 'excited' as const : 'analysis' as const,
           action: 'price_check'
         };
 
@@ -406,9 +406,10 @@ export default function EnhancedCypherAIBrazilian() {
     setIsSpeaking(true);
     
     try {
-      const audioBuffer = await elevenLabsService.synthesizeSpeech(text, undefined, emotion as any);
-      
+      const audioBlob = await elevenLabsService.synthesize(text, emotion);
+
       if (audioContextRef.current) {
+        const audioBuffer = await audioBlob.arrayBuffer();
         const audioBufferDecoded = await audioContextRef.current.decodeAudioData(audioBuffer);
         const source = audioContextRef.current.createBufferSource();
         source.buffer = audioBufferDecoded;

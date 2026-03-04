@@ -32,7 +32,7 @@ export class DevelopmentLogger {
     this.log('PROGRESS', `${feature}: ${percentage}% complete`);
   }
 
-  error(messageOrError: string | Error, dataOrContext?: unknown) {
+  error(messageOrError: string | Error, dataOrContext?: unknown, extra?: unknown) {
     if (!this.shouldLog('error')) return;
     if (messageOrError instanceof Error) {
       this.log('ERROR', messageOrError.message, {
@@ -40,6 +40,9 @@ export class DevelopmentLogger {
         context: dataOrContext,
         timestamp: new Date().toISOString(),
       });
+    } else if (extra !== undefined) {
+      // Support 3-arg form: error('CATEGORY', 'message', errorData)
+      this.log(messageOrError, dataOrContext as string, extra);
     } else {
       this.log('ERROR', messageOrError, dataOrContext);
     }

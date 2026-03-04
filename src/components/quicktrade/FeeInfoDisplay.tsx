@@ -144,7 +144,7 @@ export function FeeInfoDisplay({
                   {feeAddress}
                 </p>
                 <p className="text-gray-500 mt-1">
-                  {formatAddress(feeAddress, chainType)}
+                  {formatAddress(feeAddress, chainType as any)}
                 </p>
               </div>
               

@@ -15,7 +15,7 @@ interface CachedData<T> {
 }
 
 export class RedisCacheCluster extends EventEmitter {
-  private cluster: Redis.Cluster
+  private cluster: InstanceType<typeof Redis.Cluster>
   private localCache: Map<string, CachedData<any>> = new Map()
   private cacheConfig: Map<string, CacheConfig> = new Map()
   private readonly MAX_LOCAL_CACHE_SIZE = 50000 // Global hard cap on local cache entries
@@ -35,7 +35,6 @@ export class RedisCacheCluster extends EventEmitter {
     ], {
       redisOptions: {
         password: process.env.REDIS_PASSWORD,
-        enableOfflineQueue: false,
         enableReadyCheck: true,
         maxRetriesPerRequest: 3,
         lazyConnect: false
@@ -201,7 +200,7 @@ export class RedisCacheCluster extends EventEmitter {
     
     // Invalidate Redis keys
     try {
-      const stream = this.cluster.scanStream({
+      const stream = (this.cluster as any).scanStream({
         match: pattern + '*',
         count: 100
       })

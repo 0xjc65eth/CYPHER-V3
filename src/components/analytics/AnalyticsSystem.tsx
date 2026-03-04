@@ -31,15 +31,18 @@ import {
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import {
-  LineChart,
+  LineChart as RechartsLineChart,
   Line as RechartsLine,
-  BarChart,
+  BarChart as RechartsBarChart,
   Bar as RechartsBar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell
 } from 'recharts';
 
 interface MetricCard {
@@ -617,7 +620,7 @@ export function AnalyticsSystem() {
                 </div>
               ) : chartType === 'price' ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={priceChartData.labels.map((label: string, i: number) => ({
+                  <RechartsLineChart data={priceChartData.labels.map((label: string, i: number) => ({
                     name: label,
                     value: priceChartData.datasets[0]?.data[i] ?? 0
                   }))}>
@@ -626,11 +629,11 @@ export function AnalyticsSystem() {
                     <YAxis tick={{ fill: '#888', fontSize: 11 }} />
                     <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
                     <RechartsLine type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                  </LineChart>
+                  </RechartsLineChart>
                 </ResponsiveContainer>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={volumeChartData.labels.map((label: string, i: number) => ({
+                  <RechartsBarChart data={volumeChartData.labels.map((label: string, i: number) => ({
                     name: label,
                     value: volumeChartData.datasets[0]?.data[i] ?? 0
                   }))}>
@@ -639,7 +642,7 @@ export function AnalyticsSystem() {
                     <YAxis tick={{ fill: '#888', fontSize: 11 }} />
                     <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
                     <RechartsBar dataKey="value" fill="#10B981" />
-                  </BarChart>
+                  </RechartsBarChart>
                 </ResponsiveContainer>
               )}
             </div>
@@ -765,23 +768,25 @@ export function AnalyticsSystem() {
             </h3>
             <div className="flex items-center justify-center">
               <div className="relative w-32 h-32">
-                <Doughnut
-                  data={{
-                    labels: ['Bullish', 'Neutral', 'Bearish'],
-                    datasets: [{
-                      data: [65, 20, 15],
-                      backgroundColor: ['#10B981', '#6B7280', '#EF4444'],
-                      borderWidth: 0
-                    }]
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false }
-                    }
-                  }}
-                />
+                <RechartsPieChart width={128} height={128}>
+                  <Pie
+                    data={[
+                      { name: 'Bullish', value: 65, fill: '#10B981' },
+                      { name: 'Neutral', value: 20, fill: '#6B7280' },
+                      { name: 'Bearish', value: 15, fill: '#EF4444' }
+                    ]}
+                    dataKey="value"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={30}
+                    outerRadius={50}
+                    strokeWidth={0}
+                  >
+                    {[{ fill: '#10B981' }, { fill: '#6B7280' }, { fill: '#EF4444' }].map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                </RechartsPieChart>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-green-400">65%</p>

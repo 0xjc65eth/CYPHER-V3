@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Hash, FileType, Clock, ExternalLink, Copy, Check } from 'lucide-react'
-import { ordinalsService, type OrdinalsInscription } from '@/services/ordinals'
+import { ordinalsService } from '@/services/ordinals'
+type OrdinalsInscription = any
 import { useQuery } from '@tanstack/react-query'
 
 interface Inscription {
@@ -34,7 +35,7 @@ export function InscriptionsTable() {
     queryKey: ['ordinals-recent-inscriptions'],
     queryFn: async () => {
       const stats = await ordinalsService.getOrdinalsStats()
-      return stats.recent_sales.map((sale: any) => ({
+      return ((stats as any).recent_sales || []).map((sale: any) => ({
         id: sale.inscription_number,
         txid: sale.tx_id ? sale.tx_id.substring(0, 8) + '...' : 'unknown',
         contentType: sale.content_type || 'unknown',
@@ -105,7 +106,7 @@ export function InscriptionsTable() {
     return 'Just now'
   }
 
-  const filteredInscriptions = allInscriptions.filter(inscription =>
+  const filteredInscriptions = allInscriptions.filter((inscription: any) =>
     inscription.id.toString().includes(searchQuery) ||
     inscription.txid.includes(searchQuery) ||
     inscription.address.includes(searchQuery) ||
@@ -145,7 +146,7 @@ export function InscriptionsTable() {
           style={{ position: 'relative' }}
         >
           <div style={{ height: filteredInscriptions.length * ROW_HEIGHT, position: 'relative' }}>
-            {visibleInscriptions.map((inscription, index) => (
+            {visibleInscriptions.map((inscription: any, index: number) => (
               <div
                 key={inscription.id}
                 style={{

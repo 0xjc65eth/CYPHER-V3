@@ -169,7 +169,7 @@ async function handleGetOrderbook(args: Record<string, unknown>): Promise<ToolRe
   // Try to get real order book from Hyperliquid connector
   try {
     const { getOrchestrator } = await import("../core/AgentOrchestrator");
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator('system');
     const connector = orchestrator.getConnector("hyperliquid");
     if (connector && "getOrderBook" in connector) {
       const coin = symbol.replace("/USDT", "").replace("/USD", "").replace("-PERP", "");
@@ -210,7 +210,7 @@ async function handleGetTrades(args: Record<string, unknown>): Promise<ToolResul
   // Try to get recent trades from agent trade history
   try {
     const { getOrchestrator } = await import("../core/AgentOrchestrator");
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator('system');
     const trades = orchestrator.getTradeHistory();
     const filtered = trades
       .filter(t => !symbol || t.pair.includes(symbol.replace("/USDT", "").replace("/USD", "")))
@@ -234,7 +234,7 @@ async function handleGetFundingRate(args: Record<string, unknown>): Promise<Tool
   // Try to get real funding rate from Hyperliquid
   try {
     const { getOrchestrator } = await import("../core/AgentOrchestrator");
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator('system');
     const connector = orchestrator.getConnector("hyperliquid");
     if (connector && "getFundingRate" in connector) {
       const pair = symbol.replace("/USDT", "").replace("/USD", "") + "-PERP";

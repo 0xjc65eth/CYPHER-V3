@@ -242,6 +242,7 @@ export function RunesMarketCard() {
             </div>
             {mounted && runesChartData.length > 0 ? (
               <RechartsChart
+                type={marketCapConfig.type}
                 data={runesChartData}
                 config={marketCapConfig}
                 className="bg-transparent border-0 p-0"
@@ -264,6 +265,7 @@ export function RunesMarketCard() {
             </div>
             {mounted && volumeChartData.length > 0 ? (
               <RechartsChart
+                type={volumeConfig.type}
                 data={volumeChartData}
                 config={volumeConfig}
                 className="bg-transparent border-0 p-0"

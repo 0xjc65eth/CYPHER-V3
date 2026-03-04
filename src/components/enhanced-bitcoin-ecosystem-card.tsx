@@ -67,9 +67,9 @@ export function EnhancedBitcoinEcosystemCard() {
                     </span>
                   </div>
                   <div className="flex items-center text-sm text-blue-300">
-                    <span>Market Cap: ${(marketData?.marketCap / 1000000000000).toFixed(2)}T</span>
+                    <span>Market Cap: ${(Number((marketData?.marketCap as any)?.total ?? 0) / 1000000000000).toFixed(2)}T</span>
                     <span className="mx-2">•</span>
-                    <span>Vol: ${(marketData?.volume24h / 1000000000).toFixed(1)}B</span>
+                    <span>Vol: ${(Number((marketData?.volume24h as any)?.total ?? 0) / 1000000000).toFixed(1)}B</span>
                   </div>
                 </>
               )}
@@ -99,11 +99,11 @@ export function EnhancedBitcoinEcosystemCard() {
               </div>
               <div className="flex justify-between items-center mt-1">
                 <span className="text-xs text-blue-300">Difficulty</span>
-                <span className="text-sm font-medium text-white">{(miningData?.difficulty / 1000000000000).toFixed(2)}T</span>
+                <span className="text-sm font-medium text-white">{(Number(miningData?.difficulty ?? 0) / 1000000000000).toFixed(2)}T</span>
               </div>
               <div className="flex justify-between items-center mt-1">
                 <span className="text-xs text-blue-300">Block Time</span>
-                <span className="text-sm font-medium text-white">{(miningData?.timeAvg / 60).toFixed(1)} min</span>
+                <span className="text-sm font-medium text-white">{(Number((miningData as any)?.timeAvg ?? 0) / 60).toFixed(1)} min</span>
               </div>
             </>
           )}
@@ -158,7 +158,7 @@ export function EnhancedBitcoinEcosystemCard() {
               />
             </div>
             <div className="space-y-1">
-              {miningDistribution.slice(0, 5).map((pool, index) => (
+              {miningDistribution.slice(0, 5).map((pool: { name: string; share: number }, index: number) => (
                 <div key={index} className="flex justify-between items-center text-xs">
                   <div className="flex items-center">
                     <div className={`w-2 h-2 rounded-full bg-${

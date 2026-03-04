@@ -8,10 +8,11 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     // Import ArbitrageEngine
-    const { arbitrageEngine } = await import('@/services/arbitrage/ArbitrageEngine');
+    const ArbitrageEngine = (await import('@/services/arbitrage/ArbitrageEngine')).default;
 
     // Get comprehensive statistics
-    const stats = await arbitrageEngine.getStatistics();
+    const engine = new (ArbitrageEngine as any)();
+    const stats = await engine.getStatistics();
 
     return NextResponse.json({
       success: true,

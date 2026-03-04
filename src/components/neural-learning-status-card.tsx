@@ -31,7 +31,7 @@ export function NeuralLearningStatusCard() {
   }
 
   // Calcular média de precisão dos modelos
-  const averageAccuracy = models?.reduce((sum, model) => sum + model.accuracy, 0) / (models?.length || 1)
+  const averageAccuracy = (models?.reduce((sum, model) => sum + model.accuracy, 0) ?? 0) / (models?.length || 1)
 
   return (
     <Card className="bg-gradient-to-br from-[#181F3A] to-[#2A3A5A] border-none shadow-xl p-6">
@@ -201,9 +201,9 @@ export function NeuralLearningStatusCard() {
                   <div className="mt-2">
                     <Text className="text-xs text-gray-400 mb-1">Features</Text>
                     <div className="flex flex-wrap gap-1">
-                      {model.features.map((feature) => (
-                        <span key={feature} className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30">
-                          {feature}
+                      {model.features.map((feature: any) => (
+                        <span key={String(feature)} className="px-2 py-0.5 text-xs bg-blue-500/20 text-blue-300 rounded-full border border-blue-500/30">
+                          {String(feature)}
                         </span>
                       ))}
                     </div>

@@ -163,8 +163,8 @@ export function PortfolioSystem() {
     try {
       // Fetch portfolio data
       const [assetsRes, transactionsRes] = await Promise.all([
-        fetch(`/api/portfolio/balance/?address=${connectionState.account.address}`),
-        fetch(`/api/portfolio/transactions/?address=${connectionState.account.address}`)
+        fetch(`/api/portfolio/balance/?address=${(connectionState.account as any)?.address ?? connectionState.account}`),
+        fetch(`/api/portfolio/transactions/?address=${(connectionState.account as any)?.address ?? connectionState.account}`)
       ]);
 
       if (!assetsRes.ok || !transactionsRes.ok) {
@@ -181,8 +181,8 @@ export function PortfolioSystem() {
           type: 'bitcoin',
           name: 'Bitcoin',
           symbol: 'BTC',
-          balance: connectionState.balance?.total || 0,
-          value: (connectionState.balance?.total || 0) / 100000000 * 98500,
+          balance: (connectionState as any).balance?.total || 0,
+          value: ((connectionState as any).balance?.total || 0) / 100000000 * 98500,
           price: 98500,
           change24h: 2.34,
           allocation: 45,

@@ -90,7 +90,7 @@ export class RouteOptimizer {
       route: candidate.route,
       rank: index + 1,
       score: candidate.score,
-      scoreBreakdown: candidate.breakdown,
+      scoreBreakdown: candidate.breakdown as any,
       pros: candidate.benefits,
       cons: candidate.risks,
       recommendation: this.getRecommendationLevel(candidate.score)

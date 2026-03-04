@@ -1140,7 +1140,7 @@ function SystemSettings({
             </label>
             <Slider
               value={[config.minProfitPercent]}
-              onValueChange={([value]) => 
+              onValueChange={([value]: number[]) =>
                 onConfigChange({ ...config, minProfitPercent: value })
               }
               max={10}
@@ -1157,7 +1157,7 @@ function SystemSettings({
             </label>
             <Slider
               value={[config.minConfidence]}
-              onValueChange={([value]) => 
+              onValueChange={([value]: number[]) =>
                 onConfigChange({ ...config, minConfidence: value })
               }
               max={95}
@@ -1174,7 +1174,7 @@ function SystemSettings({
             </label>
             <Slider
               value={[config.maxPositionSize]}
-              onValueChange={([value]) => 
+              onValueChange={([value]: number[]) =>
                 onConfigChange({ ...config, maxPositionSize: value })
               }
               max={100000}

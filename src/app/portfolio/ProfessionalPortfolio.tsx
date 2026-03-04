@@ -467,8 +467,8 @@ export function ProfessionalPortfolio() {
         </TabsContent>
 
         <TabsContent value="professional" className="space-y-6">
-          <ProfessionalAnalytics 
-            portfolioData={portfolioData}
+          <ProfessionalAnalytics
+            portfolio={portfolioData}
             walletAddress={wallet.address || ''}
           />
         </TabsContent>

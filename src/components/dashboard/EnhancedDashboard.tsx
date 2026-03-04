@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export const EnhancedDashboard: React.FC = () => {
-  const { connected, wallet } = useWallet();
+  const { isConnected: connected } = useWallet();
   const [selectedTab, setSelectedTab] = useState('overview');
   const [marketStats, setMarketStats] = useState({
     totalMarketCap: 0,
@@ -155,15 +155,13 @@ export const EnhancedDashboard: React.FC = () => {
               />
             </div>
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <GuaranteedChart 
-                symbol="ORDIUSDT" 
-                interval="15m" 
-                type="line"
+              <GuaranteedChart
+                symbol="ORDIUSDT"
+                interval="15m"
               />
-              <GuaranteedChart 
-                symbol="SOLUSDT" 
-                interval="15m" 
-                type="line"
+              <GuaranteedChart
+                symbol="SOLUSDT"
+                interval="15m"
               />
             </div>
           </TabsContent>

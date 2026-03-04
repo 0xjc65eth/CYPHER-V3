@@ -122,7 +122,7 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
         handleStopBot();
         break;
       case 'emergency stop':
-        tradingBot.emergencyStop();
+        (tradingBot as any).emergencyStop();
         break;
       default:
     }
@@ -163,7 +163,7 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
 
         {emergencyStopEnabled && (
           <Button
-            onClick={() => tradingBot.emergencyStop()}
+            onClick={() => (tradingBot as any).emergencyStop()}
             variant="destructive"
             className="w-full"
             disabled={!botStatus.isRunning}
@@ -320,8 +320,8 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
               max={5.0}
               step={0.1}
               value={[botStatus.config.maxRiskPerTrade * 100]}
-              onValueChange={(value) => {
-                tradingBot.updateConfig({ maxRiskPerTrade: value[0] / 100 });
+              onValueChange={(value: number[]) => {
+                (tradingBot as any).updateConfig({ maxRiskPerTrade: value[0] / 100 });
                 updateBotStatus();
               }}
               className="mt-2"
@@ -339,8 +339,8 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
               max={2.0}
               step={0.1}
               value={[botStatus.config.minProfitThreshold * 100]}
-              onValueChange={(value) => {
-                tradingBot.updateConfig({ minProfitThreshold: value[0] / 100 });
+              onValueChange={(value: number[]) => {
+                (tradingBot as any).updateConfig({ minProfitThreshold: value[0] / 100 });
                 updateBotStatus();
               }}
               className="mt-2"
@@ -357,7 +357,7 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
               type="number"
               value={botStatus.config.maxDailyTrades}
               onChange={(e) => {
-                tradingBot.updateConfig({ maxDailyTrades: parseInt(e.target.value) });
+                (tradingBot as any).updateConfig({ maxDailyTrades: parseInt(e.target.value) });
                 updateBotStatus();
               }}
               className="mt-2"
@@ -372,8 +372,8 @@ export default function TradingBotDashboard({ className }: TradingBotDashboardPr
               max={20}
               step={1}
               value={[botStatus.config.stopLoss * 100]}
-              onValueChange={(value) => {
-                tradingBot.updateConfig({ stopLoss: value[0] / 100 });
+              onValueChange={(value: number[]) => {
+                (tradingBot as any).updateConfig({ stopLoss: value[0] / 100 });
                 updateBotStatus();
               }}
               className="mt-2"

@@ -212,8 +212,8 @@ export function CypherAISystem() {
       // Prepare context with wallet info if connected
       const context = {
         walletConnected: connectionState.isConnected,
-        walletAddress: connectionState.account?.address,
-        walletBalance: connectionState.balance,
+        walletAddress: connectionState.account,
+        walletBalance: 0,
         language: config.language,
         analysisTypes: Object.entries(config.analysis)
           .filter(([_, enabled]) => enabled)
@@ -510,7 +510,7 @@ export function CypherAISystem() {
                     {message.metadata && (
                       <div className="mt-2 pt-2 border-t border-gray-700 flex items-center gap-4 text-xs text-gray-500">
                         {message.metadata.model && (
-                          <span>{AI_MODELS.find(m => m.id === message.metadata.model)?.name}</span>
+                          <span>{AI_MODELS.find(m => m.id === message.metadata?.model)?.name}</span>
                         )}
                         {message.metadata.tokens && (
                           <span>{message.metadata.tokens} tokens</span>

@@ -47,13 +47,13 @@ export async function GET(request: NextRequest) {
 
     // Check cache first
     const cacheKey = `portfolio-history:${address}:${limit}:${offset}:${type || 'all'}`;
-    let historyData = await cacheInstances.portfolio.get(cacheKey);
+    let historyData = await (cacheInstances as any).portfolio.get(cacheKey);
 
     if (!historyData) {
       historyData = await fetchPortfolioHistory(address, limit, offset, type);
       
       // Cache for 5 minutes
-      await cacheInstances.portfolio.set(cacheKey, historyData, {
+      await (cacheInstances as any).portfolio.set(cacheKey, historyData, {
         ttl: 300,
         tags: ['portfolio', 'history', address]
       });
@@ -276,13 +276,13 @@ async function getPortfolioValueHistory(
 
   // Check cache
   const cacheKey = `portfolio-value-history:${address}:${timeframe}`;
-  let historyData = await cacheInstances.portfolio.get(cacheKey);
+  let historyData = await (cacheInstances as any).portfolio.get(cacheKey);
 
   if (!historyData) {
     historyData = await generatePortfolioValueHistory(address, timeframe);
 
     // Cache for 5 minutes
-    await cacheInstances.portfolio.set(cacheKey, historyData, {
+    await (cacheInstances as any).portfolio.set(cacheKey, historyData, {
       ttl: 300,
       tags: ['portfolio', 'history', 'value', address]
     });

@@ -33,12 +33,16 @@ interface ProfessionalTerminalProps {
 
 export function ProfessionalTerminal({ className = '' }: ProfessionalTerminalProps) {
   const [activeTab, setActiveTab] = useState('macro');
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [viewMode, setViewMode] = useState<'compact' | 'detailed'>('detailed');
   const [favorites, setFavorites] = useState<string[]>(['macro', 'onchain']);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshInterval, setRefreshInterval] = useState(30); // seconds
+
+  useEffect(() => {
+    setLastUpdate(new Date());
+  }, []);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -142,7 +146,7 @@ export function ProfessionalTerminal({ className = '' }: ProfessionalTerminalPro
           <div className="flex items-center gap-2">
             {/* Last Update */}
             <div className="text-[9px] text-[#e4e4e7]/40 font-mono">
-              {lastUpdate.toLocaleTimeString()}
+              {lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}
             </div>
 
             {/* View Mode Toggle */}

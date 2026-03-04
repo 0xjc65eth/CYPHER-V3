@@ -128,12 +128,14 @@ export function ProfessionalDashboard() {
 
   // Agent Management - show actual status (no mock randomization)
   const updateAgentStatuses = useCallback(() => {
-    const updatedAgents = AGENT_SYSTEM.AGENTS.map(agent => ({
-      ...agent,
+    const updatedAgents: AgentStatus[] = AGENT_SYSTEM.AGENTS.map((agent: any, index: number) => ({
+      id: agent.id || index,
+      name: agent.name || 'Unknown Agent',
       status: 'idle' as AgentStatus['status'],
       lastUpdate: Date.now(),
       performance: 0,
-      alerts: 0
+      alerts: 0,
+      task: agent.specialty || ''
     }));
     setAgentStatuses(updatedAgents);
   }, []);
@@ -183,7 +185,7 @@ export function ProfessionalDashboard() {
   }, [fetchMarketData, updateAgentStatuses, scanOpportunities]);
 
   // 🎨 Professional UI Components with null checks
-  const MetricCard = ({ title, value, change, icon: Icon, color = 'text-white' }) => (
+  const MetricCard = ({ title, value, change, icon: Icon, color = 'text-white' }: { title: string; value: string; change?: number; icon: any; color?: string }) => (
     <Card className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 p-6 hover:border-gray-600 transition-all">
       <div className="flex items-center justify-between">
         <div>
@@ -404,6 +406,7 @@ export function ProfessionalDashboard() {
           <MetricCard
             title="Mempool Fees"
             value={marketData?.mempool?.fees?.fast ? `${marketData.mempool.fees.fast} sat/vB` : 'Loading...'}
+            change={undefined}
             icon={Clock}
             color="text-green-400"
           />

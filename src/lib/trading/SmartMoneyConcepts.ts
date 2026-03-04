@@ -493,17 +493,17 @@ export class SmartMoneyConceptsAnalyzer {
    * Métodos auxiliares
    */
   private findPivotPoints(data: PriceData[], lookback = 5): Array<{type: 'high' | 'low', price: number, index: number}> {
-    const pivots = [];
-    
+    const pivots: Array<{type: 'high' | 'low', price: number, index: number}> = [];
+
     for (let i = lookback; i < data.length - lookback; i++) {
       const current = data[i];
       const isHigh = data.slice(i - lookback, i + lookback + 1)
         .every((candle, idx) => idx === lookback || candle.high <= current.high);
       const isLow = data.slice(i - lookback, i + lookback + 1)
         .every((candle, idx) => idx === lookback || candle.low >= current.low);
-      
-      if (isHigh) pivots.push({ type: 'high', price: current.high, index: i });
-      if (isLow) pivots.push({ type: 'low', price: current.low, index: i });
+
+      if (isHigh) pivots.push({ type: 'high' as const, price: current.high, index: i });
+      if (isLow) pivots.push({ type: 'low' as const, price: current.low, index: i });
     }
     
     return pivots;
@@ -622,10 +622,18 @@ export class SmartMoneyConceptsAnalyzer {
     reason: string;
     timeframe: string;
   }> {
-    const signals = [];
+    const signals: Array<{
+      type: 'buy' | 'sell' | 'wait';
+      confidence: number;
+      entry: number;
+      stopLoss: number;
+      takeProfit: number;
+      reason: string;
+      timeframe: string;
+    }> = [];
     const analysis = this.performFullAnalysis();
     const currentPrice = this.priceData[this.priceData.length - 1]?.close;
-    
+
     if (!currentPrice) return signals;
     
     // Sinal baseado em order block + estrutura

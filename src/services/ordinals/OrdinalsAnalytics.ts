@@ -225,11 +225,11 @@ export class OrdinalsAnalytics {
 
           // Get inscriptions
           const inscriptions = await this.getInscriptionsFromMarketplace(collectionId, mp, client);
-          inscriptionsData.push(...inscriptions.map(i => this.convertInscription(i, mp)));
+          inscriptionsData.push(...inscriptions.map((i: any) => this.convertInscription(i, mp)));
 
           // Get activities
           const activities = await this.getActivitiesFromMarketplace(collectionId, mp, client);
-          activitiesData.push(...activities.map(a => this.convertActivity(a, mp)));
+          activitiesData.push(...activities.map((a: any) => this.convertActivity(a, mp)));
         } catch (error) {
         }
       }
@@ -343,10 +343,10 @@ export class OrdinalsAnalytics {
         marketplace: OrdinalsMarketplace;
       }> = [];
 
-      for (const [mp, client] of Object.entries(this.clients)) {
+      for (const [mp, client] of Object.entries(this.initializeClients())) {
         try {
           const listings = await this.getListingsFromMarketplace(collectionId, mp as OrdinalsMarketplace, client);
-          allListings.push(...listings.map(l => ({
+          allListings.push(...listings.map((l: any) => ({
             price: l.price,
             quantity: 1, // Each listing is typically for 1 NFT
             marketplace: mp as OrdinalsMarketplace
@@ -1191,14 +1191,14 @@ export class OrdinalsAnalytics {
     const lowestAsk = asks[0].price;
     
     // Create estimated bid levels below the lowest ask
-    const bids = [];
+    const bids: Array<{ price: number; quantity: number; totalValue: number; cumulativeQuantity: number }> = [];
     for (let i = 1; i <= 5; i++) {
       const bidPrice = lowestAsk * (1 - (i * 0.02)); // 2% increments below lowest ask
       bids.push({
         price: bidPrice,
         quantity: Math.max(1, Math.floor(avgSalePrice / bidPrice)),
         totalValue: bidPrice * Math.max(1, Math.floor(avgSalePrice / bidPrice)),
-        cumulativeQuantity: bids.reduce((sum, b) => sum + b.quantity, 0) + Math.max(1, Math.floor(avgSalePrice / bidPrice))
+        cumulativeQuantity: bids.reduce((sum: number, b) => sum + b.quantity, 0) + Math.max(1, Math.floor(avgSalePrice / bidPrice))
       });
     }
     
@@ -1218,7 +1218,7 @@ export class OrdinalsAnalytics {
     }> = [];
     
     // Fetch from all marketplaces
-    for (const [mp, client] of Object.entries(this.clients)) {
+    for (const [mp, client] of Object.entries(this.initializeClients())) {
       try {
         let inscriptions: any[] = [];
         

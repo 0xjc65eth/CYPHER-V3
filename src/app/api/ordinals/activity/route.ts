@@ -1,20 +1,8 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Magic Eden API Activity Response Format:
- * [
- *   {
- *     kind: "listing" | "sale" | "cancel_listing" | "buying_broadcasted",
- *     tokenId: string,
- *     collectionSymbol: string,
- *     listedPrice: number (in satoshis),
- *     seller: string (Bitcoin address),
- *     buyer: string (Bitcoin address),
- *     createdAt: string (ISO timestamp),
- *     txId: string,
- *     inscriptionNumber: number
- *   }
- * ]
+ * Ordinals Activity API — OKX primary, ME/Ordiscan/Hiro fallbacks
+ * Returns normalized activity data (listings, sales, inscriptions)
  */
 
 export async function GET(request: Request) {
@@ -36,94 +24,13 @@ export async function GET(request: Request) {
       );
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    // Get Magic Eden API key from environment
-    const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
-
-    // Try Magic Eden activities endpoint with proper authentication
-    // When no kind is specified, fetch all activity types (listings + sales)
-    const kindParam = kind ? `&kind=${kind}` : '';
-    const endpoints = [
-      `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?limit=${limit}${kindParam}`,
-      `https://api-mainnet.magiceden.dev/v2/ord/btc/activities/trades?limit=${limit}`,
-    ];
-
+    // Primary: Try OKX marketplace activity first
     let data: unknown[] | null = null;
-    let source = 'magic_eden';
+    let source = 'okx';
 
-    for (const endpoint of endpoints) {
-      try {
-        const headers: Record<string, string> = {
-          'Accept': 'application/json',
-          'User-Agent': 'CYPHER-ORDi-Future-V3'
-        };
-
-        // Add API key to headers if available
-        if (MAGIC_EDEN_API_KEY) {
-          headers['Authorization'] = `Bearer ${MAGIC_EDEN_API_KEY}`;
-        }
-
-        const res = await fetch(endpoint, {
-          headers,
-          signal: controller.signal,
-        });
-
-
-        if (res.ok) {
-          const json = await res.json();
-          data = Array.isArray(json) ? json : json.activities || json.results || json.data || null;
-          if (data && data.length > 0) {
-            break;
-          }
-        } else if (res.status === 429) {
-        }
-      } catch (error) {
-        console.error(`[Marketplace API] Error fetching from ${endpoint}:`, error);
-        continue;
-      }
-    }
-    clearTimeout(timeout);
-
-    // Fallback 1: Try Ordiscan API
-    if (!data || data.length === 0) {
-      const ORDISCAN_API_KEY = process.env.ORDISCAN_API_KEY;
-      const controller2 = new AbortController();
-      const timeout2 = setTimeout(() => controller2.abort(), 10000);
-      try {
-        const ordiscanHeaders: Record<string, string> = {
-          'Accept': 'application/json',
-        };
-        if (ORDISCAN_API_KEY) {
-          ordiscanHeaders['Authorization'] = `Bearer ${ORDISCAN_API_KEY}`;
-        }
-
-        const ordiscanRes = await fetch(
-          `https://api.ordiscan.com/v1/market/activity?limit=${limit}`,
-          {
-            headers: ordiscanHeaders,
-            signal: controller2.signal,
-          }
-        );
-        if (ordiscanRes.ok) {
-          const ordiscanData = await ordiscanRes.json();
-          data = ordiscanData.data || ordiscanData.activities || [];
-          if (data && data.length > 0) {
-            source = 'ordiscan';
-          }
-        }
-      } catch (error) {
-        console.error('[Marketplace API] Ordiscan fallback error:', error);
-      } finally {
-        clearTimeout(timeout2);
-      }
-    }
-
-    // Fallback 2: Try OKX marketplace activity
-    if (!data || data.length === 0) {
-      const controller3 = new AbortController();
-      const timeout3 = setTimeout(() => controller3.abort(), 10000);
+    try {
+      const okxController = new AbortController();
+      const okxTimeout = setTimeout(() => okxController.abort(), 10000);
       try {
         const okxRes = await fetch(
           `https://www.okx.com/api/v5/mktplace/nft/ordinals/trade-activities?limit=${limit}`,
@@ -132,7 +39,7 @@ export async function GET(request: Request) {
               'Accept': 'application/json',
               'User-Agent': 'CYPHER-ORDi-Future-V3',
             },
-            signal: controller3.signal,
+            signal: okxController.signal,
           }
         );
         if (okxRes.ok) {
@@ -151,13 +58,75 @@ export async function GET(request: Request) {
               createdAt: item.timestamp ? new Date(Number(item.timestamp)).toISOString() : new Date().toISOString(),
               txId: item.txId || item.txHash || '',
             }));
-            source = 'okx';
           }
         }
-      } catch (error) {
-        console.error('[Marketplace API] OKX fallback error:', error);
       } finally {
-        clearTimeout(timeout3);
+        clearTimeout(okxTimeout);
+      }
+    } catch (error) {
+      console.warn('[Marketplace API] OKX primary error:', error);
+    }
+
+    // Fallback 1: Magic Eden
+    if (!data || data.length === 0) {
+      const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
+      const kindParam = kind ? `&kind=${kind}` : '';
+      const meEndpoints = [
+        `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?limit=${limit}${kindParam}`,
+        `https://api-mainnet.magiceden.dev/v2/ord/btc/activities/trades?limit=${limit}`,
+      ];
+
+      for (const endpoint of meEndpoints) {
+        const meController = new AbortController();
+        const meTimeout = setTimeout(() => meController.abort(), 10000);
+        try {
+          const headers: Record<string, string> = {
+            'Accept': 'application/json',
+            'User-Agent': 'CYPHER-ORDi-Future-V3'
+          };
+          if (MAGIC_EDEN_API_KEY) {
+            headers['Authorization'] = `Bearer ${MAGIC_EDEN_API_KEY}`;
+          }
+          const res = await fetch(endpoint, { headers, signal: meController.signal });
+          if (res.ok) {
+            const json = await res.json();
+            data = Array.isArray(json) ? json : json.activities || json.results || json.data || null;
+            if (data && data.length > 0) {
+              source = 'magic_eden';
+              break;
+            }
+          }
+        } catch (error) {
+          console.warn(`[Marketplace API] ME fallback error for ${endpoint}:`, error);
+        } finally {
+          clearTimeout(meTimeout);
+        }
+      }
+    }
+
+    // Fallback 2: Ordiscan API
+    if (!data || data.length === 0) {
+      const ORDISCAN_API_KEY = process.env.ORDISCAN_API_KEY;
+      const ordController = new AbortController();
+      const ordTimeout = setTimeout(() => ordController.abort(), 10000);
+      try {
+        const ordiscanHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        if (ORDISCAN_API_KEY) {
+          ordiscanHeaders['Authorization'] = `Bearer ${ORDISCAN_API_KEY}`;
+        }
+        const ordiscanRes = await fetch(
+          `https://api.ordiscan.com/v1/market/activity?limit=${limit}`,
+          { headers: ordiscanHeaders, signal: ordController.signal }
+        );
+        if (ordiscanRes.ok) {
+          const ordiscanData = await ordiscanRes.json();
+          data = ordiscanData.data || ordiscanData.activities || [];
+          if (data && data.length > 0) source = 'ordiscan';
+        }
+      } catch (error) {
+        console.warn('[Marketplace API] Ordiscan fallback error:', error);
+      } finally {
+        clearTimeout(ordTimeout);
       }
     }
 
@@ -264,11 +233,8 @@ export async function GET(request: Request) {
 
       const collectionSymbol = String(item.collectionSymbol || item.collection_symbol || item.collection || item.collectionName || '');
 
-      // Build collection image URL from Magic Eden if we have a collection symbol
-      let collectionImage: string | null = null;
-      if (collectionSymbol) {
-        collectionImage = `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${collectionSymbol}/image`;
-      }
+      // Collection image - no longer hardcode ME URL
+      const collectionImage: string | null = (item.collectionImage || item.collection_image || item.logoUrl || null) as string | null;
 
       return {
         kind: item.kind || item.type || kind || 'listing',

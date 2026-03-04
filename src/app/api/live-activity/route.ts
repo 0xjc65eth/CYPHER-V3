@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
     const activities = blockchainEventService.getRecentEvents(limit);
     
     // If no real events yet, supplement with generated events
-    let finalActivities = activities;
+    let finalActivities: any[] = activities;
     if (activities.length < 10) {
       const supplemental = await generateRealTimeActivity();
       finalActivities = [...activities, ...supplemental].slice(0, limit);

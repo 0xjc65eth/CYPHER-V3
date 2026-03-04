@@ -742,7 +742,7 @@ export class SocialTradingPlatform extends EventEmitter {
         traderId: trader.id,
         score,
         change: 0, // Would calculate from previous rankings
-        category,
+        category: category as any,
         metrics: {
           performance: Math.min(100, performance.totalReturn * 2),
           consistency: Math.max(0, 100 - performance.maxDrawdown * 5),

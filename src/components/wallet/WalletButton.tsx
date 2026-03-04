@@ -23,6 +23,14 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// Define wallet names mapping
+const WALLET_NAMES: Record<string, string> = {
+  xverse: 'Xverse',
+  unisat: 'Unisat',
+  okx: 'OKX',
+  leather: 'Leather',
+}
+
 // Define wallet info for UI
 const WALLET_INFO = {
   Xverse: {
@@ -126,8 +134,8 @@ export default function WalletButton() {
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {wallet.isConnected && wallet.address ? (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="gap-2 bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/30"
           >
             <div className="flex items-center gap-2">
@@ -157,7 +165,7 @@ export default function WalletButton() {
             {wallet.isConnected ? 'Wallet Management' : 'Connect Wallet'}
           </DialogTitle>
           <DialogDescription>
-            {wallet.isConnected 
+            {wallet.isConnected
               ? 'Manage your wallet and view your assets'
               : 'Connect your Bitcoin wallet to access all features'
             }
@@ -165,7 +173,7 @@ export default function WalletButton() {
         </DialogHeader>
 
         {wallet.isConnected ? (
-          <ConnectedWalletView 
+          <ConnectedWalletView
             wallet={wallet}
             onDisconnect={handleDisconnect}
             onCopyAddress={copyAddress}
@@ -190,12 +198,13 @@ function WalletSelectionView({ onConnect, isConnecting }: {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
-        {Object.entries(WALLET_NAMES).map(([key, name]) => {
+        {Object.entries(WALLET_NAMES).map(([key, name]: [string, string]) => {
           const info = WALLET_INFO[name as keyof typeof WALLET_INFO]
+          if (!info) return null
           const Icon = info.icon
 
           return (
-            <Card 
+            <Card
               key={key}
               className={cn(
                 "relative cursor-pointer transition-all",
@@ -216,7 +225,7 @@ function WalletSelectionView({ onConnect, isConnecting }: {
                 </div>
 
                 <div className="flex flex-wrap gap-1 mb-4">
-                  {info.features.map((feature) => (
+                  {info.features.map((feature: string) => (
                     <Badge key={feature} variant="secondary" className="text-xs">
                       {feature}
                     </Badge>
@@ -247,11 +256,11 @@ function WalletSelectionView({ onConnect, isConnecting }: {
 }
 
 // Connected Wallet View
-function ConnectedWalletView({ 
-  wallet, 
-  onDisconnect, 
-  onCopyAddress, 
-  copied 
+function ConnectedWalletView({
+  wallet,
+  onDisconnect,
+  onCopyAddress,
+  copied
 }: {
   wallet: any
   onDisconnect: () => void

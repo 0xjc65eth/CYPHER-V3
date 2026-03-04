@@ -601,7 +601,7 @@ export class DerivativesEngine extends EventEmitter {
       symbol: orderRequest.symbol,
       underlying: this.getUnderlying(orderRequest.symbol),
       type: contractType,
-      side: orderRequest.side,
+      side: orderRequest.side === 'buy' ? 'long' : 'short' as 'long' | 'short',
       size: orderRequest.quantity,
       entryPrice: currentPrice,
       markPrice: currentPrice,

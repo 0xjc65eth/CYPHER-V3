@@ -163,31 +163,30 @@ export function useAssetManagement() {
   // Asset price query with React Query for caching and background updates
   const { data: liveAssetPrice, isLoading: isLoadingLivePrice } = useQuery({
     queryKey: ['asset-price', selectedAssetSymbol],
-    queryFn: () => AssetPriceService.fetchAssetPrice(selectedAssetSymbol),
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 20000, // Consider data stale after 20 seconds
-    enabled: !!selectedAssetSymbol,
-    onSuccess: (data) => {
+    queryFn: async () => {
+      const data = await AssetPriceService.fetchAssetPrice(selectedAssetSymbol);
       dispatch(setAssetPrice({
         symbol: selectedAssetSymbol,
         ...data
-      }))
+      }));
+      return data;
     },
-    onError: (error: any) => {
-      dispatch(setAssetError(`Failed to fetch price for ${selectedAssetSymbol}: ${error.message}`))
-    }
+    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 20000, // Consider data stale after 20 seconds
+    enabled: !!selectedAssetSymbol,
   })
   
   // Multiple assets price query for dashboard
   const popularAssets = ['BTC', 'ETH', 'SOL', 'USDC', 'USDT', 'BNB', 'AVAX', 'MATIC']
   const { data: multipleAssetPrices } = useQuery({
     queryKey: ['multiple-asset-prices', popularAssets],
-    queryFn: () => AssetPriceService.fetchMultipleAssetPrices(popularAssets),
+    queryFn: async () => {
+      const data = await AssetPriceService.fetchMultipleAssetPrices(popularAssets);
+      dispatch(setAssetPrices(data));
+      return data;
+    },
     refetchInterval: 60000, // Refresh every minute
     staleTime: 45000,
-    onSuccess: (data) => {
-      dispatch(setAssetPrices(data))
-    }
   })
   
   // Switch to new asset
@@ -200,7 +199,7 @@ export function useAssetManagement() {
       if (!targetSymbol) return
       
       // Invalidate and refetch queries for the new asset
-      await queryClient.invalidateQueries(['asset-price', targetSymbol])
+      await queryClient.invalidateQueries({ queryKey: ['asset-price', targetSymbol] })
       
       // If we don't have recent price data, fetch it immediately
       const existingPrice = assetPrices[targetSymbol]
@@ -234,7 +233,7 @@ export function useAssetManagement() {
     
     try {
       dispatch(setAssetDataLoading(true))
-      await queryClient.refetchQueries(['asset-price', selectedAssetSymbol])
+      await queryClient.refetchQueries({ queryKey: ['asset-price', selectedAssetSymbol] })
     } catch (error: any) {
       dispatch(setAssetError(`Failed to refresh data: ${error.message}`))
     } finally {
@@ -246,7 +245,7 @@ export function useAssetManagement() {
   const refreshAllAssets = useCallback(async () => {
     try {
       dispatch(setAssetDataLoading(true))
-      await queryClient.refetchQueries(['multiple-asset-prices'])
+      await queryClient.refetchQueries({ queryKey: ['multiple-asset-prices'] })
     } catch (error: any) {
       dispatch(setAssetError(`Failed to refresh all assets: ${error.message}`))
     } finally {

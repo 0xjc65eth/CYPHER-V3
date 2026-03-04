@@ -175,7 +175,7 @@ export function CypherAIInterface() {
       content,
       timestamp: Date.now(),
       language: selectedLanguage,
-      analysis
+      analysis: analysis ?? undefined
     }
     setMessages(prev => [...prev, message])
     
@@ -256,10 +256,10 @@ export function CypherAIInterface() {
           message: userMessage,
           language: selectedLanguage,
           personality: selectedPersonality.id,
-          walletData: wallet.walletData,
+          walletData: (wallet as any).walletData,
           context: {
             connectedWallet: wallet.isConnected,
-            isPremium: wallet.isPremium
+            isPremium: (wallet as any).isPremium
           }
         })
       })
@@ -335,7 +335,7 @@ export function CypherAIInterface() {
             <div>
               <Title className="text-white flex items-center gap-2">
                 {selectedPersonality.name}
-                {wallet.isPremium && (
+                {(wallet as any).isPremium && (
                   <RiShieldCheckLine className="w-5 h-5 text-yellow-400" />
                 )}
               </Title>

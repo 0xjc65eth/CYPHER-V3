@@ -165,7 +165,7 @@ class WalletService {
       const unisat = (window as any).unisat
 
       // Request connection
-      const accounts = await this.withTimeout(unisat.requestAccounts(), 'UniSat wallet connection')
+      const accounts = await this.withTimeout<string[]>(unisat.requestAccounts(), 'UniSat wallet connection')
       if (!accounts || accounts.length === 0) {
         throw new Error('No accounts found')
       }

@@ -252,7 +252,7 @@ export const prefetchAssetData = async (
     queryKey: ['asset-price', asset],
     queryFn: () => fetchFn(asset),
     staleTime: 20000,
-    cacheTime: 300000
+    gcTime: 300000
   })
 }
 

@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useAppSelector } from '@/store'
 
 export function CardID() {
-  const nftData = useAppSelector((state) => state.user.nftData)
+  const nftData = useAppSelector((state) => (state.user as any).nftData)
   
   if (!nftData) return null
 

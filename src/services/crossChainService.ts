@@ -590,7 +590,7 @@ export class CrossChainService {
     }, 300000);
   }
 
-  private async checkBridgeHealth(): void {
+  private async checkBridgeHealth(): Promise<void> {
     for (const [bridge, config] of this.bridgeConfigs.entries()) {
       try {
         // Implement health check for each bridge

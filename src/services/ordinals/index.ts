@@ -4,12 +4,19 @@
  */
 
 // Core Analytics and Trading Services
-export { OrdinalsAnalytics, ordinalsAnalytics } from './OrdinalsAnalytics';
-export { OrdinalsTrader, ordinalsTrader } from './OrdinalsTrader';
-export { OrdinalsDataAggregator, ordinalsDataAggregator } from './DataAggregator';
-export { OrdinalsArbitrageService, ordinalsArbitrageService } from './OrdinalsArbitrageService';
-export { PortfolioAnalytics, portfolioAnalytics } from './PortfolioAnalytics';
-export { OrdinalsWebSocketManager, ordinalsWebSocketManager } from './WebSocketManager';
+import { OrdinalsAnalytics as _OrdinalsAnalytics, ordinalsAnalytics as _ordinalsAnalytics } from './OrdinalsAnalytics';
+import { OrdinalsTrader as _OrdinalsTrader, ordinalsTrader as _ordinalsTrader } from './OrdinalsTrader';
+import { OrdinalsDataAggregator as _OrdinalsDataAggregator, ordinalsDataAggregator as _ordinalsDataAggregator } from './DataAggregator';
+import { OrdinalsArbitrageService as _OrdinalsArbitrageService, ordinalsArbitrageService as _ordinalsArbitrageService } from './OrdinalsArbitrageService';
+import { PortfolioAnalytics as _PortfolioAnalytics, portfolioAnalytics as _portfolioAnalytics } from './PortfolioAnalytics';
+import { OrdinalsWebSocketManager as _OrdinalsWebSocketManager, ordinalsWebSocketManager as _ordinalsWebSocketManager } from './WebSocketManager';
+
+export { _OrdinalsAnalytics as OrdinalsAnalytics, _ordinalsAnalytics as ordinalsAnalytics };
+export { _OrdinalsTrader as OrdinalsTrader, _ordinalsTrader as ordinalsTrader };
+export { _OrdinalsDataAggregator as OrdinalsDataAggregator, _ordinalsDataAggregator as ordinalsDataAggregator };
+export { _OrdinalsArbitrageService as OrdinalsArbitrageService, _ordinalsArbitrageService as ordinalsArbitrageService };
+export { _PortfolioAnalytics as PortfolioAnalytics, _portfolioAnalytics as portfolioAnalytics };
+export { _OrdinalsWebSocketManager as OrdinalsWebSocketManager, _ordinalsWebSocketManager as ordinalsWebSocketManager };
 
 // Legacy Ordinals Service (for backward compatibility)
 export { ordinalsService } from '../ordinals';
@@ -218,19 +225,19 @@ export const OrdinalsSystemHealth = {
 
     try {
       // Check data aggregator
-      const marketOverview = await ordinalsDataAggregator.getMarketOverview();
+      const marketOverview = await _ordinalsDataAggregator.getMarketOverview();
       status.dataAggregator = !!marketOverview;
 
       // Check analytics
-      const collections = await ordinalsAnalytics.findTradingOpportunities([], ['arbitrage']);
+      const collections = await _ordinalsAnalytics.findTradingOpportunities([], ['arbitrage']);
       status.analytics = Array.isArray(collections);
 
       // Check trader
-      const traderStatus = ordinalsTrader.getSessionStatus();
+      const traderStatus = _ordinalsTrader.getSessionStatus();
       status.trader = traderStatus !== null;
 
       // Check WebSocket
-      const wsStatus = ordinalsWebSocketManager.getConnectionStatus();
+      const wsStatus = _ordinalsWebSocketManager.getConnectionStatus();
       status.webSocket = Object.keys(wsStatus).length > 0;
 
       // Check individual APIs (simplified)

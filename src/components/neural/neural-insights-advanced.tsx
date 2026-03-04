@@ -11,7 +11,7 @@ import { NewsItem } from '@/app/api/crypto-news/route'
 export function NeuralInsightsAdvanced() {
   const { data: tradingData, refresh: refreshTradingData } = useTradingData(60000) // Refresh every minute
   const { news } = useCryptoNews(300000) // Refresh every 5 minutes
-  const { data: marketData } = useMarketData(60000) // Refresh every minute
+  const marketData = useMarketData() as any
   const [mounted, setMounted] = useState(false)
 
   // Avoid hydration issues

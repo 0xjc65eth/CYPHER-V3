@@ -19,7 +19,7 @@ export class NumberFormatter {
       notation: options?.notation || 'standard' as const,
     };
 
-    return new Intl.NumberFormat('en-US', defaultOptions).format(value);
+    return new Intl.NumberFormat('en-US', defaultOptions as Intl.NumberFormatOptions).format(value);
   }
 
   /**

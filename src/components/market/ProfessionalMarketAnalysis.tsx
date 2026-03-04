@@ -25,8 +25,12 @@ interface ProfessionalMarketAnalysisProps {
 
 export function ProfessionalMarketAnalysis({ className = '' }: ProfessionalMarketAnalysisProps) {
   const [activeTab, setActiveTab] = useState('macro');
-  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  useEffect(() => {
+    setLastUpdate(new Date());
+  }, []);
 
   const handleRefresh = () => {
     setLastUpdate(new Date());
@@ -55,7 +59,7 @@ export function ProfessionalMarketAnalysis({ className = '' }: ProfessionalMarke
           </div>
           <div className="flex items-center gap-3">
             <div className="text-[9px] text-[#e4e4e7]/40 font-mono">
-              Updated: {lastUpdate.toLocaleTimeString()}
+              Updated: {lastUpdate ? lastUpdate.toLocaleTimeString() : '--:--:--'}
             </div>
             <button
               onClick={handleRefresh}

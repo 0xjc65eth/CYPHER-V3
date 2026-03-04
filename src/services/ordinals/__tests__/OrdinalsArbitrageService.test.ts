@@ -30,7 +30,7 @@ describe('OrdinalsArbitrageService', () => {
     // Create mock data aggregator
     mockDataAggregator = new OrdinalsDataAggregator({
       updateInterval: 30000,
-      enabledMarketplaces: ['magic_eden', 'unisat', 'okx', 'hiro'],
+      enabledMarketplaces: ['magic_eden', 'unisat', 'okx', 'hiro'] as any,
       collectionsToTrack: [],
       enableWebSocket: false,
       cacheSettings: { ttl: 30000, maxSize: 100 }

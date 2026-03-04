@@ -150,7 +150,7 @@ export function OrdinalsMarketCard() {
             </div>
           ) : ordinalsMarket?.topCollections && ordinalsMarket.topCollections.length > 0 ? (
             <div className="space-y-2">
-              {ordinalsMarket.topCollections.map((collection, index) => (
+              {ordinalsMarket.topCollections.map((collection: any, index: number) => (
                 <div key={collection.name} className="flex justify-between items-center p-2 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20">
                   <div className="flex items-center">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center mr-2">

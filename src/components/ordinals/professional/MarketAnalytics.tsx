@@ -56,20 +56,20 @@ export default function MarketAnalytics() {
 
   const { data: topCollections, isLoading: isLoadingCollections } = useQuery({
     queryKey: ['ordinals-top-collections-analytics'],
-    queryFn: () => ordinalsService.getTopCollections(20),
+    queryFn: () => (ordinalsService as any).getTopCollections(20),
     refetchInterval: 60000,
     staleTime: 30000
   })
 
   const { data: recentSales, isLoading: isLoadingSales } = useQuery({
     queryKey: ['ordinals-recent-sales-analytics'],
-    queryFn: () => ordinalsService.getRecentSales(100),
+    queryFn: () => (ordinalsService as any).getRecentSales(100),
     refetchInterval: 30000,
     staleTime: 15000
   })
 
   // Process data for charts
-  const volumeTrendData = marketStats?.recent_sales?.slice(-30).reduce((acc: any[], sale: any, index: number) => {
+  const volumeTrendData = (marketStats as any)?.recent_sales?.slice(-30).reduce((acc: any[], sale: any, index: number) => {
     const date = new Date(sale.timestamp).toISOString().split('T')[0]
     const existing = acc.find((item: any) => item.date === date)
     
@@ -103,7 +103,7 @@ export default function MarketAnalytics() {
     item.percentage = totalVolume > 0 ? (item.value / totalVolume) * 100 : 0
   })
 
-  const priceRangeData = marketStats?.price_ranges || []
+  const priceRangeData = (marketStats as any)?.price_ranges || []
 
   const marketActivityData = volumeTrendData.map((item: any) => ({
     time: item.date,
@@ -181,7 +181,7 @@ export default function MarketAnalytics() {
             ) : (
               <>
                 <p className="text-2xl font-bold">
-                  ₿{marketStats?.totalVolume24h.toFixed(1) || '0.0'}
+                  ₿{Number(marketStats?.totalVolume24h || 0).toFixed(1)}
                 </p>
                 <div className="flex items-center gap-1 text-sm">
                   <TrendingUp className="h-3 w-3 text-green-500" />
@@ -214,7 +214,7 @@ export default function MarketAnalytics() {
                 <div className="flex items-center gap-1 text-sm">
                   <Activity className="h-3 w-3 text-blue-500" />
                   <span className="text-blue-500">
-                    {topCollections?.filter(c => c.volume_24h > 0).length || 0} trading
+                    {topCollections?.filter((c: any) => c.volume_24h > 0).length || 0} trading
                   </span>
                 </div>
               </>
@@ -238,7 +238,7 @@ export default function MarketAnalytics() {
             ) : (
               <>
                 <p className="text-2xl font-bold">
-                  ₿{marketStats?.average_sale_price_24h.toFixed(4) || '0.0000'}
+                  ₿{((marketStats as any)?.average_sale_price_24h || 0).toFixed(4)}
                 </p>
                 <div className="flex items-center gap-1 text-sm">
                   <TrendingDown className="h-3 w-3 text-red-500" />
@@ -266,7 +266,7 @@ export default function MarketAnalytics() {
             ) : (
               <>
                 <p className="text-2xl font-bold">
-                  {marketStats?.active_wallets_24h.toLocaleString() || '0'}
+                  {((marketStats as any)?.active_wallets_24h || 0).toLocaleString()}
                 </p>
                 <div className="flex items-center gap-1 text-sm">
                   <TrendingUp className="h-3 w-3 text-green-500" />

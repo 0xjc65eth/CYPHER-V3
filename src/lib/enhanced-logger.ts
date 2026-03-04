@@ -69,7 +69,7 @@ export class EnhancedLogger {
   error(messageOrError: string | Error, context?: LogContext | string | unknown): void {
     if (messageOrError instanceof Error) {
       const msg = typeof context === 'string' ? context : messageOrError.message;
-      const ctx = typeof context === 'string' ? { error: messageOrError.message, stack: messageOrError.stack } : { ...context, error: messageOrError.message, stack: messageOrError.stack };
+      const ctx = typeof context === 'string' ? { error: messageOrError.message, stack: messageOrError.stack } : { ...(context && typeof context === 'object' ? context : {}), error: messageOrError.message, stack: messageOrError.stack };
       this.writeLog('error', msg, ctx);
     } else {
       this.writeLog('error', messageOrError, context as LogContext);

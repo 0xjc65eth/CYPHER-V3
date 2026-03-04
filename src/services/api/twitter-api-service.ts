@@ -86,8 +86,8 @@ class TwitterApiService {
         async () => this.fetchTweets(query, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error searching tweets for "${query}"`, error);
       throw error;
@@ -200,8 +200,8 @@ class TwitterApiService {
         async () => this.fetchUserTimeline(username, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Twitter timeline for ${username}`, error);
       throw error;
@@ -336,8 +336,8 @@ class TwitterApiService {
         async () => this.fetchTrendingTopics(woeid),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Twitter trending topics for WOEID ${woeid}`, error);
       throw error;

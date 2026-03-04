@@ -201,7 +201,7 @@ export default function OrdinalsArbitrageScanner() {
         opportunities={filteredAndSortedOpportunities}
         lastUpdated={lastUpdated}
         autoRefresh={autoRefresh}
-        onAutoRefreshToggle={handleAutoRefreshToggle}
+        onToggleAutoRefresh={handleAutoRefreshToggle}
       />
 
       {/* Filter Panel */}
@@ -209,7 +209,6 @@ export default function OrdinalsArbitrageScanner() {
         filters={filters}
         onChange={handleFilterChange}
         onReset={handleResetFilters}
-        availableCollections={availableCollections}
       />
 
       {/* Error State */}

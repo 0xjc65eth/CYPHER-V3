@@ -16,7 +16,7 @@ import {
   Zap,
   Globe,
   Smartphone,
-  Desktop,
+  Monitor as Desktop,
   Wifi,
   WifiOff,
   RefreshCw,
@@ -89,7 +89,7 @@ const WALLET_PROVIDERS: WalletProvider[] = [
     name: 'Solflare',
     icon: '🌟',
     description: 'Solana wallet for DeFi & NFTs',
-    isInstalled: typeof window !== 'undefined' && !!window.solflare,
+    isInstalled: typeof window !== 'undefined' && !!(window as any).solflare,
     networks: ['solana'],
     downloadUrl: 'https://solflare.com/'
   }
@@ -139,7 +139,7 @@ export function WalletConnection({ isConnected, address, onConnect, onDisconnect
       switch (walletId) {
         case 'metamask':
           if (window.ethereum?.isMetaMask) {
-            const accounts = await window.ethereum.request({
+            const accounts = await (window.ethereum as any).request({
               method: 'eth_requestAccounts'
             });
             connectedAddress = accounts[0];
@@ -161,7 +161,7 @@ export function WalletConnection({ isConnected, address, onConnect, onDisconnect
 
         case 'coinbase':
           if (window.ethereum?.isCoinbaseWallet) {
-            const accounts = await window.ethereum.request({
+            const accounts = await (window.ethereum as any).request({
               method: 'eth_requestAccounts'
             });
             connectedAddress = accounts[0];

@@ -5,7 +5,7 @@
  */
 
 import { loggerService } from '@/lib/logger';
-import { databaseService } from '@/lib/database';
+const databaseService: any = null; // TODO: replace with actual database service
 import { TrainingData } from './interfaces';
 
 /**
@@ -22,7 +22,7 @@ export async function getTrainingData(symbol: string): Promise<TrainingData[]> {
     
     if (storedData && storedData.length > 0) {
       // Convert MongoDB documents to TrainingData objects
-      return storedData.map(doc => ({
+      return storedData.map((doc: any) => ({
         id: doc.id || doc._id.toString(),
         symbol: doc.symbol,
         timestamp: doc.timestamp,

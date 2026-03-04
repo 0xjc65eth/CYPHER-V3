@@ -417,7 +417,7 @@ export class ChartDataProvider {
     };
     
     ws.onclose = () => {
-      this.handleWebSocketReconnect(symbol, subscriptionKey, source);
+      this.handleWebSocketReconnect(symbol, subscriptionKey, 'binance');
     };
   }
 
@@ -443,7 +443,7 @@ export class ChartDataProvider {
    * Handle WebSocket reconnection
    */
   private handleWebSocketReconnect(symbol: string, subscriptionKey: string, source: 'binance' | 'coinbase') {
-    if (this.subscribers.get(subscriptionKey)?.size > 0) {
+    if ((this.subscribers.get(subscriptionKey)?.size ?? 0) > 0) {
       setTimeout(() => {
         this.createWebSocketConnection(symbol, source);
       }, 5000);

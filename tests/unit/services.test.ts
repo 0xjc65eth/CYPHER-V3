@@ -76,7 +76,9 @@ describe('CYPHER ORDi Future V3 - Service Unit Tests', () => {
         side: 'buy' as const,
         type: 'limit' as const,
         quantity: -1,
-        price: 0
+        price: 0,
+        metadata: { source: 'test' },
+        timeInForce: 'GTC' as const
       };
 
       await expect(orderBookEngine.placeOrder(invalidOrder))

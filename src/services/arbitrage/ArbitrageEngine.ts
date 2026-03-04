@@ -206,10 +206,9 @@ export class ArbitrageEngine extends EventEmitter {
     const positionSize = this.riskManager.calculatePositionSize(symbol, buyPrice);
     const grossProfit = spread * positionSize;
     
-    // Account for fees
-    const buyFee = this.exchangeConnectors.get(buyExchange)?.getTradingFee(symbol) || 0;
-    const sellFee = this.exchangeConnectors.get(sellExchange)?.getTradingFee(symbol) || 0;
-    const totalFees = (buyPrice * positionSize * buyFee) + (sellPrice * positionSize * sellFee);
+    // Account for fees (use default taker fee estimate for sync calculation)
+    const defaultFee = 0.001; // 0.1% default taker fee
+    const totalFees = (buyPrice * positionSize * defaultFee) + (sellPrice * positionSize * defaultFee);
     const netProfit = grossProfit - totalFees;
     
     if (netProfit <= 0) return; // Not profitable after fees

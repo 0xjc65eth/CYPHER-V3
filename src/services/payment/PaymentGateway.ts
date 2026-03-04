@@ -869,7 +869,7 @@ export class PaymentGateway extends EventEmitter {
       }
 
       // Check if KYC level supports this amount
-      const limits = provider.limits.kycTiers[profile.level];
+      const limits = (provider.limits.kycTiers as any)[profile.level];
       if (amount > limits.total) {
         throw new Error(`Transaction amount exceeds limit for KYC level: ${profile.level}`);
       }

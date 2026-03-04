@@ -54,7 +54,7 @@ const DEFAULT_CONFIG: CacheConfig = {
 };
 
 class AdvancedQuickTradeCache {
-  private redis: Redis | Redis.Cluster;
+  private redis!: Redis | InstanceType<typeof Redis.Cluster>;
   private config: CacheConfig;
   private stats = {
     hits: 0,
@@ -71,38 +71,16 @@ class AdvancedQuickTradeCache {
 
   private initializeRedis() {
     try {
-      if (this.config.clustering.enabled) {
-        // Redis Cluster setup
-        this.redis = new Redis.Cluster(this.config.clustering.nodes, {
-          redisOptions: {
-            password: this.config.redis.password,
-            connectTimeout: 5000,
-            lazyConnect: true,
-            maxRetriesPerRequest: 3,
-            retryDelayOnFailover: 100,
-            enableOfflineQueue: false
-          },
-          clusterRetryDelayOnFailover: 500,
-          clusterRetryDelayOnClusterDown: 1000,
-          clusterMaxRedirections: 3,
-          scaleReads: 'slave'
-        });
-
-      } else {
-        // Single Redis instance
-        this.redis = new Redis({
-          ...this.config.redis,
-          connectTimeout: 5000,
-          lazyConnect: true,
-          maxRetriesPerRequest: 3,
-          retryDelayOnFailover: 100,
-          enableOfflineQueue: false
-        });
-
-      }
+      // Single Redis instance (cluster mode handled externally)
+      this.redis = new Redis({
+        ...this.config.redis,
+        connectTimeout: 5000,
+        lazyConnect: true,
+        maxRetriesPerRequest: 3,
+      });
 
       // Event handlers
-      this.redis.on('error', (error) => {
+      this.redis.on('error', (error: Error) => {
         console.error('❌ Redis cache error:', error);
       });
 

@@ -1,4 +1,7 @@
-import { WorkerTask, WorkerType, WorkerResult } from './WorkerPool';
+import { WorkerTask, WorkerResult } from './WorkerPool';
+
+// Extended worker types for task queue (superset of WorkerPool types)
+type ExtendedWorkerType = WorkerTask['type'] | 'analytics' | 'price' | 'risk' | 'ml' | 'chart';
 
 export interface QueueMetrics {
   totalTasks: number;
@@ -53,7 +56,7 @@ export class TaskQueue {
     indicators?: string[];
   }, priority: number = 10): Omit<WorkerTask, 'id' | 'timestamp'> {
     return {
-      type: 'analytics',
+      type: 'price_analysis' as WorkerTask['type'],
       data,
       priority
     };
@@ -68,7 +71,7 @@ export class TaskQueue {
     calculations?: string[];
   }, priority: number = 8): Omit<WorkerTask, 'id' | 'timestamp'> {
     return {
-      type: 'price',
+      type: 'price_analysis' as WorkerTask['type'],
       data,
       priority
     };
@@ -83,7 +86,7 @@ export class TaskQueue {
     position?: any;
   }, priority: number = 9): Omit<WorkerTask, 'id' | 'timestamp'> {
     return {
-      type: 'risk',
+      type: 'pattern_detection' as WorkerTask['type'],
       data,
       priority
     };
@@ -98,7 +101,7 @@ export class TaskQueue {
     target?: string;
   }, priority: number = 7): Omit<WorkerTask, 'id' | 'timestamp'> {
     return {
-      type: 'ml',
+      type: 'sentiment_analysis' as WorkerTask['type'],
       data,
       priority
     };
@@ -113,7 +116,7 @@ export class TaskQueue {
     options?: any;
   }, priority: number = 5): Omit<WorkerTask, 'id' | 'timestamp'> {
     return {
-      type: 'chart',
+      type: 'price_analysis' as WorkerTask['type'],
       data,
       priority
     };
@@ -146,7 +149,7 @@ export class TaskQueue {
    * Creates a batch of related tasks
    */
   createBatch(tasks: Array<{
-    type: WorkerType;
+    type: WorkerTask['type'];
     data: any;
     priority?: number;
   }>): Array<Omit<WorkerTask, 'id' | 'timestamp'>> {
@@ -227,7 +230,7 @@ export class TaskQueue {
   /**
    * Gets optimized task priorities based on system load
    */
-  getOptimizedPriorities(): Record<WorkerType, number> {
+  getOptimizedPriorities(): Record<string, number> {
     const currentLoad = this.getCurrentSystemLoad();
     
     // Adjust priorities based on system performance

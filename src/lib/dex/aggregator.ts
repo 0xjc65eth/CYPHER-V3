@@ -11,7 +11,7 @@ import {
 } from '@/types/quickTrade'
 
 // DEX Configuration
-const DEX_CONFIGS: Record<DEXType, DEXConfig> = {
+const DEX_CONFIGS: Partial<Record<DEXType, DEXConfig>> = {
   [DEXType.UNISWAP_V2]: {
     type: DEXType.UNISWAP_V2,
     name: 'Uniswap V2',
@@ -110,7 +110,7 @@ const DEX_CONFIGS: Record<DEXType, DEXConfig> = {
 }
 
 export class DEXAggregator {
-  private configs: Record<DEXType, DEXConfig>
+  private configs: Partial<Record<DEXType, DEXConfig>>
   private cypherFeeRate: number
   private minAmountUSD: number
 
@@ -153,7 +153,7 @@ export class DEXAggregator {
   // Get quote from specific DEX
   private async getQuoteFromDEX(dex: DEXType, params: SwapParams): Promise<Quote | null> {
     const config = this.configs[dex]
-    if (!config.isActive) return null
+    if (!config?.isActive) return null
 
     try {
       switch (dex) {
@@ -355,6 +355,7 @@ export class DEXAggregator {
   // Generic quote implementation for other DEXs
   private async getGenericQuote(dex: DEXType, params: SwapParams): Promise<Quote> {
     const config = this.configs[dex]
+    if (!config) return { dex, inputAmount: params.amountIn, outputAmount: '0', priceImpact: 0, estimatedGas: '0', route: [], fee: '0', slippage: 0, executionTime: 0, confidence: 0, timestamp: Date.now() }
     const feeMultiplier = 1 - (config.feeNumerator / 10000)
     
     const mockQuote: Quote = {
@@ -386,8 +387,8 @@ export class DEXAggregator {
   async executeSwap(quote: Quote, params: SwapParams): Promise<SwapResult> {
     try {
       // In production, this would redirect to the actual DEX
-      const config = this.configs[quote.dex]
-      
+      const config = this.configs[quote.dex]!
+
       // Add Cypher fee to the transaction
       const cypherFee = this.calculateCypherFee(params.amountIn, params.tokenIn)
       
@@ -426,7 +427,7 @@ export class DEXAggregator {
   // Build swap URL for redirection
   private buildSwapUrl(quote: Quote, params: SwapParams): string {
     const config = this.configs[quote.dex]
-    const baseUrl = config.swapUrl
+    const baseUrl = config?.swapUrl
     
     if (!baseUrl) return '#'
 
@@ -459,12 +460,12 @@ export class DEXAggregator {
   private getAvailableDEXs(chainId: number): DEXType[] {
     return Object.values(DEXType).filter(dex => {
       const config = this.configs[dex]
-      return config.isActive && config.supportedNetworks.includes(chainId)
+      return config?.isActive && config?.supportedNetworks?.includes(chainId)
     })
   }
 
   // Get DEX configuration
-  getDEXConfig(dex: DEXType): DEXConfig {
+  getDEXConfig(dex: DEXType): DEXConfig | undefined {
     return this.configs[dex]
   }
 
@@ -475,7 +476,7 @@ export class DEXAggregator {
     for (const dex of Object.values(DEXType)) {
       try {
         // In production, this would ping the actual DEX APIs
-        healthStatus[dex] = this.configs[dex].isActive
+        healthStatus[dex] = this.configs[dex]?.isActive ?? false
       } catch {
         healthStatus[dex] = false
       }

@@ -103,7 +103,7 @@ class RevenueTrackingSystem {
     const transactionId = `fee_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Determinar carteira de destino
-    const revenueWallet = REVENUE_WALLETS[chain] || REVENUE_WALLETS.ethereum;
+    const revenueWallet = (REVENUE_WALLETS as Record<string, string>)[chain] || REVENUE_WALLETS.ethereum;
     
     // Criar registro de transação
     const feeTransaction: FeeTransaction = {
@@ -322,7 +322,7 @@ class RevenueTrackingSystem {
     
     return Array.from(walletStats.entries()).map(([chain, stats]) => ({
       chain,
-      wallet: REVENUE_WALLETS[chain] || 'N/A',
+      wallet: (REVENUE_WALLETS as Record<string, string>)[chain] || 'N/A',
       totalRevenue: stats.totalRevenue,
       transactionCount: stats.transactionCount,
       explorerUrl: this.getExplorerUrl(chain)
@@ -395,7 +395,7 @@ class RevenueTrackingSystem {
       solana: 'https://solscan.io'
     };
     
-    return explorers[chain] || 'https://etherscan.io';
+    return (explorers as Record<string, string>)[chain] || 'https://etherscan.io';
   }
 
   /**

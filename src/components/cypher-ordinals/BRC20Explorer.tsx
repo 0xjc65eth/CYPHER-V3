@@ -129,13 +129,13 @@ export function BRC20Explorer({ searchQuery }: BRC20ExplorerProps) {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <span className="text-2xl font-bold">${formatPrice(token.price)}</span>
-                        <div className={`flex items-center gap-1 text-sm ${token.change24h >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                          {token.change24h >= 0 ? (
+                        <div className={`flex items-center gap-1 text-sm ${(token.change24h ?? 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {(token.change24h ?? 0) >= 0 ? (
                             <ArrowUpRight className="h-4 w-4" />
                           ) : (
                             <ArrowDownRight className="h-4 w-4" />
                           )}
-                          {Math.abs(token.change24h)}%
+                          {Math.abs(token.change24h ?? 0)}%
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">
@@ -154,7 +154,7 @@ export function BRC20Explorer({ searchQuery }: BRC20ExplorerProps) {
                         <Line 
                           type="monotone" 
                           dataKey="price" 
-                          stroke={token.change24h >= 0 ? "#10B981" : "#EF4444"} 
+                          stroke={(token.change24h ?? 0) >= 0 ? "#10B981" : "#EF4444"}
                           strokeWidth={2}
                           dot={false}
                         />

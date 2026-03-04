@@ -9,9 +9,4 @@ export { useMounted, useClientOnly, withClientOnly } from './useMounted'
 export { useWalletDetection } from './useWalletDetection'
 
 // Type exports
-export type { BitcoinPriceData } from './useBitcoinPrice'
-export type { TradingEngineHook } from './useTradingEngine'
-export type { MultiAgentSystemHook } from './useMultiAgentSystem'
-export type { VoiceCommandsHook } from './useVoiceCommands'
-export type { BacktestingHook } from './useBacktesting'
-export type { BinanceHook } from './useBinance'
+export type { VoiceCommand } from './useVoiceCommands'

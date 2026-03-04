@@ -4,9 +4,9 @@ import { StoreApi, UseBoundStore } from 'zustand'
 export const createSelectors = <S extends UseBoundStore<StoreApi<object>>>(
   _store: S
 ) => {
-  const store = _store as S
+  const store = _store as S & { use: Record<string, any> }
   store.use = {}
-  
+
   for (const k of Object.keys(store.getState())) {
     ;(store.use as any)[k] = () => store((s) => s[k as keyof typeof s])
   }

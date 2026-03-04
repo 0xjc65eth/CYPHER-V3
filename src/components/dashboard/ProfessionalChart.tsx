@@ -21,14 +21,15 @@ export function ProfessionalChart() {
   const [chartData, setChartData] = useState(generateEmptyData());
   const [chartType, setChartType] = useState<'line' | 'area'>('area');
   const [isMounted, setIsMounted] = useState(false);
-  const { data: btcPriceData } = useBitcoinPrice();
-  
+  const btcPriceData = useBitcoinPrice();
+  const btcPriceValue = (btcPriceData?.data as any)?.prices?.USD;
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
-  
+
   // Extract the price value correctly - only after mounted to avoid hydration errors
-  const btcPrice = isMounted ? (btcPriceData?.price || btcPriceData?.prices?.USD || 0) : 58000;
+  const btcPrice = isMounted ? (btcPriceValue || 0) : 58000;
 
   // Fetch real Bitcoin data from CoinMarketCap API
   const fetchBitcoinData = async (hours: number) => {

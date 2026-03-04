@@ -104,7 +104,7 @@ router.get('/docs', (req, res) => {
 });
 
 // Error handling
-router.use('*', (req, res) => {
+router.use('*', (req: any, res: any) => {
   res.status(404).json({
     success: false,
     error: 'Endpoint not found',

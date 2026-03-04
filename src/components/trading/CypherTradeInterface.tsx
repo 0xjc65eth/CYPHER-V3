@@ -577,7 +577,7 @@ export function CypherTradeInterface() {
         <TradeConfirmation
           tradeDetails={tradeDetails}
           walletAddress={walletAddress}
-          onConfirm={executeTrade}
+          onConfirm={() => executeTrade(true)}
           onBack={() => setStep('preview')}
         />
       )}

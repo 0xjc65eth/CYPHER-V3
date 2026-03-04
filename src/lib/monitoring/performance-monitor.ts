@@ -125,7 +125,7 @@ class PerformanceMonitor {
           // Report Web Vitals
           this.recordMetric({
             name: `web_vitals_${entry.name}`,
-            value: entry.value || (entry as any).processingStart || entry.startTime,
+            value: (entry as any).value || (entry as any).processingStart || entry.startTime,
             unit: 'ms',
             timestamp: new Date().toISOString(),
             tags: {
@@ -201,7 +201,7 @@ class PerformanceMonitor {
       response: entry.responseEnd - entry.responseStart,
       dom: entry.domContentLoadedEventEnd - entry.domContentLoadedEventStart,
       load: entry.loadEventEnd - entry.loadEventStart,
-      total: entry.loadEventEnd - entry.navigationStart
+      total: entry.loadEventEnd - entry.startTime
     }
 
     Object.entries(timing).forEach(([key, value]) => {

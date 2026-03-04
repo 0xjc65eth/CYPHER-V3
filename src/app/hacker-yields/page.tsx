@@ -57,6 +57,7 @@ const MARKET_CATEGORIES = [
 
 interface AgentApiResponse {
   success: boolean;
+  error?: string;
   state: {
     status: string;
     uptime: number;
@@ -1127,6 +1128,7 @@ function AgentDashboard({
 
   const handleStart = useCallback(() => {
     const creds = credentials.current;
+    if (!creds) return;
     executeAction('start', {
       config: {
         testnet: creds.hlTestnet,

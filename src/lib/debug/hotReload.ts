@@ -64,8 +64,9 @@ class HotReloadManager {
     if (!this.config.enabled || typeof window === 'undefined') return;
 
     // Listen for hot module replacement
-    if (module.hot) {
-      module.hot.accept((err) => {
+    const mod = module as any;
+    if (mod.hot) {
+      mod.hot.accept((err: Error) => {
         if (err) {
           consoleLogger.logError('HotReloadManager', err, { context: 'HMR accept error' });
         } else {
@@ -73,7 +74,7 @@ class HotReloadManager {
         }
       });
 
-      module.hot.dispose(() => {
+      mod.hot.dispose(() => {
         this.cleanup();
       });
     }

@@ -37,7 +37,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications(prev => [...prev, newNotification])
 
     // Auto-remove notification after duration
-    if (newNotification.duration > 0) {
+    if ((newNotification.duration ?? 0) > 0) {
       setTimeout(() => {
         removeNotification(id)
       }, newNotification.duration)

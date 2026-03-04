@@ -12,12 +12,12 @@ import {
   Activity,
   DollarSign,
   BarChart3,
-  LineChart,
+  LineChart as LineChartIcon,
   Info,
   Wallet,
   Users
 } from 'lucide-react';
-import { LineChart as RechartsLineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea, Legend } from 'recharts';
 import { useOnChainMetrics } from '@/hooks/analytics/useOnChainMetrics';
 import { cn } from '@/lib/utils';
 
@@ -309,7 +309,7 @@ export default function OnChainMetrics() {
           confidence={metrics.mvrv.confidence}
           historicalData={metrics.mvrv.historicalData}
           thresholds={metrics.mvrv.thresholds}
-          icon={<LineChart className="h-5 w-5 text-primary" />}
+          icon={<LineChartIcon className="h-5 w-5 text-primary" />}
         />
 
         <MetricCard
@@ -333,7 +333,7 @@ export default function OnChainMetrics() {
         <CardContent>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <RechartsLineChart data={metrics.cycleComparison}>
+              <LineChart data={metrics.cycleComparison}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis dataKey="days" label={{ value: 'Days from Cycle Start', position: 'insideBottom', offset: -5 }} />
                 <YAxis label={{ value: 'Price (Normalized)', angle: -90, position: 'insideLeft' }} />
@@ -341,7 +341,7 @@ export default function OnChainMetrics() {
                 <Line type="monotone" dataKey="current" stroke="#8b5cf6" strokeWidth={3} name="Current Cycle" />
                 <Line type="monotone" dataKey="2017" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" name="2017 Cycle" />
                 <Line type="monotone" dataKey="2013" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" name="2013 Cycle" />
-              </RechartsLineChart>
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>

@@ -321,8 +321,8 @@ export function ComprehensiveProfessionalPortfolio({ portfolioData, walletAddres
       const pnlPercentage = costBasis > 0 ? (pnl / costBasis) * 100 : 0;
       
       // Calculate hourly return
-      const prevData = data[data.length - 1];
-      const hourReturn = prevData ? ((portfolioValue - prevData.portfolioValue) / prevData.portfolioValue) * 100 : 0;
+      const prevData: any = data[data.length - 1];
+      const hourReturn: number = prevData ? ((portfolioValue - prevData.portfolioValue) / prevData.portfolioValue) * 100 : 0;
       
       data.push({
         timestamp,

@@ -157,25 +157,7 @@ export interface MagicEdenProvider extends WalletProvider {
   }>;
 }
 
-// Window interface extensions
-declare global {
-  interface Window {
-    // Xverse
-    XverseProviders?: {
-      BitcoinProvider: XverseProvider;
-    };
-    xverse?: any;
-    
-    // UniSat
-    unisat?: any;
-    
-    // OYL
-    oyl?: any;
-    
-    // Magic Eden
-    magicEden?: any;
-  }
-}
+// Window interface extensions are declared in global.d.ts
 
 export type WalletDetectionResult = {
   [K in WalletType]: {

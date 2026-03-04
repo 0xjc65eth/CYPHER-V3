@@ -71,7 +71,7 @@ export class ErrorBoundary extends Component<Props, State> {
     })
 
     // Report error to monitoring service
-    ErrorReporter.reportError(error, errorContext)
+    ErrorReporter.reportError(error, errorContext as any)
 
     // Update state with error info
     this.setState({

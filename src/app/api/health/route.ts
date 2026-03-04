@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     // Infrastructure status
     const redisConnected = isRedisConnected();
-    const dbConnected = dbService.isConnected;
+    const dbConnected = (dbService as any).isConnected;
     const jobStatus = jobScheduler.getStatus();
 
     // Health checks

@@ -1,11 +1,11 @@
 'use client'
 
-import CollectionCard, { type CollectionCardProps } from './CollectionCard'
+import CollectionCard from './CollectionCard'
 
 interface GridViewProps {
-  collections: CollectionCardProps[]
+  collections: any[]
   loading?: boolean
-  onCollectionClick?: (collection: CollectionCardProps) => void
+  onCollectionClick?: (collection: any) => void
 }
 
 function GridSkeleton({ count = 8 }: { count?: number }) {

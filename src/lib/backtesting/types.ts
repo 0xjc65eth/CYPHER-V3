@@ -67,3 +67,39 @@ export interface PerformanceMetrics {
   winningTrades: number;
   losingTrades: number;
 }
+
+export interface TradeResult {
+  id: string;
+  entryDate: Date;
+  exitDate: Date;
+  entryPrice: number;
+  exitPrice: number;
+  size: number;
+  pnl: number;
+  pnlPercent: number;
+  duration: number;
+}
+
+export interface EquityPoint {
+  date: Date;
+  value: number;
+  drawdown: number;
+}
+
+export interface DrawdownPoint {
+  date: Date;
+  drawdown: number;
+  peak: number;
+  trough: number;
+}
+
+export interface Statistics {
+  averageTradesPerDay: number;
+  averageHoldingPeriod: number;
+  largestWin: number;
+  largestLoss: number;
+  consecutiveWins: number;
+  consecutiveLosses: number;
+  expectancy: number;
+  recoveryFactor: number;
+}

@@ -71,10 +71,10 @@ export default function TradingOpportunities() {
     queryFn: async () => {
       // This would call a real trading opportunities API
       const stats = await ordinalsService.getOrdinalsStats()
-      const collections = await ordinalsService.getTopCollections(10)
+      const collections = await (ordinalsService as any).getTopCollections(10)
       
       // Generate trading opportunities based on real data analysis
-      const opportunities: TradingOpportunity[] = collections.map((collection, index) => {
+      const opportunities: TradingOpportunity[] = collections.map((collection: any, index: number) => {
         // Determine opportunity type based on real metrics
         const volChange = collection.volume_change_24h || 0;
         const type: TradingOpportunity['type'] = volChange > 50

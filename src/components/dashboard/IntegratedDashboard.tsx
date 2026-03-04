@@ -8,7 +8,7 @@ import { TradingChartSystem } from '@/components/charts/TradingChartSystem';
 import { CypherAISystem } from '@/components/ai/CypherAISystem';
 import { PortfolioSystem } from '@/components/portfolio/PortfolioSystem';
 import { OrdinalsSystemV2 } from '@/components/ordinals/OrdinalsSystemV2';
-import { RunesTabSystem } from '@/components/runes/RunesTabSystem';
+import RunesTabSystem from '@/components/runes/RunesTabSystem';
 import { AnalyticsSystem } from '@/components/analytics/AnalyticsSystem';
 import { MarketTradingFloor } from '@/components/market/MarketTradingFloor';
 import {
@@ -109,7 +109,7 @@ export function IntegratedDashboard() {
         </h2>
         <p className="text-blue-100">
           {connectionState.isConnected 
-            ? `Connected: ${connectionState.account?.address.slice(0, 8)}...${connectionState.account?.address.slice(-8)}`
+            ? `Connected: ${connectionState.account?.slice(0, 8)}...${connectionState.account?.slice(-8)}`
             : 'Connect your wallet to get started'
           }
         </p>
@@ -277,7 +277,7 @@ export function IntegratedDashboard() {
               <div className="flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 <span className="text-sm font-medium">
-                  {connectionState.account?.address.slice(0, 6)}...{connectionState.account?.address.slice(-4)}
+                  {connectionState.account?.slice(0, 6)}...{connectionState.account?.slice(-4)}
                 </span>
               </div>
             )}

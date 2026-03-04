@@ -4,7 +4,18 @@
  */
 
 import { TradingEngine } from './trading-engine';
-import { MarketData } from './AutomatedTradingEngine';
+
+interface MarketData {
+  symbol: string;
+  price: number;
+  volume: number;
+  high24h: number;
+  low24h: number;
+  change24h: number;
+  bid: number;
+  ask: number;
+  indicators?: TechnicalIndicators;
+}
 
 export interface OHLCV {
   timestamp: number;
@@ -58,10 +69,10 @@ export class MarketAnalyzer {
     const indicators = this.calculateIndicators(candles);
     
     // Combinar dados
-    const result: MarketData = {
+    const result = {
       ...marketData,
       indicators
-    };
+    } as MarketData;
 
     // Cachear resultado
     this.cache.set(symbol, { data: result, timestamp: Date.now() });
@@ -79,7 +90,7 @@ export class MarketAnalyzer {
     await Promise.all(
       this.exchanges.map(async (exchange) => {
         try {
-          const ticker = await exchange.getTicker(symbol);
+          const ticker = await (exchange as any).getTicker(symbol);
           if (ticker) {
             prices.push(ticker.last);
             volumes.push(ticker.volume);
@@ -87,7 +98,7 @@ export class MarketAnalyzer {
             asks.push(ticker.ask);
           }
         } catch (error) {
-          console.error(`Error fetching ticker from ${exchange.exchange}:`, error);
+          console.error(`Error fetching ticker from ${(exchange as any).exchange}:`, error);
         }
       })
     );
@@ -118,7 +129,7 @@ export class MarketAnalyzer {
     const exchange = this.exchanges[0];
     
     try {
-      const candles = await exchange.getOHLCV(symbol, timeframe, limit);
+      const candles = await (exchange as any).getOHLCV(symbol, timeframe, limit);
       return candles.map((c: any) => ({
         timestamp: c[0],
         open: c[1],
@@ -350,11 +361,11 @@ export class MarketAnalyzer {
 
   public async getOrderBook(symbol: string, limit: number = 10): Promise<{ bids: any[]; asks: any[] }> {
     const exchange = this.exchanges[0];
-    return await exchange.getOrderBook(symbol, limit);
+    return await (exchange as any).getOrderBook(symbol, limit);
   }
 
   public async getRecentTrades(symbol: string, limit: number = 50): Promise<any[]> {
     const exchange = this.exchanges[0];
-    return await exchange.getRecentTrades(symbol, limit);
+    return await (exchange as any).getRecentTrades(symbol, limit);
   }
 }

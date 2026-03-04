@@ -100,7 +100,7 @@ export class CacheService {
   }
 
   async set<T>(key: string, value: T, ttlSeconds?: number): Promise<void> {
-    const ttl = ttlSeconds || redisConfig.ttl.default;
+    const ttl = ttlSeconds || CACHE_CONFIG.TTL.DEFAULT;
     
     try {
       // Redis se disponível

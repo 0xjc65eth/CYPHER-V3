@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       overall,
       services,
       cache: {
-        size: cacheStats.size,
+        size: cacheStats.total,
         entries: cacheStats.entries.length
       },
       uptime,

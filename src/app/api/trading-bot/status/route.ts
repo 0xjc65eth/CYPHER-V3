@@ -16,7 +16,7 @@ import {
 async function getAgentStatus() {
   try {
     const { getOrchestrator } = await import('@/agent/core/AgentOrchestrator');
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator('default');
     const state = orchestrator.getState();
     const perf = state.performance;
 
@@ -120,7 +120,7 @@ async function handleTradingBotStatus(request: NextRequest): Promise<NextRespons
     if (action === 'start' || action === 'stop') {
       try {
         const { getOrchestrator } = await import('@/agent/core/AgentOrchestrator');
-        const orchestrator = getOrchestrator();
+        const orchestrator = getOrchestrator('default');
         if (action === 'start') {
           await orchestrator.start();
         } else {

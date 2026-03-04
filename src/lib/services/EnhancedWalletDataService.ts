@@ -1,6 +1,36 @@
 'use client';
 
-import { PortfolioData, WalletBalance } from '@/contexts/WalletContext';
+// Local type definitions (WalletContext types are not exported)
+export interface WalletBalance {
+  bitcoin: number;
+  usd: number;
+  ordinals: number;
+  runes: number;
+}
+
+export interface PortfolioData {
+  totalValue: number;
+  totalCost: number;
+  totalPNL: number;
+  totalPNLPercentage: number;
+  bitcoin: {
+    amount: number;
+    currentValue: number;
+    averageBuyPrice: number;
+    realizedPNL: number;
+    unrealizedPNL: number;
+  };
+  ordinals: Array<{ id: string; currentValue: number; cost: number }>;
+  runes: Array<{ id: string; currentValue: number; cost: number }>;
+  transactions: Array<{
+    id: string;
+    type: 'buy' | 'sell';
+    amount: number;
+    price: number;
+    date: string;
+    asset: string;
+  }>;
+}
 
 export interface BitcoinPrice {
   usd: number;
@@ -219,17 +249,17 @@ export class EnhancedWalletDataService {
           realizedPNL: portfolioCalculations.realizedPNL,
           unrealizedPNL: portfolioCalculations.unrealizedPNL,
         },
-        ordinals: ordinals.inscriptions.map(ord => ({
+        ordinals: ordinals.inscriptions.map((ord: any) => ({
           id: ord.id,
           currentValue: ord.value || 0,
           cost: ord.fee || 0,
         })),
-        runes: runes.balances.map(rune => ({
+        runes: runes.balances.map((rune: any) => ({
           id: rune.rune,
           currentValue: 0, // Would need market data
           cost: 0, // Would need transaction history
         })),
-        transactions: transactions.map(tx => ({
+        transactions: transactions.map((tx: any) => ({
           id: tx.txid,
           type: this.determineTransactionType(tx, address),
           amount: this.calculateTransactionAmount(tx, address),

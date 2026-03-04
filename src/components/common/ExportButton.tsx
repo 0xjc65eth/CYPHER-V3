@@ -195,10 +195,7 @@ export function ExportToExcelButton(props: ExportButtonProps) {
       showIcon={true}
       variant="secondary"
       className="border border-green-500/30 text-green-500 hover:bg-green-500/10"
-    >
-      <RiFileExcelLine className="w-4 h-4 mr-2" />
-      <span>Export to Excel</span>
-    </ExportButton>
+    />
   );
 }
 

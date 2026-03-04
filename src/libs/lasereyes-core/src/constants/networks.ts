@@ -49,15 +49,15 @@ export const getWizzNetwork = (network: string) => {
 // with BitcoinNetworkType string values at runtime. This mapping provides
 // type-safe conversion without double-casting through `unknown`.
 const orangeNetworkMap: Record<string, BitcoinNetworkType> = {
-  [BaseNetwork.MAINNET]: OrangeNetwork.MAINNET as BitcoinNetworkType,
-  [BaseNetwork.TESTNET]: OrangeNetwork.TESTNET as BitcoinNetworkType,
-  [BaseNetwork.TESTNET4]: OrangeNetwork.TESTNET as BitcoinNetworkType,
-  [BaseNetwork.SIGNET]: OrangeNetwork.TESTNET as BitcoinNetworkType,
-  [BaseNetwork.FRACTAL_MAINNET]: OrangeNetwork.MAINNET as BitcoinNetworkType,
-  [BaseNetwork.FRACTAL_TESTNET]: OrangeNetwork.MAINNET as BitcoinNetworkType,
+  [BaseNetwork.MAINNET]: OrangeNetwork.MAINNET as unknown as BitcoinNetworkType,
+  [BaseNetwork.TESTNET]: OrangeNetwork.TESTNET as unknown as BitcoinNetworkType,
+  [BaseNetwork.TESTNET4]: OrangeNetwork.TESTNET as unknown as BitcoinNetworkType,
+  [BaseNetwork.SIGNET]: OrangeNetwork.TESTNET as unknown as BitcoinNetworkType,
+  [BaseNetwork.FRACTAL_MAINNET]: OrangeNetwork.MAINNET as unknown as BitcoinNetworkType,
+  [BaseNetwork.FRACTAL_TESTNET]: OrangeNetwork.MAINNET as unknown as BitcoinNetworkType,
 }
 
-const ORANGE_DEFAULT: BitcoinNetworkType = OrangeNetwork.MAINNET as BitcoinNetworkType
+const ORANGE_DEFAULT: BitcoinNetworkType = OrangeNetwork.MAINNET as unknown as BitcoinNetworkType
 
 export const getOrangeNetwork = (network: string): BitcoinNetworkType => {
   return orangeNetworkMap[network] ?? ORANGE_DEFAULT

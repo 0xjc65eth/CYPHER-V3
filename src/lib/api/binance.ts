@@ -295,7 +295,7 @@ class BinanceService {
         devLogger.log('BINANCE_REST', `Fetching ticker: ${symbol}`);
         return await this.request<BinanceTickerData>('/ticker/24hr', { symbol });
       },
-      cacheTTL.ticker
+      (cacheTTL as any).ticker
     );
   }
 
@@ -333,7 +333,7 @@ class BinanceService {
           interval
         }));
       },
-      cacheTTL.klines
+      (cacheTTL as any).klines
     );
   }
 
@@ -360,7 +360,7 @@ class BinanceService {
           timestamp: Date.now()
         };
       },
-      cacheTTL.depth
+      (cacheTTL as any).depth
     );
   }
 
@@ -374,7 +374,7 @@ class BinanceService {
         devLogger.log('BINANCE_REST', `Fetching recent trades: ${symbol}`);
         return await this.request<BinanceTradeData[]>('/trades', { symbol, limit });
       },
-      cacheTTL.trades
+      (cacheTTL as any).trades
     );
   }
 
@@ -388,7 +388,7 @@ class BinanceService {
         devLogger.log('BINANCE_REST', 'Fetching exchange info');
         return await this.request<any>('/exchangeInfo');
       },
-      cacheTTL.exchangeInfo
+      (cacheTTL as any).exchangeInfo
     );
   }
 
@@ -405,7 +405,7 @@ class BinanceService {
         const params = symbol ? { symbol } : {};
         return await this.request<BinanceTickerData | BinanceTickerData[]>('/ticker/24hr', params);
       },
-      cacheTTL.stats24hr
+      (cacheTTL as any).stats24hr
     );
   }
 

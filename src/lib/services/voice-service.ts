@@ -33,7 +33,7 @@ export class VoiceService {
       this.recognition.lang = this.config.language;
       this.recognition.continuous = false; // Force false to avoid network errors
       this.recognition.interimResults = false; // Simplified for stability
-      this.recognition.maxAlternatives = 1;
+      (this.recognition as any).maxAlternatives = 1;
       
       this.setupRecognitionHandlers();
     } else {
@@ -120,7 +120,7 @@ export class VoiceService {
       }
     };
 
-    this.recognition.onnomatch = () => {
+    (this.recognition as any).onnomatch = () => {
       this.callbacks.onError('No speech was recognized');
     };
   }

@@ -70,8 +70,8 @@ export function createLazyComponent(config: LazyComponentConfig): LazyExoticComp
 // Preload component for better UX
 export function preloadComponent(component: LazyExoticComponent<ComponentType<any>>): void {
   // Access the _payload to trigger loading
-  if ('_payload' in component && component._payload) {
-    if (component._payload._status === 'pending') {
+  if ('_payload' in component && (component as any)._payload) {
+    if ((component as any)._payload._status === 'pending') {
       return; // Already loading
     }
   }

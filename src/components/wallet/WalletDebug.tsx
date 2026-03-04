@@ -10,9 +10,13 @@ export function WalletDebug() {
   const [testResult, setTestResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
+  const ordinalsAddress = wallet.walletInfo.ordinalsAddress?.address ?? null;
+  const paymentAddress = wallet.walletInfo.paymentAddress?.address ?? null;
+  const network = wallet.walletInfo.connected ? 'mainnet' : null;
+
   const testWalletAPI = async () => {
     if (!wallet.address) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch(`/api/test-wallet/?address=${wallet.address}`);
@@ -32,7 +36,7 @@ export function WalletDebug() {
   return (
     <Card className="bg-gray-900 border-gray-700 p-6 mb-4">
       <h3 className="text-lg font-semibold text-white mb-4">Wallet Debug Info</h3>
-      
+
       <div className="space-y-2 mb-4">
         <div className="flex justify-between">
           <span className="text-gray-400">Connected:</span>
@@ -44,20 +48,20 @@ export function WalletDebug() {
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Ordinals Address:</span>
-          <span className="text-white font-mono text-xs">{wallet.ordinalsAddress || 'None'}</span>
+          <span className="text-white font-mono text-xs">{ordinalsAddress || 'None'}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Payment Address:</span>
-          <span className="text-white font-mono text-xs">{wallet.paymentAddress || 'None'}</span>
+          <span className="text-white font-mono text-xs">{paymentAddress || 'None'}</span>
         </div>
         <div className="flex justify-between">
           <span className="text-gray-400">Network:</span>
-          <span className="text-white">{wallet.network || 'Unknown'}</span>
+          <span className="text-white">{network || 'Unknown'}</span>
         </div>
       </div>
 
-      <Button 
-        onClick={testWalletAPI} 
+      <Button
+        onClick={testWalletAPI}
         disabled={loading}
         className="w-full mb-4"
       >

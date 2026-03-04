@@ -43,7 +43,8 @@ export function RevenueDashboard() {
   };
 
   const openExplorer = (network: string) => {
-    const url = getWalletExplorerUrl(network as any);
+    const wallet = REVENUE_WALLETS[network as keyof typeof REVENUE_WALLETS] || '';
+    const url = getWalletExplorerUrl(network, wallet);
     window.open(url, '_blank');
   };
 
@@ -258,13 +259,13 @@ export function RevenueDashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenue Mensal:</span>
                 <span className="text-green-400 font-bold">
-                  ${REVENUE_EXAMPLES.conservative.monthly.toLocaleString()}
+                  ${(REVENUE_EXAMPLES as any).conservative.monthly.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenue Anual:</span>
                 <span className="text-green-400 font-bold">
-                  ${REVENUE_EXAMPLES.conservative.yearly.toLocaleString()}
+                  ${(REVENUE_EXAMPLES as any).conservative.yearly.toLocaleString()}
                 </span>
               </div>
               <Progress value={30} className="mt-2" />
@@ -285,13 +286,13 @@ export function RevenueDashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenue Mensal:</span>
                 <span className="text-blue-400 font-bold">
-                  ${REVENUE_EXAMPLES.moderate.monthly.toLocaleString()}
+                  ${(REVENUE_EXAMPLES as any).moderate.monthly.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenue Anual:</span>
                 <span className="text-blue-400 font-bold">
-                  ${REVENUE_EXAMPLES.moderate.yearly.toLocaleString()}
+                  ${(REVENUE_EXAMPLES as any).moderate.yearly.toLocaleString()}
                 </span>
               </div>
               <Progress value={65} className="mt-2" />
@@ -312,13 +313,13 @@ export function RevenueDashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenue Mensal:</span>
                 <span className="text-orange-400 font-bold">
-                  ${REVENUE_EXAMPLES.optimistic.monthly.toLocaleString()}
+                  ${(REVENUE_EXAMPLES as any).optimistic.monthly.toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-400">Revenue Anual:</span>
                 <span className="text-orange-400 font-bold">
-                  ${REVENUE_EXAMPLES.optimistic.yearly.toLocaleString()}
+                  ${(REVENUE_EXAMPLES as any).optimistic.yearly.toLocaleString()}
                 </span>
               </div>
               <Progress value={90} className="mt-2" />
@@ -336,13 +337,13 @@ export function RevenueDashboard() {
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {SUPPORTED_NETWORKS.map((network) => (
-            <div key={network} className="bg-gray-800/50 rounded-lg p-3">
+            <div key={network.id} className="bg-gray-800/50 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-white font-medium capitalize">{network}</span>
+                <span className="text-white font-medium capitalize">{network.name}</span>
                 <CheckCircle className="w-4 h-4 text-green-500" />
               </div>
               <div className="text-sm text-gray-400">
-                Carteira: {REVENUE_WALLETS[network as keyof typeof REVENUE_WALLETS].slice(0, 8)}...
+                Carteira: {(REVENUE_WALLETS[network.id as keyof typeof REVENUE_WALLETS] || '').slice(0, 8)}...
               </div>
               <div className="text-xs text-green-400 mt-1">
                 ✅ Ativo • 0ms latência

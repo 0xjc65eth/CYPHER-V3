@@ -44,7 +44,7 @@ export interface TradingSignal {
 
 export class Agent024_TradingIntelligence extends EventEmitter {
   private isActive: boolean = false;
-  private analysisInterval: NodeJS.Timer | null = null;
+  private analysisInterval: ReturnType<typeof setInterval> | null = null;
   private signalHistory: TradingSignal[] = [];
   
   // AI Configuration

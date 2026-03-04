@@ -4,7 +4,7 @@
 
 import { safe } from '../utils/SafeDataAccess';
 
-interface RequestOptions extends RequestInit {
+interface RequestOptions extends Omit<RequestInit, 'cache'> {
   retries?: number;
   retryDelay?: number;
   timeout?: number;
@@ -130,7 +130,7 @@ class APIServiceClass {
         const timeoutId = setTimeout(() => controller.abort(), config.timeout);
 
         const response = await fetch(url, {
-          ...config,
+          ...config as RequestInit,
           signal: controller.signal,
         });
 

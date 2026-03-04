@@ -140,10 +140,10 @@ const WalletStats: React.FC<WalletStatsProps> = ({
           
           <div className="space-y-1">
             <p className="text-2xl font-bold text-white">
-              {formatBitcoin(balance?.bitcoin || 0)}
+              {formatBitcoin(balance || 0)}
             </p>
             <p className="text-sm text-gray-400">
-              {formatCurrency((balance?.bitcoin || 0) * 42000)} {/* Mock BTC price */}
+              {formatCurrency((balance || 0) * 42000)} {/* Mock BTC price */}
             </p>
           </div>
         </div>
@@ -161,7 +161,7 @@ const WalletStats: React.FC<WalletStatsProps> = ({
           
           <div className="space-y-1">
             <p className="text-2xl font-bold text-white">
-              {formatCurrency(portfolioData?.totalValue || balance?.usd || 0)}
+              {formatCurrency(portfolioData?.totalValue || (balance || 0) * 42000 || 0)}
             </p>
             <div className="flex items-center space-x-1">
               {getChangeIcon(portfolioData?.totalPNLPercentage || 0)}
@@ -207,7 +207,7 @@ const WalletStats: React.FC<WalletStatsProps> = ({
               {showValues ? (
                 (portfolioData?.ordinals?.length || 0) + 
                 (portfolioData?.runes?.length || 0) + 
-                (balance?.bitcoin ? 1 : 0)
+                (balance ? 1 : 0)
               ) : '•••'}
             </p>
             <div className="flex items-center space-x-4 text-xs text-gray-400">

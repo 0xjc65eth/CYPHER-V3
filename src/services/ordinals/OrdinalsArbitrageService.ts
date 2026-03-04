@@ -160,8 +160,8 @@ export class OrdinalsArbitrageService {
           const opportunity: OrdinalsArbitrageOpportunity = {
             collectionId: raw.collectionId,
             collectionName: collectionData.collection.name,
-            collectionSlug: collectionData.collection.slug,
-            imageUrl: collectionData.collection.imageUrl,
+            collectionSlug: (collectionData.collection as any).slug,
+            imageUrl: (collectionData.collection as any).imageUrl,
             buyPrice,
             sellPrice,
             buyMarketplace: raw.buyMarketplace,

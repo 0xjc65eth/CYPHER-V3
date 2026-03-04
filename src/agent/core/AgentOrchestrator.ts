@@ -679,7 +679,7 @@ export class AgentOrchestrator {
         // Persist LP rebalance suggestion
         if (this.configId) {
           this.eventBus.publish({
-            type: 'lp_rebalance',
+            type: 'market_update' as const,
             source: 'AgentOrchestrator',
             data: { pair: market.pair, exchange: market.exchange, suggestedRange: newRange },
             timestamp: Date.now(),

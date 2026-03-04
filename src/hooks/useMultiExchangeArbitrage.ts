@@ -65,7 +65,7 @@ interface UseMultiExchangeArbitrageReturn {
   loading: boolean;
   error: string | null;
   lastUpdate: number | null;
-  summary: ApiResponse['data'] extends undefined ? null : ApiResponse['data']['summary'] | null;
+  summary: NonNullable<ApiResponse['data']>['summary'] | null;
   refresh: () => void;
 }
 
@@ -79,7 +79,7 @@ export function useMultiExchangeArbitrage(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState<number | null>(null);
-  const [summary, setSummary] = useState<ApiResponse['data']['summary'] | null>(null);
+  const [summary, setSummary] = useState<NonNullable<ApiResponse['data']>['summary'] | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchData = useCallback(async () => {

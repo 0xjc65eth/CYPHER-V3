@@ -257,7 +257,6 @@ export const API_CONFIG = {
 
   // Configurações de desenvolvimento
   DEVELOPMENT: {
-    MOCK_API_DELAY: 500,
     ENABLE_LOGGING: true,
     ENABLE_PERFORMANCE_MONITORING: true,
     DISABLE_RATE_LIMITING: false
@@ -281,33 +280,33 @@ export function getApiConfig(service: keyof typeof API_CONFIG) {
 }
 
 export function isServiceAvailable(service: keyof typeof API_CONFIG): boolean {
-  const config = getApiConfig(service);
+  const config = getApiConfig(service) as Record<string, unknown> | null;
   if (!config) return false;
-  
+
   // Verificar se a chave de API é necessária e está presente
   if ('API_KEY' in config && config.API_KEY) {
     return validateApiKey(service);
   }
-  
+
   return Boolean(config.BASE_URL);
 }
 
 export function getServiceHeaders(service: keyof typeof API_CONFIG): Record<string, string> {
-  const config = getApiConfig(service);
-  return config?.HEADERS || {};
+  const config = getApiConfig(service) as Record<string, unknown> | null;
+  return (config?.HEADERS as Record<string, string>) || {};
 }
 
 export function getServiceEndpoint(service: keyof typeof API_CONFIG, endpoint: string): string {
-  const config = getApiConfig(service);
+  const config = getApiConfig(service) as Record<string, unknown> | null;
   if (!config || !config.BASE_URL) {
     throw new Error(`Service ${service} not configured`);
   }
-  
+
   return `${config.BASE_URL}${endpoint}`;
 }
 
-export function getRateLimitForService(service: keyof typeof API_CONFIG): any {
-  const config = getApiConfig(service);
+export function getRateLimitForService(service: keyof typeof API_CONFIG): unknown {
+  const config = getApiConfig(service) as Record<string, unknown> | null;
   return config?.RATE_LIMIT || null;
 }
 

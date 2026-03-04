@@ -242,7 +242,7 @@ export class TradingOpportunityEngine {
         
         if (confluences.length >= 1) {
           const opportunity = this.createRSIOpportunity(
-            asset, currentPrice, 'buy', { rsi: 30, macd: 0, macdSignal: 0, bollingerBands: { upper: 0, middle: 0, lower: 0 }, stochastic: 20, volume: 0 }, marketConditions
+            asset, currentPrice, 'buy', { rsi: 30, macd: { macd: 0, signal: 0, histogram: 0 }, bollinger: { upper: 0, middle: 0, lower: 0, squeeze: false }, ema: { ema9: 0, ema21: 0, ema50: 0, ema200: 0 }, stochastic: { k: 20, d: 20 }, atr: 0, volume: { current: 0, average: 0, ratio: 0 } }, marketConditions
           );
 
           if (opportunity.confidence >= this.config.minConfidence) {
@@ -251,10 +251,10 @@ export class TradingOpportunityEngine {
         }
       }
     }
-    
+
     return opportunities;
   }
-  
+
   /**
    * Identifica oportunidades baseadas em Liquidity Zones
    */
@@ -266,16 +266,16 @@ export class TradingOpportunityEngine {
   ): TradingOpportunity[] {
     const opportunities: TradingOpportunity[] = [];
     const activeLiquidityZones = smcAnalysis.liquidityZones.filter(lz => lz.status === 'active');
-    
+
     for (const lz of activeLiquidityZones) {
       const distanceToLZ = Math.abs(currentPrice - lz.level) / currentPrice;
-      
+
       if (distanceToLZ < 0.003) { // Dentro de 0.3%
         const confluences = this.calculateLiquidityConfluences(lz, smcAnalysis, marketConditions);
-        
+
         if (confluences.length >= 1) {
           const opportunity = this.createRSIOpportunity(
-            asset, currentPrice, 'buy', { rsi: 30, macd: 0, macdSignal: 0, bollingerBands: { upper: 0, middle: 0, lower: 0 }, stochastic: 20, volume: 0 }, marketConditions
+            asset, currentPrice, 'buy', { rsi: 30, macd: { macd: 0, signal: 0, histogram: 0 }, bollinger: { upper: 0, middle: 0, lower: 0, squeeze: false }, ema: { ema9: 0, ema21: 0, ema50: 0, ema200: 0 }, stochastic: { k: 20, d: 20 }, atr: 0, volume: { current: 0, average: 0, ratio: 0 } }, marketConditions
           );
 
           if (opportunity.confidence >= this.config.minConfidence) {
@@ -844,7 +844,7 @@ export class TradingOpportunityEngine {
     
     if (filter) {
       if (filter.minConfidence) {
-        opportunities = opportunities.filter(op => op.confidence >= filter.minConfidence);
+        opportunities = opportunities.filter(op => op.confidence >= filter.minConfidence!);
       }
       
       if (filter.strategies && filter.strategies.length > 0) {

@@ -170,7 +170,7 @@ export class CypherAICore extends EventEmitter {
       return analysis;
 
     } catch (error) {
-      this.emit('analysis_error', { asset, error: error.message });
+      this.emit('analysis_error', { asset, error: (error as Error).message });
       throw error;
     }
   }
@@ -388,7 +388,7 @@ export class CypherAICore extends EventEmitter {
     } catch (error) {
       return {
         type: 'ERROR',
-        message: `Erro ao processar comando: ${error.message}`,
+        message: `Erro ao processar comando: ${(error as Error).message}`,
         confidence: 0.1
       };
     }
@@ -559,7 +559,7 @@ export class CypherAICore extends EventEmitter {
   // Helper methods
   private async getCurrentPrice(asset: string): Promise<number> {
     // Simulate price (in production, connect to real APIs)
-    const prices = { BTC: 45000, ETH: 3000, ADA: 0.5 };
+    const prices: Record<string, number> = { BTC: 45000, ETH: 3000, ADA: 0.5 };
     return prices[asset] || 1000;
   }
 

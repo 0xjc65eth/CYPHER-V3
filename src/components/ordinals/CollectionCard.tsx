@@ -51,14 +51,12 @@ export const CollectionCardGrid = memo<CollectionCardGridProps>(({
   const [isHovered, setIsHovered] = React.useState(false);
 
   // Handle favorite toggle
-  const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFavoriteClick = useCallback(() => {
     onToggleFavorite(collection.id);
   }, [collection.id, onToggleFavorite]);
 
   // Handle alert button click
-  const handleAlertClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleAlertClick = useCallback(() => {
     onOpenAlert(collection);
   }, [collection, onOpenAlert]);
 
@@ -238,14 +236,12 @@ export const CollectionCardTable = memo<CollectionCardTableProps>(({
   }, []);
 
   // Handle favorite toggle
-  const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleFavoriteClick = useCallback(() => {
     onToggleFavorite(collection.id);
   }, [collection.id, onToggleFavorite]);
 
   // Handle alert button click
-  const handleAlertClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleAlertClick = useCallback(() => {
     onOpenAlert(collection);
   }, [collection, onOpenAlert]);
 

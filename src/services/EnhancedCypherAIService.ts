@@ -62,7 +62,7 @@ export class EnhancedCypherAIService extends CypherAIService {
     super();
     
     // Initialize voice manager with ElevenLabs integration
-    this.voiceManager = new VoiceAIManager(elevenLabsApiKey);
+    this.voiceManager = new VoiceAIManager(elevenLabsApiKey as any);
     
   }
 
@@ -397,9 +397,7 @@ export class EnhancedCypherAIService extends CypherAIService {
     // Process with voice-optimized options
     return await this.processQueryWithVoice(transcript, voiceContext, {
       enableVoice: true,
-      priority: 'high', // Voice commands get high priority
-      interrupt: false // Don't interrupt ongoing speech unless urgent
-    });
+    } as any);
   }
 
   /**

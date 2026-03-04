@@ -12,7 +12,7 @@ interface ChartDataPoint {
 }
 
 export function SimpleChart() {
-  const { data: btcData, loading, error } = useBitcoinPrice();
+  const { rawPrice: btcData, isLoading: loading, error } = useBitcoinPrice();
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1h');
 

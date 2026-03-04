@@ -4,7 +4,7 @@
  * Handles trade routing, referral tracking, and fee collection
  */
 
-import { CYPHER_REDIRECTION_FEE_RATE } from '@/app/api/trade/route'
+const CYPHER_REDIRECTION_FEE_RATE = 0.0035 // 0.35% fee
 
 // Hyperliquid API configuration
 const HYPERLIQUID_API_BASE = 'https://api.hyperliquid.xyz'

@@ -52,7 +52,7 @@ export interface SecurityLogEntry {
   id: string;
   timestamp: Date;
   level: LogLevel;
-  eventType: SecurityEventType;
+  eventType: SecurityEventType | string;
   message: string;
   details: Record<string, any>;
   sessionId?: string;
@@ -86,7 +86,7 @@ export interface LogSummary {
   failedAttempts: number;
   securityIncidents: number;
   lastActivity: Date;
-  topEventTypes: { type: SecurityEventType; count: number }[];
+  topEventTypes: { type: SecurityEventType | string; count: number }[];
   warnings: string[];
   criticalEvents: SecurityLogEntry[];
 }
@@ -149,7 +149,7 @@ export class SecurityLogger {
    * Log a security event
    */
   logSecurityEvent(
-    eventType: SecurityEventType,
+    eventType: SecurityEventType | string,
     details: Record<string, any> = {},
     level: LogLevel = LogLevel.INFO,
     sessionId?: string,
@@ -284,7 +284,7 @@ export class SecurityLogger {
       );
     }
 
-    const eventTypeCounts = new Map<SecurityEventType, number>();
+    const eventTypeCounts = new Map<SecurityEventType | string, number>();
     const criticalEvents: SecurityLogEntry[] = [];
     const warnings: string[] = [];
 
@@ -437,7 +437,7 @@ export class SecurityLogger {
 
   // Private methods
   private createLogEntry(
-    eventType: SecurityEventType,
+    eventType: SecurityEventType | string,
     details: Record<string, any>,
     level: LogLevel,
     sessionId?: string,
@@ -471,7 +471,7 @@ export class SecurityLogger {
     return `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private generateLogMessage(eventType: SecurityEventType, details: Record<string, any>): string {
+  private generateLogMessage(eventType: SecurityEventType | string, details: Record<string, any>): string {
     switch (eventType) {
       case SecurityEventType.WALLET_CONNECTION_SUCCESS:
         return `Wallet connection successful: ${details.walletProvider}`;
@@ -687,9 +687,4 @@ export class SecurityLogger {
 // Export singleton instance
 export const securityLogger = new SecurityLogger();
 
-// Export types
-export type {
-  SecurityLogEntry,
-  LogConfig,
-  LogSummary
-};
+// Types already exported inline above

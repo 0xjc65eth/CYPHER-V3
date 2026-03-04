@@ -69,7 +69,7 @@ export default function MarketOverviewProfessional() {
   const [isLive, setIsLive] = useState(true);
   const [timeframe, setTimeframe] = useState('1h');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [lastUpdate, setLastUpdate] = useState(0);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'analysis' | 'signals'>('overview');
   const [showFilters, setShowFilters] = useState(false);
   
@@ -552,7 +552,7 @@ export default function MarketOverviewProfessional() {
                 <div className="flex items-center space-x-2">
                   <Clock className="h-4 w-4 text-gray-400" />
                   <span className="text-sm font-medium text-white">
-                    {new Date(lastUpdate).toLocaleTimeString()}
+                    {lastUpdate > 0 ? new Date(lastUpdate).toLocaleTimeString() : '--:--:--'}
                   </span>
                 </div>
                 <div className="text-xs text-gray-400 mt-1">Auto-refresh {isLive ? 'ON' : 'OFF'}</div>

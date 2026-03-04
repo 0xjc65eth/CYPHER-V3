@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate expected profit
-    const buyPrice = buyTicker.ask || buyTicker.last;
-    const sellPrice = sellTicker.bid || sellTicker.last;
+    const buyPrice = buyTicker.ask ?? buyTicker.last ?? 0;
+    const sellPrice = sellTicker.bid ?? sellTicker.last ?? 0;
     const spread = sellPrice - buyPrice;
     const spreadPercent = (spread / buyPrice) * 100;
 

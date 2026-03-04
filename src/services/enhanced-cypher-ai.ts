@@ -66,7 +66,7 @@ export class EnhancedCypherAI {
       
       // Gerar áudio se habilitado
       if (this.API_KEY) {
-        response.audioUrl = await this.generateAudio(response.text);
+        response.audioUrl = (await this.generateAudio(response.text)) ?? undefined;
       }
 
       EnhancedLogger.info('Cypher AI response generated', {
@@ -343,7 +343,7 @@ Conecta tua wallet aqui que eu te mostro tudo em detalhes!`,
   /**
    * Gera áudio usando ElevenLabs
    */
-  private async generateAudio(text: string): Promise<string> {
+  private async generateAudio(text: string): Promise<string | null> {
     try {
       if (!this.API_KEY) {
         throw new Error('ElevenLabs API key not configured');
@@ -366,8 +366,8 @@ Conecta tua wallet aqui que eu te mostro tudo em detalhes!`,
         }
       );
 
-      if (response && typeof response.blob === 'function') {
-        const blob = await response.blob();
+      if (response && typeof (response as any).blob === 'function') {
+        const blob = await (response as any).blob();
         if (blob.size > 0) {
           const buffer = await blob.arrayBuffer();
           const base64 = Buffer.from(buffer).toString('base64');

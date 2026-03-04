@@ -239,13 +239,13 @@ const CypherAIv2Demo: React.FC = () => {
                   <div
                     className={`max-w-md p-3 rounded-lg ${message.role === 'user' ? 'bg-blue-500 text-white' : message.role === 'system' ? 'bg-gray-200 text-gray-700' : 'bg-white border shadow-sm'}`}
                   >
-                    <div className={getEmotionColor(message.emotion)}>
+                    <div className={getEmotionColor(message.metadata?.emotion)}>
                       {message.content}
                     </div>
-                    
-                    {message.confidence && (
+
+                    {message.metadata?.confidence && (
                       <div className="text-xs mt-2 opacity-70">
-                        Confiança: {Math.round(message.confidence * 100)}%
+                        Confiança: {Math.round(message.metadata.confidence * 100)}%
                       </div>
                     )}
                     
@@ -387,8 +387,8 @@ const CypherAIv2Demo: React.FC = () => {
                   <div>
                     <label className="text-sm text-gray-600">Personalidade:</label>
                     <select
-                      value={personality}
-                      onChange={(e) => setPersonality(e.target.value as AIPersonality)}
+                      value={personality as any}
+                      onChange={(e) => setPersonality(e.target.value as unknown as AIPersonality)}
                       className="ml-2 text-sm border rounded px-2 py-1"
                     >
                       <option value="professional">Profissional</option>

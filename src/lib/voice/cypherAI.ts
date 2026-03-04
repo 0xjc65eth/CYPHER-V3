@@ -17,12 +17,7 @@ interface SpeechRecognition extends EventTarget {
   onend: ((event: Event) => void) | null;
 }
 
-declare global {
-  interface Window {
-    SpeechRecognition: SpeechRecognitionConstructor;
-    webkitSpeechRecognition: SpeechRecognitionConstructor;
-  }
-}
+// SpeechRecognition types already in lib.dom, access via (window as any).webkitSpeechRecognition
 
 interface SpeechRecognitionEvent extends Event {
   results: SpeechRecognitionResultList;

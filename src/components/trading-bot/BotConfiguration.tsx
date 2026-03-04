@@ -435,7 +435,7 @@ export default function BotConfiguration({ config, onUpdateConfig, isRunning }: 
                               <div className="px-2">
                                 <Slider
                                   value={[param.value as number]}
-                                  onValueChange={([value]) => handleParameterUpdate(strategy.key, paramKey, value)}
+                                  onValueChange={([value]: number[]) => handleParameterUpdate(strategy.key, paramKey, value)}
                                   min={param.min}
                                   max={param.max}
                                   step={param.step}

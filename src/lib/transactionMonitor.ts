@@ -113,7 +113,7 @@ export class TransactionMonitor {
 
     this.isMonitoring = true;
     this.logger.logSecurityEvent(
-      SecurityEventType.SYSTEM_ERROR, // Using existing enum, would add MONITORING_STARTED
+      SecurityEventType.SECURITY_SYSTEM_INITIALIZED, // Using existing enum for monitoring start
       { action: 'Transaction monitoring started' },
       LogLevel.INFO
     );
@@ -137,7 +137,7 @@ export class TransactionMonitor {
     }
 
     this.logger.logSecurityEvent(
-      SecurityEventType.SYSTEM_ERROR, // Using existing enum
+      SecurityEventType.SECURITY_SYSTEM_INITIALIZED, // Using existing enum for monitoring stop
       { action: 'Transaction monitoring stopped' },
       LogLevel.INFO
     );
@@ -321,7 +321,7 @@ export class TransactionMonitor {
     this.logger.logSecurityEvent(
       SecurityEventType.ADDRESS_VALIDATION,
       { action: 'Address blacklisted', address, reason },
-      LogLevel.WARNING
+      LogLevel.WARN
     );
   }
 
@@ -450,7 +450,7 @@ export class TransactionMonitor {
   private loadKnownRiskAddresses(): void {
     // In a real implementation, this would load from a threat intelligence feed
     // For now, adding some example high-risk patterns
-    const knownRiskPatterns = [
+    const knownRiskPatterns: string[] = [
       // Add known high-risk address patterns here
     ];
 
@@ -609,14 +609,14 @@ export class TransactionMonitor {
             address: transaction.address,
             ...action.parameters
           },
-          LogLevel.WARNING
+          LogLevel.WARN
         );
         break;
       
       case 'block':
         // In a real implementation, this would block the transaction
         this.logger.logSecurityEvent(
-          SecurityEventType.FRAUD_ATTEMPT_BLOCKED,
+          SecurityEventType.SECURITY_BREACH_ATTEMPT,
           {
             ruleId: rule.id,
             transactionId: transaction.id,
@@ -665,7 +665,7 @@ export class TransactionMonitor {
         address: alert.address,
         riskScore: alert.riskScore
       },
-      rule.severity === 'critical' ? LogLevel.CRITICAL : LogLevel.WARNING
+      rule.severity === 'critical' ? LogLevel.CRITICAL : LogLevel.WARN
     );
   }
 

@@ -415,10 +415,9 @@ export function BRC20Trading() {
 
       {/* Popular Trading Platforms */}
       <Card className="bg-gray-900 border-gray-700 p-6">
-        <MintPlatformGrid 
-          tokenType="brc20" 
+        <MintPlatformGrid
+          tokenType="brc20"
           title="Professional BRC-20 Trading Platforms"
-          description="Access the best platforms for trading BRC-20 tokens with competitive fees and high liquidity"
         />
       </Card>
     </div>

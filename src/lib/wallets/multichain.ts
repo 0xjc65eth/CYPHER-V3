@@ -36,7 +36,7 @@ export class MultichainWalletManager {
         throw new Error('MetaMask not installed')
       }
 
-      const provider = new ethers.BrowserProvider(window.ethereum)
+      const provider = new ethers.BrowserProvider(window.ethereum as any)
       const accounts = await provider.send('eth_requestAccounts', [])
       
       if (accounts.length === 0) {
@@ -132,7 +132,7 @@ export class MultichainWalletManager {
         throw new Error('EVM wallet not connected')
       }
 
-      await window.ethereum.request({
+      await (window.ethereum as any)?.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: `0x${chainId.toString(16)}` }],
       })
@@ -178,7 +178,7 @@ export class MultichainWalletManager {
     if (!networkConfig) return false
 
     try {
-      await window.ethereum.request({
+      await (window.ethereum as any)?.request({
         method: 'wallet_addEthereumChain',
         params: [networkConfig],
       })

@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     try {
       const { dbService } = await import('@/lib/database/db-service');
       const db = await dbService.getClient();
-      const result = await db.query('SELECT COUNT(*) FROM arbitrage_opportunities WHERE status = $1', ['active']);
+      const result = await (db as any).query('SELECT COUNT(*) FROM arbitrage_opportunities WHERE status = $1', ['active']);
 
       results.services.database = {
         status: 'operational',

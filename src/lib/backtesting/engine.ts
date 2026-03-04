@@ -319,21 +319,3 @@ export class BacktestingEngine {
   }
 }
 
-// Interfaces adicionais
-interface TradeResult {
-  id: string;
-  entryDate: Date;
-  exitDate: Date;
-  entryPrice: number;
-  exitPrice: number;
-  size: number;
-  pnl: number;
-  pnlPercent: number;
-  duration: number;
-}
-
-interface EquityPoint {
-  date: Date;
-  value: number;
-  drawdown: number;
-}

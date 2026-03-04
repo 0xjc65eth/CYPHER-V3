@@ -6,7 +6,7 @@ import { useRealNetworkData, useRealMiningData } from '@/hooks/useRealAnalyticsD
 import { DashboardCard } from '@/components/dashboard-card'
 import { 
   RiExchangeLine, 
-  RiFlashLine, 
+  RiFlaskLine as RiFlashLine,
   RiTimeLine,
   RiBarChartLine,
   RiArrowUpLine,
@@ -96,7 +96,7 @@ export function RealTransactionActivityCard() {
     <DashboardCard
       title="Network Activity & Transactions"
       subtitle="Real-time blockchain metrics and mining data"
-      colorScheme="cyan"
+      colorScheme={"cyan" as any}
       className="shadow-xl"
     >
       {/* Status Header */}

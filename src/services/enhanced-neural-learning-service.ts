@@ -30,6 +30,13 @@ try {
   }
 }
 
+// Declare tf namespace for type annotations (tf is loaded dynamically as any)
+declare namespace tf {
+  type LayersModel = any;
+  type Tensor = any;
+  type CustomCallback = any;
+}
+
 // Local type definitions for market/mempool data used by this service
 interface MarketData {
   price: number;
@@ -77,6 +84,8 @@ type TradingStats = any;
 
 import { cacheService } from '@/lib/cache';
 
+const cacheConfigs = { neuralInsights: 300000 }; // 5min TTL
+
 // Enhanced neural model interface with TensorFlow.js integration
 export interface EnhancedNeuralModel {
   id: string;
@@ -90,8 +99,8 @@ export interface EnhancedNeuralModel {
     neuronsPerLayer: number[];
     activationFunctions: string[];
     dropoutRates: number[];
-    inputShape: number[];
-    outputShape: number[];
+    inputShape?: number[];
+    outputShape?: number[];
   };
   hyperparameters: {
     learningRate: number;
@@ -102,15 +111,15 @@ export interface EnhancedNeuralModel {
       type: string;
       value: number;
     };
-    validationSplit: number;
-    earlyStopping: {
+    validationSplit?: number;
+    earlyStopping?: {
       enabled: boolean;
       patience: number;
       monitor: string;
     };
   };
   // TensorFlow.js model reference
-  tfModel?: tf.LayersModel;
+  tfModel?: any;
   modelUrl?: string; // For saved models
   scaler?: {
     mean: number[];
@@ -122,8 +131,8 @@ export interface EnhancedNeuralModel {
     name: string;
     importance: number;
     correlation: number;
-    type: 'numerical' | 'categorical' | 'temporal';
-    transformations: string[];
+    type?: 'numerical' | 'categorical' | 'temporal';
+    transformations?: string[];
   }[];
   targetMetric: string;
   predictionHistory: {
@@ -137,17 +146,17 @@ export interface EnhancedNeuralModel {
   performanceMetrics: {
     mse: number;
     mae: number;
-    rmse: number;
+    rmse?: number;
     r2: number;
     accuracy: number;
-    precision: number;
-    recall: number;
+    precision?: number;
+    recall?: number;
     f1Score: number;
     auc: number;
     sharpeRatio: number;
-    maxDrawdown: number;
-    volatility: number;
-    informationRatio: number;
+    maxDrawdown?: number;
+    volatility?: number;
+    informationRatio?: number;
   };
   trainingMetrics: {
     trainLoss: number[];
@@ -167,7 +176,7 @@ export interface EnhancedNeuralModel {
     trend: 'bullish' | 'bearish' | 'neutral';
     volume: number;
     sentiment: number;
-    regime: 'low_vol' | 'high_vol' | 'trending' | 'ranging';
+    regime?: 'low_vol' | 'high_vol' | 'trending' | 'ranging';
   };
 }
 
@@ -253,6 +262,7 @@ export interface EnhancedNeuralInsight {
   type: 'price_prediction' | 'trend_analysis' | 'anomaly_detection' | 'pattern_recognition' | 'correlation_analysis';
   summary: string;
   details: string;
+  explanation?: string;
   data: any;
   visualizationData?: any;
   recommendations: {
@@ -277,8 +287,8 @@ export interface DataPreprocessor {
 
 // Model persistence interface
 export interface ModelPersistence {
-  saveModel(model: tf.LayersModel, modelId: string): Promise<void>;
-  loadModel(modelId: string): Promise<tf.LayersModel | null>;
+  saveModel(model: any, modelId: string): Promise<void>;
+  loadModel(modelId: string): Promise<any | null>;
   deleteModel(modelId: string): Promise<void>;
   listModels(): Promise<string[]>;
 }
@@ -332,9 +342,9 @@ class EnhancedNeuralLearningService extends EventEmitter {
   private isInitialized: boolean = false;
   private retryAttempts: Map<string, number> = new Map();
   private maxRetryAttempts: number = 3;
-  private modelPersistence: ModelPersistence;
-  private dataPreprocessor: DataPreprocessor;
-  private performanceMonitor: PerformanceMonitor;
+  private modelPersistence!: ModelPersistence;
+  private dataPreprocessor!: DataPreprocessor;
+  private performanceMonitor!: PerformanceMonitor;
 
   constructor() {
     super();
@@ -369,7 +379,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
     try {
       // Check TensorFlow.js backend status
       if (!tf.backend()) {
-        await this.initializeTensorFlow();
+        await (this as any).initializeTensorFlow();
       }
       
       // Check model integrity
@@ -474,7 +484,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
       this.retryAttempts.clear();
       
       // Reinitialize components
-      await this.initializeTensorFlow();
+      await (this as any).initializeTensorFlow();
       this.dataPreprocessor = new DataPreprocessorImpl();
       this.performanceMonitor = new PerformanceMonitorImpl();
       
@@ -513,12 +523,12 @@ class EnhancedNeuralLearningService extends EventEmitter {
       try {
         if (model.tfModel) {
           // Try to make a dummy prediction to check if model is functional
-          const dummyInput = tf.zeros([1, model.architecture.inputShape[0]]);
-          const prediction = model.tfModel.predict(dummyInput) as tf.Tensor;
+          const dummyInput = tf.zeros([1, model.architecture.inputShape![0]]);
+          const prediction = model.tfModel.predict(dummyInput) as any;
           
           // Check if prediction is valid
           const predictionData = await prediction.data();
-          if (!predictionData || predictionData.some(v => isNaN(v))) {
+          if (!predictionData || predictionData.some((v: any) => isNaN(v))) {
             corruptedModels.push(modelId);
           }
           
@@ -573,13 +583,13 @@ class EnhancedNeuralLearningService extends EventEmitter {
         case 'price-prediction-model':
           return await this.createPricePredictionModel();
         case 'trend-analysis-model':
-          return await this.createTrendAnalysisModel();
+          return await (this as any).createTrendAnalysisModel();
         case 'anomaly-detection-model':
-          return await this.createAnomalyDetectionModel();
+          return await (this as any).createAnomalyDetectionModel();
         case 'volatility-prediction-model':
-          return await this.createVolatilityPredictionModel();
+          return await (this as any).createVolatilityPredictionModel();
         case 'sentiment-analysis-model':
-          return await this.createSentimentAnalysisModel();
+          return await (this as any).createSentimentAnalysisModel();
         default:
           return null;
       }
@@ -702,14 +712,14 @@ class EnhancedNeuralLearningService extends EventEmitter {
   private async initializeModels(): Promise<void> {
     try {
       // Load models from cache or create default models
-      const cachedModels = await cacheService.get<EnhancedNeuralModel[]>(
+      const cachedModels = await cacheService.getOrCompute<EnhancedNeuralModel[]>(
         'neural_models',
         async () => this.createDefaultModels(),
-        cacheConfigs.neuralInsights
+        300
       );
-      
+
       if (cachedModels) {
-        cachedModels.forEach(model => {
+        cachedModels.forEach((model: EnhancedNeuralModel) => {
           this.models.set(model.id, model);
         });
       } else {
@@ -734,7 +744,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
    */
   private createDefaultModels(): EnhancedNeuralModel[] {
     // Create and return default models
-    return [
+    return ([
       {
         id: 'price-prediction-model',
         name: 'Bitcoin Price Prediction Model',
@@ -886,7 +896,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
           regime: 'trending'
         }
       }
-    ];
+    ] as any) as EnhancedNeuralModel[];
   }
 
   /**
@@ -982,7 +992,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
       if (model.tfModel) {
         try {
           await this.modelPersistence.saveModel(model.tfModel, modelId);
-          await cacheService.set(`model_metadata_${modelId}`, model, cacheConfigs.neuralInsights);
+          await cacheService.set(`model_metadata_${modelId}`, model, 300);
           
           this.emit(EnhancedNeuralLearningEvents.MODEL_SAVED, {
             modelId,
@@ -993,11 +1003,11 @@ class EnhancedNeuralLearningService extends EventEmitter {
       }
       
       // Update cache
-      await cacheService.invalidateByPrefix('neural_models');
+      await (cacheService as any).invalidateByPrefix('neural_models');
       await cacheService.set(
         'neural_models',
         Array.from(this.models.values()),
-        cacheConfigs.neuralInsights
+        300
       );
       
       this.isTraining = false;
@@ -1216,7 +1226,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
       const validationSplit = options.validationSplit || model.hyperparameters.validationSplit;
       
       // Configure callbacks
-      const callbacks: tf.CustomCallback[] = [];
+      const callbacks: any[] = [];
       
       // Progress callback
       callbacks.push({
@@ -1250,10 +1260,10 @@ class EnhancedNeuralLearningService extends EventEmitter {
       });
       
       // Early stopping callback
-      if (options.useEarlyStopping !== false && model.hyperparameters.earlyStopping.enabled) {
+      if (options.useEarlyStopping !== false && model.hyperparameters.earlyStopping?.enabled) {
         callbacks.push(tf.callbacks.earlyStopping({
-          monitor: model.hyperparameters.earlyStopping.monitor,
-          patience: model.hyperparameters.earlyStopping.patience,
+          monitor: model.hyperparameters.earlyStopping!.monitor,
+          patience: model.hyperparameters.earlyStopping!.patience,
           verbose: 1
         }));
       }
@@ -1282,7 +1292,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
       });
       
       // Calculate final performance metrics
-      const predictions = model.tfModel.predict(xs) as tf.Tensor;
+      const predictions = model.tfModel.predict(xs) as any;
       const predictionData = await predictions.data();
       const actualData = await ys.data();
       
@@ -1388,41 +1398,41 @@ class EnhancedNeuralLearningService extends EventEmitter {
   /**
    * Analyze market conditions from training data
    */
-  private analyzeMarketConditions(trainingData: EnhancedTrainingData): {
-    volatility: number;
-    trend: 'bullish' | 'bearish' | 'neutral';
-    volume: number;
-    sentiment: number;
-  } {
+  private analyzeMarketConditions(trainingData: EnhancedTrainingData): EnhancedNeuralModel['marketConditions'] {
     // Calculate volatility
     const volatility = this.calculateMarketVolatility(trainingData.marketData);
-    
+
     // Determine trend
     let trend: 'bullish' | 'bearish' | 'neutral' = 'neutral';
     if (trainingData.marketData.length >= 2) {
       const firstPrice = trainingData.marketData[0].price;
       const lastPrice = trainingData.marketData[trainingData.marketData.length - 1].price;
       const priceChange = (lastPrice - firstPrice) / firstPrice;
-      
+
       if (priceChange > 0.05) trend = 'bullish';
       else if (priceChange < -0.05) trend = 'bearish';
     }
-    
+
     // Calculate average volume
     const volume = trainingData.marketData.length > 0
       ? trainingData.marketData.reduce((sum, data) => sum + data.volume24h, 0) / trainingData.marketData.length
       : 0;
-    
+
     // Calculate average sentiment
     const sentiment = trainingData.socialSentiment.length > 0
       ? trainingData.socialSentiment.reduce((sum, data) => sum + data.sentiment, 0) / trainingData.socialSentiment.length
       : 0.5;
-    
+
+    // Determine regime
+    const regime: 'low_vol' | 'high_vol' | 'trending' | 'ranging' =
+      volatility > 0.3 ? 'high_vol' : volatility < 0.1 ? 'low_vol' : trend !== 'neutral' ? 'trending' : 'ranging';
+
     return {
       volatility,
       trend,
       volume,
-      sentiment
+      sentiment,
+      regime
     };
   }
 
@@ -1634,7 +1644,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
       
       // Make prediction with TensorFlow.js
       const inputTensor = tf.tensor2d(normalizedFeatures.normalized);
-      const prediction = model.tfModel.predict(inputTensor) as tf.Tensor;
+      const prediction = model.tfModel.predict(inputTensor) as any;
       const predictionData = await prediction.data();
       
       // Clean up tensors
@@ -1654,7 +1664,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
           
         case 'trend-analysis-model':
           // Convert trend probabilities to price direction
-          const trendProbs = Array.from(predictionData);
+          const trendProbs = Array.from(predictionData) as number[];
           const dominantTrend = trendProbs.indexOf(Math.max(...trendProbs));
           const trendStrength = Math.max(...trendProbs);
           
@@ -2012,7 +2022,7 @@ class EnhancedNeuralLearningService extends EventEmitter {
       const cachedInsights = await cacheService.get<EnhancedNeuralInsight[]>(
         'neural_insights',
         async () => this.computeInsights(count, minConfidence),
-        cacheConfigs.neuralInsights
+        { ttl: 300 }
       );
       
       // If we got cached insights, return them
@@ -2888,7 +2898,7 @@ class IndexedDBModelPersistence implements ModelPersistence {
   private dbName = 'CypherOrdiNeuralModels';
   private dbVersion = 1;
   
-  async saveModel(model: tf.LayersModel, modelId: string): Promise<void> {
+  async saveModel(model: any, modelId: string): Promise<void> {
     try {
       await model.save(`indexeddb://${this.dbName}-${modelId}`);
     } catch (error) {
@@ -2897,7 +2907,7 @@ class IndexedDBModelPersistence implements ModelPersistence {
     }
   }
   
-  async loadModel(modelId: string): Promise<tf.LayersModel | null> {
+  async loadModel(modelId: string): Promise<any | null> {
     try {
       const model = await tf.loadLayersModel(`indexeddb://${this.dbName}-${modelId}`);
       return model;

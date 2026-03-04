@@ -4,12 +4,12 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Wallet, 
-  ChevronDown, 
-  Copy, 
-  CheckCircle, 
-  LogOut, 
+import {
+  Wallet,
+  ChevronDown,
+  Copy,
+  CheckCircle,
+  LogOut,
   Shield,
   ExternalLink,
   AlertTriangle
@@ -25,7 +25,13 @@ interface UnifiedWalletConnectProps {
   network?: 'auto' | 'bitcoin' | 'ethereum' | 'solana';
 }
 
-export function UnifiedWalletConnect({ 
+// Map component size prop to button size prop
+const mapSize = (size: 'sm' | 'md' | 'lg'): 'sm' | 'default' | 'lg' => {
+  if (size === 'md') return 'default';
+  return size;
+};
+
+export function UnifiedWalletConnect({
   size = 'md',
   showBalance = true,
   showDisconnect = true,
@@ -34,10 +40,12 @@ export function UnifiedWalletConnect({
 }: UnifiedWalletConnectProps) {
   const wallet = useWallet();
   const { hasEthereum, hasSolana, connectEthereum, connectSolana } = useWalletDetection();
-  
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [connecting, setConnecting] = useState(false);
+
+  const buttonSize = mapSize(size);
 
   // Real wallet connection handlers
   const handleConnectBitcoin = async () => {
@@ -80,7 +88,7 @@ export function UnifiedWalletConnect({
 
   const handleDisconnect = async () => {
     try {
-      await wallet.disconnect();
+      wallet.disconnect();
       setIsDropdownOpen(false);
     } catch (error) {
       console.error('Failed to disconnect:', error);
@@ -100,15 +108,9 @@ export function UnifiedWalletConnect({
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  const formatBalance = (balance: any) => {
-    if (!balance) return '0.00';
-    if (typeof balance === 'number') {
-      return (balance / 100000000).toFixed(8); // Bitcoin format
-    }
-    if (balance.bitcoin) {
-      return (balance.bitcoin / 100000000).toFixed(8);
-    }
-    return '0.00';
+  const formatBalance = (balance: number | null) => {
+    if (balance == null) return '0.00';
+    return (balance / 100000000).toFixed(8); // Bitcoin format (satoshis to BTC)
   };
 
   // Connected state - show wallet info
@@ -125,7 +127,7 @@ export function UnifiedWalletConnect({
                 <div className="text-sm font-semibold text-white">
                   {formatAddress(wallet.address)}
                 </div>
-                {showBalance && wallet.balance && (
+                {showBalance && wallet.balance != null && (
                   <div className="text-xs text-gray-400">
                     {formatBalance(wallet.balance)} BTC
                   </div>
@@ -181,7 +183,7 @@ export function UnifiedWalletConnect({
         <Button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
           className="bg-green-600 hover:bg-green-700 text-white"
-          size={size}
+          size={buttonSize}
         >
           <Shield className="w-4 h-4 mr-2" />
           {formatAddress(wallet.address)}
@@ -195,7 +197,7 @@ export function UnifiedWalletConnect({
                 <span className="text-sm text-gray-400">Wallet Address</span>
                 <Badge className="bg-green-600 text-white">Active</Badge>
               </div>
-              
+
               <div className="flex items-center gap-2 p-2 bg-gray-800 rounded">
                 <code className="flex-1 text-sm text-white font-mono break-all">
                   {wallet.address}
@@ -214,18 +216,12 @@ export function UnifiedWalletConnect({
                 </Button>
               </div>
 
-              {showBalance && wallet.balance && (
+              {showBalance && wallet.balance != null && (
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-400">Bitcoin Balance</span>
                     <span className="text-sm text-white font-mono">
                       {formatBalance(wallet.balance)} BTC
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-400">USD Value</span>
-                    <span className="text-sm text-green-400">
-                      ${wallet.balance?.usd?.toLocaleString() || '0.00'}
                     </span>
                   </div>
                 </div>
@@ -257,7 +253,7 @@ export function UnifiedWalletConnect({
             <Wallet className="w-4 h-4 text-orange-500" />
             <span className="text-sm font-medium text-white">Connect Wallet</span>
           </div>
-          
+
           <div className="grid grid-cols-1 gap-2">
             <Button
               onClick={handleConnectBitcoin}
@@ -265,10 +261,10 @@ export function UnifiedWalletConnect({
               className="bg-orange-600 hover:bg-orange-700 justify-start"
               size="sm"
             >
-              <span className="mr-2">₿</span>
+              <span className="mr-2">B</span>
               Bitcoin Wallets
             </Button>
-            
+
             {hasEthereum && (
               <Button
                 onClick={handleConnectEthereum}
@@ -276,11 +272,11 @@ export function UnifiedWalletConnect({
                 className="bg-blue-600 hover:bg-blue-700 justify-start"
                 size="sm"
               >
-                <span className="mr-2">⟠</span>
+                <span className="mr-2">E</span>
                 Ethereum Wallets
               </Button>
             )}
-            
+
             {hasSolana && (
               <Button
                 onClick={handleConnectSolana}
@@ -288,7 +284,7 @@ export function UnifiedWalletConnect({
                 className="bg-purple-600 hover:bg-purple-700 justify-start"
                 size="sm"
               >
-                <span className="mr-2">◎</span>
+                <span className="mr-2">S</span>
                 Solana Wallets
               </Button>
             )}
@@ -301,7 +297,7 @@ export function UnifiedWalletConnect({
   if (variant === 'minimal') {
     return (
       <Button
-        onClick={network === 'bitcoin' ? handleConnectBitcoin : 
+        onClick={network === 'bitcoin' ? handleConnectBitcoin :
                 network === 'ethereum' ? handleConnectEthereum :
                 network === 'solana' ? handleConnectSolana :
                 handleConnectBitcoin} // Default to Bitcoin
@@ -322,7 +318,7 @@ export function UnifiedWalletConnect({
         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         disabled={connecting}
         className="bg-orange-600 hover:bg-orange-700 text-white"
-        size={size}
+        size={buttonSize}
       >
         <Wallet className="w-4 h-4 mr-2" />
         {connecting ? 'Connecting...' : 'Connect Wallet'}
@@ -333,36 +329,36 @@ export function UnifiedWalletConnect({
         <Card className="absolute top-full mt-2 right-0 w-64 bg-gray-900 border-gray-700 p-4 z-50">
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-white mb-3">Choose Wallet Type</h3>
-            
+
             <Button
               onClick={handleConnectBitcoin}
               disabled={connecting}
               className="w-full bg-orange-600 hover:bg-orange-700 justify-start"
             >
-              <span className="mr-2">₿</span>
+              <span className="mr-2">B</span>
               Bitcoin Wallets
               <span className="ml-auto text-xs text-orange-200">Unisat, Xverse</span>
             </Button>
-            
+
             {hasEthereum && (
               <Button
                 onClick={handleConnectEthereum}
                 disabled={connecting}
                 className="w-full bg-blue-600 hover:bg-blue-700 justify-start"
               >
-                <span className="mr-2">⟠</span>
+                <span className="mr-2">E</span>
                 Ethereum Wallets
                 <span className="ml-auto text-xs text-blue-200">MetaMask, WalletConnect</span>
               </Button>
             )}
-            
+
             {hasSolana && (
               <Button
                 onClick={handleConnectSolana}
                 disabled={connecting}
                 className="w-full bg-purple-600 hover:bg-purple-700 justify-start"
               >
-                <span className="mr-2">◎</span>
+                <span className="mr-2">S</span>
                 Solana Wallets
                 <span className="ml-auto text-xs text-purple-200">Phantom, Solflare</span>
               </Button>

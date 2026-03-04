@@ -1,21 +1,14 @@
 // Error Boundary Components and Utilities
 // Comprehensive error handling system for CYPHER ORDI
+import React from 'react';
 
-export { 
-  ErrorBoundary, 
-  withErrorBoundary, 
-  useErrorRecovery 
-} from './ErrorBoundary';
+import { ErrorBoundary, withErrorBoundary, useErrorRecovery } from './ErrorBoundary';
+import { ChartErrorBoundary, withChartErrorBoundary } from './ChartErrorBoundary';
+import { DashboardErrorBoundary, withDashboardErrorBoundary } from './DashboardErrorBoundary';
 
-export { 
-  ChartErrorBoundary, 
-  withChartErrorBoundary 
-} from './ChartErrorBoundary';
-
-export { 
-  DashboardErrorBoundary, 
-  withDashboardErrorBoundary 
-} from './DashboardErrorBoundary';
+export { ErrorBoundary, withErrorBoundary, useErrorRecovery };
+export { ChartErrorBoundary, withChartErrorBoundary };
+export { DashboardErrorBoundary, withDashboardErrorBoundary };
 
 // Error Recovery Utilities
 export function createErrorRecoveryConfig(type: 'chart' | 'dashboard' | 'component') {
@@ -104,7 +97,7 @@ export function errorBoundary(config?: {
   level?: 'app' | 'page' | 'component';
 }) {
   return function <T extends React.ComponentClass<any>>(target: T): T {
-    const WrappedComponent = withErrorBoundary(target, config);
+    const WrappedComponent = withErrorBoundary(target, config as any);
     return WrappedComponent as any;
   };
 }
@@ -117,7 +110,7 @@ export function chartErrorBoundary(config?: {
   showFallbackChart?: boolean;
 }) {
   return function <T extends React.ComponentClass<any>>(target: T): T {
-    const WrappedComponent = withChartErrorBoundary(target, config);
+    const WrappedComponent = withChartErrorBoundary(target, config as any);
     return WrappedComponent as any;
   };
 }
@@ -130,7 +123,7 @@ export function dashboardErrorBoundary(config?: {
   showSystemStatus?: boolean;
 }) {
   return function <T extends React.ComponentClass<any>>(target: T): T {
-    const WrappedComponent = withDashboardErrorBoundary(target, config);
+    const WrappedComponent = withDashboardErrorBoundary(target, config as any);
     return WrappedComponent as any;
   };
 }

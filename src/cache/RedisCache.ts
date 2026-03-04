@@ -603,7 +603,7 @@ class MockRedisClient {
   }
 
   async mget(keys: string[]): Promise<(string | null)[]> {
-    return keys.map(key => this.get(key));
+    return Promise.all(keys.map(key => this.get(key)));
   }
 
   async mset(pairs: any[]): Promise<string> {

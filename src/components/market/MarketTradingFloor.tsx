@@ -24,7 +24,8 @@ import {
   RefreshCw,
   Bell,
   Filter,
-  Maximize2
+  Maximize2,
+  Info
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';

@@ -10,7 +10,7 @@ export function useInflowOutflow() {
       try {
 
         // Generate realistic inflow/outflow data based on price and volume
-        const volume = marketData?.volume24h || 0
+        const volume = marketData?.volume24h?.total || 0
         const priceChange = marketData?.btcChange24h || 0
 
         // Calculate a base value for inflow/outflow based on volume

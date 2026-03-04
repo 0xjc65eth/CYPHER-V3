@@ -157,7 +157,7 @@ async function fetchMagicEdenData(runeName: string): Promise<RuneMarketData | nu
     // Calculate 24h volume from activities
     const now = Date.now();
     const oneDayAgo = now - 24 * 60 * 60 * 1000;
-    const recent24hActivities = acts?.activities?.filter(a =>
+    const recent24hActivities = acts?.activities?.filter((a: any) =>
       new Date(a.createdAt).getTime() > oneDayAgo
     ) || [];
 

@@ -41,14 +41,14 @@ export async function GET(request: NextRequest) {
 
     // Check cache first
     const cacheKey = `portfolio:${address}`;
-    let portfolioData = await cacheInstances.portfolio.get(cacheKey);
+    let portfolioData = await (cacheInstances as any).portfolio.get(cacheKey);
 
     if (!portfolioData) {
       // Fetch fresh data from multiple sources
       portfolioData = await fetchPortfolioData(address);
       
       // Cache the result
-      await cacheInstances.portfolio.set(cacheKey, portfolioData, {
+      await (cacheInstances as any).portfolio.set(cacheKey, portfolioData, {
         ttl: 300, // 5 minutes
         tags: ['portfolio', 'user', address]
       });
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate cache for this address
-    await cacheInstances.portfolio.delete(`portfolio:${address}`);
+    await (cacheInstances as any).portfolio.delete(`portfolio:${address}`);
 
     return NextResponse.json({
       success: true,
@@ -169,7 +169,7 @@ async function fetchPortfolioData(address: string) {
       bitcoinBalance,
       transactions
     ] = await Promise.allSettled([
-      hiroAPI.getPortfolio(address),
+      (hiroAPI as any).getPortfolio(address),
       fetchBitcoinBalance(address),
       fetchTransactionHistory(address)
     ]);
@@ -352,7 +352,7 @@ async function fetchTransactionHistory(address: string) {
 async function getCurrentBitcoinPrice(): Promise<number> {
   try {
     // Check cache first
-    const cachedPrice = await cacheInstances.prices.get('btc-price');
+    const cachedPrice = await (cacheInstances as any).prices.get('btc-price');
     if (cachedPrice) {
       return cachedPrice;
     }
@@ -366,7 +366,7 @@ async function getCurrentBitcoinPrice(): Promise<number> {
     const price = data?.bitcoin?.usd || 0
 
     if (price > 0) {
-      await cacheInstances.prices.set('btc-price', price, {
+      await (cacheInstances as any).prices.set('btc-price', price, {
         ttl: 60,
         tags: ['price', 'bitcoin']
       });

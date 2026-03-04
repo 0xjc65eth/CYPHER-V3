@@ -5,15 +5,10 @@ import { lazy, ComponentType, LazyExoticComponent } from 'react'
 // Lazy Loading with Prefetch
 export function lazyWithPrefetch<T extends ComponentType<any>>(
   importFn: () => Promise<{ default: T }>
-): LazyExoticComponent<T> {
-  const Component = lazy(importFn)
-  
-  // Prefetch on hover or focus
-  Component.prefetch = () => {
-    importFn()
-  }
-  
-  return Component as LazyExoticComponent<T> & { prefetch: () => void }
+): LazyExoticComponent<T> & { prefetch: () => void } {
+  const LazyComponent: any = lazy(importFn)
+  LazyComponent.prefetch = () => { importFn() }
+  return LazyComponent
 }
 
 // Code Splitting Helpers

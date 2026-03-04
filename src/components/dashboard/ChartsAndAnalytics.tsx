@@ -13,8 +13,12 @@ import { useMarketSentiment } from '@/hooks/useMarketSentiment';
 export function ChartsAndAnalytics() {
   const [timeframe, setTimeframe] = useState('24h');
   const { data: btcHistory, loading: btcLoading } = useBitcoinPriceHistory(timeframe);
-  const { data: ordinalsVolume, loading: ordinalsLoading } = useOrdinalsVolumeChart();
-  const { data: runesActivity, loading: runesLoading } = useRunesTradingActivity();
+  const ordinalsData = useOrdinalsVolumeChart('all', '30d');
+  const ordinalsVolume = ordinalsData.labels.map((label, i) => ({ date: label, volume: ordinalsData.volumes[i] || 0 }));
+  const ordinalsLoading = ordinalsData.loading;
+  const runesData = useRunesTradingActivity();
+  const runesActivity = runesData.activity.map((a: any) => ({ timestamp: a.timestamp, trades: a.trades || 0, volume: a.volume || 0 }));
+  const runesLoading = runesData.loading;
   const { data: sentiment, loading: sentimentLoading } = useMarketSentiment();
 
   const timeframes = [

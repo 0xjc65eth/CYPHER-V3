@@ -48,13 +48,13 @@ export function LightweightChart({ type, data, config }: LightweightChartProps) 
         mode: 1, // Normal crosshair
         vertLine: {
           color: config.theme === 'dark' ? '#6b7280' : '#9ca3af',
-          width: 1,
+          width: 1 as const,
           style: LineStyle.Dashed,
           visible: config.showCrosshair !== false,
         },
         horzLine: {
           color: config.theme === 'dark' ? '#6b7280' : '#9ca3af',
-          width: 1,
+          width: 1 as const,
           style: LineStyle.Dashed,
           visible: config.showCrosshair !== false,
         },

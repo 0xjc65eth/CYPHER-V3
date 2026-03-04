@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useTradingStore } from '@/stores/trading-store';
+import { useTradingStore, type Inscription } from '@/stores/trading-store';
 import { OrdiscanClient } from '@/services/api/ordiscan-client';
 import { HiroClient } from '@/services/api/hiro-client';
 
@@ -30,14 +30,14 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
       if (hiroResponse?.results) {
         // Process each inscription
         for (const inscription of hiroResponse.results) {
-          const formattedInscription = {
+          const formattedInscription: Inscription = {
             id: inscription.id,
             number: inscription.number,
             content_type: inscription.content_type,
             content_url: `https://ordinals.com/content/${inscription.id}`,
-            collection: inscription.collection || null,
+            collection: inscription.collection || undefined,
             rarity: determineRarity(inscription.number),
-            price: null, // Will be fetched from marketplace
+            price: undefined, // Will be fetched from marketplace
             owner: inscription.address,
             timestamp: new Date(inscription.timestamp).getTime()
           };
@@ -50,8 +50,7 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
               type: 'inscription',
               title: 'Significant Inscription',
               message: `Inscription #${inscription.number} discovered`,
-              severity: 'success',
-              read: false
+              severity: 'success'
             });
           }
         }
@@ -62,18 +61,18 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
       if (brc20Response?.results) {
         for (const token of brc20Response.results) {
           if (token.inscription_id) {
-            const brc20Inscription = {
+            const brc20Inscription: Inscription = {
               id: token.inscription_id,
               number: token.number || 0,
               content_type: 'text/plain;charset=utf-8',
               content_url: `https://ordinals.com/content/${token.inscription_id}`,
               collection: 'BRC-20',
               rarity: 'brc20',
-              price: null,
-              owner: token.address || null,
+              price: undefined,
+              owner: token.address || undefined,
               timestamp: Date.now()
             };
-            
+
             addInscription(brc20Inscription);
           }
         }
@@ -93,14 +92,14 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
       
       if (response?.inscriptions) {
         for (const inscription of response.inscriptions) {
-          const formattedInscription = {
+          const formattedInscription: Inscription = {
             id: inscription.id,
             number: inscription.num,
             content_type: inscription.content_type,
             content_url: inscription.content_url || `https://ordinals.com/content/${inscription.id}`,
-            collection: inscription.collection_name || null,
+            collection: inscription.collection_name || undefined,
             rarity: inscription.rarity || 'common',
-            price: inscription.listed_price ? parseFloat(inscription.listed_price) : null,
+            price: inscription.listed_price ? parseFloat(inscription.listed_price) : undefined,
             owner: address,
             timestamp: inscription.created_at || Date.now()
           };
@@ -144,15 +143,15 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
       
       for (const listing of listings) {
         if (listing.inscription_id || listing.id) {
-          const marketInscription = {
+          const marketInscription: Inscription = {
             id: listing.inscription_id || listing.id,
             number: listing.inscription_number || listing.number || 0,
             content_type: listing.content_type || 'image/png',
             content_url: listing.content_url || `https://ordinals.com/content/${listing.inscription_id || listing.id}`,
-            collection: listing.collection || null,
+            collection: listing.collection || undefined,
             rarity: listing.rarity || 'common',
-            price: listing.price ? parseFloat(listing.price) / 100000000 : null, // Convert sats to BTC
-            owner: listing.seller || listing.owner || null,
+            price: listing.price ? parseFloat(listing.price) / 100000000 : undefined, // Convert sats to BTC
+            owner: listing.seller || listing.owner || undefined,
             timestamp: listing.created_at || Date.now()
           };
 
@@ -164,8 +163,7 @@ export const useRealOrdinalsData = (options: UseRealOrdinalsDataOptions = {}) =>
               type: 'inscription',
               title: 'Low Price Alert',
               message: `Inscription #${marketInscription.number} listed for ${marketInscription.price.toFixed(4)} BTC`,
-              severity: 'warning',
-              read: false
+              severity: 'warning'
             });
           }
         }

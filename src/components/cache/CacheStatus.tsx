@@ -5,7 +5,7 @@ import { cacheService } from '@/lib/cache';
 import { devLogger } from '@/lib/logger';
 
 export function CacheStatus() {
-  const [status, setStatus] = useState({
+  const [status, setStatus] = useState<{ redis?: boolean; memorySize?: number; memoryKeys?: string[]; size?: number; maxSize?: number }>({
     redis: false,
     memorySize: 0,
     memoryKeys: [] as string[],
@@ -47,11 +47,11 @@ export function CacheStatus() {
           Memory Cache: {status.memorySize} keys
         </div>
 
-        {status.memorySize > 0 && (
+        {(status.memorySize ?? 0) > 0 && (
           <div className="mt-2">
             <div className="text-xs text-gray-500 mb-1">Cached Keys:</div>
             <div className="max-h-20 overflow-y-auto">
-              {status.memoryKeys.map((key) => (
+              {(status.memoryKeys ?? []).map((key) => (
                 <div key={key} className="text-xs text-gray-600 truncate">
                   {key}
                 </div>

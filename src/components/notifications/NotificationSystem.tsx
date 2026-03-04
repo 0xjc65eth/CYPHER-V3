@@ -65,7 +65,7 @@ export default function NotificationSystem() {
                   {notification.message}
                 </p>
                 <span className="text-xs text-gray-500 mt-2 block">
-                  {notification.timestamp.toLocaleTimeString()}
+                  {new Date().toLocaleTimeString()}
                 </span>
               </div>
             </div>

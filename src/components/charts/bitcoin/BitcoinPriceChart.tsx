@@ -21,8 +21,8 @@ const TIMEFRAME_MAP: Record<ChartTimeframe, string> = {
   '1d': '24h',
   '1w': '7d',
   '1m': '30d',
-  '3m': '90d',
   '1y': '365d',
+  'all': '365d',
 };
 
 export function BitcoinPriceChart({

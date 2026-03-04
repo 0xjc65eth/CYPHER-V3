@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { OKXOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+
+const okxApi = new OKXOrdinalsAPI();
 
 /**
  * Ordinals Whale Tracker API Route
  * GET /api/ordinals/whales?collection={symbol}&limit={number}
  *
  * Returns whale (large holder) data and recent whale activity
+ * Data source: OKX (primary) → Magic Eden (fallback)
  */
 
 export async function GET(request: NextRequest) {
@@ -20,25 +24,46 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get collection stats for context
-    const statsResponse = await fetch(
-      `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${collection}`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'CYPHER-ORDi-Future-V3'
-        },
-        next: { revalidate: 60 }
-      }
-    );
+    // Get collection stats for context — OKX primary, ME fallback
+    let totalSupply = 0;
+    let floorPrice = 0;
+    let totalHolders = 0;
 
-    if (!statsResponse.ok) {
-      throw new Error(`Magic Eden API error: ${statsResponse.status}`);
+    try {
+      const okxStats = await okxApi.getCollectionStats(collection);
+      if (okxStats) {
+        totalSupply = okxStats.itemCount;
+        floorPrice = parseFloat(okxStats.floorPrice || '0');
+        totalHolders = okxStats.ownerCount;
+      }
+    } catch (error) {
+      // OKX failed, will fall through to ME
     }
 
-    const statsData = await statsResponse.json();
-    const totalSupply = parseInt(statsData.supply || '0');
-    const floorPrice = parseFloat(statsData.floorPrice || '0');
+    // Fallback to Magic Eden if OKX didn't return data
+    if (totalSupply === 0 && floorPrice === 0) {
+      try {
+        const statsResponse = await fetch(
+          `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${collection}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'CYPHER-ORDi-Future-V3'
+            },
+            next: { revalidate: 60 }
+          }
+        );
+
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          totalSupply = parseInt(statsData.supply || '0');
+          floorPrice = parseFloat(statsData.floorPrice || '0');
+          totalHolders = parseInt(statsData.owners || '0');
+        }
+      } catch (error) {
+        // Both sources failed, continue with zeros
+      }
+    }
 
     // Get top holders (whales)
     let whales: any[] = [];
@@ -82,58 +107,94 @@ export async function GET(request: NextRequest) {
     } catch (error) {
     }
 
-    // Get recent whale activity from Magic Eden
+    // Get recent whale activity — OKX primary, ME fallback
     const recentActivity: any[] = [];
+    const whaleAddresses = new Set(whales.map(w => w.address));
 
     try {
-      // Get recent activities
-      const activitiesResponse = await fetch(
-        `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?collectionSymbol=${collection}&limit=100`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'CYPHER-ORDi-Future-V3'
-          },
-          next: { revalidate: 30 }
-        }
-      );
+      // Try OKX first for activities
+      const okxResult = await okxApi.getCollectionActivity(collection, undefined, 100);
 
-      if (activitiesResponse.ok) {
-        const activitiesData = await activitiesResponse.json();
+      if (okxResult.activities && okxResult.activities.length > 0) {
+        okxResult.activities
+          .filter((activity) => {
+            const address = activity.toAddress || activity.fromAddress;
+            return whaleAddresses.has(address);
+          })
+          .slice(0, 50)
+          .forEach((activity) => {
+            const address = activity.toAddress || activity.fromAddress;
+            const type = activity.type === 'BUY' ? 'buy' :
+                        activity.type === 'LIST' ? 'sell' :
+                        activity.type === 'TRANSFER' ? 'transfer_in' : 'transfer_out';
 
-        // Filter for whale addresses
-        const whaleAddresses = new Set(whales.map(w => w.address));
-
-        if (Array.isArray(activitiesData)) {
-          activitiesData
-            .filter((activity: any) => {
-              const address = activity.buyer || activity.seller || activity.toAddress || activity.fromAddress;
-              return whaleAddresses.has(address);
-            })
-            .slice(0, 50)
-            .forEach((activity: any) => {
-              const address = activity.buyer || activity.seller || activity.toAddress || activity.fromAddress;
-              const type = activity.kind === 'buying_broadcasted' || activity.kind === 'sale' ? 'buy' :
-                          activity.kind === 'list' ? 'sell' :
-                          activity.kind === 'transfer' ? 'transfer_in' : 'transfer_out';
-
-              recentActivity.push({
-                id: activity.txid || activity.id,
-                address,
-                type,
-                collectionSymbol: collection,
-                inscriptionId: activity.tokenInscriptionId || activity.inscriptionId,
-                inscriptionNumber: activity.inscriptionNumber,
-                price: activity.listedPrice || activity.price,
-                quantity: 1,
-                timestamp: activity.createdAt ? new Date(activity.createdAt).getTime() : Date.now(),
-                txid: activity.txid,
-                impact: getActivityImpact(1, totalSupply)
-              });
+            recentActivity.push({
+              id: activity.txHash || activity.activityId,
+              address,
+              type,
+              collectionSymbol: collection,
+              inscriptionId: activity.inscriptionId,
+              inscriptionNumber: activity.inscriptionNumber,
+              price: activity.price ? parseFloat(activity.price) : undefined,
+              quantity: 1,
+              timestamp: activity.timestamp ? new Date(activity.timestamp).getTime() : Date.now(),
+              txid: activity.txHash,
+              impact: getActivityImpact(1, totalSupply)
             });
-        }
+          });
       }
     } catch (error) {
+      // OKX activities failed, will fall through to ME
+    }
+
+    // Fallback to Magic Eden if OKX didn't return activities
+    if (recentActivity.length === 0) {
+      try {
+        const activitiesResponse = await fetch(
+          `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?collectionSymbol=${collection}&limit=100`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'User-Agent': 'CYPHER-ORDi-Future-V3'
+            },
+            next: { revalidate: 30 }
+          }
+        );
+
+        if (activitiesResponse.ok) {
+          const activitiesData = await activitiesResponse.json();
+
+          if (Array.isArray(activitiesData)) {
+            activitiesData
+              .filter((activity: any) => {
+                const address = activity.buyer || activity.seller || activity.toAddress || activity.fromAddress;
+                return whaleAddresses.has(address);
+              })
+              .slice(0, 50)
+              .forEach((activity: any) => {
+                const address = activity.buyer || activity.seller || activity.toAddress || activity.fromAddress;
+                const type = activity.kind === 'buying_broadcasted' || activity.kind === 'sale' ? 'buy' :
+                            activity.kind === 'list' ? 'sell' :
+                            activity.kind === 'transfer' ? 'transfer_in' : 'transfer_out';
+
+                recentActivity.push({
+                  id: activity.txid || activity.id,
+                  address,
+                  type,
+                  collectionSymbol: collection,
+                  inscriptionId: activity.tokenInscriptionId || activity.inscriptionId,
+                  inscriptionNumber: activity.inscriptionNumber,
+                  price: activity.listedPrice || activity.price,
+                  quantity: 1,
+                  timestamp: activity.createdAt ? new Date(activity.createdAt).getTime() : Date.now(),
+                  txid: activity.txid,
+                  impact: getActivityImpact(1, totalSupply)
+                });
+              });
+          }
+        }
+      } catch (error) {
+      }
     }
 
     // Generate whale alerts

@@ -33,13 +33,13 @@ interface QuickAction {
 
 export default function QuickActions() {
   const { isConnected } = useWallet();
-  const { showNotification } = useNotification();
+  const { addNotification } = useNotification();
   const [showQuickTrade, setShowQuickTrade] = useState(false);
 
   const handleAction = (actionName: string, requiresWallet: boolean = false) => {
     if (actionName === 'Quick Trade') {
       if (requiresWallet && !isConnected) {
-        showNotification({
+        addNotification({
           type: 'warning',
           title: 'Wallet Required',
           message: 'Please connect your wallet to use this feature',
@@ -51,7 +51,7 @@ export default function QuickActions() {
     }
 
     if (requiresWallet && !isConnected) {
-      showNotification({
+      addNotification({
         type: 'warning',
         title: 'Wallet Required',
         message: 'Please connect your wallet to use this feature',
@@ -59,7 +59,7 @@ export default function QuickActions() {
       return;
     }
 
-    showNotification({
+    addNotification({
       type: 'info',
       title: 'Feature Access',
       message: `${actionName} feature accessed successfully`,
@@ -294,7 +294,7 @@ export default function QuickActions() {
             <div className="p-6">
               <QuickTradeInterface 
                 onSwapComplete={(result) => {
-                  showNotification({
+                  addNotification({
                     type: 'success',
                     title: 'Trade Completed',
                     message: `Swap completed successfully: ${result.status}`,

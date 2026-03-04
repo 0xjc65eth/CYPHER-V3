@@ -10,11 +10,11 @@ export function useBitcoinPrice() {
     'bitcoin:price:current',
     () => bitcoinService.getPrice(),
     {
-      ttl: cacheTTL.prices,
+      ttl: cacheTTL.BITCOIN_PRICE,
       refreshInterval: 60, // Atualizar a cada minuto
     }
   );
-  
+
   // Garantir que sempre retornamos um objeto com a estrutura esperada
   return {
     ...result,
@@ -30,7 +30,7 @@ export function useBitcoinChart(days: number = 7) {
     `bitcoin:chart:${days}days`,
     () => bitcoinService.getMarketChart(days),
     {
-      ttl: cacheTTL.prices * 5,
+      ttl: cacheTTL.BITCOIN_PRICE * 5,
       refreshInterval: 300, // Atualizar a cada 5 minutos
     }
   );

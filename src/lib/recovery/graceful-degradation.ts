@@ -303,16 +303,16 @@ class GracefulDegradationManager {
   } {
     const featureStatuses = Array.from(this.features.entries()).map(([name, feature]) => ({
       name,
-      status: this.isFeatureAvailable(name) 
-        ? 'available' 
-        : feature.fallbackValue 
-          ? 'fallback' 
-          : 'disabled'
+      status: (this.isFeatureAvailable(name)
+        ? 'available'
+        : feature.fallbackValue
+          ? 'fallback'
+          : 'disabled') as 'available' | 'fallback' | 'disabled'
     }))
 
     const serviceStatuses = Array.from(this.services.entries()).map(([name, service]) => ({
       name,
-      status: service.available ? 'available' : 'unavailable',
+      status: (service.available ? 'available' : 'unavailable') as 'available' | 'unavailable',
       responseTime: service.responseTime
     }))
 

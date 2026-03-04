@@ -171,7 +171,7 @@ export class ChartLibraryOptimizer {
    * Create a lazy chart wrapper
    */
   createLazyChart<T = any>(name: string) {
-    return lazy(async () => {
+    return lazy(async (): Promise<{ default: ComponentType<any> }> => {
       const component = await this.getChartComponent(name);
       if (!component) {
         // Return fallback component

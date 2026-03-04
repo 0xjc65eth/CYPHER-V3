@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 
 export interface PWAUpdateInfo {
   isUpdateAvailable: boolean;
-  newWorker?: ServiceWorker;
+  newWorker?: ServiceWorker | null;
   updatePending: boolean;
 }
 

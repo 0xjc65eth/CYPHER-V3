@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
-import { MarketData } from '@/types/market';
-import { MempoolData } from '@/types/mempool';
+type MarketData = any;
+type MempoolData = any;
 import { OrdinalData } from '@/types/ordinals';
 import { RuneData } from '@/types/runes';
 import { SmcTradeSetup } from '@/types/trading';

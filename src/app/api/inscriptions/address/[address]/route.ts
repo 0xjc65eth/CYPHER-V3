@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const cacheKey = `inscriptions:${address}:${limit}:${offset}:${sortBy}:${order}:${contentType || 'all'}:${rarity || 'all'}`;
     
     // Check cache first
-    let inscriptionsData = await cacheInstances.blockchain.get(cacheKey);
+    let inscriptionsData = await (cacheInstances as any).blockchain.get(cacheKey);
 
     if (!inscriptionsData) {
       // Fetch fresh data
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
       
       // Cache for 10 minutes
-      await cacheInstances.blockchain.set(cacheKey, inscriptionsData, {
+      await (cacheInstances as any).blockchain.set(cacheKey, inscriptionsData, {
         ttl: 600,
         tags: ['inscriptions', 'blockchain', address]
       });
@@ -113,7 +113,7 @@ async function fetchInscriptionsByAddress(
     // First try to get data from Hiro API
     let hiroData = null;
     try {
-      hiroData = await hiroAPI.ordinals.getInscriptionsByAddress(address, {
+      hiroData = await (hiroAPI as any).ordinals.getInscriptionsByAddress(address, {
         limit: options.limit,
         offset: options.offset
       });

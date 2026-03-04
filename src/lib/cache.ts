@@ -63,6 +63,10 @@ class MemoryCache {
     devLogger.log('Cache', 'Cleared all entries');
   }
 
+  keys(): IterableIterator<string> {
+    return this.cache.keys();
+  }
+
   private cleanup(): void {
     const now = Date.now();
     let cleaned = 0;
@@ -142,7 +146,7 @@ class CacheService {
   }
 
   async clearPattern(pattern: string): Promise<void> {
-    const keys = Array.from(this.cache.cache.keys());
+    const keys = Array.from(this.cache.keys());
     const regex = new RegExp(pattern.replace('*', '.*'));
     
     for (const key of keys) {

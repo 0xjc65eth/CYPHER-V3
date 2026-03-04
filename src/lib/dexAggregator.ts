@@ -12,7 +12,7 @@ import {
 } from '@/types/quickTrade'
 
 // DEX Configuration
-const DEX_CONFIGS: Record<DEXType, DEXConfig> = {
+const DEX_CONFIGS: Partial<Record<DEXType, DEXConfig>> = {
   [DEXType.UNISWAP_V2]: {
     type: DEXType.UNISWAP_V2,
     name: 'Uniswap V2',
@@ -126,7 +126,7 @@ class DEXAggregator {
 
   private initializeHealthChecks(): void {
     for (const dexType of Object.values(DEXType)) {
-      for (const network of DEX_CONFIGS[dexType].supportedNetworks) {
+      for (const network of DEX_CONFIGS[dexType]?.supportedNetworks ?? []) {
         const key = `${dexType}-${network}`
         this.healthChecks.set(key, {
           dex: dexType,
@@ -144,7 +144,7 @@ class DEXAggregator {
   async getQuotes(params: SwapParams): Promise<Quote[]> {
     const quotes: Quote[] = []
     const enabledDEXs = this.settings.enabledDEXs.filter(dex => 
-      DEX_CONFIGS[dex].supportedNetworks.includes(params.tokenIn.chainId)
+      DEX_CONFIGS[dex]?.supportedNetworks?.includes(params.tokenIn.chainId)
     )
 
     // Parallel quote fetching
@@ -235,7 +235,7 @@ class DEXAggregator {
       asLegacyTransaction: 'false'
     })
 
-    const response = await fetch(`${config.apiEndpoint}/quote?${queryParams}`)
+    const response = await fetch(`${config?.apiEndpoint}/quote?${queryParams}`)
     const data = await response.json()
 
     if (!response.ok || !data.outAmount) {
@@ -290,7 +290,7 @@ class DEXAggregator {
     })
 
     const response = await fetch(
-      `${config.apiEndpoint}/${params.tokenIn.chainId}/quote?${queryParams}`,
+      `${config?.apiEndpoint}/${params.tokenIn.chainId}/quote?${queryParams}`,
       {
         headers: {
           'Authorization': `Bearer ${process.env.ONEINCH_API_KEY}`,
@@ -368,7 +368,7 @@ class DEXAggregator {
       priceImpact: 0.2,
       estimatedGas: '180000',
       route: [],
-      fee: config.feeNumerator.toString(),
+      fee: (config?.feeNumerator ?? 0).toString(),
       slippage: params.slippageTolerance,
       executionTime: 20,
       confidence: 75,
@@ -500,7 +500,7 @@ class DEXAggregator {
     const config = DEX_CONFIGS[DEXType.UNISWAP_V3]
     
     return {
-      to: config.routerAddress!,
+      to: config?.routerAddress ?? '',
       data: '0x', // Encoded swap data
       value: params.tokenIn.isNative ? params.amountIn : '0',
       gasLimit: quote.estimatedGas
@@ -520,8 +520,8 @@ class DEXAggregator {
   // Get supported DEXs for network
   getSupportedDEXs(chainId: number): DEXType[] {
     return Object.values(DEXType).filter(dex => 
-      DEX_CONFIGS[dex].supportedNetworks.includes(chainId) && 
-      DEX_CONFIGS[dex].isActive
+      DEX_CONFIGS[dex]?.supportedNetworks?.includes(chainId) &&
+      DEX_CONFIGS[dex]?.isActive
     )
   }
 }

@@ -40,7 +40,7 @@ export interface TickerData {
 
 export abstract class ExchangeConnector extends EventEmitter {
   protected name: string;
-  protected isConnected: boolean = false;
+  protected _isConnected: boolean = false;
   protected webSocket: WebSocket | null = null;
   protected subscriptions: Set<string> = new Set();
   protected reconnectAttempts: number = 0;
@@ -70,13 +70,13 @@ export abstract class ExchangeConnector extends EventEmitter {
 
   protected setupEventHandlers(): void {
     this.on('connected', () => {
-      this.isConnected = true;
+      this._isConnected = true;
       this.reconnectAttempts = 0;
       logger.info(`${this.name} exchange connected`);
     });
 
     this.on('disconnected', () => {
-      this.isConnected = false;
+      this._isConnected = false;
       logger.info(`${this.name} exchange disconnected`);
       
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
@@ -226,7 +226,7 @@ export abstract class ExchangeConnector extends EventEmitter {
   }
 
   isConnected(): boolean {
-    return this.isConnected;
+    return this._isConnected;
   }
 
   getAverageLatency(): number {
@@ -264,7 +264,7 @@ export abstract class ExchangeConnector extends EventEmitter {
   getStatus(): any {
     return {
       name: this.name,
-      connected: this.isConnected,
+      connected: this._isConnected,
       subscriptions: this.getSubscriptions(),
       latency: this.getLatencyStats(),
       reconnectAttempts: this.reconnectAttempts,

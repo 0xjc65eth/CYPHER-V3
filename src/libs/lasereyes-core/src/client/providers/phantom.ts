@@ -236,7 +236,7 @@ export default class PhantomProvider extends WalletProvider {
       }
     )
 
-    const psbtSignedPsbt = bitcoin.Psbt.fromBuffer(signedPsbt)
+    const psbtSignedPsbt = bitcoin.Psbt.fromBuffer(Buffer.from(signedPsbt))
 
     if (finalize) {
       inputsToSign.forEach((inputData) => {

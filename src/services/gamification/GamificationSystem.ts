@@ -929,7 +929,7 @@ export class GamificationSystem extends EventEmitter {
   private checkRequirement(user: User, requirement: QuestRequirement): boolean {
     switch (requirement.type) {
       case 'level': return user.level >= requirement.value;
-      case 'tier': return this.TIER_THRESHOLDS[user.tier] >= this.TIER_THRESHOLDS[requirement.value];
+      case 'tier': return (this.TIER_THRESHOLDS as any)[user.tier] >= (this.TIER_THRESHOLDS as any)[requirement.value];
       case 'trading_volume': return user.stats.totalVolume >= requirement.value;
       default: return true;
     }

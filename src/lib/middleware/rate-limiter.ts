@@ -67,11 +67,11 @@ async function redisRateLimit(
 
   try {
     // Increment counter
-    const count = await redis.incr(key);
+    const count = await (redis as any).incr(key);
 
     // Set expiry on first request
     if (count === 1) {
-      await redis.expire(key, windowSeconds);
+      await (redis as any).expire(key, windowSeconds);
     }
 
     const resetTime = Date.now() + (windowSeconds * 1000);

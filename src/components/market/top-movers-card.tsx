@@ -6,7 +6,9 @@ import { RiArrowUpDownLine, RiArrowUpSLine, RiArrowDownSLine, RiExchangeLine } f
 import { useMarketData } from '@/hooks/useMarketData'
 
 export function TopMoversCard() {
-  const { data, isLoading } = useMarketData(60000) // Refresh every minute
+  const marketData = useMarketData() as any // Refresh every minute
+  const data = marketData
+  const isLoading = marketData.loading || marketData.isLoading
   const [mounted, setMounted] = useState(false)
   const [sortBy, setSortBy] = useState<'gainers' | 'losers' | 'volume'>('gainers')
 

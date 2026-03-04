@@ -404,7 +404,7 @@ export async function GET(
       // Return error - NO MOCK DATA
       const response: ApiResponse<RunesPortfolio> = {
         success: false,
-        data: null,
+        data: undefined,
         cached: false,
         error: 'All runes providers failed. No real data available.',
         pagination: {

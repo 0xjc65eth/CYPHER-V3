@@ -46,7 +46,7 @@ export async function GET() {
         supply: supply,
         liquidity: liquidity,
         change_24h: change24h,
-        risk_return: floorPrice > 0 ? (volume24h / parseFloat(floorPrice.toString())).toFixed(2) : '0.00', // Volume/Price ratio
+        risk_return: parseFloat(String(floorPrice)) > 0 ? (volume24h / parseFloat(String(floorPrice))).toFixed(2) : '0.00', // Volume/Price ratio
         arbitrage: 'N/A', // Require real arbitrage calculation, not random
         rank: idx + 1,
         collectionLink: `https://ordiscan.com/collections/${slug}`,
@@ -160,7 +160,7 @@ export async function GET() {
         supply: supply,
         liquidity: liquidity,
         change_24h: change24h,
-        risk_return: floorPrice > 0 ? (volume24h / parseFloat(floorPrice.toString())).toFixed(2) : '0.00', // Volume/Price ratio
+        risk_return: parseFloat(String(floorPrice)) > 0 ? (volume24h / parseFloat(String(floorPrice))).toFixed(2) : '0.00', // Volume/Price ratio
         arbitrage: 'N/A', // Require real arbitrage calculation, not random
         rank: idx + 1,
         collectionLink: `https://ordiscan.com/collections/${slug}`,

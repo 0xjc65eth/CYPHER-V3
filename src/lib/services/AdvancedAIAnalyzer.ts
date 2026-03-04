@@ -1,10 +1,26 @@
 import { EventEmitter } from 'events';
+// @ts-ignore - optional dependency
 import * as tf from '@tensorflow/tfjs-node';
+// @ts-ignore - optional dependency
 import { SentimentAnalyzer } from 'node-sentiment';
+// @ts-ignore - optional dependency
 import { StandardScaler, KMeans } from 'machinelearn';
 import { Matrix } from 'ml-matrix';
 import { SMA, EMA, RSI, MACD, BollingerBands, ATR } from 'technicalindicators';
-import { correlation, mean, standardDeviation, quantile } from 'simple-statistics';
+import { mean, standardDeviation, quantile } from 'simple-statistics';
+// correlation is used as a local implementation
+const correlation = (a: number[], b: number[]): number => {
+  const n = a.length;
+  if (n === 0) return 0;
+  const meanA = a.reduce((s, v) => s + v, 0) / n;
+  const meanB = b.reduce((s, v) => s + v, 0) / n;
+  let num = 0, denA = 0, denB = 0;
+  for (let i = 0; i < n; i++) {
+    const da = a[i] - meanA, db = b[i] - meanB;
+    num += da * db; denA += da * da; denB += db * db;
+  }
+  return denA && denB ? num / Math.sqrt(denA * denB) : 0;
+};
 
 interface MarketData {
   timestamp: number;
@@ -531,7 +547,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     if (analysis.trend === 'bullish' && analysis.confidence > 0.7) {
       insights.push(
         `Strong bullish momentum detected with ${(analysis.confidence * 100).toFixed(1)}% confidence. ` +
-        `Key resistance levels at ${analysis.resistanceLevels.slice(0, 2).map(l => `$${l.toLocaleString()}`).join(' and ')}.`
+        `Key resistance levels at ${analysis.resistanceLevels.slice(0, 2).map((l: any) => `$${l.toLocaleString()}`).join(' and ')}.`
       );
     }
     
@@ -941,7 +957,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
   private isolationForestDetection(features: number[][]): any[] {
     // Simplified isolation forest implementation
     // In production, use a proper ML library
-    const anomalies = [];
+    const anomalies: any[] = [];
     const threshold = 0.1;
     
     features.forEach((feature, index) => {
@@ -984,7 +1000,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     const values = data.map(d => d.value);
     const mean_val = mean(values);
     const std_val = standardDeviation(values);
-    const anomalies = [];
+    const anomalies: any[] = [];
     
     data.forEach((point, index) => {
       const zScore = Math.abs((point.value - mean_val) / std_val);
@@ -1004,8 +1020,8 @@ export class AdvancedAIAnalyzer extends EventEmitter {
   private patternBasedAnomalyDetection(
     data: Array<{ timestamp: number; value: number; assets: Map<string, number> }>
   ): any[] {
-    const anomalies = [];
-    
+    const anomalies: any[] = [];
+
     // Detect sudden portfolio changes
     for (let i = 1; i < data.length; i++) {
       const change = Math.abs(data[i].value - data[i - 1].value) / data[i - 1].value;
@@ -1038,7 +1054,7 @@ export class AdvancedAIAnalyzer extends EventEmitter {
   }
 
   private identifyAnomalyPatterns(anomalies: any[]): string[] {
-    const patterns = [];
+    const patterns: string[] = [];
     
     // Check for recurring anomalies
     const typeCount = new Map();
@@ -1341,8 +1357,8 @@ export class AdvancedAIAnalyzer extends EventEmitter {
   ): string[] {
     // Simplified - identify assets that move before others
     const assets = Object.keys(priceData);
-    const leaders = [];
-    
+    const leaders: string[] = [];
+
     // In production, use cross-correlation with time lags
     assets.forEach(asset => {
       // Simplified check
@@ -1667,8 +1683,8 @@ export class AdvancedAIAnalyzer extends EventEmitter {
     optimal: Map<string, number>,
     expectedReturns: Map<string, number>
   ): string[] {
-    const recommendations = [];
-    
+    const recommendations: string[] = [];
+
     optimal.forEach((optimalWeight, asset) => {
       const currentWeight = current.get(asset) || 0;
       const diff = optimalWeight - currentWeight;

@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, BarChart3, Hammer, CandlestickChart,
   Gem, Coins, CircleDollarSign, Diamond, ArrowLeftRight,
-  TrendingUp, Briefcase, Brain, Users, Cpu, LineChart,
+  TrendingUp, TrendingDown, Briefcase, Brain, Users, Cpu, LineChart,
   GraduationCap, Plug, FileText, Bell, Wrench,
   Database, Network, Activity, Zap, Shield, Bug, CreditCard
 } from 'lucide-react';
@@ -35,9 +35,11 @@ export const NavigationIcons: Record<string, IconEntry> = {
 };
 
 export const DashboardIcons = {
-  blockchain:    { icon: Database, color: '#3B82F6' },
-  networkStatus: { icon: Network,  color: '#10B981' },
-  activity:      { icon: Activity, color: '#F59E0B' },
-  lightning:     { icon: Zap,      color: '#FBBF24' },
-  security:      { icon: Shield,   color: '#EF4444' },
+  blockchain:    { icon: Database,     color: '#3B82F6' },
+  networkStatus: { icon: Network,      color: '#10B981' },
+  activity:      { icon: Activity,     color: '#F59E0B' },
+  lightning:     { icon: Zap,          color: '#FBBF24' },
+  security:      { icon: Shield,       color: '#EF4444' },
+  priceUp:       { icon: TrendingUp,   color: '#10B981' },
+  priceDown:     { icon: TrendingDown, color: '#EF4444' },
 };

@@ -72,7 +72,7 @@ const defaultPortfolioData: PortfolioData = {
   totalProfitPercent: 0,
 };
 
-const defaultTickerData: TradingPair[] = [];
+const defaultTickerData: { symbol: string; price: number; change: number; changePercent: number }[] = [];
 
 const defaultTopPerformers: Array<{ symbol: string; change: number; price: number }> = [];
 

@@ -9,7 +9,7 @@ const WorkingChart = dynamic(
   () => import('./WorkingChart').then(mod => mod.WorkingChart),
   { 
     ssr: false,
-    loading: () => <SimpleChart symbol="" interval="1h" />
+    loading: () => <SimpleChart type="line" data={[]} config={{ title: 'Loading...', height: 300 }} />
   }
 );
 
@@ -41,7 +41,7 @@ export const SafeChart: React.FC<SafeChartProps> = ({
   }, []);
 
   if (useSimple) {
-    return <SimpleChart symbol={symbol} interval={interval} />;
+    return <SimpleChart type="line" data={[]} config={{ title: symbol, height: 300 }} />;
   }
 
   return (

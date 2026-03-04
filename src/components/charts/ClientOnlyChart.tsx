@@ -4,22 +4,25 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamic import with no SSR to prevent hydration issues
-const RechartsComponents = dynamic(
-  () => import('recharts').then((mod) => ({
-    LineChart: mod.LineChart,
-    AreaChart: mod.AreaChart,
-    BarChart: mod.BarChart,
-    XAxis: mod.XAxis,
-    YAxis: mod.YAxis,
-    CartesianGrid: mod.CartesianGrid,
-    Tooltip: mod.Tooltip,
-    Legend: mod.Legend,
-    ResponsiveContainer: mod.ResponsiveContainer,
-    Line: mod.Line,
-    Area: mod.Area,
-    Bar: mod.Bar,
-  })),
-  { 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const RechartsComponents: any = dynamic(
+  (() => import('recharts').then((mod) => ({
+    default: (props: any) => props.children({
+      LineChart: mod.LineChart,
+      AreaChart: mod.AreaChart,
+      BarChart: mod.BarChart,
+      XAxis: mod.XAxis,
+      YAxis: mod.YAxis,
+      CartesianGrid: mod.CartesianGrid,
+      Tooltip: mod.Tooltip,
+      Legend: mod.Legend,
+      ResponsiveContainer: mod.ResponsiveContainer,
+      Line: mod.Line,
+      Area: mod.Area,
+      Bar: mod.Bar,
+    })
+  }))) as any,
+  {
     ssr: false,
     loading: () => (
       <div className="w-full h-[400px] bg-gray-800/50 rounded-lg flex items-center justify-center">
@@ -93,7 +96,7 @@ export function ClientOnlyChart({
       )}
       
       <RechartsComponents>
-        {({ ResponsiveContainer, LineChart, AreaChart, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Line, Area, Bar }) => (
+        {({ ResponsiveContainer, LineChart, AreaChart, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Line, Area, Bar }: any) => (
           <ResponsiveContainer width={width} height={height}>
             {type === 'line' && (
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>

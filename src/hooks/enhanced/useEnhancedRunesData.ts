@@ -13,7 +13,7 @@ interface EnhancedRunesOptions {
   order?: 'asc' | 'desc'
   refreshInterval?: number
   staleTime?: number
-  cacheTime?: number
+  gcTime?: number
   enabled?: boolean
 }
 

@@ -10,6 +10,7 @@ interface RedirectTrackingData {
   timestamp: string;
   userAgent: string;
   referrer: string;
+  feeUSD?: number;
 }
 
 // In-memory storage for demo (in production, use a database)

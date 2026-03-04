@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   ArrowUpRight,
   ArrowDownLeft,
   Calendar,
@@ -69,20 +69,20 @@ export function TransactionHistoryModal({
     const csv = [
       ['Date', 'Type', 'Amount', 'Price', 'Total Value', 'Fee', 'TX Hash'].join(','),
       ...filteredTransactions.map(tx => [
-        safe.formatDate(tx.date, 'en-US', { 
-          year: 'numeric', 
-          month: '2-digit', 
-          day: '2-digit', 
-          hour: '2-digit', 
-          minute: '2-digit', 
-          second: '2-digit' 
+        safe.formatDate(tx.date, 'en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
         }),
         tx.type,
         tx.amount,
         tx.price,
         tx.totalValue,
         tx.feeUSD,
-        tx.txHash
+        tx.txid
       ].join(','))
     ].join('\n');
 
@@ -97,15 +97,15 @@ export function TransactionHistoryModal({
   const calculateStats = () => {
     const buys = transactions.filter(tx => tx.type === 'buy');
     const sells = transactions.filter(tx => tx.type === 'sell');
-    
+
     const totalBought = buys.reduce((sum, tx) => sum + tx.amount, 0);
     const totalSold = sells.reduce((sum, tx) => sum + tx.amount, 0);
     const totalBoughtValue = buys.reduce((sum, tx) => sum + tx.totalValue, 0);
     const totalSoldValue = sells.reduce((sum, tx) => sum + tx.totalValue, 0);
-    
+
     const avgBuyPrice = totalBought > 0 ? totalBoughtValue / totalBought : 0;
     const avgSellPrice = totalSold > 0 ? totalSoldValue / totalSold : 0;
-    
+
     return {
       totalBought,
       totalSold,
@@ -187,7 +187,7 @@ export function TransactionHistoryModal({
               Sells ({transactions.filter(tx => tx.type === 'sell').length})
             </Button>
           </div>
-          
+
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
@@ -208,12 +208,12 @@ export function TransactionHistoryModal({
                   <div className={`p-2 rounded-lg ${
                     tx.type === 'buy' ? 'bg-green-900/50' : 'bg-red-900/50'
                   }`}>
-                    {tx.type === 'buy' ? 
-                      <ArrowDownLeft className="w-4 h-4 text-green-500" /> : 
+                    {tx.type === 'buy' ?
+                      <ArrowDownLeft className="w-4 h-4 text-green-500" /> :
                       <ArrowUpRight className="w-4 h-4 text-red-500" />
                     }
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <Badge variant={tx.type === 'buy' ? 'default' : 'destructive'}>
@@ -225,7 +225,7 @@ export function TransactionHistoryModal({
                       <span className="text-gray-400">@</span>
                       <span className="text-gray-300">${tx.price.toLocaleString()}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
@@ -257,7 +257,7 @@ export function TransactionHistoryModal({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="text-right">
                   <p className="font-semibold text-white mb-1">
                     ${tx.totalValue.toLocaleString()}
@@ -267,16 +267,16 @@ export function TransactionHistoryModal({
                   </p>
                 </div>
               </div>
-              
+
               <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between">
                 <code className="text-xs text-gray-400">
-                  {tx.txHash.slice(0, 8)}...{tx.txHash.slice(-8)}
+                  {tx.txid.slice(0, 8)}...{tx.txid.slice(-8)}
                 </code>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => copyTxHash(tx.txHash)}
+                    onClick={() => copyTxHash(tx.txid)}
                     className="h-7 w-7 p-0"
                   >
                     <Copy className="w-3 h-3" />
@@ -284,7 +284,7 @@ export function TransactionHistoryModal({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => openTxInExplorer(tx.txHash)}
+                    onClick={() => openTxInExplorer(tx.txid)}
                     className="h-7 w-7 p-0"
                   >
                     <ExternalLink className="w-3 h-3" />

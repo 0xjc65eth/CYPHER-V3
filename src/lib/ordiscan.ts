@@ -41,7 +41,7 @@ export async function fetchOrdiscanData(endpoint: string) {
         return getFallbackData(endpoint);
       }
     },
-    endpoint.includes('ordinals') ? cacheTTL.ordinals : cacheTTL.default
+    endpoint.includes('ordinals') ? (cacheTTL as any).ordinals ?? cacheTTL.ORDINALS_DATA : (cacheTTL as any).default ?? cacheTTL.MARKET_DATA
   );
 }
 

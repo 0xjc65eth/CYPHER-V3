@@ -344,19 +344,19 @@ export class KnowledgeModule extends EventEmitter {
     // Return null values instead of random data when all sources fail
     return {
       bitcoin: {
-        price: null,
-        change24h: null,
-        volume24h: null,
-        marketCap: null,
-        dominance: null,
+        price: 0,
+        change24h: 0,
+        volume24h: 0,
+        marketCap: 0,
+        dominance: 0,
         source: 'unavailable',
         lastUpdated: new Date()
       },
       ethereum: {
-        price: null,
-        change24h: null,
-        volume24h: null,
-        marketCap: null,
+        price: 0,
+        change24h: 0,
+        volume24h: 0,
+        marketCap: 0,
         source: 'unavailable',
         lastUpdated: new Date()
       },

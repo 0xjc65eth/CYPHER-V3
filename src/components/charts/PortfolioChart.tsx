@@ -134,9 +134,10 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
   const [selectedTimeframe, setSelectedTimeframe] = useState(timeframe);
   const [activeTab, setActiveTab] = useState<'overview' | 'allocation' | 'performance' | 'metrics'>('overview');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [chartType, setChartType] = useState<'line' | 'area'>('area');
+  const [chartType, setChartType] = useState<'line' | 'area' | 'pie'>('area');
   
   // Hooks
+  const walletPortfolioData = useWalletPortfolio() as any;
   const {
     portfolio,
     performance,
@@ -144,9 +145,10 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
     loading,
     error,
     refetch
-  } = useWalletPortfolio(walletAddress, selectedTimeframe);
+  } = walletPortfolioData;
 
-  const { marketData } = useMarketData();
+  const marketDataResult = useMarketData() as any;
+  const { marketData } = marketDataResult;
 
   // Process portfolio data with colors
   const processedAssets = useMemo(() => {
@@ -278,7 +280,7 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
 
             <div className="flex items-center gap-2 flex-wrap">
               {/* Timeframe Selector */}
-              <Select value={selectedTimeframe} onValueChange={setSelectedTimeframe}>
+              <Select value={selectedTimeframe} onValueChange={(v) => setSelectedTimeframe(v as typeof selectedTimeframe)}>
                 <SelectTrigger className="w-20">
                   <SelectValue />
                 </SelectTrigger>
@@ -526,13 +528,13 @@ export const PortfolioChart: React.FC<PortfolioChartProps> = ({
                         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
                           <h5 className="font-medium mb-2">Best Day</h5>
                           <div className="text-2xl font-bold text-green-600">
-                            +{Math.max(...(performance?.map(p => p.pnlPercent) || [0])).toFixed(2)}%
+                            +{Math.max(...(performance?.map((p: any) => p.pnlPercent) || [0])).toFixed(2)}%
                           </div>
                         </div>
                         <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
                           <h5 className="font-medium mb-2">Worst Day</h5>
                           <div className="text-2xl font-bold text-red-600">
-                            {Math.min(...(performance?.map(p => p.pnlPercent) || [0])).toFixed(2)}%
+                            {Math.min(...(performance?.map((p: any) => p.pnlPercent) || [0])).toFixed(2)}%
                           </div>
                         </div>
                       </div>

@@ -7,12 +7,13 @@ import { RiBitCoinLine, RiArrowUpSLine, RiArrowDownSLine, RiTimeLine } from 'rea
 
 export function BitcoinInstitutionalCard() {
   const [mounted, setMounted] = useState(false)
-  const [lastUpdated, setLastUpdated] = useState(new Date())
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
   const marketData = useMarketData()
 
   // Avoid hydration issues
   useEffect(() => {
     setMounted(true)
+    setLastUpdated(new Date())
     const interval = setInterval(() => {
       setLastUpdated(new Date())
     }, 60000) // Update time every minute
@@ -73,7 +74,7 @@ export function BitcoinInstitutionalCard() {
         <div className="mt-3 flex items-center justify-between text-xs text-[#64748b]">
           <div className="flex items-center">
             <RiTimeLine className="w-3 h-3 mr-1" />
-            <span>Updated: {mounted ? lastUpdated.toLocaleString() : "01/05/2025, 22:46:42"}</span>
+            <span>Updated: {mounted && lastUpdated ? lastUpdated.toLocaleString() : '--:--:--'}</span>
           </div>
           <div>Source: On-chain Analysis</div>
         </div>

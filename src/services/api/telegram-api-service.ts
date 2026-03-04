@@ -98,8 +98,8 @@ class TelegramApiService {
         async () => this.fetchChannelMessages(channelUsername, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Telegram messages for channel ${channelUsername}`, error);
       return [];
@@ -213,8 +213,8 @@ class TelegramApiService {
         async () => this.performSearch(query, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error searching Telegram messages for "${query}"`, error);
       return [];
@@ -384,8 +384,8 @@ class TelegramApiService {
         async () => this.fetchTrendingTopics(),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error('Error getting Telegram trending topics', error);
       return [];

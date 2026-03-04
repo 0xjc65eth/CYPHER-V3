@@ -338,7 +338,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
         // Also try to fetch top collections from API to supplement defaults
         try {
           const topCollections = await this.getTopCollections(20);
-          const topCollectionIds = topCollections.map(c => c.id || c.slug).filter(Boolean);
+          const topCollectionIds = topCollections.map(c => c.id || (c as any).slug).filter(Boolean);
           // Merge defaults with API results, avoiding duplicates
           collectionsToCheck = [...new Set([...collectionsToCheck, ...topCollectionIds])];
         } catch (error) {
@@ -1108,14 +1108,14 @@ export class OrdinalsDataAggregator extends EventEmitter {
     // Use actual collection data to determine sentiment
     const volumeChanges = collections.map(c => {
       // Use real volume and floor price data when available
-      if (c.volume24h > 0 && c.floorPrice > 0) {
+      if ((c as any).volume24h > 0 && (c as any).floorPrice > 0) {
         // Positive volume with stable/rising floor = bullish signal
-        return c.volume24h > 10 ? 10 : 0;
+        return (c as any).volume24h > 10 ? 10 : 0;
       }
       return 0;
     });
 
-    const avgVolumeChange = volumeChanges.reduce((sum, change) => sum + change, 0) / volumeChanges.length;
+    const avgVolumeChange = volumeChanges.reduce((sum: number, change: number) => sum + change, 0) / volumeChanges.length;
 
     if (avgVolumeChange > 5) return 'bullish';
     if (avgVolumeChange < -5) return 'bearish';

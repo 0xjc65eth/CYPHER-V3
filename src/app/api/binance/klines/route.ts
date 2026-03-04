@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
 
     // Try Binance API endpoints (primary + fallback for geo-restricted regions)
-    let klineData = [];
+    let klineData: any[] = [];
     const endpoints = [
       `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,
       `https://data-api.binance.vision/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`,

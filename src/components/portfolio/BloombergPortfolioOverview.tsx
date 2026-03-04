@@ -43,10 +43,11 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
   const [viewMode, setViewMode] = useState<'terminal' | 'modern'>('terminal');
   const [refreshing, setRefreshing] = useState(false);
   const [liveUpdate, setLiveUpdate] = useState(true);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
 
   // Update time every second for Bloomberg Terminal feel
   useEffect(() => {
+    setCurrentTime(new Date());
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -124,8 +125,8 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
           <span className="text-blue-400">REAL-TIME</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-white">{format(currentTime, 'HH:mm:ss')}</span>
-          <span className="text-gray-400">{format(currentTime, 'MMM dd, yyyy')}</span>
+          <span className="text-white">{currentTime ? format(currentTime, 'HH:mm:ss') : '--:--:--'}</span>
+          <span className="text-gray-400">{currentTime ? format(currentTime, 'MMM dd, yyyy') : '---'}</span>
           {liveUpdate && <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
         </div>
       </div>

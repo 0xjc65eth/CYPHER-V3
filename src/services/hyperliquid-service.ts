@@ -84,10 +84,10 @@ export class HyperliquidService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${this.baseUrl}${API_CONFIG.HYPERLIQUID.ENDPOINTS.INFO}`,
-        error.status || 0,
+        (error as any).status || 0,
         'Failed to fetch Hyperliquid account info'
       );
-      
+
       return this.getMockAccountInfo();
     }
   }
@@ -114,7 +114,7 @@ export class HyperliquidService {
     } catch (error) {
       ErrorReporter.reportAPIError(
         `${this.baseUrl}${API_CONFIG.HYPERLIQUID.ENDPOINTS.INFO}`,
-        error.status || 0,
+        (error as any).status || 0,
         'Failed to fetch Hyperliquid market data'
       );
       
@@ -170,7 +170,7 @@ export class HyperliquidService {
         error as Error
       );
       
-      throw new Error(`Failed to place order: ${error.message}`);
+      throw new Error(`Failed to place order: ${(error as Error).message}`);
     }
   }
 
@@ -207,7 +207,7 @@ export class HyperliquidService {
         orderId
       });
       
-      throw new Error(`Failed to cancel order: ${error.message}`);
+      throw new Error(`Failed to cancel order: ${(error as Error).message}`);
     }
   }
 
@@ -227,7 +227,7 @@ export class HyperliquidService {
         cache: false
       });
 
-      return response.data || [];
+      return (response.data as any[]) || [];
     } catch (error) {
       ErrorReporter.report(error as Error, {
         component: 'HyperliquidService',

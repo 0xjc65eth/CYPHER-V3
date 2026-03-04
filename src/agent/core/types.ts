@@ -51,7 +51,7 @@ export interface AutoCompoundConfig {
 }
 
 export type ExchangeType = 'hyperliquid' | 'jupiter' | 'raydium' | 'uniswap' | 'ccxt';
-export type ChainType = 'evm' | 'solana' | 'bitcoin' | 'hyperliquid';
+export type ChainType = 'evm' | 'solana' | 'bitcoin' | 'hyperliquid' | 'tradfi';
 export type AssetClass = 'crypto' | 'forex' | 'stock' | 'commodity';
 
 export interface MarketConfig {

@@ -173,7 +173,7 @@ const QuickTradeInterface: React.FC<QuickTradeInterfaceProps> = ({
       }
 
       // Compare prices
-      const comparison = await priceComparator.compareQuotes(
+      const comparison = await (priceComparator as any).compareQuotes(
         quotes,
         state.tokenIn!,
         state.tokenOut!,
@@ -615,7 +615,7 @@ const QuickTradeInterface: React.FC<QuickTradeInterfaceProps> = ({
                     <CardContent className="space-y-3">
                       <Slider
                         value={[slippageTolerance]}
-                        onValueChange={(value) => setSlippageTolerance(value[0])}
+                        onValueChange={(value: number[]) => setSlippageTolerance(value[0])}
                         max={5}
                         min={0.1}
                         step={0.1}
@@ -732,20 +732,20 @@ const QuickTradeInterface: React.FC<QuickTradeInterfaceProps> = ({
                       </CardHeader>
                       <CardContent>
                         <div className="flex items-start gap-3">
-                          <Shield 
-                            className="w-5 h-5 flex-shrink-0 mt-0.5" 
-                            style={{ color: getRiskColor(state.priceComparison.recommendation.riskLevel) }}
+                          <Shield
+                            className="w-5 h-5 flex-shrink-0 mt-0.5"
+                            style={{ color: getRiskColor(state.priceComparison.recommendation.riskLevel as any) }}
                           />
                           <div>
                             <div className="text-sm text-slate-300 mb-1">
                               {state.priceComparison.recommendation.reason}
                             </div>
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className="text-xs"
-                              style={{ 
-                                borderColor: getRiskColor(state.priceComparison.recommendation.riskLevel),
-                                color: getRiskColor(state.priceComparison.recommendation.riskLevel)
+                              style={{
+                                borderColor: getRiskColor(state.priceComparison.recommendation.riskLevel as any),
+                                color: getRiskColor(state.priceComparison.recommendation.riskLevel as any)
                               }}
                             >
                               {state.priceComparison.recommendation.riskLevel.toUpperCase()} RISK

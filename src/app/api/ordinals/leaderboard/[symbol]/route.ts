@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { OKXOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+
+const okxApi = new OKXOrdinalsAPI();
 
 /**
  * Ordinals Collection Leaderboard API Route
  * GET /api/ordinals/leaderboard/[symbol]
  *
  * Returns top collectors/holders leaderboard for a collection
+ * Data source: OKX (primary) → Magic Eden (fallback)
  */
 
 interface RouteContext {
@@ -27,42 +31,65 @@ export async function GET(
       );
     }
 
-    // Get collection details
-    const [collectionResponse, statsResponse] = await Promise.all([
-      fetch(
-        `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${symbol}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'CYPHER-ORDi-Future-V3'
-          },
-          next: { revalidate: 300 }
-        }
-      ),
-      fetch(
-        `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'CYPHER-ORDi-Future-V3'
-          },
-          next: { revalidate: 60 }
-        }
-      )
-    ]);
+    // Get collection details — OKX primary, ME fallback
+    let collectionName = symbol;
+    let totalSupply = 0;
+    let floorPrice = 0;
+    let totalCollectorsFromStats = 0;
 
-    if (!collectionResponse.ok || !statsResponse.ok) {
-      throw new Error('Failed to fetch collection data');
+    try {
+      const okxCollection = await okxApi.getCollection(symbol);
+      if (okxCollection) {
+        collectionName = okxCollection.name || symbol;
+        totalSupply = okxCollection.totalSupply;
+        floorPrice = parseFloat(okxCollection.floorPrice || '0');
+        totalCollectorsFromStats = okxCollection.ownerCount;
+      }
+    } catch (error) {
+      // OKX failed, will fall through to ME
     }
 
-    const [collectionData, statsData] = await Promise.all([
-      collectionResponse.json(),
-      statsResponse.json()
-    ]);
+    // Fallback to Magic Eden if OKX didn't return data
+    if (totalSupply === 0 && floorPrice === 0) {
+      try {
+        const [collectionResponse, statsResponse] = await Promise.all([
+          fetch(
+            `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${symbol}`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'CYPHER-ORDi-Future-V3'
+              },
+              next: { revalidate: 300 }
+            }
+          ),
+          fetch(
+            `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'CYPHER-ORDi-Future-V3'
+              },
+              next: { revalidate: 60 }
+            }
+          )
+        ]);
 
-    const collectionName = collectionData.name || symbol;
-    const totalSupply = parseInt(statsData.supply || '0');
-    const floorPrice = parseFloat(statsData.floorPrice || '0');
+        if (collectionResponse.ok && statsResponse.ok) {
+          const [collectionData, statsData] = await Promise.all([
+            collectionResponse.json(),
+            statsResponse.json()
+          ]);
+
+          collectionName = collectionData.name || symbol;
+          totalSupply = parseInt(statsData.supply || '0');
+          floorPrice = parseFloat(statsData.floorPrice || '0');
+          totalCollectorsFromStats = parseInt(statsData.owners || '0');
+        }
+      } catch (error) {
+        // Both sources failed, continue with defaults
+      }
+    }
 
     // Get holder data
     let topCollectors: any[] = [];
@@ -105,58 +132,98 @@ export async function GET(
       }
     } catch (error) {
 
-      // Fallback: use Magic Eden owner count as total collectors
-      totalCollectors = parseInt(statsData.owners || '0');
+      // Fallback: use owner count from stats as total collectors
+      totalCollectors = totalCollectorsFromStats;
     }
 
-    // If we don't have holder data, try Magic Eden wallet activities to infer top collectors
+    // If we don't have holder data, try OKX activities first, then ME as fallback
     if (topCollectors.length === 0) {
+      let activities: any[] = [];
+
+      // Try OKX first
       try {
-        const activitiesResponse = await fetch(
-          `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?collectionSymbol=${symbol}&limit=500`,
-          {
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'CYPHER-ORDi-Future-V3'
-            },
-            next: { revalidate: 60 }
-          }
-        );
-
-        if (activitiesResponse.ok) {
-          const activities = await activitiesResponse.json();
-
-          // Count inscriptions per address from activities
+        const okxResult = await okxApi.getCollectionActivity(symbol, undefined, 500);
+        if (okxResult.activities && okxResult.activities.length > 0) {
+          // Count inscriptions per address from OKX activities
           const addressCounts = new Map<string, number>();
 
-          if (Array.isArray(activities)) {
-            activities.forEach((activity: any) => {
-              const address = activity.buyer || activity.toAddress;
-              if (address) {
-                addressCounts.set(address, (addressCounts.get(address) || 0) + 1);
-              }
+          okxResult.activities.forEach((activity) => {
+            const address = activity.type === 'BUY' ? activity.toAddress : activity.toAddress;
+            if (address) {
+              addressCounts.set(address, (addressCounts.get(address) || 0) + 1);
+            }
+          });
+
+          topCollectors = Array.from(addressCounts.entries())
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, limit)
+            .map(([address, count], index) => {
+              const percentage = totalSupply > 0 ? (count / totalSupply) * 100 : 0;
+              const estimatedValue = count * floorPrice;
+
+              return {
+                rank: index + 1,
+                address,
+                inscriptionCount: count,
+                percentage,
+                estimatedValue,
+                badges: getCollectorBadges(index + 1, count, percentage, totalSupply)
+              };
             });
-
-            // Sort by count and create leaderboard
-            topCollectors = Array.from(addressCounts.entries())
-              .sort(([, a], [, b]) => b - a)
-              .slice(0, limit)
-              .map(([address, count], index) => {
-                const percentage = totalSupply > 0 ? (count / totalSupply) * 100 : 0;
-                const estimatedValue = count * floorPrice;
-
-                return {
-                  rank: index + 1,
-                  address,
-                  inscriptionCount: count,
-                  percentage,
-                  estimatedValue,
-                  badges: getCollectorBadges(index + 1, count, percentage, totalSupply)
-                };
-              });
-          }
         }
       } catch (error) {
+        // OKX activities failed, will fall through to ME
+      }
+
+      // Fallback to Magic Eden if OKX didn't produce results
+      if (topCollectors.length === 0) {
+        try {
+          const activitiesResponse = await fetch(
+            `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?collectionSymbol=${symbol}&limit=500`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'CYPHER-ORDi-Future-V3'
+              },
+              next: { revalidate: 60 }
+            }
+          );
+
+          if (activitiesResponse.ok) {
+            activities = await activitiesResponse.json();
+
+            // Count inscriptions per address from activities
+            const addressCounts = new Map<string, number>();
+
+            if (Array.isArray(activities)) {
+              activities.forEach((activity: any) => {
+                const address = activity.buyer || activity.toAddress;
+                if (address) {
+                  addressCounts.set(address, (addressCounts.get(address) || 0) + 1);
+                }
+              });
+
+              // Sort by count and create leaderboard
+              topCollectors = Array.from(addressCounts.entries())
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, limit)
+                .map(([address, count], index) => {
+                  const percentage = totalSupply > 0 ? (count / totalSupply) * 100 : 0;
+                  const estimatedValue = count * floorPrice;
+
+                  return {
+                    rank: index + 1,
+                    address,
+                    inscriptionCount: count,
+                    percentage,
+                    estimatedValue,
+                    badges: getCollectorBadges(index + 1, count, percentage, totalSupply)
+                  };
+                });
+            }
+          }
+        } catch (error) {
+        }
       }
     }
 

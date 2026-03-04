@@ -161,7 +161,15 @@ export class PortfolioAnalytics {
     attribution: AttributionAnalysis;
   }> {
     const cacheKey = `portfolio-analysis-${JSON.stringify(holdings.map(h => h.inscriptionId))}-${benchmarkType}`;
-    const cached = this.getCached(cacheKey);
+    const cached = this.getCached<{
+      metrics: PortfolioMetrics;
+      performance: PerformanceMetrics;
+      risk: RiskMetrics;
+      allocation: PortfolioAllocation[];
+      optimization: PortfolioOptimization;
+      benchmark: BenchmarkComparison;
+      attribution: AttributionAnalysis;
+    }>(cacheKey);
     if (cached) return cached;
 
     try {
@@ -179,9 +187,9 @@ export class PortfolioAnalytics {
         this.calculatePerformanceMetrics(holdings, transactions),
         this.calculateRiskMetrics(holdings, transactions),
         this.calculateAllocation(holdings),
-        this.optimizePortfolio(holdings, transactions),
-        this.compareToBenchmark(holdings, transactions, benchmarkType),
-        this.performAttributionAnalysis(holdings, transactions)
+        (this as any).optimizePortfolio(holdings, transactions),
+        (this as any).compareToBenchmark(holdings, transactions, benchmarkType),
+        (this as any).performAttributionAnalysis(holdings, transactions)
       ]);
 
       const result = {
@@ -550,8 +558,8 @@ export class PortfolioAnalytics {
       totalReturn: returns.total,
       totalReturnPercentage: returns.percentage,
       annualizedReturn: this.annualizeReturn(returns.percentage, returns.periodDays),
-      sharpeRatio: this.calculateSharpeRatio(returns.periodic, riskFreeRate),
-      sortinRatio: this.calculateSortinRatio(returns.periodic, riskFreeRate),
+      sharpeRatio: await (this as any).calculateSharpeRatio(returns.periodic, riskFreeRate),
+      sortinRatio: await (this as any).calculateSortinRatio(returns.periodic, riskFreeRate),
       calmarRatio: this.calculateCalmarRatio(returns.annualized, await this.calculateMaxDrawdown(holdings, transactions)),
       maxDrawdown: await this.calculateMaxDrawdown(holdings, transactions),
       currentDrawdown: await this.calculateCurrentDrawdown(holdings, transactions),
@@ -624,7 +632,7 @@ export class PortfolioAnalytics {
       // Calculate risk score based on collection analysis
       try {
         const analysis = await this.analytics.analyzeCollection(allocation.collectionId);
-        allocation.riskScore = analysis ? 100 - analysis.riskMetrics.overallRisk : 50;
+        allocation.riskScore = analysis ? 100 - Number(analysis.riskMetrics.overallRisk) : 50;
       } catch {
         allocation.riskScore = 50;
       }

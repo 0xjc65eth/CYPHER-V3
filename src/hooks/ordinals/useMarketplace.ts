@@ -106,7 +106,7 @@ export function useMarketplace() {
   // MUTATIONS (Trading Operations)
   // ──────────────────────────────────────────────────────────────────────────
 
-  const postMarketAction = async (action: string, params: Record<string, unknown>) => {
+  const postMarketAction = async (action: string, params: Record<string, unknown> | PutOnParams | ConfirmParams | BidParams) => {
     const response = await fetch('/api/ordinals/trade/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -203,7 +203,7 @@ export function useMarketplace() {
     if (!actionsArr.length && !listingsArr.length) return null
 
     const sales = actionsArr.filter((a) => a.type === 'sale')
-    const listings = actionsArr.filter((a) => a.type === 'list' || a.type === 'listing')
+    const listings = actionsArr.filter((a) => (a.type as string) === 'list' || (a.type as string) === 'listing')
     const totalVolume = sales.reduce((sum, s) => sum + (s.price || 0), 0)
     const avgSalePrice = sales.length > 0 ? totalVolume / sales.length : 0
 

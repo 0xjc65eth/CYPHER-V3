@@ -174,7 +174,7 @@ const EnhancedTokenSelector: React.FC<EnhancedTokenSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<'popular' | 'all' | 'favorites' | 'recent'>('popular')
   const [sortBy, setSortBy] = useState<'marketcap' | 'volume' | 'price' | 'name'>('marketcap')
-  const [lastRefresh, setLastRefresh] = useState(Date.now())
+  const [lastRefresh, setLastRefresh] = useState(0)
 
   // Use asset management hook
   const {
@@ -307,6 +307,10 @@ const EnhancedTokenSelector: React.FC<EnhancedTokenSelectorProps> = ({
   }
 
   // Auto refresh effect
+  useEffect(() => {
+    setLastRefresh(Date.now())
+  }, [])
+
   useEffect(() => {
     if (!autoRefresh) return
 
@@ -562,7 +566,7 @@ const EnhancedTokenSelector: React.FC<EnhancedTokenSelectorProps> = ({
               </div>
               <div className="flex items-center gap-1 text-slate-500">
                 <Clock className="w-3 h-3" />
-                <span>Updated {Math.floor((Date.now() - lastRefresh) / 1000)}s ago</span>
+                <span>{lastRefresh > 0 ? `Updated ${Math.floor((Date.now() - lastRefresh) / 1000)}s ago` : 'Updating...'}</span>
               </div>
             </div>
           </div>

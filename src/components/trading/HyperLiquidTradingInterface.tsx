@@ -72,7 +72,7 @@ const HyperLiquidTradingInterface: React.FC = () => {
   // Current price for selected asset
   const currentPrice = useMemo(() => {
     if (!prices || !orderData.asset) return 0;
-    return prices[orderData.asset]?.price || 0;
+    return (prices as any)[orderData.asset]?.price || 0;
   }, [prices, orderData.asset]);
 
   // Calculate estimated costs and risks
@@ -277,7 +277,7 @@ const HyperLiquidTradingInterface: React.FC = () => {
                   <div className="mt-2">
                     <Slider
                       value={[orderData.leverage]}
-                      onValueChange={(value) => updateOrderData('leverage', value[0])}
+                      onValueChange={(value: number[]) => updateOrderData('leverage', value[0])}
                       max={50}
                       min={1}
                       step={1}

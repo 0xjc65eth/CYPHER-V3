@@ -226,7 +226,7 @@ export class YieldFarmingEngine extends EventEmitter {
         pools = pools.filter(pool => pool.protocol === filters.protocol);
       }
       if (filters.minApy) {
-        pools = pools.filter(pool => pool.apy >= filters.minApy);
+        pools = pools.filter(pool => pool.apy >= filters.minApy!);
       }
       if (filters.maxRisk) {
         const riskLevels = { low: 1, medium: 2, high: 3 };
@@ -234,7 +234,7 @@ export class YieldFarmingEngine extends EventEmitter {
         pools = pools.filter(pool => riskLevels[pool.risks.overall] <= maxLevel);
       }
       if (filters.minTvl) {
-        pools = pools.filter(pool => pool.tvl >= filters.minTvl);
+        pools = pools.filter(pool => pool.tvl >= filters.minTvl!);
       }
       if (filters.tokens && filters.tokens.length > 0) {
         pools = pools.filter(pool => 
@@ -602,7 +602,7 @@ export class YieldFarmingEngine extends EventEmitter {
         apy: 15 + Math.random() * 20,
         tvl: 1000000 + Math.random() * 5000000,
         dailyVolume: 500000 + Math.random() * 1000000,
-        fees: config.fees,
+        fees: { ...config.fees, performance: (config.fees as any).performance || 0 } as any,
         risks: {
           impermanentLoss: Math.random() * 10,
           smartContract: Math.random() * 5,

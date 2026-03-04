@@ -374,7 +374,7 @@ export class UniswapConnector extends BaseConnector {
     return {
       id: `uni_lp_${this.chainId}_${tokenId}`,
       pair: `${params.token0}/${params.token1}`,
-      protocol: 'uniswap-v3',
+      protocol: 'uniswap-v4' as const,
       tickLower: params.tickLower,
       tickUpper: params.tickUpper,
       liquidity: params.amount0 + params.amount1,

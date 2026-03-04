@@ -138,14 +138,14 @@ export const createInscriptionsSendPsbt = async ({
         hash: txHash,
         index: parseInt(vout),
         witnessUtxo: {
-          value: BigInt(value),
+          value: Number(BigInt(value)),
           script
         },
         tapInternalKey: toXOnly(Buffer.from(fromAddressPublicKey, 'hex')),
       })
 
       psbt.addOutput({
-        value: BigInt(value),
+        value: Number(BigInt(value)),
         address: toAddress,
       })
       counter++
@@ -164,7 +164,7 @@ export const createInscriptionsSendPsbt = async ({
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: {
-            value: BigInt(utxo.value),
+            value: Number(BigInt(utxo.value)),
             script,
           },
           tapInternalKey: toXOnly(Buffer.from(fromPaymentPublicKey, 'hex')),
@@ -177,7 +177,7 @@ export const createInscriptionsSendPsbt = async ({
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: {
-            value: BigInt(utxo.value),
+            value: Number(BigInt(utxo.value)),
             script,
           },
           redeemScript,
@@ -189,7 +189,7 @@ export const createInscriptionsSendPsbt = async ({
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: {
-            value: BigInt(utxo.value),
+            value: Number(BigInt(utxo.value)),
             script,
           },
         })
@@ -200,7 +200,7 @@ export const createInscriptionsSendPsbt = async ({
 
     psbt.addOutput({
       address: fromAddress,
-      value: BigInt(changeAmount),
+      value: Number(BigInt(changeAmount)),
     })
 
     return { psbtBase64: psbt.toBase64(), psbtHex: psbt.toHex() }

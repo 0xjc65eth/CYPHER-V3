@@ -26,6 +26,16 @@ interface DynamicChartProps {
   height?: number;
 }
 
-export const DynamicChart: React.FC<DynamicChartProps> = (props) => {
-  return <LightweightChart {...props} />;
+export const DynamicChart: React.FC<DynamicChartProps> = ({ symbol, interval, height }) => {
+  return (
+    <LightweightChart
+      type="line"
+      data={[]}
+      config={{
+        title: symbol,
+        height: height || 300,
+        theme: 'dark',
+      }}
+    />
+  );
 };

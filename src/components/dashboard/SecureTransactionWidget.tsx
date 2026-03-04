@@ -46,7 +46,7 @@ export default function SecureTransactionWidget() {
     switch (action) {
       case 'claim-rewards':
         transaction = await createTransaction('transfer', {
-          to: wallet.address, // Self-transfer for demo
+          to: wallet.address ?? undefined, // Self-transfer for demo
           amount: 1000000, // 0.01 BTC
           message: 'Claim trading rewards'
         })

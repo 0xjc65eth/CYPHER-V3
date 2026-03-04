@@ -2,19 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-// Declarações de tipos para carteiras Web3
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      isMetaMask?: boolean;
-    };
-    solana?: {
-      isPhantom?: boolean;
-      connect: () => Promise<{ publicKey: { toString: () => string } }>;
-    };
-  }
-}
+// Window types already declared in global.d.ts
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

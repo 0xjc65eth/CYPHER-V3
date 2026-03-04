@@ -136,7 +136,7 @@ export const createRuneSendPsbt = async ({
         hash: txHash,
         index: parseInt(txIndex),
         witnessUtxo: {
-          value: BigInt(value),
+          value: Number(BigInt(value)),
           script: Buffer.from(script, 'hex'),
         },
         tapInternalKey: toXOnly(Buffer.from(fromAddressPublicKey, 'hex')),
@@ -159,7 +159,7 @@ export const createRuneSendPsbt = async ({
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: {
-            value: BigInt(utxo.value),
+            value: Number(BigInt(utxo.value)),
             script,
           },
           tapInternalKey: toXOnly(Buffer.from(fromPaymentPublicKey, 'hex')),
@@ -172,7 +172,7 @@ export const createRuneSendPsbt = async ({
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: {
-            value: BigInt(utxo.value),
+            value: Number(BigInt(utxo.value)),
             script,
           },
           redeemScript,
@@ -184,7 +184,7 @@ export const createRuneSendPsbt = async ({
           hash: utxo.txid,
           index: utxo.vout,
           witnessUtxo: {
-            value: BigInt(utxo.value),
+            value: Number(BigInt(utxo.value)),
             script,
           },
         })
@@ -199,25 +199,25 @@ export const createRuneSendPsbt = async ({
       pointer: 1,
     })
 
-    const output = { script: script, value: BigInt(0) }
+    const output = { script: script, value: Number(BigInt(0)) }
     psbt.addOutput(output)
 
     const inscriptionSats = 546
     const changeAmount = amountGathered - (finalFee + inscriptionSats * 2)
 
     psbt.addOutput({
-      value: BigInt(inscriptionSats),
+      value: Number(BigInt(inscriptionSats)),
       address: fromAddress,
     })
 
     psbt.addOutput({
-      value: BigInt(inscriptionSats),
+      value: Number(BigInt(inscriptionSats)),
       address: toAddress,
     })
 
     psbt.addOutput({
       address: fromAddress,
-      value: BigInt(changeAmount),
+      value: Number(BigInt(changeAmount)),
     })
 
     return { psbtBase64: psbt.toBase64(), psbtHex: psbt.toHex() }
@@ -262,7 +262,7 @@ export const createRuneMintPsbt = async ({
         hash: utxo.txid,
         index: utxo.vout,
         witnessUtxo: {
-          value: BigInt(utxo.value),
+          value: Number(BigInt(utxo.value)),
           script,
         },
       })
@@ -273,19 +273,19 @@ export const createRuneMintPsbt = async ({
       pointer: 1,
     })
 
-    const output = { script: script, value: BigInt(0) }
+    const output = { script: script, value: Number(BigInt(0)) }
     psbt.addOutput(output)
 
     const changeAmount = amountRetrieved - (finalFee + inscriptionSats)
 
     psbt.addOutput({
-      value: BigInt(inscriptionSats),
+      value: Number(BigInt(inscriptionSats)),
       address: address,
     })
 
     psbt.addOutput({
       address: address,
-      value: BigInt(changeAmount),
+      value: Number(BigInt(changeAmount)),
     })
 
     return { psbt: psbt.toBase64() }

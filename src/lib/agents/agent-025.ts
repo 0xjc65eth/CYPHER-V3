@@ -93,9 +93,9 @@ export class Agent025_AutoTrading extends EventEmitter {
       // Create order
       const order = await this.tradingEngine!.createOrder({
         symbol: signal.symbol,
-        side: signal.action === 'BUY' ? 'BUY' : 'SELL',
-        type: 'MARKET',
-        amount: positionSize,
+        side: signal.action === 'BUY' ? 'buy' : 'sell',
+        type: 'market',
+        quantity: positionSize,
         price: signal.price
       });
 

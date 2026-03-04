@@ -158,6 +158,9 @@ export function TradingChartSystem({
           type: 'volume'
         },
         priceScaleId: '',
+      });
+
+      chart.priceScale('').applyOptions({
         scaleMargins: {
           top: 0.8,
           bottom: 0

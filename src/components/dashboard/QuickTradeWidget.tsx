@@ -133,16 +133,16 @@ export function QuickTradeWidget() {
       } else if (selectedNetwork === 'ethereum') {
         // Link direto para Uniswap
         targetUrl = `https://app.uniswap.org/#/swap?inputCurrency=${fromToken}&outputCurrency=${toToken}&exactAmount=${calculatedAmount}`
-      } else if (selectedNetwork === 'arbitrum') {
+      } else if ((selectedNetwork as string) === 'arbitrum') {
         // Link direto para Uniswap no Arbitrum
         targetUrl = `https://app.uniswap.org/#/swap?chain=arbitrum&inputCurrency=${fromToken}&outputCurrency=${toToken}&exactAmount=${calculatedAmount}`
-      } else if (selectedNetwork === 'optimism') {
+      } else if ((selectedNetwork as string) === 'optimism') {
         // Link direto para Uniswap no Optimism
         targetUrl = `https://app.uniswap.org/#/swap?chain=optimism&inputCurrency=${fromToken}&outputCurrency=${toToken}&exactAmount=${calculatedAmount}`
-      } else if (selectedNetwork === 'polygon') {
+      } else if ((selectedNetwork as string) === 'polygon') {
         // Link direto para Uniswap no Polygon
         targetUrl = `https://app.uniswap.org/#/swap?chain=polygon&inputCurrency=${fromToken}&outputCurrency=${toToken}&exactAmount=${calculatedAmount}`
-      } else if (selectedNetwork === 'base') {
+      } else if ((selectedNetwork as string) === 'base') {
         // Link direto para Uniswap no Base
         targetUrl = `https://app.uniswap.org/#/swap?chain=base&inputCurrency=${fromToken}&outputCurrency=${toToken}&exactAmount=${calculatedAmount}`
       } else if (selectedNetwork === 'bsc') {
@@ -157,13 +157,12 @@ export function QuickTradeWidget() {
       }
       
       // Tentar gerar deep link personalizado como backup
-      const deepLink = generateSwapDeeplink(
-        platform,
+      const deepLink = generateSwapDeeplink({
         fromToken,
         toToken,
-        calculatedAmount,
-        chainType
-      )
+        fromChain: chainType,
+        amount: calculatedAmount,
+      })
 
       console.log('🔗 Trading options:', {
         platform,

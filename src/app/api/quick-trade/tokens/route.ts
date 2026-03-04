@@ -157,7 +157,7 @@ export async function GET(request: NextRequest) {
     }
 
     const numericChainId = parseInt(chainId)
-    let tokens = TOKEN_REGISTRY[numericChainId as keyof typeof TOKEN_REGISTRY] || []
+    let tokens: any[] = TOKEN_REGISTRY[numericChainId as keyof typeof TOKEN_REGISTRY] || []
 
     // Filter by search query
     if (search) {

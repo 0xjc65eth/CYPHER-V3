@@ -3,7 +3,12 @@
  * Motor de estratégias de trading com múltiplas técnicas
  */
 
-import { MarketData } from './AutomatedTradingEngine';
+interface MarketData {
+  price: number;
+  volume: number;
+  [key: string]: any;
+}
+
 export interface TechnicalSignal {
   action: 'buy' | 'sell' | 'hold';
   strength: number; // 0-1

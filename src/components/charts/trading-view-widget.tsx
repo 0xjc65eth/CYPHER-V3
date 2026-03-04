@@ -80,11 +80,6 @@ function TradingViewWidget({
   );
 }
 
-// Add TradingView to Window interface
-declare global {
-  interface Window {
-    TradingView: any;
-  }
-}
+// TradingView Window interface declared in TradingViewWidget.tsx
 
 export default memo(TradingViewWidget);

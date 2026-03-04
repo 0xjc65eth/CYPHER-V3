@@ -363,13 +363,13 @@ async function handleRunesMarketData(request: NextRequest): Promise<NextResponse
     if (!validationResult.success) {
       return NextResponse.json(
         createErrorResponse('Invalid request parameters', {
-          errors: validationResult.error.errors
+          errors: (validationResult as any).error?.errors || []
         }),
         { status: 400, headers: corsHeaders }
       );
     }
 
-    const runesRequest = validationResult.data;
+    const runesRequest = validationResult.data as NonNullable<typeof validationResult.data>;
 
     // Use cache if still fresh
     let runesData: RuneMarketData[];

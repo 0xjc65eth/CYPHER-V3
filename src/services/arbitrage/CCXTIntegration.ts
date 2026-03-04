@@ -4,7 +4,7 @@
  * Provides real-time price feeds, order book depth, and trade execution
  */
 
-import ccxt from 'ccxt';
+import ccxt, { type Exchange as CCXTExchange, type Ticker as CCXTTicker } from 'ccxt';
 import { cache } from '@/lib/cache/redis.config';
 
 export interface ExchangePrice {
@@ -43,7 +43,7 @@ export interface ExchangeInfo {
 }
 
 class CCXTIntegration {
-  private exchanges: Map<string, ccxt.Exchange> = new Map();
+  private exchanges: Map<string, CCXTExchange> = new Map();
   private readonly CACHE_TTL = 10; // 10 seconds for price data
   private readonly ORDERBOOK_CACHE_TTL = 30; // 30 seconds for order books
 
@@ -81,7 +81,7 @@ class CCXTIntegration {
   private async initializeExchanges() {
     for (const exchangeId of this.SUPPORTED_EXCHANGES) {
       try {
-        const ExchangeClass = ccxt[exchangeId as keyof typeof ccxt] as typeof ccxt.Exchange;
+        const ExchangeClass = ccxt[exchangeId as keyof typeof ccxt] as typeof CCXTExchange;
         if (!ExchangeClass) {
           // Exchange not found in CCXT - skip
           continue;
@@ -109,13 +109,13 @@ class CCXTIntegration {
    * Get list of initialized exchanges
    */
   getExchanges(): ExchangeInfo[] {
-    return Array.from(this.exchanges.values()).map(exchange => ({
+    return Array.from(this.exchanges.values()).map((exchange): ExchangeInfo => ({
       id: exchange.id,
-      name: exchange.name,
+      name: exchange.name as string,
       active: true,
-      hasFetchTickers: exchange.has['fetchTickers'],
-      hasFetchOrderBook: exchange.has['fetchOrderBook'],
-      hasFetchTrades: exchange.has['fetchTrades'],
+      hasFetchTickers: !!exchange.has['fetchTickers'],
+      hasFetchOrderBook: !!exchange.has['fetchOrderBook'],
+      hasFetchTrades: !!exchange.has['fetchTrades'],
       fees: {
         trading: {
           maker: exchange.fees.trading.maker || 0.001,
@@ -128,7 +128,7 @@ class CCXTIntegration {
   /**
    * Fetch ticker (price) for a single symbol from a specific exchange
    */
-  async fetchTicker(exchangeId: string, symbol: string): Promise<ccxt.Ticker | null> {
+  async fetchTicker(exchangeId: string, symbol: string): Promise<CCXTTicker | null> {
     const cacheKey = `ticker:${exchangeId}:${symbol}`;
 
     // Check cache first
@@ -236,7 +236,7 @@ class CCXTIntegration {
   /**
    * Fetch all tickers from a single exchange (for triangular arbitrage)
    */
-  async fetchAllTickers(exchangeId: string): Promise<Map<string, ccxt.Ticker>> {
+  async fetchAllTickers(exchangeId: string): Promise<Map<string, CCXTTicker>> {
     const cacheKey = `tickers:all:${exchangeId}`;
 
     // Check cache first
@@ -264,7 +264,7 @@ class CCXTIntegration {
       const tickers = await exchange.fetchTickers();
 
       // Convert to Map
-      const tickerMap = new Map<string, ccxt.Ticker>(Object.entries(tickers));
+      const tickerMap = new Map<string, CCXTTicker>(Object.entries(tickers));
 
       // Cache the result (convert Map to object for JSON)
       const cacheData = Object.fromEntries(tickerMap);

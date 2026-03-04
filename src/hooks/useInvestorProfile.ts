@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 
 interface InvestorProfileData {
-  profile: 'Safe' | 'Moderate' | 'Degen' | 'Degen LFG'
+  profile: 'Unknown' | 'Safe' | 'Moderate' | 'Degen' | 'Degen LFG'
   riskTolerance: number // 0-100
   timeHorizon: number // 0-100
   diversity: number // 0-100

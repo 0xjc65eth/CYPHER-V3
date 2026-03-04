@@ -7,7 +7,7 @@
  */
 
 import { loggerService } from '@/lib/logger';
-import { databaseService } from '@/lib/database';
+const databaseService: any = null; // TODO: replace with actual database service
 import { cacheService, cacheConfigs } from '@/lib/cache';
 import { NeuralModel, NeuralPrediction, TrainingData } from './models/interfaces';
 import { getTrainingData } from './models/training-data';

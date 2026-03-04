@@ -29,7 +29,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `inscriptions:${JSON.stringify({ ...params, limit, offset })}`
 
     // Check cache
-    const cached = this.cache.get<InscriptionsListResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as InscriptionsListResponse | null
     if (cached) return cached
 
     // Make request
@@ -67,7 +67,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `inscription:${inscriptionId}`
 
     // Check cache
-    const cached = this.cache.get<Inscription>(cacheKey)
+    const cached = this.cache.get(cacheKey) as Inscription | null
     if (cached) return cached
 
     // Make request
@@ -88,7 +88,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `content:${inscriptionId}`
 
     // Check cache
-    const cached = this.cache.get<InscriptionContent>(cacheKey)
+    const cached = this.cache.get(cacheKey) as InscriptionContent | null
     if (cached) return cached
 
     // Make request
@@ -113,7 +113,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `transfers:${inscriptionId}:${limit}:${offset}`
 
     // Check cache
-    const cached = this.cache.get<InscriptionTransfersResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as InscriptionTransfersResponse | null
     if (cached) return cached
 
     // Make request
@@ -142,7 +142,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = 'stats:global'
 
     // Check cache
-    const cached = this.cache.get<InscriptionStats>(cacheKey)
+    const cached = this.cache.get(cacheKey) as InscriptionStats | null
     if (cached) return cached
 
     // Make request
@@ -191,7 +191,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `latest:${limit}`
 
     // Check cache
-    const cached = this.cache.get<Inscription[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as Inscription[] | null
     if (cached) return cached
 
     // Make request
@@ -219,7 +219,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `popular:${period}:${limit}`
 
     // Check cache
-    const cached = this.cache.get<Inscription[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as Inscription[] | null
     if (cached) return cached
 
     // Make request
@@ -243,7 +243,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `search:${query}:${JSON.stringify(params)}`
 
     // Check cache
-    const cached = this.cache.get<InscriptionsListResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as InscriptionsListResponse | null
     if (cached) return cached
 
     // Make request
@@ -268,7 +268,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `collection:${collectionId}:${limit}:${offset}`
 
     // Check cache
-    const cached = this.cache.get<InscriptionsListResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as InscriptionsListResponse | null
     if (cached) return cached
 
     // Make request
@@ -296,7 +296,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const cacheKey = `activity:${JSON.stringify({ ...params, limit, offset })}`
 
     // Check cache
-    const cached = this.cache.get<any>(cacheKey)
+    const cached = this.cache.get(cacheKey)
     if (cached) return cached
 
     // Make request
@@ -328,7 +328,7 @@ export class HiroOrdinalsAPI extends HiroAPIBase {
     const uncachedIds: string[] = []
     
     for (const id of inscriptionIds) {
-      const cached = this.cache.get<Inscription>(`inscription:${id}`)
+      const cached = this.cache.get(`inscription:${id}`) as Inscription | null
       if (cached) {
         results.set(id, cached)
       } else {

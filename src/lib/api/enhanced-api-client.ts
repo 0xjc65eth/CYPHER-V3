@@ -46,8 +46,8 @@ class EnhancedApiClient {
       endpoint,
       method,
       requestId,
-      userId: this.getUserId(),
-      sessionId: this.getSessionId(),
+      userId: this.getUserId() ?? undefined,
+      sessionId: this.getSessionId() ?? undefined,
       requestBody: data,
       headers: { ...this.defaultHeaders, ...config.headers }
     }

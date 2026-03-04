@@ -613,7 +613,7 @@ export class FeatureEngineer extends EventEmitter {
     // Non-linear transformations
     this.transformers.set('log', (data: number[]) => data.map(x => Math.log(Math.abs(x) + 1)));
     this.transformers.set('sqrt', (data: number[]) => data.map(x => Math.sqrt(Math.abs(x))));
-    this.transformers.set('polynomial', (data: number[], degree: number) => this.polynomialFeatures(data, degree));
+    this.transformers.set('polynomial', (data: number[], degree: number) => this.polynomialFeatures([data], degree) as any);
     
     // Interaction features
     this.transformers.set('interaction', (data1: number[], data2: number[]) => 

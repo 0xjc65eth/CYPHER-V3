@@ -215,7 +215,7 @@ export class AdvancedPathfinder {
       // Verificar se chegamos ao destino
       if (current.node.id === toNode.id && current.path.length > 0) {
         const path = this.reconstructPath(fromNode, current.node, previous)
-        if (path && this.isValidPath(path, current.path, options)) {
+        if (path && this.isValidPath(path.nodes, current.path, options)) {
           results.push(this.createPathfindingResult(
             path.nodes,
             current.path,
@@ -300,7 +300,7 @@ export class AdvancedPathfinder {
       // Verificar se chegamos ao objetivo
       if (current.node.id === toNode.id && current.path.length > 0) {
         const path = this.reconstructPath(fromNode, current.node, cameFrom)
-        if (path && this.isValidPath(path, current.path, options)) {
+        if (path && this.isValidPath(path.nodes, current.path, options)) {
           results.push(this.createPathfindingResult(
             path.nodes,
             current.path,
@@ -985,7 +985,7 @@ export class AdvancedPathfinder {
   }
 
   private estimateGasForDEX(dex: DEXType): number {
-    const gasEstimates = {
+    const gasEstimates: Partial<Record<DEXType, number>> = {
       [DEXType.UNISWAP_V2]: 150000,
       [DEXType.UNISWAP_V3]: 180000,
       [DEXType.SUSHISWAP]: 150000,
@@ -997,7 +997,7 @@ export class AdvancedPathfinder {
   }
 
   private getReliabilityForDEX(dex: DEXType): number {
-    const reliability = {
+    const reliability: Partial<Record<DEXType, number>> = {
       [DEXType.UNISWAP_V2]: 95,
       [DEXType.UNISWAP_V3]: 95,
       [DEXType.SUSHISWAP]: 90,

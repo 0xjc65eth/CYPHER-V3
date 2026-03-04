@@ -53,7 +53,7 @@ export function SmcChart({ candles, smcResult, overlays, signals = [], height = 
   const chartRef = useRef<IChartApi | null>(null)
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null)
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'> | null>(null)
-  const markersRef = useRef<ReturnType<typeof createSeriesMarkers> | null>(null)
+  const markersRef = useRef<import('lightweight-charts').ISeriesMarkersPluginApi<Time> | null>(null)
   const candlesRef = useRef<SmcCandle[]>([])
 
   // Keep candles ref in sync for crosshair callback

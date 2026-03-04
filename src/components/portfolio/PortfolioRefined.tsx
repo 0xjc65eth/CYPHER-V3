@@ -54,7 +54,7 @@ import {
 import { format, subDays, formatDistanceToNow, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import {
-  LineChart,
+  LineChart as RechartsLineChart,
   Line as RechartsLine,
   XAxis,
   YAxis,
@@ -376,7 +376,10 @@ export function PortfolioRefined() {
     }
   ]);
 
-  const [portfolioChart, setPortfolioChart] = useState({
+  const [portfolioChart, setPortfolioChart] = useState<{
+    labels: string[];
+    datasets: { label: string; data: number[]; borderColor: string; backgroundColor: string; fill: boolean; tension: number; }[];
+  }>({
     labels: [],
     datasets: []
   });
@@ -1019,7 +1022,7 @@ export function PortfolioRefined() {
                   </div>
                 ) : portfolioChart.datasets.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={portfolioChart.labels.map((label: string, i: number) => ({
+                    <RechartsLineChart data={portfolioChart.labels.map((label: string, i: number) => ({
                       name: label,
                       value: portfolioChart.datasets[0]?.data[i] ?? 0
                     }))}>
@@ -1028,7 +1031,7 @@ export function PortfolioRefined() {
                       <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} />
                       <RechartsTooltip contentStyle={{ backgroundColor: 'rgba(0,0,0,0.9)', border: '1px solid #333', color: '#fff' }} />
                       <RechartsLine type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                    </LineChart>
+                    </RechartsLineChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">

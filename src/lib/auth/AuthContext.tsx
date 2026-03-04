@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const loadSession = async () => {
       try {
-        const { session: currentSession } = await authHelpers.getSession();
+        const { session: currentSession } = await authHelpers.getSession() as any;
         
         if (currentSession) {
           setSession(currentSession);
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadSession();
 
     // Listener para mudanças de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: any, session: any) => {
       devLogger.log('AUTH', 'Auth state changed', { event });
       
       if (session) {
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Carregar perfil do usuário
   const loadUserProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('id', userId)
@@ -112,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Criar perfil inicial do usuário
   const createUserProfile = async (userId: string): Promise<UserProfile> => {
-    const { user } = await authHelpers.getCurrentUser();
+    const { user } = await authHelpers.getCurrentUser() as any;
     
     const newProfile: Partial<UserProfile> = {
       id: userId,
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       beta_tester: false,
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('profiles')
       .insert(newProfile)
       .select()
@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
-    return data;
+    return data as UserProfile;
   };
 
   // Funções de autenticação

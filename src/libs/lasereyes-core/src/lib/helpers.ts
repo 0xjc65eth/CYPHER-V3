@@ -136,7 +136,7 @@ export async function createSendBtcPsbt(
       index: vout,
       witnessUtxo: {
         script,
-        value: BigInt(value),
+        value: BigInt(value) as unknown as number,
       },
     })
 
@@ -157,13 +157,13 @@ export async function createSendBtcPsbt(
 
   psbt.addOutput({
     address: recipientAddress,
-    value: BigInt(amount),
+    value: BigInt(amount) as unknown as number,
   })
 
   if (amountGathered > satsNeeded) {
     psbt.addOutput({
       address: paymentAddress,
-      value: BigInt(amountGathered - satsNeeded),
+      value: BigInt(amountGathered - satsNeeded) as unknown as number,
     })
   }
 

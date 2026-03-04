@@ -51,9 +51,9 @@ export function useModelTraining() {
       const modelInfo: ModelInfo[] = modelList.map(model => {
         return {
           name: model.name,
-          currentVersion: model.version || null,
-          lastTrained: model.timestamp || null,
-          metrics: model.metrics
+          currentVersion: (model as any).version || null,
+          lastTrained: (model as any).timestamp || null,
+          metrics: (model as any).metrics
         };
       });
       
@@ -88,12 +88,12 @@ export function useModelTraining() {
             }));
           }, 2000);
           
-          result = await modelTrainer.trainPricePredictor();
+          result = await (modelTrainer as any).trainPricePredictor();
           clearInterval(progressInterval);
           break;
-          
+
         case 'sentiment-analyzer':
-          result = await modelTrainer.trainSentimentAnalyzer();
+          result = await (modelTrainer as any).trainSentimentAnalyzer();
           break;
           
         default:
@@ -128,7 +128,7 @@ export function useModelTraining() {
     try {
       addLog(`Iniciando backtest para ${modelName}`);
       
-      const results = await modelTrainer.runBacktest(modelName);
+      const results = await (modelTrainer as any).runBacktest(modelName);
       
       addLog(`Backtest concluído:`);
       addLog(`- Accuracy: ${results.accuracy.toFixed(2)}%`);
@@ -147,9 +147,11 @@ export function useModelTraining() {
   // Exportar modelo
   const exportModel = useCallback(async (modelName: string, version?: string) => {
     try {
-      const blob = await modelPersistence.exportModel(modelName, version);
-      
+      const jsonData = await modelPersistence.exportModel(modelName);
+      if (!jsonData) throw new Error('Model not found');
+
       // Criar link de download
+      const blob = new Blob([jsonData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -170,7 +172,8 @@ export function useModelTraining() {
   // Importar modelo
   const importModel = useCallback(async (file: File) => {
     try {
-      const version = await modelPersistence.importModel(file);
+      const fileContent = await file.text();
+      const version = await modelPersistence.importModel(fileContent);
       addLog(`Modelo importado com sucesso: v${version}`);
       
       // Recarregar lista de modelos
@@ -188,7 +191,7 @@ export function useModelTraining() {
   const startAutoTraining = useCallback(async (intervalHours: number = 24) => {
     try {
       addLog(`Iniciando auto-treinamento com intervalo de ${intervalHours} horas`);
-      await modelTrainer.startAutoTraining(intervalHours);
+      await (modelTrainer as any).startAutoTraining(intervalHours);
       addLog('Auto-treinamento ativado com sucesso');
     } catch (error) {
       devLogger.error(error as Error, 'Erro ao iniciar auto-treinamento');
@@ -200,7 +203,7 @@ export function useModelTraining() {
   // Limpar modelos antigos
   const cleanupOldModels = useCallback(async (daysToKeep: number = 30) => {
     try {
-      const deletedCount = await modelPersistence.cleanupOldModels(daysToKeep);
+      const deletedCount = await (modelPersistence as any).cleanupOldModels(daysToKeep);
       addLog(`${deletedCount} modelos antigos removidos`);
       
       // Recarregar lista

@@ -10,6 +10,7 @@ import type {
   ListingsLatestParams,
   QuotesLatestParams,
   TrendingLatestParams,
+  OHLCVParams,
 } from '../types';
 
 // Hook for cryptocurrency listings
@@ -67,10 +68,10 @@ export function useGlobalMetrics(
 }
 
 // Hook for market statistics
-export function useMarketStatistics(convert = 'USD') {
+export function useMarketStatistics(convert: 'USD' | string = 'USD') {
   return useQuery({
     queryKey: ['cmc', 'marketStats', convert],
-    queryFn: () => CMC.marketStats(convert),
+    queryFn: () => CMC.marketStats(convert as any),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -247,7 +248,7 @@ export function useOHLCV(
     queryKey: ['cmc', 'ohlcv', symbol, period, count],
     queryFn: () => CMC.ohlcv.historical({
       symbol,
-      period,
+      period: period as OHLCVParams['period'],
       count,
       convert: 'USD',
     }),
@@ -274,7 +275,7 @@ export function useMarketPairs(
 export function useDefiStats(convert = 'USD') {
   return useQuery({
     queryKey: ['cmc', 'defiStats', convert],
-    queryFn: () => CMC.defiStats(convert),
+    queryFn: () => CMC.defiStats(convert as any),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -283,7 +284,7 @@ export function useDefiStats(convert = 'USD') {
 export function useDominanceTrends(convert = 'USD') {
   return useQuery({
     queryKey: ['cmc', 'dominance', convert],
-    queryFn: () => CMC.dominance(convert),
+    queryFn: () => CMC.dominance(convert as any),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

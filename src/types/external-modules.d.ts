@@ -95,6 +95,52 @@ declare module 'langchain/document' {
   }
 }
 
+declare module 'react-beautiful-dnd' {
+  import type { ComponentType, ReactNode } from 'react';
+  export interface DropResult {
+    draggableId: string;
+    type: string;
+    source: { droppableId: string; index: number };
+    destination: { droppableId: string; index: number } | null;
+    reason: string;
+  }
+  export interface DragDropContextProps {
+    onDragEnd: (result: DropResult) => void;
+    children: ReactNode;
+  }
+  export interface DroppableProps {
+    droppableId: string;
+    children: (provided: any, snapshot: any) => ReactNode;
+  }
+  export interface DraggableProps {
+    draggableId: string;
+    index: number;
+    children: (provided: any, snapshot: any) => ReactNode;
+  }
+  export const DragDropContext: ComponentType<DragDropContextProps>;
+  export const Droppable: ComponentType<DroppableProps>;
+  export const Draggable: ComponentType<DraggableProps>;
+}
+
+declare module 'qrcode' {
+  const QRCode: {
+    toDataURL(text: string, options?: any): Promise<string>;
+    toCanvas(canvas: HTMLCanvasElement, text: string, options?: any): Promise<void>;
+    toString(text: string, options?: any): Promise<string>;
+  };
+  export default QRCode;
+}
+
+declare module 'msgpack-lite' {
+  const msgpack: {
+    encode(data: any): Buffer;
+    decode(buffer: Buffer | Uint8Array): any;
+    createEncodeStream(): NodeJS.WritableStream;
+    createDecodeStream(): NodeJS.ReadableStream;
+  };
+  export = msgpack;
+}
+
 declare module '@pinecone-database/pinecone' {
   export class Pinecone {
     constructor(config?: { apiKey?: string; environment?: string });

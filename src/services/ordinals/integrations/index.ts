@@ -3,12 +3,15 @@
  * Exports all marketplace APIs with standardized interfaces
  */
 
-export { MagicEdenAPI, magicEdenAPI } from './MagicEdenAPI';
-export { OKXOrdinalsAPI, okxOrdinalsAPI } from './OKXOrdinalsAPI';
-export { UniSatAPI, uniSatAPI } from './UniSatAPI';
+import { MagicEdenAPI as _MagicEdenAPI, magicEdenAPI as _magicEdenAPI } from './MagicEdenAPI';
+import { OKXOrdinalsAPI as _OKXOrdinalsAPI, okxOrdinalsAPI as _okxOrdinalsAPI } from './OKXOrdinalsAPI';
+import { UniSatAPI as _UniSatAPI, uniSatAPI as _uniSatAPI } from './UniSatAPI';
+import { HiroOrdinalsService as _HiroOrdinalsService, hiroOrdinalsService as _hiroOrdinalsService } from '../../HiroOrdinalsService';
 
-// Import existing Hiro service
-export { HiroOrdinalsService, hiroOrdinalsService } from '../../HiroOrdinalsService';
+export { _MagicEdenAPI as MagicEdenAPI, _magicEdenAPI as magicEdenAPI };
+export { _OKXOrdinalsAPI as OKXOrdinalsAPI, _okxOrdinalsAPI as okxOrdinalsAPI };
+export { _UniSatAPI as UniSatAPI, _uniSatAPI as uniSatAPI };
+export { _HiroOrdinalsService as HiroOrdinalsService, _hiroOrdinalsService as hiroOrdinalsService };
 
 // Re-export all types for easier imports
 export type {
@@ -364,13 +367,13 @@ export class OrdinalsMarketplaceFactory {
   static createClient(marketplace: OrdinalsMarketplace, config?: any) {
     switch (marketplace) {
       case OrdinalsMarketplace.MAGIC_EDEN:
-        return magicEdenAPI;
+        return _magicEdenAPI;
       case OrdinalsMarketplace.OKX:
-        return okxOrdinalsAPI;
+        return _okxOrdinalsAPI;
       case OrdinalsMarketplace.UNISAT:
-        return new UniSatAPI(config?.apiKey);
+        return new _UniSatAPI(config?.apiKey);
       case OrdinalsMarketplace.HIRO:
-        return hiroOrdinalsService;
+        return _hiroOrdinalsService;
       default:
         throw new Error(`Unsupported marketplace: ${marketplace}`);
     }

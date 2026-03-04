@@ -96,7 +96,7 @@ export default function BRC20Terminal() {
             Professional BRC-20 token trading and analytics
           </p>
         </div>
-        <Button variant="secondary" size="md" onClick={refetch} className="gap-2">
+        <Button variant="secondary" size="md" onClick={() => refetch()} className="gap-2">
           Refresh Data
         </Button>
       </div>

@@ -249,7 +249,7 @@ export class SecurityManager {
     } catch (error) {
       logger.error(error instanceof Error ? error : new Error(String(error)), 'Security validation failed:');
       this.createSecurityAlert('SUSPICIOUS_ACTIVITY', 'CRITICAL', 
-        `Security validation error: ${error.message}`);
+        `Security validation error: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }

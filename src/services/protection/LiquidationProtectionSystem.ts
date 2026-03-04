@@ -503,7 +503,7 @@ export class LiquidationProtectionSystem extends EventEmitter {
           throw new Error(`Unknown action type: ${actionType}`);
       }
 
-      action.status = result.success ? 'completed' : 'failed';
+      action.status = result!.success ? 'completed' : 'failed';
       action.result = result;
       action.executedAt = Date.now();
 

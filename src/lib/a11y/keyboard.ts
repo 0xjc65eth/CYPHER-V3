@@ -30,7 +30,7 @@ export function isArrowKey(key: string): boolean {
     KEYS.ARROW_DOWN,
     KEYS.ARROW_LEFT,
     KEYS.ARROW_RIGHT,
-  ].includes(key)
+  ].includes(key as typeof KEYS.ARROW_UP)
 }
 
 // Navigate through a list with arrow keys

@@ -364,8 +364,8 @@ export class SystemIntegrator extends EventEmitter {
       EnhancedLogger.info(`Initializing ${serviceInfo.name}...`);
 
       // Initialize the service
-      if (serviceInfo.instance.initialize) {
-        await serviceInfo.instance.initialize();
+      if ((serviceInfo.instance as any).initialize) {
+        await (serviceInfo.instance as any).initialize();
       }
 
       // Store service instance
@@ -437,7 +437,7 @@ export class SystemIntegrator extends EventEmitter {
     derivativesEngine.on('liquidation', (event) => {
       liquidationProtectionSystem.executeProtectionAction(
         event.contractId,
-        'emergency',
+        'close',
         100,
         'Auto-protection triggered'
       );

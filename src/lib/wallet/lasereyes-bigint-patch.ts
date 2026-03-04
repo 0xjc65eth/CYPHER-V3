@@ -19,7 +19,7 @@ export const patchBigIntSerialization = async () => {
         if (typeof value === 'bigint') {
           return value.toString();
         }
-        return replacer ? replacer(key, value) : value;
+        return replacer ? (replacer as (key: string, value: any) => any)(key, value) : value;
       };
       args[1] = newReplacer;
       return originalStringify.apply(this, args as any);
@@ -48,7 +48,7 @@ export const importLaserEyes = async () => {
 // Aplicar patches ANTES de qualquer importação
 export const applyLaserEyesPatch = () => {
   if (typeof window !== 'undefined') {
-    (window as any).Math = patchedMath;
+    (window as any).Math = Math;
     
     // Interceptar operadores aritméticos - store original first
     const originalNumber = globalThis.Number;
@@ -69,7 +69,7 @@ if (typeof window !== 'undefined') {
 }
 
 export default {
-  safeLaserEyesImport,
+  importLaserEyes,
   applyLaserEyesPatch,
-  safeMath
+  patchBigIntSerialization
 };

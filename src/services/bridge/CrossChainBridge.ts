@@ -896,7 +896,7 @@ export class CrossChainBridge extends EventEmitter {
         const elapsedTime = Date.now() - transaction.timestamps.initiated;
         const progressPercent = Math.min((elapsedTime / (transaction.estimatedTime * 60000)) * 100, 100);
         
-        if (progressPercent > 90 && transaction.status !== 'completed') {
+        if (progressPercent > 90) {
           // Complete mock transaction
           transaction.status = 'completed';
           transaction.timestamps.completed = Date.now();

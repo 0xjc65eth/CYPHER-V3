@@ -553,7 +553,7 @@ export class CoinMarketCapService {
 
 // Default instance with environment configuration
 export const coinMarketCapService = new CoinMarketCapService({
-  apiKey: process.env.CMC_API_KEY,
+  apiKey: process.env.CMC_API_KEY || '',
   sandbox: process.env.NODE_ENV === 'development',
 });
 

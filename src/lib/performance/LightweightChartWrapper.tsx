@@ -73,7 +73,7 @@ const LightweightChartWrapper: React.FC<LightweightChartProps> = ({
           value: item.value
         }));
 
-        lineSeries.setData(formattedData);
+        lineSeries.setData(formattedData as any);
         
         chartRef.current = chart;
         

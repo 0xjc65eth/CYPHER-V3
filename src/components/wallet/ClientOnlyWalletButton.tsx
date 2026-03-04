@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 
 // Importa o WalletButton dinamicamente, apenas no lado do cliente
 const WalletButton = dynamic(
-  () => import('./WalletButton').then(mod => ({ default: mod.WalletButton })),
+  () => import('./WalletButton'),
   {
     ssr: false, // CRUCIAL: Desabilita SSR para este componente
     loading: () => (

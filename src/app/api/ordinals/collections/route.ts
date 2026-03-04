@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+import { OKXOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+
+const okxApi = new OKXOrdinalsAPI();
 
 async function fetchWithTimeout(url: string, headers: Record<string, string> = {}, timeoutMs = 10000) {
   const controller = new AbortController();
@@ -20,76 +23,92 @@ export async function GET(request: Request) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
     const sort = searchParams.get('sort') || 'volume7d';
 
-    // Get Magic Eden API key from environment
-    const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
+    let data: unknown[] = [];
+    let source = 'okx';
 
-    // Prepare headers with authentication
-    const magicEdenHeaders: Record<string, string> = {
-      'Accept': 'application/json',
-      'User-Agent': 'CYPHER-ORDi-Future-V3'
-    };
-
-    if (MAGIC_EDEN_API_KEY) {
-      magicEdenHeaders['Authorization'] = `Bearer ${MAGIC_EDEN_API_KEY}`;
+    // Primary: OKX Ordinals API
+    try {
+      const sortMap: Record<string, 'volume24h' | 'floorPrice' | 'createdAt'> = {
+        'volume7d': 'volume24h',
+        'volume24h': 'volume24h',
+        'floorPrice': 'floorPrice',
+        'newest': 'createdAt',
+      };
+      const okxSort = sortMap[sort] || 'volume24h';
+      const { collections } = await okxApi.getCollections(limit, undefined, okxSort);
+      if (collections && collections.length > 0) {
+        data = collections.map((c) => ({
+          name: c.name,
+          slug: c.symbol || c.collectionId,
+          symbol: c.symbol || c.collectionId,
+          imageURI: c.logoUrl,
+          floorPrice: c.floorPrice,
+          volume7d: c.volume7d,
+          volume24h: c.volume24h,
+          supply: c.totalSupply,
+          listed: c.listedRate ? Math.floor(c.totalSupply * parseFloat(c.listedRate)) : null,
+          owners: c.ownerCount,
+          description: c.description,
+          change24h: c.change24h,
+          change7d: c.change7d,
+          isVerified: c.isVerified,
+        }));
+      }
+    } catch (err) {
+      console.warn('[Collections API] OKX failed, trying ME fallback:', err);
     }
 
-    // Magic Eden: Fetch stats for popular collections
-    // Note: Magic Eden doesn't have a "list all collections" endpoint
-    // We fetch stats for known popular collections individually
-    const popularCollections = [
-      'bitcoin-puppets', 'nodemonkes', 'bitcoin-frogs', 'taproot_wizards',
-      'quantum_cats', 'pizza-ninjas', 'ombs', 'runestone',
-      'ordinal-maxi-biz', 'natcats', 'bitcoin-rocks', 'ocm-genesis',
-      'ord-bot', 'time-chain-collectibles', 'rsic',
-      'bitmaps', 'ordibots', 'omb'
-    ].slice(0, limit);
+    // Fallback 1: Magic Eden
+    if (!data || data.length === 0) {
+      const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
+      const magicEdenHeaders: Record<string, string> = {
+        'Accept': 'application/json',
+        'User-Agent': 'CYPHER-ORDi-Future-V3'
+      };
+      if (MAGIC_EDEN_API_KEY) {
+        magicEdenHeaders['Authorization'] = `Bearer ${MAGIC_EDEN_API_KEY}`;
+      }
 
-    let data: unknown[] = [];
-    let source = 'magic_eden';
+      const popularCollections = [
+        'bitcoin-puppets', 'nodemonkes', 'bitcoin-frogs', 'taproot_wizards',
+        'quantum_cats', 'pizza-ninjas', 'ombs', 'runestone',
+        'ordinal-maxi-biz', 'natcats', 'bitcoin-rocks', 'ocm-genesis',
+        'ord-bot', 'time-chain-collectibles', 'rsic',
+        'bitmaps', 'ordibots', 'omb'
+      ].slice(0, limit);
 
-    try {
-      // Fetch stats for each collection concurrently
-      const statsPromises = popularCollections.map(async (symbol) => {
-        try {
-          const res = await fetchWithTimeout(
-            `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
-            magicEdenHeaders,
-            5000
-          );
-          if (res.ok) {
-            const stats = await res.json();
-            // Get collection details
-            const detailsRes = await fetchWithTimeout(
-              `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${symbol}`,
+      try {
+        const statsPromises = popularCollections.map(async (symbol) => {
+          try {
+            const res = await fetchWithTimeout(
+              `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
               magicEdenHeaders,
               5000
             );
-            const details = detailsRes.ok ? await detailsRes.json() : {};
-
-            return {
-              ...stats,
-              ...details,
-              slug: symbol,
-              symbol: symbol
-            };
+            if (res.ok) {
+              const stats = await res.json();
+              const detailsRes = await fetchWithTimeout(
+                `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${symbol}`,
+                magicEdenHeaders,
+                5000
+              );
+              const details = detailsRes.ok ? await detailsRes.json() : {};
+              return { ...stats, ...details, slug: symbol, symbol };
+            }
+            return null;
+          } catch {
+            return null;
           }
-          return null;
-        } catch {
-          return null;
-        }
-      });
-
-      const results = await Promise.all(statsPromises);
-      data = results.filter(Boolean) as unknown[];
-
-      if (data.length > 0) {
+        });
+        const results = await Promise.all(statsPromises);
+        data = results.filter(Boolean) as unknown[];
+        if (data.length > 0) source = 'magic_eden';
+      } catch (err) {
+        console.error('[Collections API] Magic Eden fallback error:', err);
       }
-    } catch (err) {
-      console.error(`[Collections API] Error fetching Magic Eden collections:`, err);
-      data = [];
     }
 
-    // Fallback: try Hiro inscriptions grouped approach
+    // Fallback 2: Hiro inscriptions grouped approach
     if (!data || data.length === 0) {
       try {
         const hiroRes = await fetchWithTimeout(

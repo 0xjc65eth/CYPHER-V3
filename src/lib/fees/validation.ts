@@ -209,7 +209,7 @@ export function validateFeeCalculationRequest(
     if (options.requireKnownTokens && request.network) {
       const knownTokens = KNOWN_TOKEN_ADDRESSES[request.network as keyof typeof KNOWN_TOKEN_ADDRESSES];
       if (knownTokens) {
-        const knownAddresses = Object.values(knownTokens);
+        const knownAddresses: string[] = Object.values(knownTokens);
         if (request.tokenIn && !knownAddresses.includes(request.tokenIn)) {
           warnings.push('tokenIn is not a known token address');
         }

@@ -6,13 +6,11 @@ import { X, TrendingUp, TrendingDown, Brain, AlertCircle, CheckCircle, Info } fr
 import { motion, AnimatePresence } from 'framer-motion';
 
 export function NotificationContainer() {
-  const { notifications, removeNotification, markAsRead } = useNotifications();
+  const { notifications, removeNotification } = useNotifications();
   const [visibleNotifications, setVisibleNotifications] = useState<string[]>([]);
 
-  // Show only the latest 5 unread notifications
-  const displayNotifications = notifications
-    .filter(n => !n.read)
-    .slice(0, 5);
+  // Show only the latest 5 notifications
+  const displayNotifications = notifications.slice(0, 5);
 
   useEffect(() => {
     // Auto-dismiss notifications after 5 seconds
@@ -21,12 +19,12 @@ export function NotificationContainer() {
         setVisibleNotifications(prev => [...prev, notification.id]);
 
         setTimeout(() => {
-          markAsRead(notification.id);
+          removeNotification(notification.id);
           setVisibleNotifications(prev => prev.filter(id => id !== notification.id));
         }, 5000);
       }
     });
-  }, [displayNotifications, markAsRead, visibleNotifications]);
+  }, [displayNotifications, removeNotification, visibleNotifications]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -84,18 +82,17 @@ export function NotificationContainer() {
               <div className="flex-1 min-w-0">
                 <h4 className="text-white font-medium">{notification.title}</h4>
                 <p className="text-gray-300 text-sm mt-1">{notification.message}</p>
-                {notification.actions && (
+                {notification.actions?.[0] && (
                   <button
-                    onClick={notification.actions.onClick}
+                    onClick={notification.actions[0].action}
                     className="text-orange-500 hover:text-orange-400 text-sm mt-2 font-medium"
                   >
-                    {notification.actions.label}
+                    {notification.actions[0].label}
                   </button>
                 )}
               </div>
               <button
                 onClick={() => {
-                  markAsRead(notification.id);
                   removeNotification(notification.id);
                 }}
                 className="flex-shrink-0 text-gray-400 hover:text-white"

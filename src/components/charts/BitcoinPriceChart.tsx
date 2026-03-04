@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react'
 import { UnifiedChartSystem } from './UnifiedChartSystem'
+import type { ChartData } from './UnifiedChartSystem'
 import { useMarketData } from '@/hooks/useMarketData'
 import { useBitcoinPriceHistory } from '@/hooks/useBitcoinPriceHistory'
 
@@ -29,23 +30,20 @@ export function BitcoinPriceChart({
     }
     
     // Transform real data
-    return priceHistory.map(item => {
-      if (type === 'candlestick') {
-        return {
-          time: item.timestamp,
-          open: item.open || item.price,
-          high: item.high || item.price * 1.001,
-          low: item.low || item.price * 0.999,
-          close: item.close || item.price,
-          volume: item.volume || 0
-        }
-      } else {
-        return {
-          time: item.timestamp,
-          value: item.price
-        }
-      }
-    })
+    if (type === 'candlestick') {
+      return priceHistory.map(item => ({
+        time: item.timestamp,
+        open: (item as any).open || item.price,
+        high: (item as any).high || item.price * 1.001,
+        low: (item as any).low || item.price * 0.999,
+        close: (item as any).close || item.price,
+        volume: item.volume || 0
+      })) as ChartData
+    }
+    return priceHistory.map(item => ({
+      time: item.timestamp,
+      value: item.price
+    })) as ChartData
   }, [priceHistory, marketData?.btcPrice, type])
 
   // Chart configuration

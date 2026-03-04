@@ -469,7 +469,4 @@ export function useWalletError() {
   };
 }
 
-/**
- * Type exports for external use
- */
-export type { ExtendedWalletState, UseWalletOptions };
+// Types are already exported via their interface declarations above.

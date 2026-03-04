@@ -594,12 +594,12 @@ class OptimizedQuickTradeAggregator {
   private getSupportedDEXsForChain(chainId: number | string): DEXType[] {
     const dexs = Object.entries(QUICKTRADE_CONFIG.SUPPORTED_DEXS);
     return dexs
-      .filter(([_, config]) => config.chains.includes(chainId))
+      .filter(([_, config]) => (config.chains as any[]).includes(chainId))
       .map(([dex, _]) => dex as DEXType);
   }
 
   private getRouterAddress(dex: DEXType, chainId: number | string): string | undefined {
-    return DEX_ROUTER_ADDRESSES[dex as keyof typeof DEX_ROUTER_ADDRESSES]?.[chainId as keyof any];
+    return (DEX_ROUTER_ADDRESSES as any)[dex]?.[chainId];
   }
 
   private isAggregatorDEX(dex: DEXType): boolean {

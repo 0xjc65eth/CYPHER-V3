@@ -1,71 +1,157 @@
 {
-  // Configuracao principal do Cypher AgenteBot
-  // Agente autonomo de desenvolvimento com ClawBot/OpenClaw
-
+  "version": "2.0",
   "agent": {
+    "id": "cypher-dev",
+    "name": "Cypher Dev Agent",
     "model": "anthropic/claude-opus-4-6",
-    "workspace": "./",
-    "defaults": {
-      "temperature": 0.3,
-      "maxTokens": 8192
-    },
-    "sandbox": {
-      "mode": "non-main",
-      "scope": "agent"
-    }
+    "temperature": 0.3,
+    "workspace": "/Users/juliocesar/CYPHER-V3",
+    "contextFiles": [
+      "CLAUDE.md",
+      "AGENTS.md",
+      "SOUL.md"
+    ]
   },
-
   "agents": {
+    "defaults": {
+      "model": "anthropic/claude-opus-4-6",
+      "temperature": 0.3,
+      "workspace": "/Users/juliocesar/CYPHER-V3",
+      "sandbox": false,
+      "approvalPolicy": "auto"
+    },
     "list": [
       {
         "id": "cypher-dev",
-        "identity": {
-          "name": "Cypher Dev Agent",
-          "emoji": "🔧",
-          "theme": "dark"
-        },
-        "model": "anthropic/claude-opus-4-6",
-        "workspace": "./",
+        "name": "CYPHER Developer",
+        "description": "Agente principal de desenvolvimento — 6 papéis simultâneos",
         "skills": [
           "code-writer",
           "debugger",
+          "security-auditor",
+          "ux-analyst",
+          "researcher",
+          "carmack-mode",
+          "mock-eliminator",
+          "bitcoin-specialist",
+          "trading-agent",
+          "performance-engineer",
+          "git-ops",
           "refactor",
           "test-runner",
-          "git-ops",
-          "claude-code-bridge",
-          "researcher",
-          "carmack-mode"
+          "api-integrator"
+        ],
+        "mcps": [
+          "cypher-filesystem",
+          "cypher-git",
+          "cypher-shell",
+          "cypher-fetch"
         ]
       }
     ]
   },
-
-  "skills": {
-    "directory": "./skills",
-    "entries": {
-      "code-writer": { "enabled": true },
-      "debugger": { "enabled": true },
-      "refactor": { "enabled": true },
-      "test-runner": { "enabled": true },
-      "git-ops": { "enabled": true },
-      "claude-code-bridge": { "enabled": true },
-      "researcher": { "enabled": true },
-      "carmack-mode": { "enabled": true }
-    }
-  },
-
   "gateway": {
     "port": 18789,
-    "bind": "loopback"
+    "bind": "loopback",
+    "auth": {
+      "enabled": true,
+      "token": "${OPENCLAW_AUTH_TOKEN}"
+    },
+    "tls": {
+      "enabled": false
+    }
   },
-
+  "models": {
+    "providers": [
+      {
+        "id": "anthropic",
+        "type": "anthropic",
+        "apiKey": "${ANTHROPIC_API_KEY}",
+        "models": ["claude-opus-4-6", "claude-sonnet-4-5", "claude-haiku-4-5"],
+        "default": "claude-opus-4-6"
+      }
+    ],
+    "routing": {
+      "complex_tasks": "claude-opus-4-6",
+      "simple_tasks": "claude-sonnet-4-5",
+      "heartbeat": "claude-haiku-4-5"
+    }
+  },
+  "mcpServers": {
+    "cypher-filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/juliocesar/CYPHER-V3"],
+      "env": {}
+    },
+    "cypher-git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "--repository", "/Users/juliocesar/CYPHER-V3"],
+      "env": {}
+    },
+    "cypher-fetch": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "env": {}
+    },
+    "cypher-shell": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-shell"],
+      "env": {
+        "WORKING_DIR": "/Users/juliocesar/CYPHER-V3"
+      }
+    }
+  },
+  "skills": {
+    "directory": "./skills",
+    "autoLoad": true,
+    "list": [
+      { "name": "code-writer", "path": "./skills/code-writer/SKILL.md" },
+      { "name": "debugger", "path": "./skills/debugger/SKILL.md" },
+      { "name": "security-auditor", "path": "./skills/security-auditor/SKILL.md" },
+      { "name": "ux-analyst", "path": "./skills/ux-analyst/SKILL.md" },
+      { "name": "researcher", "path": "./skills/researcher/SKILL.md" },
+      { "name": "carmack-mode", "path": "./skills/carmack-mode/SKILL.md" },
+      { "name": "mock-eliminator", "path": "./skills/mock-eliminator/SKILL.md" },
+      { "name": "bitcoin-specialist", "path": "./skills/bitcoin-specialist/SKILL.md" },
+      { "name": "trading-agent", "path": "./skills/trading-agent/SKILL.md" },
+      { "name": "performance-engineer", "path": "./skills/performance-engineer/SKILL.md" },
+      { "name": "git-ops", "path": "./skills/git-ops/SKILL.md" }
+    ]
+  },
+  "heartbeat": {
+    "enabled": true,
+    "intervalMinutes": 30,
+    "workspaceFile": "HEARTBEAT.md",
+    "model": "claude-haiku-4-5"
+  },
   "channels": {
+    "telegram": {
+      "enabled": false,
+      "requireMention": true,
+      "allowedUsers": ["${TELEGRAM_USER_ID}"],
+      "token": "${TELEGRAM_BOT_TOKEN}"
+    },
     "cli": {
       "enabled": true
     }
   },
-
   "policies": {
-    "approvalPolicy": "./policies/approve-all.yaml"
+    "approvalPolicy": "./policies/approve-all.yaml",
+    "requireApproval": {
+      "gitPush": true,
+      "deleteFiles": true,
+      "productionDeploy": true
+    }
+  },
+  "security": {
+    "sandboxTools": false,
+    "allowShellCommands": true,
+    "restrictToWorkspace": true,
+    "logAllActions": true
+  },
+  "experimentalFeatures": {
+    "agentTeams": true,
+    "parallelTasks": true,
+    "memoryPersistence": true
   }
 }

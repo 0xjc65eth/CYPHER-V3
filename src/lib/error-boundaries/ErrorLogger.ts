@@ -164,12 +164,7 @@ class ProductionErrorLogger implements ErrorLogger {
     try {
       // Send to monitoring service
       if (this.monitoring) {
-        this.monitoring.captureException(report.error, {
-          errorInfo: report.errorInfo,
-          context: report.context,
-          severity: report.severity,
-          category: report.category
-        });
+        this.monitoring.captureException(report.error, report.context);
       }
 
       // Send to custom endpoint if needed

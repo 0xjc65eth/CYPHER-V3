@@ -115,7 +115,11 @@ export class HiroAPI {
     inscriptions: any[]
     brc20: any[]
   }> {
-    const results = {
+    const results: {
+      runes: any[]
+      inscriptions: any[]
+      brc20: any[]
+    } = {
       runes: [],
       inscriptions: [],
       brc20: []
@@ -149,7 +153,11 @@ export class HiroAPI {
     inscriptions: any[]
     brc20: any[]
   }> {
-    const results = {
+    const results: {
+      runes: any[]
+      inscriptions: any[]
+      brc20: any[]
+    } = {
       runes: [],
       inscriptions: [],
       brc20: []

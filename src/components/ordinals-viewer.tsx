@@ -27,7 +27,7 @@ const PREMIUM_COLLECTIONS = [
 ]
 
 export function OrdinalsViewer() {
-  const { address, isConnected, getOrdinals } = useLaserEyes()
+  const { address, connected: isConnected, getOrdinals } = useLaserEyes()
   const [ordinals, setOrdinals] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -158,16 +158,7 @@ export function OrdinalsViewer() {
 
   return (
     <DashboardCard
-      title={
-        <div className="flex items-center justify-between">
-          <span>Your Ordinals</span>
-          {isPremiumHolder && (
-            <span className="px-2 py-1 bg-gradient-to-r from-purple-600 to-blue-600 rounded-md text-xs font-bold text-white">
-              PREMIUM ACCESS
-            </span>
-          )}
-        </div>
-      }
+      title="Your Ordinals"
       className={`${isPremiumHolder
         ? 'bg-gradient-to-br from-[#2A1A5A] to-[#1A2A7A] border-purple-500/30'
         : 'bg-gradient-to-br from-[#1A1A3A] to-[#2A2A5A] border-none'} shadow-xl`}

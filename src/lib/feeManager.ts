@@ -98,7 +98,7 @@ export class CypherFeeManager {
       case 'base':
       case 'avalanche':
       default:
-        return WALLET_ADDRESSES.EVM;
+        return WALLET_ADDRESSES.ethereum;
     }
   }
 

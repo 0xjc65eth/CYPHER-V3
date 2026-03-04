@@ -239,7 +239,7 @@ export function FeeMonitoringDashboard() {
               {mockTransactions.map((tx) => (
                 <tr key={tx.id} className="border-b border-gray-800">
                   <td className="py-3 font-mono text-xs text-gray-400">
-                    {formatAddress(tx.user, tx.network)}
+                    {formatAddress(tx.user)}
                   </td>
                   <td className="py-3">
                     <Badge variant="outline" className={`${getNetworkColor(tx.network)} bg-opacity-20 text-white border-0`}>
@@ -286,7 +286,7 @@ export function FeeMonitoringDashboard() {
               <Badge className="bg-blue-500 text-white">Multi-chain</Badge>
             </div>
             <p className="font-mono text-xs text-white break-all">
-              {WALLET_ADDRESSES.EVM}
+              {WALLET_ADDRESSES.ethereum}
             </p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4">

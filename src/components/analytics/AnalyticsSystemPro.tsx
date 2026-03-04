@@ -48,14 +48,15 @@ import {
   Network,
   MemoryStick,
   MonitorSpeaker,
-  X
+  X,
+  Building2 as Building
 } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import {
-  LineChart,
+  LineChart as RechartsLineChart,
   Line as RechartsLine,
-  BarChart,
+  BarChart as RechartsBarChart,
   Bar as RechartsBar,
   XAxis,
   YAxis,
@@ -1055,7 +1056,7 @@ export function AnalyticsSystemPro() {
               ) : chartData.datasets.length > 0 ? (
                 chartType === 'volume' ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData.labels?.map((label: string, i: number) => ({
+                    <RechartsBarChart data={chartData.labels?.map((label: string, i: number) => ({
                       name: label,
                       value: chartData.datasets[0]?.data[i] ?? 0
                     })) || []}>
@@ -1064,11 +1065,11 @@ export function AnalyticsSystemPro() {
                       <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} />
                       <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
                       <RechartsBar dataKey="value" fill="#10B981" />
-                    </BarChart>
+                    </RechartsBarChart>
                   </ResponsiveContainer>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData.labels?.map((label: string, i: number) => ({
+                    <RechartsLineChart data={chartData.labels?.map((label: string, i: number) => ({
                       name: label,
                       value: chartData.datasets[0]?.data[i] ?? 0
                     })) || []}>
@@ -1077,7 +1078,7 @@ export function AnalyticsSystemPro() {
                       <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} />
                       <RechartsTooltip contentStyle={CHART_TOOLTIP_STYLE} />
                       <RechartsLine type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} dot={false} />
-                    </LineChart>
+                    </RechartsLineChart>
                   </ResponsiveContainer>
                 )
               ) : (

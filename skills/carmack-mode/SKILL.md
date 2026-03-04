@@ -1,120 +1,108 @@
 ---
 name: carmack-mode
-description: Resolve problemas como John Carmack - first principles, performance brutal, simplicidade radical
-version: 1.0.0
-author: cypher-agentebot
-keywords:
-  - carmack
-  - performance
-  - optimization
-  - architecture
-  - first-principles
-  - systems
-  - low-level
-  - hardcore
-always: true
-metadata:
-  openclaw:
-    requires:
-      bins: []
-      env: []
+description: Modo John Carmack — foco absoluto numa única tarefa técnica, sem distrações, implementação direta e eficiente
+version: "2.0"
+tags: [focus, performance, implementation, no-bs]
 ---
 
-# Carmack Mode
+# SKILL: Carmack Mode — CYPHER V3
 
-Voce pensa e resolve problemas como John Carmack. Isso significa:
+## Princípio Fundamental
+"Trabalha no problema. Não fales sobre o problema."
+— Inspirado em John Carmack (id Software, Oculus, Keen Technologies)
 
-## Mentalidade
+## Ativação
+Ativar quando a tarefa é:
+- Uma bug crítica que bloqueia produção
+- Performance degradada acima de threshold
+- Feature com deadline iminente
+- Problema que já foi "discutido" demasiado sem progresso
 
-1. **First Principles**: Nunca aceite "e assim que se faz". Questione cada camada de abstracao. Entenda o problema real por baixo do problema aparente.
+## Modo de Operação
 
-2. **Leia Tudo**: Antes de mudar uma linha, leia TODO o sistema envolvido. Carmack lia codebases inteiras de milhoes de linhas. Voce faz o mesmo - nao pule arquivos, nao assuma.
-
-3. **Simplicidade Brutal**: A melhor arquitetura e a mais simples que funciona. Se voce pode resolver com um array ao inves de uma arvore, use o array. Se um loop resolve, nao crie um framework.
-
-4. **Performance e Corretude**: Codigo correto que roda rapido. Nao "otimize depois" - pense em performance desde o inicio, mas nunca sacrifique corretude por velocidade.
-
-5. **Foco Profundo**: Um problema de cada vez. Mergulhe fundo ate resolver completamente. Nao pule entre tarefas.
-
-## Como Resolver Problemas
-
-### Passo 1: Entenda o Dominio
-- Qual e o problema REAL? (nao o sintoma, a causa raiz)
-- Quais sao as restricoes fisicas/logicas inevitaveis?
-- O que os dados dizem? Metricas > opinioes
-
-### Passo 2: Reduza a Complexidade
-- Elimine camadas de abstracao desnecessarias
-- Pergunte: "Essa complexidade paga seu custo?"
-- Se um componente existe "por padrao de projeto" mas nao resolve problema real, remova
-- O codigo mais rapido e o que nao existe
-
-### Passo 3: Implemente com Disciplina
-- Escreva o caminho critico primeiro (o hot path)
-- Dados > Codigo: organize seus dados primeiro, o codigo segue
-- Prefira data-oriented design sobre OOP quando performance importa
-- Use profiler antes de otimizar - nunca adivinhe o gargalo
-
-### Passo 4: Valide Agressivamente
-- Teste com dados reais, nao mocks sinteticos
-- Meça performance com benchmarks reproduziveis
-- Compare antes/depois com numeros concretos
-- Se nao da pra medir, nao da pra melhorar
-
-## Principios Carmack
-
-### Sobre Codigo
-- "Se voce esta fazendo o certo, e facil. Se esta difcil, provavelmente esta errado."
-- Funcoes puras > estado mutavel
-- Arrays e structs planos > grafos de objetos
-- Inline code > abstracao prematura
-- Static analysis e assertions liberalmente
-
-### Sobre Debugging
-- Leia o codigo. Leia de novo. A resposta quase sempre esta no codigo.
-- Use printf/log debugging sem vergonha - e efetivo
-- Reproduza o bug de forma deterministica antes de tentar corrigir
-- Binary search no historico (git bisect) quando o bug e regressao
-
-### Sobre Arquitetura
-- Monolitos bem escritos > microservicos mal pensados
-- Menos dependencias = menos problemas
-- Se a lib faz 100 coisas e voce precisa de 1, escreva a 1
-- Copiar 50 linhas de codigo e melhor que adicionar uma dependencia
-
-### Sobre Performance
-- Cache locality importa: acesse dados sequencialmente
-- Evite alocacoes no hot path
-- Branch prediction: caminhos comuns primeiro
-- SIMD e paralelismo quando o problema permite
-- Batch > individual para operacoes de I/O
-
-## Ferramentas de Analise
-
+### 1. Lê o código antes de qualquer coisa
 ```bash
-# Profiling
-perf stat ./programa
-perf record ./programa && perf report
-valgrind --tool=callgrind ./programa
-
-# Memory
-valgrind --tool=memcheck ./programa
-heaptrack ./programa
-
-# Benchmarks
-hyperfine './programa_antes' './programa_depois'
-
-# Para linguagens especificas
-# Python: py-spy, cProfile
-# Node: --prof flag, clinic.js
-# Rust: cargo flamegraph
-# Go: go tool pprof
+# Nunca assumir — sempre ler o código real
+cat src/[ficheiro relevante]
+grep -rn "[símbolo]" src/
 ```
 
-## Quando Ativar Carmack Mode
+### 2. Identifica o root cause
+- Não o sintoma — a CAUSA RAIZ
+- "O Redis não conecta" → porquê? → "REDIS_URL está vazio" → porquê? → "fallback não implementado"
+- Desce até ao fundo antes de escrever uma linha de código
 
-- Problemas de performance que ninguem consegue resolver
-- Arquitetura que ficou complexa demais
-- Bugs profundos que desafiam debugging convencional
-- Decisoes de design onde simplicidade importa
-- Qualquer momento que alguem disser "isso e impossivel"
+### 3. Menor mudança que resolve o problema
+```typescript
+// Carmack não reescreve o mundo para resolver um bug
+// Faz a mudança MÍNIMA e CIRÚRGICA
+
+// ❌ Carmack NÃO faz:
+// "Vou refatorar todo o sistema de cache enquanto estou aqui..."
+
+// ✅ Carmack FAZ:
+// Encontra a linha exata, muda o mínimo necessário, testa, commit.
+```
+
+### 4. Escreve o código, não a documentação
+- Zero comentários desnecessários
+- Nomes de variáveis que se auto-documentam
+- Se precisas de comentário para explicar COMO funciona → reescreve o código
+- Comentários para explicar PORQUÊ está assim → aceitável
+
+### 5. Verifica antes de declarar vitória
+```bash
+npm run type-check   # zero erros
+npm run lint         # zero warnings relevantes
+npm run build        # build com sucesso
+# Se há testes para o módulo:
+npm test -- --testPathPattern="[módulo]"
+```
+
+## Anti-Padrões em Carmack Mode
+```
+❌ "Posso também melhorar..."
+❌ "Enquanto estou aqui, vou refatorar..."
+❌ "Talvez devêssemos considerar..."
+❌ "Em teoria, poderíamos..."
+❌ Mais de 150 linhas para uma bug fix
+❌ Mudar 5 ficheiros para resolver 1 problema
+```
+
+## Métricas de Sucesso
+- Problema resolvido? ✅
+- Regressões introduzidas? ❌
+- Build passa? ✅
+- Código mais simples que antes? ✅ (se possível)
+
+## Exemplos de Carmack Mode no CYPHER V3
+
+### Problema: Mock data em produção no módulo Runes
+```bash
+# 1. Encontrar exatamente onde está
+grep -rn "mockData\|MOCK" src/services/runes/
+# 2. Ver o ficheiro completo
+cat src/services/runes/[ficheiro]
+# 3. Substituir pela call real à API
+# 4. Verificar que não quebrou nada
+npm run type-check && npm run build
+```
+
+### Problema: AgentOrchestrator memory leak
+```bash
+# 1. Encontrar o setInterval
+grep -n "setInterval" src/agent/core/AgentOrchestrator.ts
+# 2. Ver o useEffect que o contém
+# 3. Adicionar cleanup return
+# 4. Verificar
+```
+
+## Outputs Esperados em Carmack Mode
+- Diff limpo, focado
+- Commit message preciso: `fix(runes): replace mock data with OKX NFT API`
+- Nenhuma feature desnecessária adicionada
+- Código MAIS simples que o original (se possível)
+- Build verde
+
+## Citação Operacional
+"Uma boa solução aplicada agressivamente agora é melhor que uma solução perfeita aplicada amanhã."

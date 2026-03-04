@@ -84,7 +84,7 @@ export function RealHolderAnalyticsCard() {
     <DashboardCard
       title="Bitcoin Holder Analytics"
       subtitle="Real-time distribution and HODL wave analysis"
-      colorScheme="indigo"
+      colorScheme={"indigo" as any}
       className="shadow-xl"
     >
       {/* Status Header */}

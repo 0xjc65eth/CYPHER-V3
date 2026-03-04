@@ -20,14 +20,14 @@ export default function CollectionAnalytics() {
   // Fetch real-time collection data
   const { data: collectionsData, isLoading: isLoadingCollections } = useQuery({
     queryKey: ['ordinals-top-collections'],
-    queryFn: () => ordinalsService.getTopCollections(20),
+    queryFn: () => (ordinalsService as any).getTopCollections(20),
     refetchInterval: 30000,
     staleTime: 20000
   })
 
   const { data: collectionDetails, isLoading: isLoadingDetails } = useQuery({
     queryKey: ['ordinals-collection-details', selectedCollection],
-    queryFn: () => selectedCollection ? ordinalsService.getCollectionDetails(selectedCollection) : null,
+    queryFn: () => selectedCollection ? (ordinalsService as any).getCollectionDetails(selectedCollection) : null,
     enabled: !!selectedCollection,
     refetchInterval: 60000,
     staleTime: 30000
@@ -35,7 +35,7 @@ export default function CollectionAnalytics() {
 
   const { data: marketData, isLoading: isLoadingMarket } = useQuery({
     queryKey: ['ordinals-market-data', selectedCollection, selectedTimeRange],
-    queryFn: () => selectedCollection ? ordinalsService.getCollectionMarketData(selectedCollection, selectedTimeRange as any) : null,
+    queryFn: () => selectedCollection ? (ordinalsService as any).getCollectionMarketData(selectedCollection, selectedTimeRange as any) : null,
     enabled: !!selectedCollection,
     refetchInterval: 30000,
     staleTime: 15000
@@ -44,7 +44,7 @@ export default function CollectionAnalytics() {
   const isLoading = isLoadingCollections || isLoadingDetails || isLoadingMarket
   
   // Get the specific collection data
-  const currentCollection = collectionDetails || (collectionsData?.find(c => c.id === selectedCollection || c.slug === selectedCollection))
+  const currentCollection = collectionDetails || (collectionsData?.find((c: any) => c.id === selectedCollection || c.slug === selectedCollection))
 
   // Process real data from market data
   const floorPriceData = marketData?.floor_price_history?.map((item: any) => ({

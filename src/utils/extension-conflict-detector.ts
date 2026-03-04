@@ -95,8 +95,7 @@ export class ExtensionConflictDetector {
       name: 'MetaMask',
       detected: !!(win.ethereum?.isMetaMask),
       provider: win.ethereum,
-      priority: 1,
-      conflicts: []
+      priority: 1
     });
 
     // Detect Xverse
@@ -104,8 +103,7 @@ export class ExtensionConflictDetector {
       name: 'Xverse Wallet',
       detected: !!(win.XverseProviders || win.BitcoinProvider),
       provider: win.XverseProviders || win.BitcoinProvider,
-      priority: 3,
-      conflicts: []
+      priority: 3
     });
 
     // Detect Unisat
@@ -113,8 +111,7 @@ export class ExtensionConflictDetector {
       name: 'Unisat Wallet',
       detected: !!(win.unisat),
       provider: win.unisat,
-      priority: 3,
-      conflicts: []
+      priority: 3
     });
 
     // Detect OYL
@@ -122,8 +119,7 @@ export class ExtensionConflictDetector {
       name: 'OYL Wallet',
       detected: !!(win.oyl),
       provider: win.oyl,
-      priority: 3,
-      conflicts: []
+      priority: 3
     });
 
     // Detect Coinbase Wallet
@@ -131,8 +127,7 @@ export class ExtensionConflictDetector {
       name: 'Coinbase Wallet',
       detected: !!(win.ethereum?.isCoinbaseWallet),
       provider: win.ethereum,
-      priority: 2,
-      conflicts: []
+      priority: 2
     });
 
     // Detect Trust Wallet
@@ -140,8 +135,7 @@ export class ExtensionConflictDetector {
       name: 'Trust Wallet',
       detected: !!(win.ethereum?.isTrust),
       provider: win.ethereum,
-      priority: 2,
-      conflicts: []
+      priority: 2
     });
 
     // Check for conflicts

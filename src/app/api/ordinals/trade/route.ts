@@ -1,15 +1,19 @@
 /**
- * Ordinals Trading API — Magic Eden Integration
- * Docs: https://docs.magiceden.io/reference/ordinals-overview
+ * Ordinals Trading API — OKX Primary + Magic Eden Fallback
+ * OKX Docs: https://docs.okx.com/web3/marketplace-api
+ * ME Docs: https://docs.magiceden.io/reference/ordinals-overview
  * PSBT Signer: https://github.com/magiceden-oss/msigner
  *
- * Base URL: https://api-mainnet.magiceden.dev/v2
+ * OKX is the primary data source for collections and listings.
+ * Magic Eden is used as fallback, and for runes_orders, wallet, and PSBT operations.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { OKXOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
 
 const ME_API = process.env.MAGIC_EDEN_API_URL || 'https://api-mainnet.magiceden.dev/v2';
 const ME_KEY = process.env.MAGIC_EDEN_API_KEY;
+const okxApi = new OKXOrdinalsAPI();
 
 const meHeaders: Record<string, string> = {
   'Content-Type': 'application/json',
@@ -24,7 +28,17 @@ export async function GET(request: NextRequest) {
     const address = request.nextUrl.searchParams.get('address');
 
     if (action === 'collections' || (!action && !collection)) {
-      // Popular collections
+      // Try OKX trending collections first
+      try {
+        const okxCollections = await okxApi.getTrendingCollections('24h', 'VOLUME', 20);
+        if (okxCollections && okxCollections.length > 0) {
+          return NextResponse.json({ success: true, collections: okxCollections });
+        }
+      } catch (okxError) {
+        // Fall through to Magic Eden
+      }
+
+      // Fallback: Magic Eden popular collections
       const res = await fetch(`${ME_API}/ord/btc/popular_collections?window=1d&limit=20`, {
         headers: meHeaders,
         signal: AbortSignal.timeout(10000),
@@ -35,6 +49,17 @@ export async function GET(request: NextRequest) {
     }
 
     if (action === 'listings' && collection) {
+      // Try OKX inscriptions first
+      try {
+        const okxResult = await okxApi.getInscriptions(collection, undefined, undefined, undefined, 'priceAsc', 20);
+        if (okxResult && okxResult.inscriptions.length > 0) {
+          return NextResponse.json({ success: true, listings: okxResult.inscriptions });
+        }
+      } catch (okxError) {
+        // Fall through to Magic Eden
+      }
+
+      // Fallback: Magic Eden listings
       const res = await fetch(`${ME_API}/ord/btc/collections/${collection}/listings?limit=20`, {
         headers: meHeaders,
         signal: AbortSignal.timeout(10000),

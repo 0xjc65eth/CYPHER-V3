@@ -172,7 +172,7 @@ class BRC20Service {
       
       return processedTokens;
     } catch (error) {
-      devLogger.error(error, 'Failed to fetch BRC-20 tokens');
+      devLogger.error(error instanceof Error ? error : String(error), 'Failed to fetch BRC-20 tokens');
       return this.getFallbackTokens();
     }
   }
@@ -194,7 +194,7 @@ class BRC20Service {
       
       return token;
     } catch (error) {
-      devLogger.error(error, `Failed to fetch token details for ${ticker}`);
+      devLogger.error(error instanceof Error ? error : String(error), `Failed to fetch token details for ${ticker}`);
       return null;
     }
   }
@@ -263,7 +263,7 @@ class BRC20Service {
       this.setCache(cacheKey, portfolio);
       return portfolio;
     } catch (error) {
-      devLogger.error(error, `Failed to fetch portfolio for ${address}`);
+      devLogger.error(error instanceof Error ? error : String(error), `Failed to fetch portfolio for ${address}`);
       return this.getEmptyPortfolio(address);
     }
   }
@@ -301,7 +301,7 @@ class BRC20Service {
       this.setCache(cacheKey, marketData);
       return marketData;
     } catch (error) {
-      devLogger.error(error, `Failed to fetch market data for ${ticker}`);
+      devLogger.error(error instanceof Error ? error : String(error), `Failed to fetch market data for ${ticker}`);
       return null;
     }
   }
@@ -334,7 +334,7 @@ class BRC20Service {
 
       return analytics;
     } catch (error) {
-      devLogger.error(error, 'Failed to generate BRC-20 analytics');
+      devLogger.error(error instanceof Error ? error : String(error), 'Failed to generate BRC-20 analytics');
       throw error;
     }
   }
@@ -443,7 +443,7 @@ class BRC20Service {
       devLogger.warn('BRC20Service', `No real price data available for ${ticker}, returning 0`);
       return { price: 0, priceChange24h: 0, volume24h: 0 };
     } catch (error) {
-      devLogger.error(error, `Failed to fetch real price for ${ticker}`);
+      devLogger.error(error instanceof Error ? error : String(error), `Failed to fetch real price for ${ticker}`);
       return { price: 0, priceChange24h: 0, volume24h: 0 };
     }
   }

@@ -6,51 +6,41 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Wallet, CheckCircle, AlertCircle, ExternalLink, Copy, LogOut } from 'lucide-react';
 import { useWallet } from '@/contexts/WalletContext';
+import type { WalletType } from '@/services/WalletService';
 
 const SUPPORTED_WALLETS = [
-  { 
-    name: 'Unisat', 
-    id: 'unisat',
+  {
+    name: 'Unisat',
+    id: 'unisat' as WalletType,
     icon: '🟠',
     description: 'Popular Bitcoin wallet with Ordinals support'
   },
-  { 
-    name: 'Xverse', 
-    id: 'xverse',
+  {
+    name: 'Xverse',
+    id: 'xverse' as WalletType,
     icon: '🔷',
     description: 'Bitcoin & Stacks wallet with advanced features'
   },
-  { 
-    name: 'Magic Eden', 
-    id: 'magiceden',
-    icon: '🟣',
-    description: 'NFT marketplace wallet for Bitcoin Ordinals'
-  },
-  { 
-    name: 'Leather', 
-    id: 'leather',
-    icon: '🟤',
-    description: 'Secure Bitcoin wallet (formerly Hiro)'
-  }
 ];
 
 export function BitcoinWalletConnect() {
-  const { 
-    isConnected, 
-    isConnecting, 
-    address, 
-    ordinalsAddress,
+  const {
+    isConnected,
+    isConnecting,
+    address,
+    walletInfo,
     balance,
-    network,
-    connect, 
-    disconnect 
+    connect,
+    disconnect
   } = useWallet();
-  
+  const ordinalsAddress = walletInfo.ordinalsAddress?.address ?? null;
+  const network = walletInfo.connected ? 'mainnet' : null;
+
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const handleConnect = async (walletId: string) => {
+  const handleConnect = async (walletId: WalletType) => {
     try {
       setError(null);
       setSelectedWallet(walletId);
@@ -64,7 +54,7 @@ export function BitcoinWalletConnect() {
 
   const handleDisconnect = async () => {
     try {
-      await disconnect();
+      disconnect();
       setSelectedWallet(null);
       setError(null);
     } catch (err) {
@@ -83,11 +73,9 @@ export function BitcoinWalletConnect() {
     return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
   };
 
-  const formatBalance = (balanceObj: any) => {
-    if (!balanceObj) return '0';
-    // Handle both number and object balance formats
-    const btcBalance = typeof balanceObj === 'number' ? balanceObj : (balanceObj.bitcoin || 0);
-    return btcBalance.toFixed(8);
+  const formatBalance = (balanceVal: number | null) => {
+    if (balanceVal == null) return '0';
+    return balanceVal.toFixed(8);
   };
 
   if (isConnected && address) {
@@ -167,15 +155,12 @@ export function BitcoinWalletConnect() {
             )}
 
             {/* Balance */}
-            {balance && (
+            {balance != null && (
               <div className="flex items-center justify-between pt-3 border-t border-gray-700">
                 <span className="text-sm text-gray-400">Balance</span>
                 <div className="text-right">
                   <div className="text-white font-bold">
                     {formatBalance(balance)} BTC
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    ≈ ${(balance.usd || 0).toLocaleString()}
                   </div>
                 </div>
               </div>
@@ -185,7 +170,7 @@ export function BitcoinWalletConnect() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-400">Network</span>
               <Badge className={network === 'mainnet' ? 'bg-green-600' : 'bg-yellow-600'}>
-                {network}
+                {network || 'unknown'}
               </Badge>
             </div>
           </div>

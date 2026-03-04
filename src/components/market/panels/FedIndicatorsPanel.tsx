@@ -25,6 +25,7 @@ export interface FedData {
   yieldSpread2s10s: number;
   recentDecisions: FedDecision[];
   fomcSchedule: FOMCMeeting[];
+  timestamp?: number;
 }
 
 interface FedIndicatorsPanelProps {

@@ -555,12 +555,7 @@ export default function ArbitragePage() {
                           <BarChart3 className="h-4 w-4" />
                           Live Exchange Prices
                         </h3>
-                        <ExchangePriceGrid
-                          exchanges={arbData.exchanges}
-                          loading={arbLoading}
-                          bestBid={arbData.bestBid}
-                          bestAsk={arbData.bestAsk}
-                        />
+                        <ExchangePriceGrid />
                       </div>
 
                       {/* Opportunity Scanner - Professional Table */}
@@ -571,30 +566,6 @@ export default function ArbitragePage() {
                             Detected Opportunities (CCXT Real-Time)
                           </h3>
                           <OpportunityScanner
-                            opportunities={arbData.opportunities.map((opp: any, idx: number) => ({
-                              id: `opp-${idx}`,
-                              type: 'cex-dex',
-                              symbol: 'BTC/USDT',
-                              buyExchange: opp.buyFrom,
-                              sellExchange: opp.sellTo,
-                              buyPrice: opp.buyPrice,
-                              sellPrice: opp.sellPrice,
-                              spread: opp.sellPrice - opp.buyPrice,
-                              spreadPercent: opp.spreadPercent,
-                              estimatedProfit: opp.estimatedProfitPer1BTC,
-                              netProfit: opp.estimatedProfitPer1BTC,
-                              fees: {
-                                buy: opp.buyFee,
-                                sell: opp.sellFee,
-                                network: 0,
-                                total: opp.buyFee + opp.sellFee
-                              },
-                              riskScore: opp.netProfitPercent > 0.5 ? 3 : opp.netProfitPercent > 0.1 ? 5 : 7,
-                              confidence: Math.min(95, Math.max(50, Math.abs(opp.netProfitPercent) * 100)),
-                              executionTime: 60,
-                              timestamp: new Date()
-                            }))}
-                            loading={arbLoading}
                             onSelectOpportunity={(opp) => setSelectedOpportunity(opp)}
                           />
                         </div>
@@ -855,8 +826,9 @@ export default function ArbitragePage() {
                             path={{
                               ...opp,
                               status: new Date(opp.expiresAt) < new Date() ? 'expired' : 'active',
-                              createdAt: new Date(opp.createdAt || Date.now())
-                            }}
+                              createdAt: new Date((opp as any).createdAt || Date.now()),
+                              expiresAt: new Date(opp.expiresAt)
+                            } as any}
                             onExecute={(path) => {
                               // TODO: Implement paper trade execution
                               alert(`Paper trade execution for path ${path.id} - Coming soon!`);

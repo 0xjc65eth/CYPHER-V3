@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
       method: 'POST',
       headers: {
-        'authorization': API_KEYS.ASSEMBLYAI_API_KEY,
+        'authorization': (API_KEYS as any).ASSEMBLYAI_API_KEY,
         'content-type': 'application/octet-stream'
       },
       body: audioData
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const transcriptionResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
       method: 'POST',
       headers: {
-        'authorization': API_KEYS.ASSEMBLYAI_API_KEY,
+        'authorization': (API_KEYS as any).ASSEMBLYAI_API_KEY,
         'content-type': 'application/json'
       },
       body: JSON.stringify({
@@ -71,7 +71,6 @@ export async function POST(request: NextRequest) {
           'inscription', 'collection', 'marketplace', 'trading', 'volume',
           'resistance', 'support', 'bullish', 'bearish', 'hodl', 'whale'
         ],
-        boost_param: 'high'
       })
     });
 
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
     while (attempts < maxAttempts) {
       const statusResponse = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
         headers: {
-          'authorization': API_KEYS.ASSEMBLYAI_API_KEY
+          'authorization': (API_KEYS as any).ASSEMBLYAI_API_KEY
         }
       });
 
@@ -208,7 +207,7 @@ function extractTradingInsights(transcriptionData: any): any[] {
   const matches = text.match(cryptoRegex);
   
   if (matches) {
-    const uniqueMatches = [...new Set(matches.map(m => m.toLowerCase()))];
+    const uniqueMatches = [...new Set(matches.map((m: any) => m.toLowerCase()))];
     cryptoMentions.push(...uniqueMatches);
     
     insights.push({

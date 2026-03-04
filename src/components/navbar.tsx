@@ -36,7 +36,7 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname()
-  const nftData = useAppSelector((state) => state.user.nftData)
+  const nftData = useAppSelector((state) => (state.user as any).nftData)
 
   return (
     <nav aria-label="Main navigation" className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#1A1A1A] via-[#2D2D2D] to-[#1A1A1A] text-[#FFFFFF] px-6 py-4 flex justify-between items-center font-inter border-b border-[#3D3D3D] backdrop-blur-md">

@@ -104,7 +104,7 @@ export class CypherFeeDistributor {
       case 'solana':
         return WALLET_ADDRESSES.solana;
       default:
-        return WALLET_ADDRESSES.EVM;
+        return WALLET_ADDRESSES.ethereum;
     }
   }
 

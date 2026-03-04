@@ -4,7 +4,10 @@
  */
 
 import { MarketAnalysisEngine, MultiTimeframeAnalysis, CandleData } from './MarketAnalysisEngine';
-import EnhancedCypherAI, { MarketAnalysis, Language } from './EnhancedCypherAI';
+import cypherAI, { MarketAnalysis } from './EnhancedCypherAI';
+
+// Language type for signal message formatting
+type Language = 'en' | 'pt' | 'fr' | 'es';
 
 export interface TradingSignal {
   id: string;
@@ -75,7 +78,7 @@ export interface AlertConfig {
   minConfidence: number;
   symbols: string[];
   channels: ('push' | 'email' | 'voice' | 'webhook')[];
-  language: Language['code'];
+  language: Language;
   customWebhook?: string;
 }
 
@@ -100,7 +103,7 @@ export interface SignalGenerationConfig {
 
 export class TradingSignalsService {
   private marketAnalyzer: MarketAnalysisEngine;
-  private cypherAI: EnhancedCypherAI;
+  private cypherAI: typeof cypherAI;
   private activeSignals: Map<string, TradingSignal> = new Map();
   private signalHistory: TradingSignal[] = [];
   private backtestResults: Map<string, BacktestResult[]> = new Map();
@@ -131,7 +134,7 @@ export class TradingSignalsService {
 
   constructor() {
     this.marketAnalyzer = new MarketAnalysisEngine();
-    this.cypherAI = new EnhancedCypherAI();
+    this.cypherAI = cypherAI;
     this.initializeService();
   }
 
@@ -157,11 +160,11 @@ export class TradingSignalsService {
       // Get AI analysis if enabled
       let aiAnalysis: MarketAnalysis | null = null;
       if (finalConfig.useAI) {
-        aiAnalysis = await this.cypherAI.analyzeMarket(
+        aiAnalysis = await (this.cypherAI as any).analyzeMarket?.(
           symbol,
           finalConfig.timeframes[0],
           finalConfig.alertConfig.language
-        );
+        ) || null;
       }
 
       // Generate signal based on analysis
@@ -193,7 +196,7 @@ export class TradingSignalsService {
       return null;
     } catch (error) {
       console.error('Failed to generate signal:', error);
-      throw new Error(`Signal generation failed: ${error.message}`);
+      throw new Error(`Signal generation failed: ${(error as Error).message}`);
     }
   }
 
@@ -344,8 +347,8 @@ export class TradingSignalsService {
 
     if (signalType === 'buy') {
       // Use SMC levels if available, otherwise use percentage
-      const supportLevels = analysis.keyLevels?.filter(level => level.type === 'support') || [];
-      
+      const supportLevels = analysis.keyLevels?.filter((level: any) => level.type === 'support') || [];
+
       if (supportLevels.length > 0) {
         // Use nearest support as stop loss
         stopLoss = supportLevels.reduce((closest: any, level: any) =>
@@ -366,7 +369,7 @@ export class TradingSignalsService {
 
     } else { // sell
       // Use SMC levels for resistance
-      const resistanceLevels = analysis.keyLevels?.filter(level => level.type === 'resistance') || [];
+      const resistanceLevels = analysis.keyLevels?.filter((level: any) => level.type === 'resistance') || [];
       
       if (resistanceLevels.length > 0) {
         stopLoss = resistanceLevels.reduce((closest: any, level: any) =>
@@ -462,8 +465,8 @@ export class TradingSignalsService {
     }
 
     // AI reasoning
-    if (aiAnalysis?.reasons) {
-      reasons.push(...aiAnalysis.reasons.slice(0, 2));
+    if ((aiAnalysis as any)?.reasons) {
+      reasons.push(...(aiAnalysis as any).reasons.slice(0, 2));
     }
 
     // SMC reasoning
@@ -511,7 +514,7 @@ export class TradingSignalsService {
     validation.volumeConfirmation = this.checkVolumeConfirmation(mtfAnalysis);
 
     // Check SMC confirmation
-    validation.smcConfirmation = this.checkSMCConfirmation(mtfAnalysis, signal.type);
+    validation.smcConfirmation = signal.type !== 'hold' ? this.checkSMCConfirmation(mtfAnalysis, signal.type) : false;
 
     // Check risk-reward
     validation.riskRewardValid = signal.riskReward >= 2.0;
@@ -791,7 +794,7 @@ export class TradingSignalsService {
     }
   }
 
-  private formatSignalMessage(signal: TradingSignal, language: Language['code']): string {
+  private formatSignalMessage(signal: TradingSignal, language: Language): string {
     const messages = {
       en: `🚀 ${signal.priority.toUpperCase()} SIGNAL: ${signal.type.toUpperCase()} ${signal.symbol} at $${signal.entry} | SL: $${signal.stopLoss} | TP: $${signal.takeProfit[0]} | R:R ${signal.riskReward.toFixed(1)} | Confidence: ${(signal.confidence * 100).toFixed(0)}%`,
       pt: `🚀 SINAL ${signal.priority.toUpperCase()}: ${signal.type.toUpperCase()} ${signal.symbol} em $${signal.entry} | SL: $${signal.stopLoss} | TP: $${signal.takeProfit[0]} | R:R ${signal.riskReward.toFixed(1)} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`,

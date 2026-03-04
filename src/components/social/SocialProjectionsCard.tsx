@@ -128,7 +128,7 @@ function ProjectionCard({ projection, mounted }: { projection: SocialProjection,
     projection.sentimentProjection > 30 ? 'amber' :
     'rose'
 
-  const priceImpactIcon =
+  const PriceImpactIcon =
     projection.priceImpact > 0 ? RiArrowUpCircleLine :
     projection.priceImpact < 0 ? RiArrowDownCircleLine :
     RiArrowRightCircleLine
@@ -173,7 +173,7 @@ function ProjectionCard({ projection, mounted }: { projection: SocialProjection,
 
         <div>
           <div className="flex items-center mb-1">
-            <priceImpactIcon className={`w-4 h-4 text-${priceImpactColor}-400 mr-2`} />
+            <PriceImpactIcon className={`w-4 h-4 text-${priceImpactColor}-400 mr-2`} />
             <span className="text-xs text-gray-400">Price Impact</span>
           </div>
           <div className={`flex items-center justify-center h-8 rounded bg-${priceImpactColor}-500/20 border border-${priceImpactColor}-500/30`}>

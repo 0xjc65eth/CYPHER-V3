@@ -226,7 +226,7 @@ export function PaperTradingPanel({
       });
 
       // Update metrics
-      setMetrics(prev => {
+      setMetrics((prev: any) => {
         const isWin = realizedPnL > 0;
         const totalTrades = prev.totalTrades + 1;
         const winningTrades = prev.winningTrades + (isWin ? 1 : 0);
@@ -319,7 +319,7 @@ export function PaperTradingPanel({
     setTrades(prev => [sellTrade, buyTrade, ...prev].slice(0, 50));
 
     // Update metrics
-    setMetrics(prev => {
+    setMetrics((prev: any) => {
       const isWin = profit > 0;
       const totalTrades = prev.totalTrades + 1;
       const winningTrades = prev.winningTrades + (isWin ? 1 : 0);

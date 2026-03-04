@@ -159,7 +159,7 @@ export class RiskManager {
       }
 
       // Spread risk (very narrow spreads are riskier)
-      const spreadPercentage = (spread / this.lastPrices.get(symbol) || 1) * 100;
+      const spreadPercentage = (spread / (this.lastPrices.get(symbol) || 1)) * 100;
       if (spreadPercentage < 0.1) {
         riskScore += 25;
       } else if (spreadPercentage < 0.2) {
@@ -400,7 +400,7 @@ export class RiskManager {
   }
 
   private calculateDrawdown(): void {
-    const runningPnL = [];
+    const runningPnL: number[] = [];
     let cumulative = 0;
 
     // Calculate cumulative PnL over time

@@ -132,7 +132,7 @@ export function useSmartMoneyConcepts(config: SMCHookConfig): SMCHookReturn {
     let price = currentPrice;
 
     for (let i = 0; i < numCandles; i++) {
-      const timestamp = new Date(Date.now() - (numCandles - i) * 3600000);
+      const timestamp = Date.now() - (numCandles - i) * 3600000;
 
       // Deterministic price movement using sine waves
       const trend = Math.sin(i * 0.05) * 0.01;

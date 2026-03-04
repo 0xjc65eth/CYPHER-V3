@@ -228,11 +228,11 @@ export default function MarketDepth() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{marketDepthData?.liquidityScore.toFixed(0) || 'N/A'}</p>
+            <p className="text-2xl font-bold">{marketDepthData?.liquidityScore?.toFixed(0) || 'N/A'}</p>
             <p className="text-sm text-muted-foreground">
-              {marketDepthData?.liquidityScore > 80 ? 'Excellent' : 
-               marketDepthData?.liquidityScore > 60 ? 'Good' : 
-               marketDepthData?.liquidityScore > 40 ? 'Fair' : 'Poor'} liquidity
+              {(marketDepthData?.liquidityScore ?? 0) > 80 ? 'Excellent' :
+               (marketDepthData?.liquidityScore ?? 0) > 60 ? 'Good' :
+               (marketDepthData?.liquidityScore ?? 0) > 40 ? 'Fair' : 'Poor'} liquidity
             </p>
           </CardContent>
         </Card>
@@ -245,10 +245,10 @@ export default function MarketDepth() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold">{marketDepthData?.depthScore.toFixed(0) || 'N/A'}</p>
+            <p className="text-2xl font-bold">{marketDepthData?.depthScore?.toFixed(0) || 'N/A'}</p>
             <p className="text-sm text-muted-foreground">
-              {marketDepthData?.depthScore > 80 ? 'High' : 
-               marketDepthData?.depthScore > 60 ? 'Medium' : 'Low'} depth
+              {(marketDepthData?.depthScore ?? 0) > 80 ? 'High' :
+               (marketDepthData?.depthScore ?? 0) > 60 ? 'Medium' : 'Low'} depth
             </p>
           </CardContent>
         </Card>
@@ -766,16 +766,16 @@ export default function MarketDepth() {
                 <div className="text-center">
                   <p className="text-2xl font-bold">
                     {loading ? '...' : Object.keys(aggregatedData?.marketplaceData || {}).filter(
-                      key => aggregatedData?.marketplaceData[key].available
+                      key => (aggregatedData?.marketplaceData as any)?.[key]?.available
                     ).length}
                   </p>
                   <p className="text-sm text-muted-foreground">Active Markets</p>
                   <div className="w-full bg-muted rounded-full h-1 mt-2">
-                    <div 
+                    <div
                       className="bg-purple-500 h-1 rounded-full"
-                      style={{ 
+                      style={{
                         width: `${(Object.keys(aggregatedData?.marketplaceData || {}).filter(
-                          key => aggregatedData?.marketplaceData[key].available
+                          key => (aggregatedData?.marketplaceData as any)?.[key]?.available
                         ).length / 4) * 100}%`
                       }}
                     />

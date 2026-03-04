@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { OKXOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+
+const okxApi = new OKXOrdinalsAPI();
 
 /**
  * Ordinals Holder Metrics API Route
@@ -9,6 +12,8 @@ import { NextRequest, NextResponse } from 'next/server';
  * - Holder distribution
  * - Top holders
  * - Concentration metrics
+ *
+ * Data source: OKX (primary) with Magic Eden fallback
  */
 
 interface RouteContext {
@@ -29,28 +34,39 @@ export async function GET(
       );
     }
 
-    // Get Magic Eden stats for basic holder count
-    const magicEdenResponse = await fetch(
-      `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
-      {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'CYPHER-ORDi-Future-V3'
-        },
-        next: { revalidate: 60 } // Cache for 1 minute
+    let totalHolders = 0;
+    let totalSupply = 0;
+    let totalListed = 0;
+
+    // Try OKX first for collection stats
+    const okxStats = await okxApi.getCollectionStats(symbol);
+
+    if (okxStats) {
+      totalHolders = okxStats.ownerCount || 0;
+      totalSupply = okxStats.itemCount || 0;
+      totalListed = okxStats.listedCount || 0;
+    } else {
+      // Fallback to Magic Eden
+      const magicEdenResponse = await fetch(
+        `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'CYPHER-ORDi-Future-V3'
+          },
+          next: { revalidate: 60 } // Cache for 1 minute
+        }
+      );
+
+      if (!magicEdenResponse.ok) {
+        throw new Error(`Magic Eden API error: ${magicEdenResponse.status}`);
       }
-    );
 
-    if (!magicEdenResponse.ok) {
-      throw new Error(`Magic Eden API error: ${magicEdenResponse.status}`);
+      const magicEdenData = await magicEdenResponse.json();
+      totalHolders = parseInt(magicEdenData.owners || '0');
+      totalSupply = parseInt(magicEdenData.supply || '0');
+      totalListed = parseInt(magicEdenData.totalListed || '0');
     }
-
-    const magicEdenData = await magicEdenResponse.json();
-
-    // Parse holder data from Magic Eden
-    const totalHolders = parseInt(magicEdenData.owners || '0');
-    const totalSupply = parseInt(magicEdenData.supply || '0');
-    const totalListed = parseInt(magicEdenData.totalListed || '0');
 
     // Calculate basic metrics
     const holderMetrics = {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { createChart, IChartApi, ISeriesApi, Time, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, Time, CandlestickSeries, HistogramSeries, ColorType } from 'lightweight-charts';
 import { Card } from '@/components/ui/card';
 import { Loader2, AlertCircle } from 'lucide-react';
 
@@ -83,7 +83,7 @@ export const EnhancedChart: React.FC<EnhancedChartProps> = ({
         width: chartContainerRef.current!.clientWidth,
         height: height,
         layout: {
-          background: { type: 'solid', color: '#0a0a0a' },
+          background: { type: ColorType.Solid, color: '#0a0a0a' },
           textColor: '#d1d4dc',
         },
         grid: {
@@ -136,6 +136,9 @@ export const EnhancedChart: React.FC<EnhancedChartProps> = ({
           type: 'volume',
         },
         priceScaleId: '',
+      });
+
+      chart.priceScale('').applyOptions({
         scaleMargins: {
           top: 0.8,
           bottom: 0,

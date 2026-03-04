@@ -32,7 +32,6 @@ class ApiClient {
             'Accept': 'application/json',
             'User-Agent': 'CYPHER-AI/3.1.0'
           },
-          timeout: 10000
         })
 
         if (!response.ok) {
@@ -105,7 +104,7 @@ export class BitcoinService {
       }
 
       // Cache successful result
-      await cacheService.set(cacheKeys.bitcoinPrice(), marketData, cacheTTL.prices)
+      await cacheService.set(cacheKeys.bitcoinPrice(), marketData, cacheTTL.BITCOIN_PRICE)
 
       devLogger.log('API', 'Successfully fetched from CoinGecko')
       return marketData
@@ -126,7 +125,7 @@ export class BitcoinService {
           source: 'api'
         }
 
-        await cacheService.set(cacheKeys.bitcoinPrice(), marketData, cacheTTL.prices)
+        await cacheService.set(cacheKeys.bitcoinPrice(), marketData, cacheTTL.BITCOIN_PRICE)
         return marketData
 
       } catch (fallbackError) {
@@ -154,7 +153,7 @@ export class BitcoinService {
           devLogger.log('API', `Fetching Bitcoin chart for ${days} days (rate-limited)`)
           return await coinGeckoService.getMarketChart('bitcoin', 'usd', days)
         },
-        cacheTTL.prices * 5 // Cache por 5 minutos para gráficos
+        cacheTTL.BITCOIN_PRICE * 5 // Cache por 5 minutos para gráficos
       )
     } catch (error) {
       devLogger.error(error as Error, 'Failed to fetch market chart')

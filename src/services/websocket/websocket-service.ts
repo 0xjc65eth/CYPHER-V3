@@ -299,7 +299,7 @@ export class WebSocketService {
     if (this.config.pingInterval && this.config.pingInterval > 0) {
       this.pingTimer = setInterval(() => {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-          this.ws.ping?.();
+          (this.ws as any).ping?.();
         }
       }, this.config.pingInterval);
     }

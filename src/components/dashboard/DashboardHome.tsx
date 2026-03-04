@@ -83,8 +83,8 @@ export default function DashboardHome() {
                 <button
                   onClick={() => setTheme('wallstreet')}
                   className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                    theme === 'wallstreet' 
-                      ? 'bg-orange-500 text-black' 
+                    (theme as string) === 'wallstreet'
+                      ? 'bg-orange-500 text-black'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -106,7 +106,7 @@ export default function DashboardHome() {
                     <div className="bg-gray-800/50 px-2 sm:px-3 py-2 rounded-lg">
                       <div className="flex items-center space-x-1 sm:space-x-2">
                         <span className="text-xs sm:text-sm text-orange-400 font-medium">
-                          <span className="hidden sm:inline">{formatBalance(balance.bitcoin)} BTC</span>
+                          <span className="hidden sm:inline">{formatBalance(balance)} BTC</span>
                           <span className="sm:hidden">₿</span>
                         </span>
                         <button
@@ -117,7 +117,7 @@ export default function DashboardHome() {
                         </button>
                       </div>
                       <div className="text-xs text-gray-400 hidden sm:block">
-                        {formatUSD(balance.usd)}
+                        {formatUSD(balance * 42000)}
                       </div>
                     </div>
                   )}

@@ -93,9 +93,9 @@ export default function RunesMarketplace() {
         try {
           const orders = await magicEdenRunesService.getRuneOrders({
             rune: rune.spacedRune,
-            sort: 'unitPriceAsc',
+            sortBy: 'unitPriceAsc',
             limit: 20
-          });
+          } as any);
 
           const orderList = Array.isArray(orders?.orders) ? orders.orders : [];
           const meListings = orderList.map((order: any, orderIdx: number) => ({

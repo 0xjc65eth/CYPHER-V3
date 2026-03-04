@@ -92,8 +92,8 @@ class ApiIntegrationService {
         async () => this.fetchMarketData(symbol),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting market data for ${symbol}`, error);
       
@@ -209,8 +209,8 @@ class ApiIntegrationService {
         async () => this.fetchSocialSentiment(symbol),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting social sentiment for ${symbol}`, error);
       
@@ -277,8 +277,8 @@ class ApiIntegrationService {
         async () => this.fetchDeveloperActivity(symbol),
         cacheConfigs.day
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting developer activity for ${symbol}`, error);
       
@@ -354,8 +354,8 @@ class ApiIntegrationService {
         async () => this.fetchNewsArticles(symbol, limit),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting news articles for ${symbol}`, error);
       
@@ -392,8 +392,8 @@ class ApiIntegrationService {
         async () => this.calculateMarketCorrelations(symbol),
         cacheConfigs.day
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting market correlations for ${symbol}`, error);
       
@@ -441,8 +441,8 @@ class ApiIntegrationService {
         async () => this.calculateTechnicalIndicators(symbol),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting technical indicators for ${symbol}`, error);
       

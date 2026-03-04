@@ -608,7 +608,7 @@ How can I assist you today?`;
     
     // Add voice selection based on language
     const voices = this.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(voice => 
+    const preferredVoice = voices.find((voice: SpeechSynthesisVoice) =>
       voice.lang.startsWith(this.config.language === 'pt' ? 'pt' : 'en')
     );
     if (preferredVoice) {

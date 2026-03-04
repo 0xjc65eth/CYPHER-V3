@@ -9,11 +9,11 @@ export function useWalletSafe() {
   return {
     isConnected: false,
     isConnecting: false,
-    address: undefined,
-    ordinalsAddress: undefined,
-    paymentAddress: undefined,
-    publicKey: undefined,
-    balance: undefined,
+    address: undefined as string | undefined,
+    ordinalsAddress: undefined as string | undefined,
+    paymentAddress: undefined as string | undefined,
+    publicKey: undefined as string | undefined,
+    balance: undefined as { bitcoin: number; usd: number } | undefined,
     network: undefined,
     connect: async (walletName: string) => {
     },

@@ -106,13 +106,13 @@ export function ProfessionalChart({
           mode: CrosshairMode.Normal,
           vertLine: {
             color: isDark ? '#6B7280' : '#9CA3AF',
-            width: 1,
+            width: 1 as const,
             style: LineStyle.Dashed,
             visible: config.showCrosshair !== false,
           },
           horzLine: {
             color: isDark ? '#6B7280' : '#9CA3AF',
-            width: 1,
+            width: 1 as const,
             style: LineStyle.Dashed,
             visible: config.showCrosshair !== false,
           },
@@ -209,13 +209,16 @@ export function ProfessionalChart({
             color: isDark ? '#374151' : '#F3F4F6',
             priceFormat: { type: 'volume' },
             priceScaleId: 'volume',
+          })
+
+          chart.priceScale('volume').applyOptions({
             scaleMargins: { top: 0.7, bottom: 0 },
           })
 
           const volumeData = data.map(item => ({
-            time: typeof item.time === 'string' ? new Date(item.time).getTime() / 1000 : item.time,
+            time: (typeof item.time === 'string' ? new Date(item.time).getTime() / 1000 : item.time) as import('lightweight-charts').Time,
             value: item.volume || 0,
-            color: item.close && item.open ? 
+            color: item.close && item.open ?
               (item.close >= item.open ? `${DEFAULT_COLORS.bullish}60` : `${DEFAULT_COLORS.bearish}60`) :
               `${DEFAULT_COLORS.primary}60`
           }))

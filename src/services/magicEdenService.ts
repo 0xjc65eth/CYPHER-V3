@@ -1,18 +1,21 @@
 /**
- * Magic Eden Comprehensive API Service - CYPHER V3
- * Full Magic Eden API integration for Bitcoin Ordinals, Collections, Tokens,
+ * Ordinals API Service - CYPHER V3
+ * OKX-first with Magic Eden fallback for Bitcoin Ordinals, Collections, Tokens,
  * Block Activities, and Rare Sats.
  *
- * Features:
- * - Collections: details, statistics
- * - Tokens: query by collection, owner, inscription range, sat rarity
- * - Block Activities: recent on-chain activity
- * - Rare Sats: listings, wallet UTXOs, batch listing PSBTs, batch listing submission
- * - Rate limiting (30 requests per minute)
- * - Caching with 30s TTL
- * - Retry with exponential backoff
- * - Comprehensive TypeScript types
+ * Migration status (Magic Eden deprecation):
+ * - Collections: OKX primary ✅, ME fallback
+ * - Statistics: OKX primary ✅, ME fallback
+ * - Tokens/Inscriptions: OKX primary ✅, ME fallback
+ * - Activities: OKX primary ✅, ME fallback
+ * - Rare Sats: ME only (no OKX equivalent)
+ * - Rate limiting, caching, retry logic preserved
  */
+
+import { OKXOrdinalsAPI } from './ordinals/integrations/OKXOrdinalsAPI';
+
+// OKX adapter singleton (used as primary data source)
+const okxApi = new OKXOrdinalsAPI();
 
 // ─── Type Definitions ────────────────────────────────────────────────────────
 
@@ -245,14 +248,39 @@ export class MagicEdenService {
   // ── Collections ──────────────────────────────────────────────────────────
 
   /**
-   * GET /v2/ord/btc/collections/{symbol}
    * Get collection details by symbol.
+   * OKX primary → ME fallback
    */
   async getCollectionDetails(symbol: string): Promise<MagicEdenCollectionDetail | null> {
     const cacheKey = `collection-detail-${symbol}`;
     const cached = this.getCached<MagicEdenCollectionDetail>(cacheKey);
     if (cached) return cached;
 
+    // Try OKX first
+    try {
+      const okxData = await okxApi.getCollection(symbol);
+      if (okxData) {
+        const adapted: MagicEdenCollectionDetail = {
+          symbol: okxData.symbol || symbol,
+          name: okxData.name,
+          description: okxData.description,
+          imageURI: okxData.logoUrl,
+          supply: okxData.totalSupply,
+          totalVolume: parseFloat(okxData.volumeTotal || '0'),
+          floorPrice: parseFloat(okxData.floorPrice || '0'),
+          owners: okxData.ownerCount,
+          websiteLink: okxData.websiteUrl,
+          twitterLink: okxData.twitterUrl,
+          discordLink: okxData.discordUrl,
+        };
+        this.setCache(cacheKey, adapted);
+        return adapted;
+      }
+    } catch (err) {
+      console.warn(`[OrdinalsService] OKX failed for collection "${symbol}", trying ME fallback`);
+    }
+
+    // ME fallback
     try {
       const data = await this.request<MagicEdenCollectionDetail>(
         `/v2/ord/btc/collections/${encodeURIComponent(symbol)}`
@@ -262,20 +290,41 @@ export class MagicEdenService {
       }
       return data;
     } catch (error) {
-      console.error(`[MagicEdenService] Failed to get collection details for "${symbol}":`, error);
+      console.error(`[OrdinalsService] All sources failed for collection "${symbol}":`, error);
       return null;
     }
   }
 
   /**
-   * GET /v2/ord/btc/stat
-   * Get collection statistics. Requires collectionSymbol query param.
+   * Get collection statistics.
+   * OKX primary → ME fallback
    */
   async getCollectionStats(collectionSymbol: string): Promise<MagicEdenCollectionStats | null> {
     const cacheKey = `collection-stats-${collectionSymbol}`;
     const cached = this.getCached<MagicEdenCollectionStats>(cacheKey);
     if (cached) return cached;
 
+    // Try OKX first
+    try {
+      const okxStats = await okxApi.getCollectionStats(collectionSymbol, '24h');
+      if (okxStats) {
+        const adapted: MagicEdenCollectionStats = {
+          symbol: collectionSymbol,
+          floorPrice: parseFloat(okxStats.floorPrice || '0'),
+          listedCount: okxStats.listedCount,
+          totalVolume: parseFloat(okxStats.totalVolume || '0'),
+          totalListed: okxStats.totalListings,
+          owners: okxStats.ownerCount,
+          supply: okxStats.itemCount,
+        };
+        this.setCache(cacheKey, adapted);
+        return adapted;
+      }
+    } catch (err) {
+      console.warn(`[OrdinalsService] OKX stats failed for "${collectionSymbol}", trying ME fallback`);
+    }
+
+    // ME fallback
     try {
       const data = await this.request<MagicEdenCollectionStats>(
         `/v2/ord/btc/stat?collectionSymbol=${encodeURIComponent(collectionSymbol)}`
@@ -285,7 +334,7 @@ export class MagicEdenService {
       }
       return data;
     } catch (error) {
-      console.error(`[MagicEdenService] Failed to get collection stats for "${collectionSymbol}":`, error);
+      console.error(`[OrdinalsService] All sources failed for stats "${collectionSymbol}":`, error);
       return null;
     }
   }
@@ -293,62 +342,76 @@ export class MagicEdenService {
   // ── Tokens ───────────────────────────────────────────────────────────────
 
   /**
-   * GET /v2/ord/btc/tokens
-   * Get tokens with various filter parameters.
+   * Get tokens/inscriptions with filter parameters.
+   * OKX primary → ME fallback
    */
   async getTokens(params: MagicEdenTokensParams = {}): Promise<MagicEdenTokensResponse> {
-    const queryParts: string[] = [];
+    const cacheKey = `tokens-${JSON.stringify(params)}`;
+    const cached = this.getCached<MagicEdenTokensResponse>(cacheKey);
+    if (cached) return cached;
 
+    // Try OKX first (for collection-based queries)
     if (params.collectionSymbol) {
-      queryParts.push(`collectionSymbol=${encodeURIComponent(params.collectionSymbol)}`);
+      try {
+        const okxResult = await okxApi.getInscriptions(
+          params.collectionSymbol,
+          undefined,
+          undefined,
+          undefined,
+          'newest',
+          params.limit || 20
+        );
+        if (okxResult.inscriptions.length > 0) {
+          const adapted: MagicEdenTokensResponse = {
+            tokens: okxResult.inscriptions.map((insc: any) => ({
+              id: insc.inscriptionId,
+              contentURI: insc.content,
+              contentType: insc.contentType,
+              contentPreviewURI: insc.preview,
+              meta: {
+                name: `#${insc.inscriptionNumber}`,
+                collection: params.collectionSymbol,
+              },
+              owner: insc.address,
+              listedPrice: insc.listingInfo ? parseFloat(insc.listingInfo.price) : undefined,
+              listed: !!insc.listingInfo,
+              inscriptionNumber: parseInt(insc.inscriptionNumber || '0'),
+            })),
+          };
+          this.setCache(cacheKey, adapted);
+          return adapted;
+        }
+      } catch (err) {
+        console.warn('[OrdinalsService] OKX tokens failed, trying ME fallback');
+      }
     }
-    if (params.ownerAddress) {
-      queryParts.push(`ownerAddress=${encodeURIComponent(params.ownerAddress)}`);
-    }
-    if (params.inscriptionMin !== undefined) {
-      queryParts.push(`inscriptionMin=${params.inscriptionMin}`);
-    }
-    if (params.inscriptionMax !== undefined) {
-      queryParts.push(`inscriptionMax=${params.inscriptionMax}`);
-    }
-    if (params.tokenIds && params.tokenIds.length > 0) {
-      queryParts.push(`tokenIds=${params.tokenIds.map(encodeURIComponent).join(',')}`);
-    }
-    if (params.parentTokenIds && params.parentTokenIds.length > 0) {
-      queryParts.push(`parentTokenIds=${params.parentTokenIds.map(encodeURIComponent).join(',')}`);
-    }
-    if (params.satRarity) {
-      queryParts.push(`satRarity=${encodeURIComponent(params.satRarity)}`);
-    }
-    // Limit must be 20-100 in multiples of 20
+
+    // ME fallback (full query support)
+    const queryParts: string[] = [];
+    if (params.collectionSymbol) queryParts.push(`collectionSymbol=${encodeURIComponent(params.collectionSymbol)}`);
+    if (params.ownerAddress) queryParts.push(`ownerAddress=${encodeURIComponent(params.ownerAddress)}`);
+    if (params.inscriptionMin !== undefined) queryParts.push(`inscriptionMin=${params.inscriptionMin}`);
+    if (params.inscriptionMax !== undefined) queryParts.push(`inscriptionMax=${params.inscriptionMax}`);
+    if (params.tokenIds?.length) queryParts.push(`tokenIds=${params.tokenIds.map(encodeURIComponent).join(',')}`);
+    if (params.parentTokenIds?.length) queryParts.push(`parentTokenIds=${params.parentTokenIds.map(encodeURIComponent).join(',')}`);
+    if (params.satRarity) queryParts.push(`satRarity=${encodeURIComponent(params.satRarity)}`);
     if (params.limit !== undefined) {
       const clampedLimit = Math.min(100, Math.max(20, Math.round(params.limit / 20) * 20));
       queryParts.push(`limit=${clampedLimit}`);
     }
-    if (params.offset !== undefined) {
-      queryParts.push(`offset=${params.offset}`);
-    }
-    if (params.sortBy) {
-      queryParts.push(`sortBy=${encodeURIComponent(params.sortBy)}`);
-    }
-    if (params.sortDirection) {
-      queryParts.push(`sortDirection=${params.sortDirection}`);
-    }
+    if (params.offset !== undefined) queryParts.push(`offset=${params.offset}`);
+    if (params.sortBy) queryParts.push(`sortBy=${encodeURIComponent(params.sortBy)}`);
+    if (params.sortDirection) queryParts.push(`sortDirection=${params.sortDirection}`);
 
     const query = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
-    const cacheKey = `tokens-${query}`;
-    const cached = this.getCached<MagicEdenTokensResponse>(cacheKey);
-    if (cached) return cached;
 
     try {
-      const data = await this.request<MagicEdenTokensResponse>(
-        `/v2/ord/btc/tokens${query}`
-      );
+      const data = await this.request<MagicEdenTokensResponse>(`/v2/ord/btc/tokens${query}`);
       const result = data || { tokens: [] };
       this.setCache(cacheKey, result);
       return result;
     } catch (error) {
-      console.error('[MagicEdenService] Failed to get tokens:', error);
+      console.error('[OrdinalsService] All sources failed for tokens:', error);
       return { tokens: [] };
     }
   }
@@ -356,39 +419,60 @@ export class MagicEdenService {
   // ── Block Activities ─────────────────────────────────────────────────────
 
   /**
-   * GET /v2/ord/btc/block/activities
-   * Get block activities (recent on-chain events).
+   * Get block/market activities (recent on-chain events).
+   * OKX primary → ME fallback
    */
   async getBlockActivities(params: MagicEdenBlockActivitiesParams = {}): Promise<MagicEdenBlockActivitiesResponse> {
-    const queryParts: string[] = [];
-
-    if (params.kind) {
-      queryParts.push(`kind=${encodeURIComponent(params.kind)}`);
-    }
-    if (params.collectionSymbol) {
-      queryParts.push(`collectionSymbol=${encodeURIComponent(params.collectionSymbol)}`);
-    }
-    if (params.limit !== undefined) {
-      queryParts.push(`limit=${params.limit}`);
-    }
-    if (params.offset !== undefined) {
-      queryParts.push(`offset=${params.offset}`);
-    }
-
-    const query = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
-    const cacheKey = `block-activities-${query}`;
+    const cacheKey = `block-activities-${JSON.stringify(params)}`;
     const cached = this.getCached<MagicEdenBlockActivitiesResponse>(cacheKey);
     if (cached) return cached;
 
+    // Try OKX first (if collection specified)
+    if (params.collectionSymbol) {
+      try {
+        const okxActivities = await okxApi.getCollectionActivity(
+          params.collectionSymbol,
+          undefined,
+          params.limit || 20
+        );
+        if (okxActivities.activities.length > 0) {
+          const adapted: MagicEdenBlockActivitiesResponse = {
+            activities: okxActivities.activities.map((a: any) => ({
+              kind: a.type?.toLowerCase() || 'unknown',
+              tokenId: a.inscriptionId,
+              collectionSymbol: params.collectionSymbol,
+              seller: a.fromAddress,
+              buyer: a.toAddress,
+              price: a.price ? parseFloat(a.price) : undefined,
+              txId: a.txHash,
+              blockTime: a.timestamp,
+              createdAt: a.timestamp,
+            })),
+          };
+          this.setCache(cacheKey, adapted);
+          return adapted;
+        }
+      } catch (err) {
+        console.warn('[OrdinalsService] OKX activities failed, trying ME fallback');
+      }
+    }
+
+    // ME fallback
+    const queryParts: string[] = [];
+    if (params.kind) queryParts.push(`kind=${encodeURIComponent(params.kind)}`);
+    if (params.collectionSymbol) queryParts.push(`collectionSymbol=${encodeURIComponent(params.collectionSymbol)}`);
+    if (params.limit !== undefined) queryParts.push(`limit=${params.limit}`);
+    if (params.offset !== undefined) queryParts.push(`offset=${params.offset}`);
+
+    const query = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
+
     try {
-      const data = await this.request<MagicEdenBlockActivitiesResponse>(
-        `/v2/ord/btc/block/activities${query}`
-      );
+      const data = await this.request<MagicEdenBlockActivitiesResponse>(`/v2/ord/btc/block/activities${query}`);
       const result = data || { activities: [] };
       this.setCache(cacheKey, result);
       return result;
     } catch (error) {
-      console.error('[MagicEdenService] Failed to get block activities:', error);
+      console.error('[OrdinalsService] All sources failed for activities:', error);
       return { activities: [] };
     }
   }
@@ -396,42 +480,12 @@ export class MagicEdenService {
   // ── Collection Activities ────────────────────────────────────────────────
 
   /**
-   * GET /v2/ord/btc/activities
    * Get collection-specific activities (sales, listings, etc.)
-   * This is different from block activities - it returns activities for a specific collection.
+   * OKX primary → ME fallback
    */
   async getCollectionActivities(params: MagicEdenBlockActivitiesParams = {}): Promise<MagicEdenBlockActivitiesResponse> {
-    const queryParts: string[] = [];
-
-    if (params.kind) {
-      queryParts.push(`kind=${encodeURIComponent(params.kind)}`);
-    }
-    if (params.collectionSymbol) {
-      queryParts.push(`collectionSymbol=${encodeURIComponent(params.collectionSymbol)}`);
-    }
-    if (params.limit !== undefined) {
-      queryParts.push(`limit=${params.limit}`);
-    }
-    if (params.offset !== undefined) {
-      queryParts.push(`offset=${params.offset}`);
-    }
-
-    const query = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
-    const cacheKey = `collection-activities-${query}`;
-    const cached = this.getCached<MagicEdenBlockActivitiesResponse>(cacheKey);
-    if (cached) return cached;
-
-    try {
-      const data = await this.request<MagicEdenBlockActivitiesResponse>(
-        `/v2/ord/btc/activities${query}`
-      );
-      const result = data || { activities: [] };
-      this.setCache(cacheKey, result, 60000); // Cache for 60s since activities don't change fast
-      return result;
-    } catch (error) {
-      console.error('[MagicEdenService] Failed to get collection activities:', error);
-      return { activities: [] };
-    }
+    // Delegate to getBlockActivities which already has OKX adapter
+    return this.getBlockActivities(params);
   }
 
   // ── Rare Sats ────────────────────────────────────────────────────────────

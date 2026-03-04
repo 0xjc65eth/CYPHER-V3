@@ -66,8 +66,8 @@ export default function NeuralSystemStatus() {
         const serviceStatus = neuralLearningService.getStatus()
         const models = neuralLearningService.getAllModels()
         const insights = neuralLearningService.getRecentInsights(5)
-        const corrections = neuralLearningService.getAutoCorrections ?
-          neuralLearningService.getAutoCorrections(5) :
+        const corrections = (neuralLearningService as any).getAutoCorrections ?
+          (neuralLearningService as any).getAutoCorrections(5) :
           generateMockCorrections(5)
 
         if (serviceStatus && models) {
@@ -76,7 +76,7 @@ export default function NeuralSystemStatus() {
             status: serviceStatus.isLearning ? 'training' : 'idle',
             lastUpdated: serviceStatus.lastModelUpdate || new Date().toISOString(),
             accuracy: models.reduce((sum, model) => sum + model.accuracy, 0) / models.length * 100,
-            dataPoints: Object.values(serviceStatus.dataPoints || {}).reduce((sum: number, val: number) => sum + val, 0),
+            dataPoints: Object.values(serviceStatus.dataPoints || {}).reduce((sum: number, val: any) => sum + Number(val), 0),
             metrics: models.map(model => ({
               name: model.name,
               value: model.accuracy * 100,
@@ -144,7 +144,7 @@ export default function NeuralSystemStatus() {
         }
       }
 
-      setData(realData)
+      setData(realData as any)
     } catch (err) {
       console.error('Error fetching neural system status:', err)
       setError('Failed to fetch neural system status')
@@ -182,8 +182,8 @@ export default function NeuralSystemStatus() {
   const getLearningProgress = (): LearningProgress => {
     // Try to get real learning progress from service
     try {
-      if (neuralLearningService.getLearningProgress) {
-        const progress = neuralLearningService.getLearningProgress()
+      if ((neuralLearningService as any).getLearningProgress) {
+        const progress = (neuralLearningService as any).getLearningProgress()
         if (progress) return progress
       }
     } catch (error) {
@@ -499,7 +499,7 @@ export default function NeuralSystemStatus() {
             variant="outline"
             onClick={() => {
               try {
-                neuralLearningService.detectAndCorrectInconsistencies && neuralLearningService.detectAndCorrectInconsistencies();
+                (neuralLearningService as any).detectAndCorrectInconsistencies && (neuralLearningService as any).detectAndCorrectInconsistencies();
                 fetchNeuralSystemStatus();
               } catch (error) {
                 console.error('Error triggering auto-correction:', error);

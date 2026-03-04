@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort') || 'volume';
 
     // Fetch trending collections from OKX
-    const trending = await okxOrdinalsAPI.getTrendingCollections({ limit });
+    const trending = await okxOrdinalsAPI.getTrendingCollections();
 
     if (!trending || !Array.isArray(trending)) {
       return NextResponse.json({

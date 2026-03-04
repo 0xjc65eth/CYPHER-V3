@@ -117,7 +117,7 @@ export async function GET(
 
     // Liquidity score (0-100)
     const liquidityScore = Math.min(100,
-      (totalItemsListed / stats.supply) * 100 * 2 +
+      (totalItemsListed / (stats as any).supply) * 100 * 2 +
       (depthAt10Percent / 10) * 10 +
       (totalBTCAvailable / (floorPrice * 100)) * 20
     );

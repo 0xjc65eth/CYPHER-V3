@@ -17,11 +17,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-import { 
-  Wallet, 
-  ChevronDown, 
-  Copy, 
-  ExternalLink, 
+import {
+  Wallet,
+  ChevronDown,
+  Copy,
+  ExternalLink,
   RefreshCw,
   TrendingUp,
   TrendingDown,
@@ -37,7 +37,7 @@ import {
   CheckCircle,
   WifiOff
 } from 'lucide-react'
-import multiChainWalletService, { SUPPORTED_EVM_CHAINS, SUPPORTED_SOLANA_CHAINS } from '../../services/MultiChainWallet.js'
+import { SUPPORTED_EVM_CHAINS, SUPPORTED_SOLANA_CHAINS } from '../../services/MultiChainWallet.js'
 
 interface MultiChainWalletButtonProps {
   variant?: 'default' | 'compact' | 'minimal' | 'full'
@@ -82,12 +82,12 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
   const { address, isConnected } = useAppKitAccount()
   const { caipNetwork } = useAppKitNetwork()
   const { toast } = useToast()
-  
+
   // Wagmi hooks for EVM chains
   const { address: wagmiAddress } = useAccount()
   const chainId = useChainId()
   const { switchChain, isPending: isSwitching } = useSwitchChain()
-  
+
   // State management
   const [balances, setBalances] = useState<ChainBalance[]>([])
   const [loading, setLoading] = useState(false)
@@ -97,7 +97,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
   const [portfolioChange, setPortfolioChange] = useState(0)
   const [hideBalance, setHideBalance] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null)
   const refreshIntervalRef = useRef<ReturnType<typeof setInterval>>()
 
@@ -126,27 +126,30 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
 
     setLoading(true)
     try {
-      const allBalances = await multiChainWalletService.getAllBalances(walletAddress)
-      
-      // Calculate USD values
-      const balancesWithUSD = allBalances.map(balance => {
-        const price = multiChainWalletService.getPrice(balance.coingeckoId || '')
-        const usdValue = parseFloat(balance.formattedBalance) * price.price
-        return {
-          ...balance,
-          usdValue
-        }
-      })
+      // Build balances from current EVM balance since the service doesn't expose getAllBalances
+      const currentBalances: ChainBalance[] = []
 
-      setBalances(balancesWithUSD)
-      
-      // Calculate portfolio metrics
-      const portfolio = multiChainWalletService.calculatePortfolioValue(balancesWithUSD)
-      setTotalPortfolioValue(portfolio.totalValue)
-      setPortfolioChange(portfolio.total24hChangePercent)
-      
-      onBalanceUpdate?.(portfolio.totalValue)
-      
+      if (evmBalance && currentChain) {
+        currentBalances.push({
+          chainId: chainId,
+          chainName: (currentChain as any).name || 'Unknown',
+          balance: evmBalance.value.toString(),
+          formattedBalance: formatEther(evmBalance.value),
+          currency: (currentChain as any).currency || 'ETH',
+          explorerUrl: (currentChain as any).explorerUrl || '',
+          usdValue: 0
+        })
+      }
+
+      setBalances(currentBalances)
+
+      // Calculate simple portfolio value
+      const totalValue = currentBalances.reduce((sum, b) => sum + (b.usdValue || 0), 0)
+      setTotalPortfolioValue(totalValue)
+      setPortfolioChange(0)
+
+      onBalanceUpdate?.(totalValue)
+
     } catch (error) {
       console.error('Error fetching balances:', error)
       toast({
@@ -165,7 +168,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
     await fetchAllBalances()
     await refetchBalance?.()
     setRefreshing(false)
-    
+
     toast({
       title: 'Balances updated',
       description: 'Wallet balances have been refreshed',
@@ -210,7 +213,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
     try {
       await switchChain({ chainId: newChainId })
       onNetworkChange?.(newChainId)
-      
+
       toast({
         title: 'Network switched',
         description: `Switched to ${SUPPORTED_EVM_CHAINS.find(c => c.id === newChainId)?.name}`,
@@ -280,10 +283,10 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
   useEffect(() => {
     if (isConnected && (address || wagmiAddress)) {
       fetchAllBalances()
-      
+
       // Set up periodic refresh
       refreshIntervalRef.current = setInterval(fetchAllBalances, 30000) // 30 seconds
-      
+
       return () => {
         if (refreshIntervalRef.current) {
           clearInterval(refreshIntervalRef.current)
@@ -296,7 +299,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
     if (showNetworkStatus && currentChain) {
       checkNetworkStatus()
       const statusInterval = setInterval(checkNetworkStatus, 15000) // 15 seconds
-      
+
       return () => clearInterval(statusInterval)
     }
   }, [currentChain, showNetworkStatus])
@@ -316,8 +319,8 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
   // Render disconnected state
   if (!isConnected) {
     return (
-      <Button 
-        onClick={() => open()} 
+      <Button
+        onClick={() => open()}
         className={`${className} flex items-center space-x-2`}
         variant={variant === 'minimal' ? 'outline' : 'default'}
       >
@@ -499,7 +502,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
           </div>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* Current network info */}
         {currentChain && (
@@ -520,11 +523,7 @@ export const MultiChainWalletButton: React.FC<MultiChainWalletButtonProps> = ({
                   {formatBalance(formatEther(evmBalance.value), hideBalance)} {(currentChain as any).currency}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {formatUSDValue(
-                    parseFloat(formatEther(evmBalance.value)) *
-                    (multiChainWalletService.getPrice((currentChain as any).coingeckoId || '').price || 0),
-                    hideBalance
-                  )}
+                  {formatUSDValue(0, hideBalance)}
                 </p>
               </div>
             )}

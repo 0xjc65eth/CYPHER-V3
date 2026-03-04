@@ -488,7 +488,7 @@ export class SmartMoneyConceptsEngine {
         ];
         
         // Check for FVG confluence
-        const nearbyFVG = fairValueGaps.find(fvg => 
+        const nearbyFVG = fairValueGaps.find((fvg: any) =>
           Math.abs(fvg.middle - ob.price) / ob.price < 0.01
         );
         if (nearbyFVG) {

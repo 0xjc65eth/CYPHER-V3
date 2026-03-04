@@ -28,7 +28,7 @@ export async function verifyBitcoinAuth(request: NextRequest): Promise<BitcoinAu
     const token = authHeader.substring(7);
 
     // Verify JWT token
-    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const decoded = jwt.verify(token, JWT_SECRET!) as any;
     
     // Check if token is expired
     if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
@@ -56,7 +56,7 @@ export function createBitcoinAuthSession(address: string, walletType: string): B
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60) // 7 days
     },
-    JWT_SECRET
+    JWT_SECRET!
   );
 
   return { user, token };

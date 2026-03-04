@@ -341,6 +341,7 @@ export function TradingEngineController() {
                     BTC Price (24h)
                   </h4>
                   <RechartsChart
+                    type={profitConfig.type}
                     data={recentPriceData}
                     config={profitConfig}
                     className="bg-transparent border-0 p-0"
@@ -356,6 +357,7 @@ export function TradingEngineController() {
                 <div className="mt-6">
                   <h4 className="text-sm font-medium text-white mb-2">BTC Price (24h)</h4>
                   <RechartsChart
+                    type={profitConfig.type}
                     data={recentPriceData}
                     config={profitConfig}
                     className="bg-transparent border-0 p-0"
@@ -377,6 +379,7 @@ export function TradingEngineController() {
 
           {priceData.length > 0 ? (
             <RechartsChart
+              type={performanceConfig.type}
               data={priceData}
               config={performanceConfig}
               className="bg-transparent border-0 p-0"

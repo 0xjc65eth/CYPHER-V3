@@ -39,7 +39,7 @@ export const BitcoinWalletConnectButton: React.FC<BitcoinWalletConnectButtonProp
 
   useEffect(() => {
     // Verificar se há dados salvos da carteira
-    const storedData = walletService.getStoredWalletData();
+    const storedData = (walletService as any).getStoredWalletData?.();
     if (storedData && storedData.connected) {
       setWalletData(storedData);
       setConnected(true);
@@ -52,18 +52,18 @@ export const BitcoinWalletConnectButton: React.FC<BitcoinWalletConnectButtonProp
     try {
       console.log('🔗 Iniciando conexão com carteira Bitcoin...');
       
-      const result = await walletService.connect();
-      
-      if (result.success) {
-        const data = await walletService.loadWalletData();
-        
+      const result = await walletService.connect('xverse') as any;
+
+      if (result.address) {
+        const data = await (walletService as any).loadWalletData?.() || null;
+
         if (data) {
           setWalletData(data);
           setConnected(true);
           onConnect?.(data);
-          
+
           console.log('✅ Carteira Bitcoin conectada:', {
-            provider: result.provider,
+            provider: result.walletType,
             payment: data.addresses.payment,
             ordinals: data.addresses.ordinals,
             balance: data.balance.total,
@@ -194,11 +194,11 @@ export const BitcoinWalletConnectButton: React.FC<BitcoinWalletConnectButtonProp
             </span>
           </div>
           
-          {walletData?.balance?.unconfirmed > 0 && (
+          {(walletData?.balance?.unconfirmed ?? 0) > 0 && (
             <div className="flex justify-between items-center text-xs">
               <span className="text-muted-foreground">Não confirmado:</span>
               <span className="text-yellow-600">
-                {formatSats(walletData.balance.unconfirmed)}
+                {formatSats(walletData!.balance.unconfirmed)}
               </span>
             </div>
           )}

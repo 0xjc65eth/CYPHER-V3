@@ -278,8 +278,16 @@ export class SimplifiedAIAnalyzer {
     }>;
     signals: TradingSignal[];
   }> {
-    const patterns = [];
-    const signals = [];
+    const patterns: Array<{
+      name: string;
+      type: 'bullish' | 'bearish' | 'neutral';
+      strength: number;
+      timeframe: string;
+      target: number;
+      stopLoss: number;
+      successRate: number;
+    }> = [];
+    const signals: TradingSignal[] = [];
     const prices = priceData.map(d => d.close);
     
     if (prices.length < 10) {
@@ -305,7 +313,7 @@ export class SimplifiedAIAnalyzer {
       });
 
       signals.push({
-        type: 'buy',
+        type: 'buy' as const,
         strength: 70,
         indicators: {
           technical: 0.7,
@@ -331,7 +339,7 @@ export class SimplifiedAIAnalyzer {
       });
 
       signals.push({
-        type: 'sell',
+        type: 'sell' as const,
         strength: 60,
         indicators: {
           technical: 0.6,

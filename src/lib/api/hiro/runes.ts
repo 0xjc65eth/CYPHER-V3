@@ -31,7 +31,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `etchings:${JSON.stringify({ ...params, limit, offset })}`
 
     // Check cache
-    const cached = this.cache.get<RunesListResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RunesListResponse | null
     if (cached) return cached
 
     // Make request
@@ -64,7 +64,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `etching:${runeId}`
 
     // Check cache
-    const cached = this.cache.get<RuneEtching>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneEtching | null
     if (cached) return cached
 
     // Make request
@@ -89,7 +89,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `holders:${runeId}:${limit}:${offset}`
 
     // Check cache
-    const cached = this.cache.get<RuneHoldersResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneHoldersResponse | null
     if (cached) return cached
 
     // Make request
@@ -119,7 +119,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `activity:${runeId}:${JSON.stringify({ ...params, limit, offset })}`
 
     // Check cache
-    const cached = this.cache.get<RuneActivityResponse>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneActivityResponse | null
     if (cached) return cached
 
     // Make request
@@ -149,7 +149,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `balances:${address}`
 
     // Check cache
-    const cached = this.cache.get<RuneBalance[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneBalance[] | null
     if (cached) return cached
 
     // Make request
@@ -176,7 +176,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = 'stats:global'
 
     // Check cache
-    const cached = this.cache.get<RuneStats>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneStats | null
     if (cached) return cached
 
     // Make request
@@ -195,7 +195,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `search:${query}:${limit}`
 
     // Check cache
-    const cached = this.cache.get<RuneEtching[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneEtching[] | null
     if (cached) return cached
 
     // Make request
@@ -219,7 +219,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `trending:${period}:${limit}`
 
     // Check cache
-    const cached = this.cache.get<RuneEtching[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneEtching[] | null
     if (cached) return cached
 
     // Make request
@@ -240,7 +240,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `new:${limit}`
 
     // Check cache
-    const cached = this.cache.get<RuneEtching[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneEtching[] | null
     if (cached) return cached
 
     // Make request
@@ -261,7 +261,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const cacheKey = `top:marketcap:${limit}`
 
     // Check cache
-    const cached = this.cache.get<RuneEtching[]>(cacheKey)
+    const cached = this.cache.get(cacheKey) as RuneEtching[] | null
     if (cached) return cached
 
     // Make request
@@ -306,7 +306,7 @@ export class HiroRunesAPI extends HiroAPIBase {
     const uncachedIds: string[] = []
     
     for (const runeId of runeIds) {
-      const cached = this.cache.get<RuneEtching>(`etching:${runeId}`)
+      const cached = this.cache.get(`etching:${runeId}`) as RuneEtching | null
       if (cached) {
         results.set(runeId, cached)
       } else {

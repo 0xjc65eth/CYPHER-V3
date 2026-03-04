@@ -183,8 +183,8 @@ export class CCXTConnector extends BaseConnector {
 
       return {
         success: true,
-        orderId: order.id,
-        txHash: order.info?.transactTime?.toString(),
+        orderId: (order as any).id,
+        txHash: (order as any).info?.transactTime?.toString(),
       };
     } catch (error) {
       return {

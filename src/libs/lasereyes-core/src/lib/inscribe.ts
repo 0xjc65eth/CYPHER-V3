@@ -204,7 +204,7 @@ export const getCommitPsbt = async ({
       psbt.addInput({
         hash: utxo.txid,
         index: utxo.vout,
-        witnessUtxo: { value: BigInt(utxo.value), script: addressScript },
+        witnessUtxo: { value: BigInt(utxo.value) as unknown as number, script: addressScript },
       })
 
       if (paymentAddressType === P2TR) {
@@ -229,13 +229,13 @@ export const getCommitPsbt = async ({
     const reimbursement = accSats - inscribeFees
 
     psbt.addOutput({
-      value: BigInt(revealSatsNeeded),
+      value: BigInt(revealSatsNeeded) as unknown as number,
       address: inscriberAddress,
     })
 
     if (reimbursement > 546) {
       psbt.addOutput({
-        value: BigInt(reimbursement),
+        value: BigInt(reimbursement) as unknown as number,
         address: paymentAddress,
       })
     }

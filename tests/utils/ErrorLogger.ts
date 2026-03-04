@@ -400,8 +400,8 @@ ${stats.errorRate > 10 ? '\n⚠️  HIGH ERROR RATE - SYSTEM MONITORING RECOMMEN
   }
 
   private generateTags(message: string, category: ErrorCategory): string[] {
-    const tags = [category]
-    
+    const tags: string[] = [category]
+
     // Auto-generate tags based on message content
     if (message.toLowerCase().includes('timeout')) tags.push('timeout')
     if (message.toLowerCase().includes('network')) tags.push('network')
@@ -410,7 +410,7 @@ ${stats.errorRate > 10 ? '\n⚠️  HIGH ERROR RATE - SYSTEM MONITORING RECOMMEN
     if (message.toLowerCase().includes('rate limit')) tags.push('rate-limit')
     if (message.toLowerCase().includes('bigint')) tags.push('bigint')
     if (message.toLowerCase().includes('wallet')) tags.push('wallet')
-    
+
     return tags
   }
 

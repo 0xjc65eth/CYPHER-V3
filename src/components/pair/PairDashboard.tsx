@@ -80,7 +80,7 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
   // Handle candlestick click
   const handleCandleClick = useCallback((event: any, chartContext: any, config: any) => {
     if (config.dataPointIndex >= 0) {
-      const candleData = candles[selectedTimeframe]?.[config.dataPointIndex];
+      const candleData = (candles as Record<string, any>)[selectedTimeframe]?.[config.dataPointIndex];
       setSelectedCandle({
         ...candleData,
         index: config.dataPointIndex,
@@ -101,7 +101,7 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
   }, [router]);
 
   // Candle data for lightweight-charts
-  const candleData = candles[selectedTimeframe] || [];
+  const candleData = (candles as Record<string, any>)[selectedTimeframe] || [];
 
   const formatPrice = (price: number) => {
     return `$${price.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 6 })}`;
@@ -386,10 +386,10 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <InteractiveOrderBook 
-              pair={pairId} 
+            <InteractiveOrderBook
+              pair={pairId}
               onPriceClick={handleOrderBookClick}
-              depth={depth}
+              depth={depth as any}
             />
           </CardContent>
         </Card>

@@ -115,8 +115,8 @@ class GitHubApiService {
         async () => this.fetchRepositoryCommits(owner, repo, limit),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting GitHub commits for ${owner}/${repo}`, error);
       return [];
@@ -244,8 +244,8 @@ class GitHubApiService {
         async () => this.fetchRepositoryContributors(owner, repo, limit),
         cacheConfigs.day
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting GitHub contributors for ${owner}/${repo}`, error);
       return [];
@@ -300,8 +300,8 @@ class GitHubApiService {
         async () => this.fetchRepositoryIssues(owner, repo, limit),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting GitHub issues for ${owner}/${repo}`, error);
       return [];
@@ -460,8 +460,8 @@ class GitHubApiService {
         async () => this.fetchRepositoryPullRequests(owner, repo, limit),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData!;
     } catch (error) {
       loggerService.error(`Error getting GitHub pull requests for ${owner}/${repo}`, error);
       return [];

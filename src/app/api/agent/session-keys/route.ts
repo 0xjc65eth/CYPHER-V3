@@ -27,11 +27,11 @@ export async function GET(request: NextRequest) {
 
     if (activeOnly) {
       const now = Date.now();
-      keys = keys.filter(k => k.isActive && k.expiresAt > now);
+      keys = keys.filter((k: any) => k.isActive && k.expiresAt > now);
     }
 
     // Redact sensitive fields
-    const safeKeys = keys.map(k => ({
+    const safeKeys = keys.map((k: any) => ({
       id: k.id,
       chain: k.chain,
       publicAddress: k.publicAddress,

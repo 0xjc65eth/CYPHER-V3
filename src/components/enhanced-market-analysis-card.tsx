@@ -35,7 +35,7 @@ export function EnhancedMarketAnalysisCard() {
         const pricesData = await getCryptoPrices(['BTC'])
         
         if (pricesData['BTC']) {
-          const btcData = pricesData['BTC']
+          const btcData = pricesData['BTC'] as any
           setMarketData({
             volume24h: btcData.volume_24h || 45678901234,
             marketCap: btcData.market_cap || 1234567890123,

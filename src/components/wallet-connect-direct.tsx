@@ -9,12 +9,12 @@ export function WalletConnectDirect() {
   const [address, setAddress] = useState('')
   const [showModal, setShowModal] = useState(false)
 
-  // Verificar se a carteira UniSat está disponível
+  // Verificar se a carteira UniSat esta disponivel
   const isUnisatAvailable = () => {
     return typeof window !== 'undefined' && window.unisat !== undefined
   }
 
-  // Conectar à carteira UniSat
+  // Conectar a carteira UniSat
   const connectUnisat = async () => {
     if (!isUnisatAvailable()) {
       alert('UniSat wallet is not installed. Please install it from https://unisat.io')
@@ -23,15 +23,15 @@ export function WalletConnectDirect() {
 
     try {
       setConnecting(true)
-      
-      // Solicitar conexão
+
+      // Solicitar conexao
       const accounts = await window.unisat.requestAccounts()
-      
+
       if (accounts && accounts.length > 0) {
         setAddress(accounts[0])
         setConnected(true)
-        
-        // Emitir evento de conexão
+
+        // Emitir evento de conexao
         const walletConnectedEvent = new CustomEvent('walletConnected', {
           detail: {
             address: accounts[0],
@@ -40,7 +40,7 @@ export function WalletConnectDirect() {
           }
         })
         window.dispatchEvent(walletConnectedEvent)
-        
+
       }
     } catch (error) {
       console.error('Error connecting to UniSat wallet:', error)
@@ -55,25 +55,25 @@ export function WalletConnectDirect() {
   const handleDisconnect = () => {
     setConnected(false)
     setAddress('')
-    
-    // Emitir evento de desconexão
+
+    // Emitir evento de desconexao
     const walletDisconnectedEvent = new CustomEvent('walletDisconnected')
     window.dispatchEvent(walletDisconnectedEvent)
-    
+
   }
 
-  // Simular conexão para fins de demonstração
+  // Simular conexao para fins de demonstracao
   const simulateConnection = () => {
     setConnecting(true)
-    
+
     setTimeout(() => {
       const mockAddress = `bc1${Math.random().toString(36).substring(2, 10)}...${Math.random().toString(36).substring(2, 6)}`
       setAddress(mockAddress)
       setConnected(true)
       setConnecting(false)
       setShowModal(false)
-      
-      // Emitir evento de conexão
+
+      // Emitir evento de conexao
       const walletConnectedEvent = new CustomEvent('walletConnected', {
         detail: {
           address: mockAddress,
@@ -82,7 +82,7 @@ export function WalletConnectDirect() {
         }
       })
       window.dispatchEvent(walletConnectedEvent)
-      
+
     }, 1500)
   }
 
@@ -120,7 +120,7 @@ export function WalletConnectDirect() {
         </div>
       )}
 
-      {/* Modal de seleção de carteira */}
+      {/* Modal de selecao de carteira */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
           <div className="bg-[#121212] border border-[#3D3D3D] rounded-lg p-6 max-w-md w-full mx-4">
@@ -170,17 +170,4 @@ export function WalletConnectDirect() {
       )}
     </div>
   )
-}
-
-// Adicionar tipos para a janela global
-declare global {
-  interface Window {
-    unisat?: {
-      requestAccounts: () => Promise<string[]>;
-      getAccounts: () => Promise<string[]>;
-      getBalance: () => Promise<{ confirmed: number; unconfirmed: number; total: number }>;
-      signMessage: (message: string) => Promise<string>;
-      sendBitcoin: (address: string, amount: number) => Promise<string>;
-    };
-  }
 }

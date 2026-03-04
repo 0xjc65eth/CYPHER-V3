@@ -148,8 +148,8 @@ describe('IntervalManager', () => {
     });
 
     it('should calculate average execution time', async () => {
-      const slowTask = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
-      
+      const slowTask = vi.fn((): Promise<void> => new Promise(resolve => setTimeout(resolve, 100)));
+
       manager.register('slow-task', slowTask, 1000);
       
       await manager.execute('slow-task');
@@ -208,9 +208,9 @@ describe('IntervalManager', () => {
 
   describe('Timeout Handling', () => {
     it('should timeout long-running tasks', async () => {
-      const longTask = vi.fn(() => new Promise(() => {})); // Never resolves
-      
-      manager.register('timeout-task', longTask, 1000, { 
+      const longTask = vi.fn((): Promise<void> => new Promise(() => {})); // Never resolves
+
+      manager.register('timeout-task', longTask, 1000, {
         maxExecutionTime: 100 
       });
       

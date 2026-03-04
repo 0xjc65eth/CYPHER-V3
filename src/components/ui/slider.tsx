@@ -9,6 +9,9 @@ interface SliderProps {
   max?: number;
   step?: number;
   className?: string;
+  id?: string;
+  disabled?: boolean;
+  [key: string]: any;
 }
 
 const Slider = React.forwardRef<HTMLInputElement, SliderProps>(

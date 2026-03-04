@@ -445,7 +445,7 @@ export class VoiceResponseAnalyzer {
   /**
    * Analyze text content to suggest appropriate emotion
    */
-  static analyzeEmotion(text: string): keyof typeof ElevenLabsVoiceService.EMOTION_PRESETS {
+  static analyzeEmotion(text: string): string {
     const lowerText = text.toLowerCase();
     
     // Excitement indicators

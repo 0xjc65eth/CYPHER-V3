@@ -1,10 +1,23 @@
 'use client';
 
+import React from 'react';
+
 /**
  * ULTRA-PROTEÇÃO contra conflitos de extensões de wallet
  * Pocket Universe, MetaMask, Magic Eden, Xverse, etc.
  * VERSÃO MÁXIMA para neutralizar extensões agressivas
  */
+
+// Extend Window interface for CYPHER_AI namespace
+declare global {
+  interface Window {
+    CYPHER_AI?: {
+      wallets: Map<string, any>;
+      providers: Map<string, any>;
+      isProtected: boolean;
+    };
+  }
+}
 
 // ENABLED - Active protection against wallet extension conflicts
 if (typeof window !== 'undefined') {
@@ -51,7 +64,7 @@ if (typeof window !== 'undefined') {
         
       } catch (error) {
         // ABSORÇÃO TOTAL de erros
-        console.debug(`🔇 DefineProperty error absorvido: ${error.message?.substring(0, 30)}`);
+        console.debug(`🔇 DefineProperty error absorvido: ${(error as any).message?.substring(0, 30)}`);
         return argumentsList[0];
       }
     }
@@ -74,11 +87,11 @@ if (typeof window !== 'undefined') {
     'attempting to define', 'TypeError: Cannot', 'Uncaught TypeError'
   ];
   
-  ['error', 'warn', 'log', 'info'].forEach(method => {
-    console[method] = (...args) => {
+  (['error', 'warn', 'log', 'info'] as const).forEach(method => {
+    (console as any)[method] = (...args: any[]) => {
       const message = args.join(' ').toLowerCase();
       const isSpam = SPAM_PATTERNS.some(pattern => message.includes(pattern));
-      
+
       if (!isSpam) {
         originalConsole[method].apply(console, args);
       }
@@ -89,7 +102,7 @@ if (typeof window !== 'undefined') {
   const originalAddEventListener = EventTarget.prototype.addEventListener;
   EventTarget.prototype.addEventListener = function(type, listener, options) {
     if (type === 'error' && typeof listener === 'function') {
-      const wrappedListener = (event) => {
+      const wrappedListener = (event: any) => {
         const message = event.message?.toLowerCase() || '';
         const isWalletError = SPAM_PATTERNS.some(pattern => message.includes(pattern));
         
@@ -111,31 +124,31 @@ if (typeof window !== 'undefined') {
   
   // 4. NEUTRALIZAÇÃO de window modifications
   const windowProxy = new Proxy(window, {
-    set(target, prop, value) {
+    set(target: any, prop, value) {
       if (typeof prop === 'string' && NUCLEAR_BLOCKED_PROPS.has(prop.toLowerCase())) {
-        console.debug(`🚫 Window.${prop} modification BLOCKED`);
+        console.debug(`🚫 Window.${String(prop)} modification BLOCKED`);
         return true; // Fingir sucesso
       }
-      
+
       try {
-        target[prop] = value;
+        target[prop as any] = value;
         return true;
       } catch (error) {
-        console.debug(`🔇 Window set error absorbed: ${prop}`);
+        console.debug(`🔇 Window set error absorbed: ${String(prop)}`);
         return true;
       }
     },
-    
+
     defineProperty(target, prop, descriptor) {
       if (typeof prop === 'string' && NUCLEAR_BLOCKED_PROPS.has(prop.toLowerCase())) {
-        console.debug(`🚫 Window defineProperty BLOCKED: ${prop}`);
+        console.debug(`🚫 Window defineProperty BLOCKED: ${String(prop)}`);
         return true;
       }
-      
+
       try {
         return Reflect.defineProperty(target, prop, descriptor);
       } catch (error) {
-        console.debug(`🔇 Window defineProperty error absorbed: ${prop}`);
+        console.debug(`🔇 Window defineProperty error absorbed: ${String(prop)}`);
         return true;
       }
     }
@@ -162,22 +175,22 @@ if (typeof window !== 'undefined') {
   
   // 7. OVERRIDE de fetch para bloquear requests suspeitos E dev overlay
   const originalFetch = window.fetch;
-  window.fetch = function(input, init) {
+  window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     const url = input?.toString?.() || '';
-    
+
     // Bloquear requests de extensão
     if (url.includes('inject.chrome') || url.includes('inpage.js') || url.includes('extension')) {
       console.debug('🚫 Request de extensão bloqueado');
       return Promise.resolve(new Response('{}', { status: 200 }));
     }
-    
+
     // Bloquear requests problemáticos do dev overlay
     if (typeof input === 'string' && input.includes('__nextjs_original-stack-frame')) {
       return Promise.resolve(new Response('blocked', { status: 200 }));
     }
-    
-    return originalFetch.apply(this, arguments);
-  };
+
+    return originalFetch.call(window, input, init);
+  }) as typeof fetch;
   
 }
 
@@ -357,5 +370,3 @@ if (typeof window !== 'undefined') {
     WalletConflictResolver.getInstance();
   }, 100);
 }
-
-import React from 'react';

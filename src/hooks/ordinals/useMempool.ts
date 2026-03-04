@@ -16,7 +16,7 @@ import type {
   MiningStats,
   DifficultyAdjustment,
   LightningStats,
-} from '@/services/mempoolService'
+} from '@/services/MempoolService'
 
 // Helper function to call Mempool API proxy
 async function callMempoolAPI<T>(endpoint: string): Promise<T> {

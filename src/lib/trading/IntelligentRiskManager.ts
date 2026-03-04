@@ -293,13 +293,13 @@ export class IntelligentRiskManager {
     const riskRewardRatio = reward / risk;
     
     // Mínimo risk/reward baseado no perfil
-    const minRatios = {
+    const minRatios: Record<string, number> = {
       aggressive: 1.5,
       moderate: 2.0,
       conservative: 2.5,
       defensive: 3.0
     };
-    
+
     return riskRewardRatio >= minRatios[this.profile];
   }
 
@@ -317,13 +317,13 @@ export class IntelligentRiskManager {
     scoredSignals.sort((a, b) => b.score - a.score);
     
     // Retornar top sinais baseado no perfil
-    const maxSignals = {
+    const maxSignals: Record<string, number> = {
       aggressive: 3,
       moderate: 2,
       conservative: 1,
       defensive: 1
     };
-    
+
     return scoredSignals
       .slice(0, maxSignals[this.profile])
       .map(s => s.signal);

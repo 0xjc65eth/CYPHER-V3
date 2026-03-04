@@ -107,8 +107,8 @@ class RedditApiService {
         async () => this.fetchPosts(query, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error searching Reddit posts for "${query}"`, error);
       throw error;
@@ -178,8 +178,8 @@ class RedditApiService {
         async () => this.fetchSubredditPosts(subreddit, sort, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Reddit posts for subreddit ${subreddit}`, error);
       throw error;
@@ -247,8 +247,8 @@ class RedditApiService {
         async () => this.fetchPostComments(postId),
         cacheConfigs.medium
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Reddit comments for post ${postId}`, error);
       throw error;

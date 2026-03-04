@@ -197,8 +197,8 @@ class DiscordApiService {
         async () => this.fetchChannelMessages(channelId, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error getting Discord messages for channel ${channelId}`, error);
       return [];
@@ -386,8 +386,8 @@ class DiscordApiService {
         async () => this.performSearch(query, limit),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error(`Error searching Discord messages for "${query}"`, error);
       return [];
@@ -557,8 +557,8 @@ class DiscordApiService {
         async () => this.fetchTrendingTopics(),
         cacheConfigs.short
       );
-      
-      return cachedData;
+
+      return cachedData ?? [];
     } catch (error) {
       loggerService.error('Error getting Discord trending topics', error);
       return [];
