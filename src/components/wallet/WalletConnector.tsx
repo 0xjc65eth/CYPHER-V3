@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Wallet, 
+import { formatUSD } from '@/utils/formatters';
+import {
+  Wallet,
   Copy, 
   ExternalLink, 
   CheckCircle, 
@@ -353,7 +354,7 @@ export function WalletConnector() {
                   <p className="text-sm text-gray-400">
                     {asset.type === 'bitcoin' ? 
                       `$${(asset.value! / asset.amount).toLocaleString()}/BTC` :
-                      `$${((asset.value || 0) / asset.amount).toFixed(4)}/unit`
+                      `${formatUSD((asset.value || 0) / asset.amount)}/unit`
                     }
                   </p>
                 </div>

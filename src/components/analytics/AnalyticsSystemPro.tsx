@@ -52,6 +52,7 @@ import {
   Building2 as Building
 } from 'lucide-react';
 import { format, subDays, startOfDay, endOfDay, formatDistanceToNow } from 'date-fns';
+import { formatCompactNumber, formatPct } from '@/utils/formatters';
 import { toast } from 'react-hot-toast';
 import {
   LineChart as RechartsLineChart,
@@ -682,7 +683,7 @@ export function AnalyticsSystemPro() {
       {
         id: 'volume',
         title: '24h Volume',
-        value: (marketMetrics.volume24h / 1000000000).toFixed(2),
+        value: formatCompactNumber(marketMetrics.volume24h / 1000000000, 2),
         change: 15.7,
         changeLabel: '24h',
         icon: Activity,
@@ -695,7 +696,7 @@ export function AnalyticsSystemPro() {
       {
         id: 'marketCap',
         title: 'Market Cap',
-        value: (marketMetrics.marketCap / 1000000000000).toFixed(2),
+        value: formatCompactNumber(marketMetrics.marketCap / 1000000000000, 2),
         change: 2.34,
         changeLabel: '24h',
         icon: BarChart3,
@@ -708,7 +709,7 @@ export function AnalyticsSystemPro() {
       {
         id: 'dominance',
         title: 'BTC Dominance',
-        value: marketMetrics.dominance.toFixed(1),
+        value: formatCompactNumber(marketMetrics.dominance, 1),
         change: 0.5,
         changeLabel: '24h',
         icon: PieChart,
@@ -725,7 +726,7 @@ export function AnalyticsSystemPro() {
         {
           id: 'hashrate',
           title: 'Hash Rate',
-          value: marketMetrics.hashrate.toFixed(1),
+          value: formatCompactNumber(marketMetrics.hashrate, 1),
           change: 3.2,
           changeLabel: '7d',
           icon: Zap,
@@ -738,7 +739,7 @@ export function AnalyticsSystemPro() {
         {
           id: 'difficulty',
           title: 'Difficulty',
-          value: marketMetrics.difficulty.toFixed(2),
+          value: formatCompactNumber(marketMetrics.difficulty, 2),
           change: 5.1,
           changeLabel: 'adjustment',
           icon: Target,
@@ -756,7 +757,7 @@ export function AnalyticsSystemPro() {
         {
           id: 'derivatives',
           title: 'Open Interest',
-          value: (marketMetrics.derivatives.openInterest / 1000000000).toFixed(1),
+          value: formatCompactNumber(marketMetrics.derivatives.openInterest / 1000000000, 1),
           change: 8.7,
           changeLabel: '24h',
           icon: TrendingUp,
@@ -769,7 +770,7 @@ export function AnalyticsSystemPro() {
         {
           id: 'institutional',
           title: 'Institutional Inflows',
-          value: (marketMetrics.institutional.inflows24h / 1000000).toFixed(0),
+          value: formatCompactNumber(marketMetrics.institutional.inflows24h / 1000000, 0),
           change: 23.4,
           changeLabel: '24h',
           icon: Building,
@@ -993,7 +994,7 @@ export function AnalyticsSystemPro() {
                 ) : (
                   <ArrowDownRight className="w-3 h-3" />
                 )}
-                <span>{Math.abs(card.change).toFixed(2)}%</span>
+                <span>{formatCompactNumber(Math.abs(card.change), 2)}%</span>
                 <span className="text-gray-500">({card.changeLabel})</span>
               </div>
             </motion.div>
@@ -1108,7 +1109,7 @@ export function AnalyticsSystemPro() {
                           />
                         </div>
                         <span className="text-white text-sm">
-                          {(model.prediction.confidence * 100).toFixed(0)}%
+                          {formatCompactNumber(model.prediction.confidence * 100, 0)}%
                         </span>
                       </div>
                     </div>
@@ -1128,7 +1129,7 @@ export function AnalyticsSystemPro() {
                     </div>
                     
                     <div className="text-xs text-gray-500">
-                      Accuracy: {(model.accuracy * 100).toFixed(1)}% • 
+                      Accuracy: {formatCompactNumber(model.accuracy * 100, 1)}% • 
                       Updated {formatDistanceToNow(model.lastUpdated)} ago
                     </div>
                   </div>
@@ -1178,7 +1179,7 @@ export function AnalyticsSystemPro() {
                         />
                       </div>
                       <span className="text-xs text-gray-500">
-                        {(indicator.confidence * 100).toFixed(0)}%
+                        {formatCompactNumber(indicator.confidence * 100, 0)}%
                       </span>
                     </div>
                   </div>
@@ -1218,14 +1219,14 @@ export function AnalyticsSystemPro() {
                 <div className="bg-gray-900 rounded-lg p-3">
                   <p className="text-sm text-gray-400 mb-1">Active Addresses</p>
                   <p className="text-lg font-bold text-white">
-                    {(onChainMetrics.activeAddresses / 1000000).toFixed(2)}M
+                    {formatCompactNumber(onChainMetrics.activeAddresses / 1000000, 2)}M
                   </p>
                   <p className="text-xs text-green-400">+5.2% (7d)</p>
                 </div>
                 <div className="bg-gray-900 rounded-lg p-3">
                   <p className="text-sm text-gray-400 mb-1">Transaction Volume</p>
                   <p className="text-lg font-bold text-white">
-                    ${(onChainMetrics.transactionVolume / 1000000000).toFixed(1)}B
+                    ${formatCompactNumber(onChainMetrics.transactionVolume / 1000000000, 1)}B
                   </p>
                   <p className="text-xs text-red-400">-2.1% (24h)</p>
                 </div>
@@ -1237,13 +1238,13 @@ export function AnalyticsSystemPro() {
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-sm">Long-term Holders</span>
                     <span className="text-white">
-                      {(onChainMetrics.hodlerMetrics.longTermHolders * 100).toFixed(1)}%
+                      {formatCompactNumber(onChainMetrics.hodlerMetrics.longTermHolders * 100, 1)}%
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-sm">Short-term Holders</span>
                     <span className="text-white">
-                      {(onChainMetrics.hodlerMetrics.shortTermHolders * 100).toFixed(1)}%
+                      {formatCompactNumber(onChainMetrics.hodlerMetrics.shortTermHolders * 100, 1)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
@@ -1269,7 +1270,7 @@ export function AnalyticsSystemPro() {
                       onChainMetrics.networkHealth.mempoolCongestion > 0.4 ? 'text-yellow-400' :
                       'text-green-400'
                     }`}>
-                      {(onChainMetrics.networkHealth.mempoolCongestion * 100).toFixed(0)}%
+                      {formatCompactNumber(onChainMetrics.networkHealth.mempoolCongestion * 100, 0)}%
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1295,7 +1296,7 @@ export function AnalyticsSystemPro() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Open Interest</span>
                   <span className="text-white font-medium">
-                    ${(marketMetrics.derivatives.openInterest / 1000000000).toFixed(1)}B
+                    ${formatCompactNumber(marketMetrics.derivatives.openInterest / 1000000000, 1)}B
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1303,12 +1304,12 @@ export function AnalyticsSystemPro() {
                   <span className={`font-medium ${
                     marketMetrics.derivatives.fundingRate > 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {(marketMetrics.derivatives.fundingRate * 100).toFixed(4)}%
+                    {formatCompactNumber(marketMetrics.derivatives.fundingRate * 100, 4)}%
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Long/Short</span>
-                  <span className="text-white">{marketMetrics.derivatives.longShortRatio.toFixed(2)}</span>
+                  <span className="text-white">{formatCompactNumber(marketMetrics.derivatives.longShortRatio, 2)}</span>
                 </div>
               </div>
             </div>
@@ -1323,7 +1324,7 @@ export function AnalyticsSystemPro() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">TVL</span>
                   <span className="text-white font-medium">
-                    ${(marketMetrics.defi.tvl / 1000000000).toFixed(1)}B
+                    ${formatCompactNumber(marketMetrics.defi.tvl / 1000000000, 1)}B
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -1347,18 +1348,18 @@ export function AnalyticsSystemPro() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Holdings</span>
                   <span className="text-white font-medium">
-                    {(marketMetrics.institutional.holdings / 1000000).toFixed(1)}M BTC
+                    {formatCompactNumber(marketMetrics.institutional.holdings / 1000000, 1)}M BTC
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">24h Inflows</span>
                   <span className="text-green-400">
-                    +${(marketMetrics.institutional.inflows24h / 1000000).toFixed(0)}M
+                    +${formatCompactNumber(marketMetrics.institutional.inflows24h / 1000000, 0)}M
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Premiums</span>
-                  <span className="text-white">{marketMetrics.institutional.premiums.toFixed(1)}%</span>
+                  <span className="text-white">{formatCompactNumber(marketMetrics.institutional.premiums, 1)}%</span>
                 </div>
               </div>
             </div>
@@ -1373,13 +1374,13 @@ export function AnalyticsSystemPro() {
                 <div className="flex justify-between">
                   <span className="text-gray-400">Hash Price</span>
                   <span className="text-white font-medium">
-                    ${onChainMetrics.miningMetrics.hashPrice.toFixed(3)}/TH/day
+                    ${formatCompactNumber(onChainMetrics.miningMetrics.hashPrice, 3)}/TH/day
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">24h Revenue</span>
                   <span className="text-white">
-                    ${(onChainMetrics.miningMetrics.revenue24h / 1000000).toFixed(1)}M
+                    ${formatCompactNumber(onChainMetrics.miningMetrics.revenue24h / 1000000, 1)}M
                   </span>
                 </div>
                 <div className="flex justify-between">

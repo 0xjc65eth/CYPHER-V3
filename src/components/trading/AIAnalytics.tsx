@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { formatPct, formatCompactNumber } from '@/utils/formatters';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -141,7 +142,7 @@ export function AIAnalytics() {
           <div className="flex items-center justify-between mb-2">
             <Target className="w-5 h-5 text-green-500" />
             <span className="text-2xl font-bold text-green-500">
-              {modelMetrics.accuracy.toFixed(1)}%
+              {formatCompactNumber(modelMetrics.accuracy, 1)}%
             </span>
           </div>
           <div className="text-sm text-gray-400 mb-2">Accuracy</div>
@@ -152,7 +153,7 @@ export function AIAnalytics() {
           <div className="flex items-center justify-between mb-2">
             <Eye className="w-5 h-5 text-blue-500" />
             <span className="text-2xl font-bold text-blue-500">
-              {modelMetrics.precision.toFixed(1)}%
+              {formatCompactNumber(modelMetrics.precision, 1)}%
             </span>
           </div>
           <div className="text-sm text-gray-400 mb-2">Precision</div>
@@ -163,7 +164,7 @@ export function AIAnalytics() {
           <div className="flex items-center justify-between mb-2">
             <Database className="w-5 h-5 text-purple-500" />
             <span className="text-2xl font-bold text-purple-500">
-              {modelMetrics.recall.toFixed(1)}%
+              {formatCompactNumber(modelMetrics.recall, 1)}%
             </span>
           </div>
           <div className="text-sm text-gray-400 mb-2">Recall</div>
@@ -174,7 +175,7 @@ export function AIAnalytics() {
           <div className="flex items-center justify-between mb-2">
             <Activity className="w-5 h-5 text-yellow-500" />
             <span className="text-2xl font-bold text-yellow-500">
-              {modelMetrics.f1Score.toFixed(1)}%
+              {formatCompactNumber(modelMetrics.f1Score, 1)}%
             </span>
           </div>
           <div className="text-sm text-gray-400 mb-2">F1-Score</div>
@@ -240,7 +241,7 @@ export function AIAnalytics() {
             <Card className="bg-gray-900 border-gray-800 p-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-500 mb-2">
-                  {modelMetrics.trainingTime.toFixed(1)}h
+                  {formatCompactNumber(modelMetrics.trainingTime, 1)}h
                 </div>
                 <div className="text-sm text-gray-400">Total Training Time</div>
               </div>
@@ -264,7 +265,7 @@ export function AIAnalytics() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="text-right">
-                      <div className="text-white font-medium">{pred.confidence.toFixed(1)}%</div>
+                      <div className="text-white font-medium">{formatCompactNumber(pred.confidence, 1)}%</div>
                       <div className="text-xs text-gray-400">
                         {new Date(pred.timestamp).toLocaleTimeString()}
                       </div>

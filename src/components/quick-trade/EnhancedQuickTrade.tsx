@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatUSD } from '@/utils/formatters';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -466,7 +467,7 @@ const EnhancedQuickTrade: React.FC = () => {
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Taxa estimada:</span>
-                  <span className="font-medium">${fractionalOrder.estimatedFees.toFixed(2)}</span>
+                  <span className="font-medium">{formatUSD(fractionalOrder.estimatedFees)}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Rede:</span>

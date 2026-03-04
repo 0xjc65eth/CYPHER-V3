@@ -15,9 +15,10 @@ import {
 } from 'lucide-react';
 import { ExportButton } from '@/components/common/ExportButton';
 import { spreadColor, profitColor } from '@/lib/utils/runes-formatters';
+import { formatCompactNumber } from '@/utils/formatters';
 
 const safeFixed = (value: any, decimals = 2): string =>
-  (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0.00';
+  (typeof value === 'number' && !isNaN(value)) ? formatCompactNumber(value, decimals) : '0.00';
 
 import type { ArbitrageOpportunity, SortKey } from './arbitrage/types';
 import { MARKETPLACES, REFRESH_INTERVAL, FEE_TOTAL } from './arbitrage/types';

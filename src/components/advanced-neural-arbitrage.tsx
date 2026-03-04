@@ -11,6 +11,7 @@ import {
 } from 'react-icons/ri'
 import { neuralLearningService } from '@/services/neural-learning-service'
 import { runesArbitrageService } from '@/services/runes-arbitrage-service'
+import { formatUSD } from '@/utils/formatters'
 
 // Interface para insights de arbitragem
 interface ArbitrageInsight {
@@ -344,12 +345,12 @@ export function AdvancedNeuralArbitrage() {
                       <div className="flex items-center">
                         <RiArrowRightDownLine className="w-3 h-3 text-green-400 mr-1" />
                         <span className="text-gray-400 mr-1">Comprar:</span>
-                        <span className="text-green-400 font-bold">${insight.prediction.sourceBuyPrice.toFixed(2)}</span>
+                        <span className="text-green-400 font-bold">{formatUSD(insight.prediction.sourceBuyPrice)}</span>
                       </div>
                       <div className="flex items-center">
                         <RiArrowRightUpLine className="w-3 h-3 text-blue-400 mr-1" />
                         <span className="text-gray-400 mr-1">Vender:</span>
-                        <span className="text-blue-400 font-bold">${insight.prediction.targetSellPrice.toFixed(2)}</span>
+                        <span className="text-blue-400 font-bold">{formatUSD(insight.prediction.targetSellPrice)}</span>
                       </div>
                       <div className="flex items-center">
                         <RiPercentLine className="w-3 h-3 text-purple-400 mr-1" />

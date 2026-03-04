@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { formatUSD, formatCompactNumber } from '@/utils/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -260,7 +261,7 @@ export default function WallStreetTradingFloor() {
                 <div>
                   <p className="text-sm text-gray-400">Total Volume</p>
                   <p className="text-xl font-bold text-green-400">
-                    ${(totalVolume / 1000000).toFixed(1)}M
+                    ${formatCompactNumber(totalVolume, 1)}
                   </p>
                 </div>
                 <BarChart3 className="h-8 w-8 text-green-400" />
@@ -390,11 +391,11 @@ export default function WallStreetTradingFloor() {
                     {shout.price && (
                       <div className="flex items-center gap-2 mt-1">
                         <Badge className="text-xs bg-black/50">
-                          ${shout.price.toFixed(0)}
+                          {formatUSD(shout.price)}
                         </Badge>
                         {shout.volume && (
                           <Badge className="text-xs bg-black/50">
-                            {shout.volume.toFixed(0)}K
+                            {formatCompactNumber(shout.volume * 1000, 0)}
                           </Badge>
                         )}
                       </div>
@@ -427,10 +428,10 @@ export default function WallStreetTradingFloor() {
                     </div>
                     <h3 className="font-bold text-sm mb-1">{trader.name}</h3>
                     <p className={`text-lg font-bold ${trader.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      ${(trader.pnl / 1000).toFixed(0)}K
+                      ${formatCompactNumber(Math.abs(trader.pnl), 0)}
                     </p>
                     <p className="text-xs text-gray-400">
-                      Vol: ${(trader.volume / 1000000).toFixed(1)}M
+                      Vol: ${formatCompactNumber(trader.volume, 1)}
                     </p>
                     <div className="mt-2">
                       <div className="w-full bg-gray-700 rounded-full h-1">

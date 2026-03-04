@@ -6,6 +6,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { formatUSD } from '@/utils/formatters';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -204,7 +205,7 @@ export function RealTimeMonitor() {
               <div className="flex justify-between">
                 <span className="text-gray-400">P&L</span>
                 <span className={`font-mono ${currentMetrics.profitLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                  ${currentMetrics.profitLoss.toFixed(2)}
+                  {formatUSD(currentMetrics.profitLoss)}
                 </span>
               </div>
               <div className="flex justify-between">
