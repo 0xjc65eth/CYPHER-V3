@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, Title, Text, Metric, ProgressBar, Badge } from '@tremor/react'
 import { RiLineChartLine, RiExchangeDollarLine, RiTimeLine, RiRefreshLine, RiArrowUpSLine, RiArrowDownSLine } from 'react-icons/ri'
 import { useMarketData } from '@/hooks/useMarketData'
+import { DataFreshness } from '@/components/ui/DataFreshness'
 
 export function MarketOverviewCard() {
   const marketData = useMarketData() as any // Refresh every minute
@@ -49,7 +50,7 @@ export function MarketOverviewCard() {
           <div>
             <Title className="text-white text-xl">Market Overview</Title>
             <Text className="text-xs text-gray-400">
-              {lastUpdated ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}` : 'Loading...'}
+              {lastUpdated ? <DataFreshness timestamp={lastUpdated} /> : 'Loading...'}
             </Text>
           </div>
         </div>

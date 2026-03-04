@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { DataFreshness } from '@/components/ui/DataFreshness';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -175,7 +176,7 @@ export default function PairDashboard({ base, quote, pairId }: Props) {
             <div className="text-right">
               <div className="text-xs text-gray-400">Last Update</div>
               <div className="text-sm text-white font-mono">
-                {realTime.lastUpdate ? new Date(realTime.lastUpdate).toLocaleTimeString() : 'Live'}
+                {realTime.lastUpdate ? <DataFreshness timestamp={realTime.lastUpdate} /> : 'Live'}
               </div>
             </div>
             <Button 

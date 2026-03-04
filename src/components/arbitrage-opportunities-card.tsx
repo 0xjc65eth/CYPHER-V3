@@ -5,6 +5,7 @@ import { Card, Title, Text } from '@tremor/react'
 import { RiExchangeLine, RiTimeLine, RiShieldCheckLine, RiMoneyDollarCircleLine, RiPercentLine } from 'react-icons/ri'
 import { useTradingData } from '@/hooks/useTradingData'
 import { ArbitrageOpportunity } from '@/services/trading-data-service'
+import { DataFreshness } from '@/components/ui/DataFreshness'
 
 export function ArbitrageOpportunitiesCard() {
   const { data, isLoading, error, lastUpdated } = useTradingData(30000) // Refresh every 30 seconds
@@ -75,7 +76,7 @@ export function ArbitrageOpportunitiesCard() {
           <div>
             <Title className="text-white text-xl">Ordinals & Runes Arbitrage</Title>
             <Text className="text-xs text-gray-400">
-              {lastUpdated ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}` : 'Real-time data'}
+              {lastUpdated ? <DataFreshness timestamp={lastUpdated} /> : 'Real-time data'}
             </Text>
           </div>
         </div>

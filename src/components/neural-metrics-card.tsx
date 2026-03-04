@@ -5,6 +5,7 @@ import { Card, Title, Text, ProgressBar } from '@tremor/react'
 import { RiBrainLine, RiTimeLine, RiLineChartLine, RiArrowUpSLine, RiArrowDownSLine, RiBarChartLine } from 'react-icons/ri'
 import { useTradingData } from '@/hooks/useTradingData'
 import { NeuralMetric } from '@/services/trading-data-service'
+import { DataFreshness } from '@/components/ui/DataFreshness'
 
 export function NeuralMetricsCard() {
   const { data, isLoading, error, lastUpdated } = useTradingData(30000) // Refresh every 30 seconds
@@ -79,7 +80,7 @@ export function NeuralMetricsCard() {
           <div>
             <Title className="text-white text-xl">Bitcoin Neural Metrics</Title>
             <Text className="text-xs text-gray-400">
-              {lastUpdated ? `Last updated: ${new Date(lastUpdated).toLocaleTimeString()}` : 'Real-time data'}
+              {lastUpdated ? <DataFreshness timestamp={lastUpdated} /> : 'Real-time data'}
             </Text>
           </div>
         </div>

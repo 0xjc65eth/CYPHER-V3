@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef } from 'react'
 
+import { DataFreshness } from '@/components/ui/DataFreshness'
+
 interface PriceData {
   price: number
   change24h: number
+  fetchedAt: number
 }
 
 export function HeaderPriceTicker() {
@@ -20,7 +23,7 @@ export function HeaderPriceTicker() {
         const price = json.price ?? json.data?.price
         const change = json.change24h ?? json.data?.change24h ?? json.priceChange24h ?? 0
         if (typeof price === 'number' && price > 0) {
-          setData({ price, change24h: change })
+          setData({ price, change24h: change, fetchedAt: Date.now() })
         }
       } catch {
         // silent — keep last known value
@@ -53,6 +56,7 @@ export function HeaderPriceTicker() {
       <span className={isPositive ? 'text-[#00FF41]' : 'text-[#FF0040]'}>
         {isPositive ? '+' : ''}{data.change24h.toFixed(2)}%
       </span>
+      <DataFreshness timestamp={data.fetchedAt} />
     </span>
   )
 }
