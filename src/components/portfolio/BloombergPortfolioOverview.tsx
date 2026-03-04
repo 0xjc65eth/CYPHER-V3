@@ -18,6 +18,7 @@ import {
   ArrowUpRight, ArrowDownRight, Zap, Brain, Users, Globe
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatUSD, formatPct, formatCompactNumber } from '@/utils/formatters';
 
 interface BloombergPortfolioOverviewProps {
   portfolioData: any;
@@ -104,12 +105,12 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
     if (!base) return [];
 
     return [
-      { label: 'PORTFOLIO VALUE', value: `$${base.totalValue.toLocaleString()}`, change: '+2.45%', status: 'up' },
-      { label: 'UNREALIZED P&L', value: `$${base.totalPNL.toFixed(0)}`, change: `${base.totalPNLPercentage.toFixed(2)}%`, status: base.totalPNL > 0 ? 'up' : 'down' },
+      { label: 'PORTFOLIO VALUE', value: formatUSD(base.totalValue), change: '+2.45%', status: 'up' },
+      { label: 'UNREALIZED P&L', value: formatUSD(base.totalPNL), change: formatPct(base.totalPNLPercentage), status: base.totalPNL > 0 ? 'up' : 'down' },
       { label: 'DAILY VOLUME', value: '$1.2M', change: '+15.2%', status: 'up' },
       { label: 'MARKET CAP', value: '$845B', change: '+1.8%', status: 'up' },
-      { label: 'VOLATILITY', value: `${base.volatility.toFixed(1)}%`, change: '-2.1%', status: 'down' },
-      { label: 'SHARPE RATIO', value: base.sharpeRatio.toFixed(2), change: '+0.15', status: 'up' },
+      { label: 'VOLATILITY', value: `${formatCompactNumber(base.volatility, 1)}%`, change: '-2.1%', status: 'down' },
+      { label: 'SHARPE RATIO', value: formatCompactNumber(base.sharpeRatio, 2), change: '+0.15', status: 'up' },
       { label: 'MAX DRAWDOWN', value: `${base.maxDrawdown}%`, change: '-1.2%', status: 'up' },
       { label: 'WIN RATE', value: `${base.winRate}%`, change: '+3.5%', status: 'up' }
     ];
@@ -309,7 +310,7 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
               <span className="text-xs text-gray-500">RETURN</span>
             </div>
             <div className={`text-2xl font-bold ${metrics.totalPNLPercentage > 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {metrics.totalPNLPercentage > 0 ? '+' : ''}{metrics.totalPNLPercentage.toFixed(2)}%
+              {formatPct(metrics.totalPNLPercentage)}
             </div>
             <div className="text-xs text-gray-400">Total return</div>
           </div>
@@ -319,7 +320,7 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
               <Activity className="w-5 h-5 text-blue-500" />
               <span className="text-xs text-gray-500">SHARPE</span>
             </div>
-            <div className="text-2xl font-bold text-white">{metrics.sharpeRatio.toFixed(2)}</div>
+            <div className="text-2xl font-bold text-white">{formatCompactNumber(metrics.sharpeRatio, 2)}</div>
             <div className="text-xs text-gray-400">Risk-adjusted</div>
           </div>
 
@@ -328,7 +329,7 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
               <Shield className="w-5 h-5 text-orange-500" />
               <span className="text-xs text-gray-500">VOLATILITY</span>
             </div>
-            <div className="text-2xl font-bold text-white">{metrics.volatility.toFixed(1)}%</div>
+            <div className="text-2xl font-bold text-white">{formatCompactNumber(metrics.volatility, 1)}%</div>
             <div className="text-xs text-gray-400">Annualized</div>
           </div>
 

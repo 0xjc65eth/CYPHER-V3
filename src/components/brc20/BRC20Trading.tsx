@@ -28,6 +28,7 @@ import {
   Target,
   Globe
 } from 'lucide-react';
+import { formatUSD, formatPct, formatCompactNumber } from '@/utils/formatters';
 
 export function BRC20Trading() {
   const [tokens, setTokens] = useState<BRC20Token[]>([]);
@@ -101,22 +102,11 @@ export function BRC20Trading() {
     if (price < 0.000001) {
       return `$${price.toExponential(2)}`;
     }
-    if (price < 0.01) {
-      return `$${price.toFixed(6)}`;
-    }
-    return `$${price.toFixed(2)}`;
+    return formatUSD(price);
   };
 
   const formatNumber = (num: number, compact = false) => {
-    if (compact && num >= 1000000000) {
-      return `${(num / 1000000000).toFixed(1)}B`;
-    }
-    if (compact && num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (compact && num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
+    if (compact) return formatCompactNumber(num, 1);
     return num.toLocaleString();
   };
 
@@ -211,7 +201,7 @@ export function BRC20Trading() {
                     <div className={`text-xs ${
                       token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(1)}%
+                      {formatPct(token.priceChange24h)}
                     </div>
                   </div>
                   
@@ -268,7 +258,7 @@ export function BRC20Trading() {
                         <TrendingDown className="w-4 h-4" />
                       }
                       <span className="font-medium">
-                        {selectedToken.priceChange24h >= 0 ? '+' : ''}{selectedToken.priceChange24h.toFixed(1)}%
+                        {formatPct(selectedToken.priceChange24h)}
                       </span>
                     </div>
                   </div>
@@ -382,7 +372,7 @@ export function BRC20Trading() {
                     </div>
                     <div>
                       <span className="text-gray-400">Progress:</span>
-                      <div className="text-white">{selectedToken.progress.toFixed(1)}% minted</div>
+                      <div className="text-white">{formatCompactNumber(selectedToken.progress, 1)}% minted</div>
                     </div>
                     <div>
                       <span className="text-gray-400">Total Transfers:</span>

@@ -25,6 +25,7 @@ import {
   Eye,
   Brain
 } from 'lucide-react';
+import { formatUSD, formatCompactNumber } from '@/utils/formatters';
 
 interface OrderBookEntry {
   price: number;
@@ -160,7 +161,7 @@ export default function ProfessionalOrderBook() {
                   ${currentPrice.toLocaleString()}
                 </p>
                 <p className={`text-sm ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                  {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}
+                  {priceChange >= 0 ? '+' : ''}{formatCompactNumber(priceChange, 2)}
                 </p>
               </div>
             </CardContent>
@@ -213,7 +214,7 @@ export default function ProfessionalOrderBook() {
               <div className="text-center">
                 <p className="text-sm text-gray-400">24H VOLUME</p>
                 <p className="text-xl font-bold text-purple-400">
-                  {volume24h.toFixed(2)}
+                  {formatCompactNumber(volume24h, 2)}
                 </p>
                 <p className="text-xs text-gray-400">BTC</p>
               </div>
@@ -230,10 +231,10 @@ export default function ProfessionalOrderBook() {
               <h2 className="text-xl font-bold text-cyan-400">ORDER BOOK</h2>
               <div className="flex items-center gap-2">
                 <Badge className="bg-green-500/20 border-green-500 text-green-400 text-xs">
-                  BIDS: {marketDepth.totalBidVolume.toFixed(2)}
+                  BIDS: {formatCompactNumber(marketDepth.totalBidVolume, 2)}
                 </Badge>
                 <Badge className="bg-red-500/20 border-red-500 text-red-400 text-xs">
-                  ASKS: {marketDepth.totalAskVolume.toFixed(2)}
+                  ASKS: {formatCompactNumber(marketDepth.totalAskVolume, 2)}
                 </Badge>
               </div>
             </div>

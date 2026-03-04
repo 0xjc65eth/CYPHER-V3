@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TrendingUp, TrendingDown, Zap, AlertTriangle } from 'lucide-react';
 import styles from '../../styles/WallStreet.module.css';
+import { formatUSD, formatPct, formatCompactNumber } from '@/utils/formatters';
 
 interface TickerItem {
   symbol: string;
@@ -41,28 +42,20 @@ export default function TickerTape({
     setAnimationDuration(speed);
   }, [speed]);
 
-  // Formatação de preços
+  // Formatação de preços — centralized Bloomberg formatters
   const formatPrice = (price: number): string => {
-    if (price < 0.000001) return `${(price * 100000000).toFixed(0)} sats`;
-    if (price < 0.01) return `$${price.toFixed(6)}`;
-    if (price < 1) return `$${price.toFixed(4)}`;
-    if (price < 1000) return `$${price.toFixed(2)}`;
-    if (price < 1000000) return `$${(price / 1000).toFixed(1)}K`;
-    return `$${(price / 1000000).toFixed(1)}M`;
+    if (price < 0.000001) return `${Math.round(price * 100000000)} sats`;
+    if (price < 0.01) return formatUSD(price).replace('$', '$');
+    return formatUSD(price);
   };
 
   const formatChange = (change: number, isPercent: boolean = false): string => {
+    if (isPercent) return formatPct(change);
     const sign = change >= 0 ? '+' : '';
-    const suffix = isPercent ? '%' : '';
-    return `${sign}${change.toFixed(2)}${suffix}`;
+    return `${sign}${change.toFixed(2)}`;
   };
 
-  const formatVolume = (volume: number): string => {
-    if (volume >= 1000000000) return `${(volume / 1000000000).toFixed(1)}B`;
-    if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
-    if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
-    return volume.toFixed(0);
-  };
+  const formatVolume = (volume: number): string => formatCompactNumber(volume);
 
   // Obter ícone do tipo de asset
   const getAssetIcon = (type: string) => {

@@ -20,12 +20,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert } from '@/components/ui/alert';
-import { 
-  TrendingUp, TrendingDown, Activity, DollarSign, 
+import {
+  TrendingUp, TrendingDown, Activity, DollarSign,
   BarChart3, LineChart, Zap, Shield, Settings,
   Play, Pause, RefreshCw, AlertTriangle, CheckCircle,
   Monitor, PieChart, Target, TrendingUpIcon
 } from 'lucide-react';
+import { formatUSD, formatPct, formatCompactNumber } from '@/utils/formatters';
 
 // Trading Terminal Interfaces
 interface MarketData {
@@ -336,7 +337,7 @@ const OrderEntry: React.FC<{ symbol: string; currentPrice: number }> = ({
           </div>
           <div className="flex justify-between text-xs">
             <span>Fee (0.1%):</span>
-            <span className="font-mono">${(calculateTotal() * 0.001).toFixed(2)}</span>
+            <span className="font-mono">{formatUSD(calculateTotal() * 0.001)}</span>
           </div>
         </div>
 
@@ -518,7 +519,7 @@ const Positions: React.FC = () => {
                 <div>
                   <div className="text-muted-foreground">P&L</div>
                   <div className={`font-mono ${position.pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    ${position.pnl.toLocaleString()} ({position.pnlPercent > 0 ? '+' : ''}{position.pnlPercent.toFixed(2)}%)
+                    ${position.pnl.toLocaleString()} ({formatPct(position.pnlPercent)})
                   </div>
                 </div>
               </div>
@@ -587,7 +588,7 @@ const PortfolioOverview: React.FC<{ portfolio: Portfolio }> = ({ portfolio }) =>
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Margin Ratio</p>
-              <p className="text-lg font-bold">{(portfolio.margin.ratio * 100).toFixed(1)}%</p>
+              <p className="text-lg font-bold">{formatCompactNumber(portfolio.margin.ratio * 100, 1)}%</p>
             </div>
             <Shield className="h-4 w-4 text-muted-foreground" />
           </div>

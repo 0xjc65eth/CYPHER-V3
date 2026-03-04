@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Activity } from 'lucide-react';
+import { formatCompactNumber } from '@/utils/formatters';
 
 export interface OrderBookLevel {
   price: number;
@@ -41,11 +42,7 @@ export function OrderFlow({
   }, [bids, asks, maxLevels]);
 
   const formatPrice = (price: number) => price.toFixed(8);
-  const formatAmount = (amount: number) => {
-    if (amount >= 1000000) return `${(amount / 1000000).toFixed(2)}M`;
-    if (amount >= 1000) return `${(amount / 1000).toFixed(2)}K`;
-    return amount.toFixed(2);
-  };
+  const formatAmount = (amount: number) => formatCompactNumber(amount, 2);
 
   const spread = useMemo(() => {
     if (asks.length === 0 || bids.length === 0) return null;

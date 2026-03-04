@@ -15,6 +15,7 @@ import {
   Minus
 } from 'lucide-react';
 import { useWallet } from '@/contexts/WalletContext';
+import { formatUSD, formatPct, formatCompactNumber } from '@/utils/formatters';
 
 interface PortfolioSummaryProps {
   showValues?: boolean;
@@ -65,9 +66,8 @@ const StatCard: React.FC<StatCardProps> = ({
   const formatValue = () => {
     if (!showValues) return '••••••';
     if (typeof value === 'number') {
-      if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-      if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-      return value.toFixed(2);
+      if (value >= 1000) return formatCompactNumber(value);
+      return formatUSD(value);
     }
     return value;
   };
@@ -102,7 +102,7 @@ const StatCard: React.FC<StatCardProps> = ({
         {change !== undefined && (
           <div className={`flex items-center space-x-1 text-xs ${getChangeColor(change)}`}>
             {getChangeIcon(change)}
-            <span>{showValues ? `${change > 0 ? '+' : ''}${change.toFixed(2)}%` : '••••'}</span>
+            <span>{showValues ? formatPct(change) : '••••'}</span>
           </div>
         )}
       </div>
@@ -155,14 +155,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
     };
   }, [portfolioData, balance]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  const formatCurrency = (value: number) => formatUSD(value);
 
   if (!isConnected) {
     return (
@@ -255,7 +248,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
                   {showValues ? formatCurrency(portfolioMetrics.bitcoinValue) : '••••••'}
                 </p>
                 <p className="text-xs text-gray-400">
-                  {showValues ? `${((portfolioMetrics.bitcoinValue / portfolioMetrics.totalValue) * 100).toFixed(1)}%` : '••%'}
+                  {showValues ? `${formatCompactNumber((portfolioMetrics.bitcoinValue / portfolioMetrics.totalValue) * 100, 1)}%` : '••%'}
                 </p>
               </div>
             </div>
@@ -271,7 +264,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
                   {showValues ? formatCurrency(portfolioMetrics.ordinalsValue) : '••••••'}
                 </p>
                 <p className="text-xs text-gray-400">
-                  {showValues ? `${((portfolioMetrics.ordinalsValue / portfolioMetrics.totalValue) * 100).toFixed(1)}%` : '••%'}
+                  {showValues ? `${formatCompactNumber((portfolioMetrics.ordinalsValue / portfolioMetrics.totalValue) * 100, 1)}%` : '••%'}
                 </p>
               </div>
             </div>
@@ -287,7 +280,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
                   {showValues ? formatCurrency(portfolioMetrics.runesValue) : '••••••'}
                 </p>
                 <p className="text-xs text-gray-400">
-                  {showValues ? `${((portfolioMetrics.runesValue / portfolioMetrics.totalValue) * 100).toFixed(1)}%` : '••%'}
+                  {showValues ? `${formatCompactNumber((portfolioMetrics.runesValue / portfolioMetrics.totalValue) * 100, 1)}%` : '••%'}
                 </p>
               </div>
             </div>
@@ -341,7 +334,7 @@ const PortfolioSummary: React.FC<PortfolioSummaryProps> = ({ showValues = true }
               }`}>
                 {portfolioMetrics.totalPNLPercentage >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                 <span>
-                  {showValues ? `${portfolioMetrics.totalPNLPercentage > 0 ? '+' : ''}${portfolioMetrics.totalPNLPercentage.toFixed(2)}%` : '••••%'}
+                  {showValues ? formatPct(portfolioMetrics.totalPNLPercentage) : '••••%'}
                 </span>
               </div>
             </div>

@@ -25,6 +25,7 @@ import {
   Star,
   Zap
 } from 'lucide-react';
+import { formatUSD, formatPct, formatCompactNumber } from '@/utils/formatters';
 
 interface BRC20SearchProps {
   onResults?: (tokens: BRC20Token[]) => void;
@@ -229,15 +230,7 @@ export function BRC20Search({ onResults, onTokenSelect, className }: BRC20Search
   };
 
   const formatNumber = (num: number, compact = false) => {
-    if (compact && num >= 1000000000) {
-      return `${(num / 1000000000).toFixed(1)}B`;
-    }
-    if (compact && num >= 1000000) {
-      return `${(num / 1000000).toFixed(1)}M`;
-    }
-    if (compact && num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
+    if (compact) return formatCompactNumber(num, 1);
     return num.toLocaleString();
   };
 
@@ -465,12 +458,12 @@ export function BRC20Search({ onResults, onTokenSelect, className }: BRC20Search
                 
                 <div className="text-right text-sm">
                   <div className="text-white font-mono">
-                    ${token.price < 0.01 ? token.price.toFixed(6) : token.price.toFixed(2)}
+                    {formatUSD(token.price)}
                   </div>
                   <div className={`text-xs ${
                     token.priceChange24h >= 0 ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {token.priceChange24h >= 0 ? '+' : ''}{token.priceChange24h.toFixed(1)}%
+                    {formatPct(token.priceChange24h)}
                   </div>
                 </div>
               </div>

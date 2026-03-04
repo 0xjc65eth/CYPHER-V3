@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3 } from 'lucide-react';
+import { formatCompactNumber } from '@/utils/formatters';
 
 export interface VolumeDataPoint {
   time: number;
@@ -35,11 +36,7 @@ export function VolumeChart({
     return { maxVolume: maxVol, bars: barData };
   }, [data]);
 
-  const formatVolume = (volume: number) => {
-    if (volume >= 1000000) return `${(volume / 1000000).toFixed(1)}M`;
-    if (volume >= 1000) return `${(volume / 1000).toFixed(1)}K`;
-    return volume.toFixed(0);
-  };
+  const formatVolume = (volume: number) => formatCompactNumber(volume);
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -171,9 +168,7 @@ export function InlineVolumeBar({ volume, maxVolume, isPositive }: {
         />
       </div>
       <span className={`text-xs font-mono ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-        {volume >= 1000000 ? `${(volume / 1000000).toFixed(1)}M` :
-         volume >= 1000 ? `${(volume / 1000).toFixed(1)}K` :
-         volume.toFixed(0)}
+        {formatCompactNumber(volume)}
       </span>
     </div>
   );
