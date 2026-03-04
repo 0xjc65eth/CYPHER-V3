@@ -279,8 +279,10 @@ export function PortfolioAssets() {
           
           <TabsContent value="all" className="space-y-2">
             {transactions.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No transactions found
+              <div className="flex flex-col items-center gap-3 py-12">
+                <History className="h-10 w-10 text-[#666] opacity-50" />
+                <p className="text-sm font-medium text-[#888]">No transaction history</p>
+                <p className="text-xs text-[#555]">Your buys, sells, sends, and receives will appear here</p>
               </div>
             ) : (
               <div className="space-y-2">

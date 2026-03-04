@@ -67,8 +67,12 @@ export function AssetList({ assets }: AssetListProps) {
         <TableBody>
           {sortedAssets.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                No assets found
+              <TableCell colSpan={5} className="py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <Gem className="h-10 w-10 text-[#666] opacity-50" />
+                  <p className="text-sm font-medium text-[#888]">No assets in portfolio</p>
+                  <p className="text-xs text-[#555]">Connect your wallet to view your Bitcoin, Ordinals, and Runes</p>
+                </div>
               </TableCell>
             </TableRow>
           ) : (

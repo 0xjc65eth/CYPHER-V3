@@ -335,9 +335,10 @@ const PerpetualsPortfolio: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   {portfolioData.positions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No open positions</p>
+                    <div className="flex flex-col items-center gap-3 py-12">
+                      <Target className="h-10 w-10 text-[#666] opacity-50" />
+                      <p className="text-sm font-medium text-[#888]">No open perpetual positions</p>
+                      <p className="text-xs text-[#555]">Open a long or short position on Hyperliquid to start trading</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -405,9 +406,10 @@ const PerpetualsPortfolio: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   {portfolioData.recentTrades.length === 0 ? (
-                    <div className="text-center py-8">
-                      <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No recent trades</p>
+                    <div className="flex flex-col items-center gap-3 py-12">
+                      <BarChart3 className="h-10 w-10 text-[#666] opacity-50" />
+                      <p className="text-sm font-medium text-[#888]">No recent trades</p>
+                      <p className="text-xs text-[#555]">Your executed perpetual trades and fills will appear here</p>
                     </div>
                   ) : (
                     <div className="space-y-3">

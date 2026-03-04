@@ -112,8 +112,12 @@ export function TransactionList({ transactions }: TransactionListProps) {
         <TableBody>
           {sortedTransactions.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                No transactions found
+              <TableCell colSpan={5} className="py-12">
+                <div className="flex flex-col items-center gap-3">
+                  <FileText className="h-10 w-10 text-[#666] opacity-50" />
+                  <p className="text-sm font-medium text-[#888]">No transactions yet</p>
+                  <p className="text-xs text-[#555]">Connect your wallet and make a trade to see your history</p>
+                </div>
               </TableCell>
             </TableRow>
           ) : (

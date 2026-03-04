@@ -556,8 +556,10 @@ export function EnhancedArbitrageCard() {
       </div>
 
       {topOpportunities.length === 0 && (
-        <div className="text-center py-6">
-          <Text className="text-gray-400">Nenhuma oportunidade de arbitragem detectada. Mercados estão alinhados.</Text>
+        <div className="flex flex-col items-center gap-3 py-12">
+          <RiExchangeLine className="w-10 h-10 text-gray-600 opacity-50" />
+          <Text className="text-sm font-medium text-gray-400">No arbitrage opportunities detected</Text>
+          <Text className="text-xs text-gray-500">Markets are currently aligned. Opportunities appear when price discrepancies arise between exchanges.</Text>
         </div>
       )}
 
