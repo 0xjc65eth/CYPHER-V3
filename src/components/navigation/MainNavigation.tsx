@@ -12,6 +12,7 @@ import { hasPremiumAccess } from '@/config/vip-wallets'
 import { RiWallet3Line, RiVipCrownLine } from 'react-icons/ri'
 import { Zap } from 'lucide-react'
 import WalletConnect from '@/components/wallet/WalletConnect'
+import { HeaderPriceTicker } from '@/components/navigation/HeaderPriceTicker'
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { injected } from 'wagmi/connectors'
 
@@ -336,6 +337,9 @@ export function MainNavigation() {
 
           {/* Wallet Buttons */}
           <div className="hidden md:flex items-center gap-2 ml-2">
+            {/* BTC Price Ticker */}
+            <HeaderPriceTicker />
+
             {/* Premium/VIP Badge or Upgrade CTA */}
             <PremiumBadge />
             <UpgradeCTA />
