@@ -12,6 +12,10 @@
  */
 
 import { ProcessedCollection } from '../types/ordinals';
+import { OKXOrdinalsAPI } from './ordinals/integrations/OKXOrdinalsAPI';
+
+// OKX adapter singleton (primary data source post-ME deprecation)
+const okxApi = new OKXOrdinalsAPI();
 
 /**
  * Cache entry structure
@@ -102,12 +106,30 @@ class MagicEdenAPIService {
     // Check cache first
     const cached = this.getCached<MagicEdenStatsResponse>(cacheKey);
     if (cached) {
-      // Cache hit - no logging needed
       return cached;
     }
 
+    // Try OKX first (primary post-ME deprecation)
     try {
+      const okxStats = await okxApi.getCollectionStats(collectionSymbol);
+      if (okxStats) {
+        const adapted: MagicEdenStatsResponse = {
+          symbol: collectionSymbol,
+          floorPrice: parseFloat(okxStats.floorPrice) || 0,
+          totalVolume: parseFloat(okxStats.totalVolume) || 0,
+          listedCount: okxStats.totalListings || 0,
+          owners: okxStats.ownerCount || 0,
+          supply: okxStats.itemCount || 0,
+          fp: parseFloat(okxStats.floorPrice) || undefined,
+        };
+        this.setCache(cacheKey, adapted);
+        return adapted;
+      }
+    } catch {
+      // OKX failed, try Magic Eden
+    }
 
+    try {
       const url = `${CONFIG.MAGIC_EDEN_BASE_URL}/stat?collectionSymbol=${encodeURIComponent(collectionSymbol)}`;
       const data = await this.fetchWithRetry<MagicEdenStatsResponse>(url);
 
@@ -125,7 +147,7 @@ class MagicEdenAPIService {
 
       return data;
     } catch (error) {
-      console.error(`❌ Error fetching collection stats for ${collectionSymbol}:`, error);
+      console.error(`Error fetching collection stats for ${collectionSymbol}:`, error);
       return null;
     }
   }

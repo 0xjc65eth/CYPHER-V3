@@ -1,14 +1,21 @@
 /**
- * Magic Eden Runes API Service - CYPHER V3
- * Complete integration with all 18 Magic Eden Runes endpoints
+ * Runes API Service - CYPHER V3
+ * Hiro-first with Magic Eden fallback for read endpoints.
+ * ME-only for marketplace trading endpoints (orders, PSBT, swap).
  *
- * Features:
- * - All Runes Info, Listing, Sweeping, Market Sell, and Swap endpoints
- * - Rate limiting (30 QPM)
- * - Caching with Map
- * - Retry logic with exponential backoff
- * - Complete TypeScript interfaces for all request/response types
+ * Migration status (Magic Eden deprecation):
+ * - Market Info: Hiro primary ✅, ME fallback
+ * - Activities: Hiro primary ✅, ME fallback
+ * - Wallet Balances: Hiro primary ✅, ME fallback
+ * - Collection Stats: Hiro primary ✅, ME fallback
+ * - Orders/UTXOs: ME only (marketplace-specific)
+ * - Trading (PSBT/Swap): ME only (marketplace-specific)
  */
+
+import { HiroRunesAPI } from '@/lib/api/hiro/runes';
+
+// Hiro runes API singleton (primary data source for read operations)
+const hiroRunesApi = new HiroRunesAPI();
 
 // ============================================================================
 // Configuration
@@ -771,10 +778,25 @@ export class MagicEdenRunesService {
   // ==========================================================================
 
   /**
-   * GET /v2/ord/btc/runes/market/{rune}/info
    * Get rune market information
+   * Hiro primary, Magic Eden fallback
    */
   async getRuneMarketInfo(rune: string): Promise<RuneMarketInfo> {
+    // Try Hiro first
+    try {
+      const etching = await hiroRunesApi.getEtching(rune);
+      return {
+        rune: etching.rune_id || rune,
+        runeName: etching.name,
+        symbol: etching.symbol,
+        totalSupply: etching.total_supply,
+        holders: etching.total_mints, // approximate
+        divisibility: etching.divisibility,
+      } as RuneMarketInfo;
+    } catch {
+      // Hiro failed, fall back to Magic Eden
+    }
+
     const encodedRune = encodeURIComponent(rune);
     return this.fetchApi<RuneMarketInfo>(
       `/v2/ord/btc/runes/market/${encodedRune}/info`,
@@ -810,10 +832,37 @@ export class MagicEdenRunesService {
   }
 
   /**
-   * GET /v2/ord/btc/runes/activities/{rune}
    * Get activities for a rune
+   * Hiro primary, Magic Eden fallback
    */
   async getRuneActivities(params: RuneActivitiesParams): Promise<RuneActivitiesResponse> {
+    // Try Hiro first
+    try {
+      const hiroResult = await hiroRunesApi.getActivity(params.rune, {
+        limit: params.limit,
+        offset: params.offset,
+        operation: params.type === 'mint' ? 'mint' : params.type === 'transfer' ? 'transfer' : undefined,
+      });
+      return {
+        activities: (hiroResult.results || []).map((a: any) => ({
+          id: a.tx_id || '',
+          type: a.operation || 'transfer',
+          rune: params.rune,
+          from: a.sender,
+          to: a.receiver,
+          amount: a.amount,
+          txId: a.tx_id,
+          blockHeight: a.block_height,
+          timestamp: a.timestamp ? new Date(a.timestamp * 1000).toISOString() : undefined,
+        })),
+        total: hiroResult.total || 0,
+        offset: hiroResult.offset || params.offset || 0,
+        limit: hiroResult.limit || params.limit || 20,
+      } as RuneActivitiesResponse;
+    } catch {
+      // Hiro failed, fall back to Magic Eden
+    }
+
     const { rune, ...query } = params;
     const encodedRune = encodeURIComponent(rune);
     const qs = this.buildQueryString(query);
@@ -824,12 +873,41 @@ export class MagicEdenRunesService {
   }
 
   /**
-   * GET /v2/ord/btc/runes/wallet/activities/{address}
    * Get rune activities by wallet address
+   * Hiro primary, Magic Eden fallback
    */
   async getWalletRuneActivities(
     params: RuneWalletActivitiesParams
   ): Promise<RuneWalletActivitiesResponse> {
+    // Try Hiro first (filter by address)
+    if (params.rune) {
+      try {
+        const hiroResult = await hiroRunesApi.getActivity(params.rune, {
+          limit: params.limit,
+          offset: params.offset,
+          address: params.address,
+        });
+        return {
+          activities: (hiroResult.results || []).map((a: any) => ({
+            id: a.tx_id || '',
+            type: a.operation || 'transfer',
+            rune: params.rune!,
+            from: a.sender,
+            to: a.receiver,
+            amount: a.amount,
+            txId: a.tx_id,
+            blockHeight: a.block_height,
+            timestamp: a.timestamp ? new Date(a.timestamp * 1000).toISOString() : undefined,
+          })),
+          total: hiroResult.total || 0,
+          offset: hiroResult.offset || params.offset || 0,
+          limit: hiroResult.limit || params.limit || 20,
+        } as RuneWalletActivitiesResponse;
+      } catch {
+        // Hiro failed, fall back to Magic Eden
+      }
+    }
+
     const { address, ...query } = params;
     const encodedAddress = encodeURIComponent(address);
     const qs = this.buildQueryString(query);
@@ -839,12 +917,29 @@ export class MagicEdenRunesService {
   }
 
   /**
-   * GET /v2/ord/btc/runes/wallet/balances/{address}/{rune}
    * Get rune balances for a wallet
+   * Hiro primary, Magic Eden fallback
    */
   async getWalletRuneBalances(
     params: RuneWalletBalancesParams
   ): Promise<RuneWalletBalance> {
+    // Try Hiro first
+    try {
+      const balance = await hiroRunesApi.getBalance(params.address, params.rune);
+      if (balance) {
+        return {
+          rune: balance.rune_id || params.rune,
+          runeName: balance.name,
+          symbol: balance.symbol,
+          amount: balance.balance || '0',
+          address: params.address,
+          divisibility: balance.divisibility,
+        } as RuneWalletBalance;
+      }
+    } catch {
+      // Hiro failed, fall back to Magic Eden
+    }
+
     const encodedAddress = encodeURIComponent(params.address);
     const encodedRune = encodeURIComponent(params.rune);
     return this.fetchApi<RuneWalletBalance>(
@@ -853,12 +948,33 @@ export class MagicEdenRunesService {
   }
 
   /**
-   * GET /v2/ord/btc/runes/collection_stats/search
    * Get rune collection statistics
+   * Hiro primary, Magic Eden fallback
    */
   async getRuneCollectionStats(
     params: RuneCollectionStatsParams = {}
   ): Promise<RuneCollectionStatsResponse> {
+    // Try Hiro first
+    try {
+      const hiroResult = await hiroRunesApi.getEtchings({
+        limit: params.limit,
+        offset: params.offset,
+      });
+      return {
+        runes: (hiroResult.results || []).map((etching: any) => ({
+          rune: etching.rune_id || etching.name,
+          runeName: etching.name,
+          symbol: etching.symbol,
+          totalSupply: etching.total_supply,
+        })),
+        total: hiroResult.total || 0,
+        offset: hiroResult.offset || params.offset || 0,
+        limit: hiroResult.limit || params.limit || 20,
+      } as RuneCollectionStatsResponse;
+    } catch {
+      // Hiro failed, fall back to Magic Eden
+    }
+
     const qs = this.buildQueryString(params);
     return this.fetchApi<RuneCollectionStatsResponse>(
       `/v2/ord/btc/runes/collection_stats/search${qs}`,
