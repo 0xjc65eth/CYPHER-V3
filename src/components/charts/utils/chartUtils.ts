@@ -1,5 +1,5 @@
-// 📊 CYPHER ORDI FUTURE v3.0.0 - Chart Utils
-// Utilitários para manipulação e formatação de dados de charts
+// CYPHER ORDI FUTURE v3.0.0 - Chart Utils
+// Utilitarios para manipulacao e formatacao de dados de charts
 
 import { ChartData, TimeSeriesData, PriceData } from '../types/chartTypes';
 
@@ -15,39 +15,40 @@ export function formatChartData(rawData: any[], type: 'price' | 'volume' | 'sent
 }
 
 /**
- * Gera dados mock para demonstrações
+ * Gera dados deterministicos para demonstracoes
  */
 export function generateMockData(
-  count: number = 24, 
+  count: number = 24,
   baseValue: number = 65000,
   volatility: number = 0.05
 ): PriceData[] {
   const data: PriceData[] = [];
-  
+
   for (let i = 0; i < count; i++) {
-    const change = (Math.random() - 0.5) * volatility;
+    const t = i / count;
+    const change = (Math.sin(t * Math.PI * 6 + i * 0.5) * 0.5 + Math.cos(t * Math.PI * 3 + i * 0.3) * 0.3) * volatility;
     const newValue = baseValue * (1 + change);
-    
+
     data.push({
       time: new Date(Date.now() - (count - i) * 60 * 60 * 1000).toISOString(),
       price: Number(newValue.toFixed(2)),
       change: Number((newValue - baseValue).toFixed(2)),
       changePercent: Number((change * 100).toFixed(2)),
-      volume: Math.random() * 1000000
+      volume: 500000 + Math.sin(t * Math.PI * 8 + i * 0.7) * 300000 + Math.cos(t * Math.PI * 4) * 200000
     });
-    
+
     baseValue = newValue;
   }
-  
+
   return data;
 }
 
 /**
- * Calcula médias móveis simples
+ * Calcula medias moveis simples
  */
 export function calculateSMA(data: number[], period: number): number[] {
   const result: number[] = [];
-  
+
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
       result.push(NaN);
@@ -56,12 +57,12 @@ export function calculateSMA(data: number[], period: number): number[] {
       result.push(sum / period);
     }
   }
-  
+
   return result;
 }
 
 /**
- * Formata valores monetários
+ * Formata valores monetarios
  */
 export function formatCurrency(value: number): string {
   if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;

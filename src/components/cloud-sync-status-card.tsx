@@ -41,7 +41,7 @@ export function CloudSyncStatusCard() {
           clearInterval(progressInterval)
           return 95
         }
-        return prev + Math.random() * 10
+        return prev + 8
       })
     }, 300)
     

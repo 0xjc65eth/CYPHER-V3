@@ -167,14 +167,14 @@ export async function GET() {
 
     // Return fallback data
     const fallbackData = {
-      volume_24h: 200000 + Math.random() * 50000,
+      volume_24h: 200000,
       volume_change_24h: 3.5,
       price_change_24h: 2.1,
-      market_cap: 2000000000 + Math.random() * 500000000,
-      unique_holders: 240000 + Math.floor(Math.random() * 10000),
-      available_supply: 35000000 + Math.floor(Math.random() * 1000000),
-      inscription_rate: 5000 + Math.floor(Math.random() * 1000),
-      total_collections: 1500 + Math.floor(Math.random() * 100),
+      market_cap: 2000000000,
+      unique_holders: 240000,
+      available_supply: 35000000,
+      inscription_rate: 5000,
+      total_collections: 1500,
       popular_collections: [
         {
           name: 'Bitcoin Puppets',

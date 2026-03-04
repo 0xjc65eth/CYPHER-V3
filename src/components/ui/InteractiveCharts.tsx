@@ -201,7 +201,7 @@ export const LineChart: React.FC<LineChartProps> = ({
   }, [data, chartWidth, chartHeight, padding]);
 
   const pathData = createPath(processedData, smooth);
-  const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+  const gradientId = `gradient-line-chart`;
 
   const handleMouseMove = (event: React.MouseEvent<SVGSVGElement>) => {
     if (!interactive) return;

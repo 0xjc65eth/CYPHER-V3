@@ -2,27 +2,27 @@
 
 import React, { useState, useEffect } from 'react'
 import { Card, Title, Text, Badge, Metric } from '@tremor/react'
-import { 
-  LineChart, 
-  Line, 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
   ResponsiveContainer,
   ComposedChart
 } from 'recharts'
-import { 
-  RiPieChartLine, 
-  RiLineChartLine, 
+import {
+  RiPieChartLine,
+  RiLineChartLine,
   RiBarChartLine,
   RiEyeLine,
   RiEyeOffLine,
@@ -65,23 +65,25 @@ export function PortfolioAnalyticsChart() {
   const [totalPortfolioValue, setTotalPortfolioValue] = useState(0)
   const [portfolioChange, setPortfolioChange] = useState(0)
 
-  // Generate mock portfolio data
+  // Generate deterministic portfolio data
   const generatePortfolioData = (days: number): PortfolioData[] => {
     const data: PortfolioData[] = []
     let baseValue = 50000 // $50k portfolio
-    
+
     for (let i = days; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
-      
-      // Random portfolio movement
-      const change = (Math.random() - 0.5) * 0.05 // ±2.5% daily change
+
+      // Deterministic portfolio movement using sine waves
+      const t = (days - i) / days
+      const dayIndex = days - i
+      const change = (Math.sin(t * Math.PI * 4 + dayIndex * 0.3) * 0.3 + Math.cos(t * Math.PI * 2 + dayIndex * 0.5) * 0.2) * 0.05
       baseValue = baseValue * (1 + change)
-      
-      const bitcoin = baseValue * (0.6 + (Math.random() - 0.5) * 0.1) // 55-65%
-      const ordinals = baseValue * (0.25 + (Math.random() - 0.5) * 0.1) // 20-30%
-      const runes = baseValue * (0.15 + (Math.random() - 0.5) * 0.1) // 10-20%
-      
+
+      const bitcoin = baseValue * (0.6 + Math.sin(dayIndex * 0.4) * 0.05) // ~55-65%
+      const ordinals = baseValue * (0.25 + Math.cos(dayIndex * 0.6) * 0.05) // ~20-30%
+      const runes = baseValue * (0.15 + Math.sin(dayIndex * 0.8) * 0.05) // ~10-20%
+
       data.push({
         date: date.toISOString().split('T')[0],
         totalValue: baseValue,
@@ -89,10 +91,10 @@ export function PortfolioAnalyticsChart() {
         ordinals,
         runes,
         pnl: change * baseValue,
-        volume: 1000 + Math.random() * 5000
+        volume: 3500 + Math.sin(dayIndex * 0.9) * 1500 + Math.cos(dayIndex * 0.4) * 1000
       })
     }
-    
+
     return data
   }
 
@@ -127,14 +129,14 @@ export function PortfolioAnalyticsChart() {
     const days = timeRange === '24h' ? 1 : timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90
     const data = generatePortfolioData(days)
     setPortfolioData(data)
-    
+
     if (data.length > 0) {
       const latest = data[data.length - 1]
       const previous = data[data.length - 2] || data[0]
       setTotalPortfolioValue(latest.totalValue)
       setPortfolioChange(((latest.totalValue - previous.totalValue) / previous.totalValue) * 100)
     }
-    
+
     setAssetAllocation(generateAssetAllocation())
   }, [timeRange])
 
@@ -171,20 +173,20 @@ export function PortfolioAnalyticsChart() {
     <ResponsiveContainer width="100%" height={300}>
       <ComposedChart data={portfolioData}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(75, 85, 99, 0.2)" />
-        <XAxis 
-          dataKey="date" 
+        <XAxis
+          dataKey="date"
           stroke="#9CA3AF"
           fontSize={12}
           tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         />
-        <YAxis 
+        <YAxis
           stroke="#9CA3AF"
           fontSize={12}
           tickFormatter={(value) => formatCurrency(value)}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
-        
+
         <Area
           type="monotone"
           dataKey="totalValue"
@@ -193,7 +195,7 @@ export function PortfolioAnalyticsChart() {
           strokeWidth={2}
           name="Total Portfolio"
         />
-        
+
         <Line
           type="monotone"
           dataKey="bitcoin"
@@ -202,7 +204,7 @@ export function PortfolioAnalyticsChart() {
           dot={false}
           name="Bitcoin"
         />
-        
+
         <Line
           type="monotone"
           dataKey="ordinals"
@@ -211,7 +213,7 @@ export function PortfolioAnalyticsChart() {
           dot={false}
           name="Ordinals"
         />
-        
+
         <Line
           type="monotone"
           dataKey="runes"
@@ -220,7 +222,7 @@ export function PortfolioAnalyticsChart() {
           dot={false}
           name="Runes"
         />
-        
+
         <defs>
           <linearGradient id="portfolioGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
@@ -268,28 +270,28 @@ export function PortfolioAnalyticsChart() {
           />
         </PieChart>
       </ResponsiveContainer>
-      
+
       <div className="space-y-4">
         {assetAllocation.map((asset, index) => (
           <div key={asset.name} className="bg-black/30 rounded-lg p-4 border border-gray-600/30">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="w-4 h-4 rounded-full"
                   style={{ backgroundColor: asset.color }}
                 />
                 <Text className="text-white font-medium">{asset.name}</Text>
               </div>
               <Badge className={`${
-                asset.change24h >= 0 
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                asset.change24h >= 0
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                   : 'bg-red-500/20 text-red-400 border-red-500/30'
               }`}>
                 {asset.change24h >= 0 ? <RiTrendingUpLine className="w-3 h-3 mr-1" /> : <RiTrendingDownLine className="w-3 h-3 mr-1" />}
                 {formatPercentage(asset.change24h)}
               </Badge>
             </div>
-            
+
             <div className="flex items-center justify-between">
               <Metric className="text-white">
                 {showValues ? formatCurrency(asset.value) : '••••••'}
@@ -306,29 +308,29 @@ export function PortfolioAnalyticsChart() {
     <ResponsiveContainer width="100%" height={300}>
       <BarChart data={portfolioData.slice(-7)}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(75, 85, 99, 0.2)" />
-        <XAxis 
-          dataKey="date" 
+        <XAxis
+          dataKey="date"
           stroke="#9CA3AF"
           fontSize={12}
           tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { weekday: 'short' })}
         />
-        <YAxis 
+        <YAxis
           stroke="#9CA3AF"
           fontSize={12}
           tickFormatter={(value) => formatCurrency(value)}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
-        
-        <Bar 
-          dataKey="pnl" 
+
+        <Bar
+          dataKey="pnl"
           name="Daily P&L"
           fill="#3B82F6"
           radius={[4, 4, 0, 0]}
         />
-        
-        <Bar 
-          dataKey="volume" 
+
+        <Bar
+          dataKey="volume"
           name="Volume"
           fill="#10B981"
           opacity={0.6}
@@ -354,8 +356,8 @@ export function PortfolioAnalyticsChart() {
                   {showValues ? formatCurrency(totalPortfolioValue) : '••••••••'}
                 </Metric>
                 <Badge className={`${
-                  portfolioChange >= 0 
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                  portfolioChange >= 0
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
                     : 'bg-red-500/20 text-red-400 border-red-500/30'
                 }`}>
                   {portfolioChange >= 0 ? <RiTrendingUpLine className="w-4 h-4 mr-1" /> : <RiTrendingDownLine className="w-4 h-4 mr-1" />}
@@ -426,17 +428,17 @@ export function PortfolioAnalyticsChart() {
               {showValues ? '3' : '•'}
             </Text>
           </div>
-          
+
           <div className="bg-black/30 rounded-lg p-3 border border-gray-600/30">
             <Text className="text-gray-400 text-xs mb-1">Best Performer</Text>
             <Text className="text-emerald-400 font-semibold">Runes +5.67%</Text>
           </div>
-          
+
           <div className="bg-black/30 rounded-lg p-3 border border-gray-600/30">
             <Text className="text-gray-400 text-xs mb-1">Worst Performer</Text>
             <Text className="text-red-400 font-semibold">Ordinals -1.23%</Text>
           </div>
-          
+
           <div className="bg-black/30 rounded-lg p-3 border border-gray-600/30">
             <Text className="text-gray-400 text-xs mb-1">Volatility</Text>
             <Text className="text-yellow-400 font-semibold">Medium</Text>

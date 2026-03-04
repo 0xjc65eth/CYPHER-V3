@@ -297,16 +297,16 @@ export class NeuralLearningService extends EventEmitter {
 
     // Iniciar coleta de dados
     this.dataCollectionInterval = setInterval(() => {
-      this.updateLearningProgress('data_collection', Math.floor(Math.random() * 100));
+      this.updateLearningProgress('data_collection', 50);
       this.collectData();
     }, this.config.dataCollectionInterval);
 
     // Iniciar aprendizado
     this.learningInterval = setInterval(() => {
-      this.updateLearningProgress('training', Math.floor(Math.random() * 100));
+      this.updateLearningProgress('training', 50);
       this.trainModels();
 
-      this.updateLearningProgress('insight_generation', Math.floor(Math.random() * 100));
+      this.updateLearningProgress('insight_generation', 50);
       this.generateInsights();
 
       this.pruneOldData();
@@ -315,7 +315,7 @@ export class NeuralLearningService extends EventEmitter {
     // Iniciar processo de correção autônoma se habilitado
     if (this.config.autoCorrectEnabled) {
       this.correctionInterval = setInterval(() => {
-        this.updateLearningProgress('correction', Math.floor(Math.random() * 100));
+        this.updateLearningProgress('correction', 50);
         this.detectAndCorrectInconsistencies();
       }, this.config.correctionInterval);
 
@@ -721,10 +721,10 @@ export class NeuralLearningService extends EventEmitter {
         console.error('Error fetching Bitcoin market data:', error);
         // Fallback para dados simulados em caso de erro
         marketData = {
-          btcPrice: 96500 + (Math.random() * 1000 - 500),
-          btcChange24h: Math.random() * 5 - 2.5,
-          volume24h: 30000000000 + (Math.random() * 5000000000),
-          marketCap: 1900000000000 + (Math.random() * 50000000000),
+          btcPrice: 96500,
+          btcChange24h: 0,
+          volume24h: 30000000000,
+          marketCap: 1900000000000,
           timestamp: new Date().toISOString()
         };
       }
@@ -748,9 +748,9 @@ export class NeuralLearningService extends EventEmitter {
         console.error('Error fetching mempool data:', error);
         // Fallback para dados simulados em caso de erro
         mempoolData = {
-          pendingTransactions: 10000 + Math.floor(Math.random() * 5000),
-          averageFeeRate: 2 + Math.random() * 3,
-          mempoolSize: 20000 + Math.floor(Math.random() * 5000),
+          pendingTransactions: 12500,
+          averageFeeRate: 3.5,
+          mempoolSize: 22500,
           timestamp: new Date().toISOString()
         };
       }
@@ -762,10 +762,10 @@ export class NeuralLearningService extends EventEmitter {
         if (response.ok) {
           const data = await response.json();
           ordinalData = {
-            volume24h: data.volume_24h || 200000 + Math.random() * 50000,
-            marketCap: data.market_cap || 2000000000 + Math.random() * 500000000,
-            uniqueHolders: data.unique_holders || 240000 + Math.floor(Math.random() * 10000),
-            inscriptionRate: data.inscription_rate || 5000 + Math.floor(Math.random() * 1000),
+            volume24h: data.volume_24h || 200000,
+            marketCap: data.market_cap || 2000000000,
+            uniqueHolders: data.unique_holders || 240000,
+            inscriptionRate: data.inscription_rate || 5000,
             timestamp: new Date().toISOString()
           };
         } else {
@@ -775,10 +775,10 @@ export class NeuralLearningService extends EventEmitter {
         console.error('Error fetching Ordinals data:', error);
         // Fallback para dados simulados em caso de erro
         ordinalData = {
-          volume24h: 200000 + Math.random() * 50000,
-          marketCap: 2000000000 + Math.random() * 500000000,
-          uniqueHolders: 240000 + Math.floor(Math.random() * 10000),
-          inscriptionRate: 5000 + Math.floor(Math.random() * 1000),
+          volume24h: 200000,
+          marketCap: 2000000000,
+          uniqueHolders: 240000,
+          inscriptionRate: 5000,
           timestamp: new Date().toISOString()
         };
       }
@@ -790,10 +790,10 @@ export class NeuralLearningService extends EventEmitter {
         if (response.ok) {
           const data = await response.json();
           runeData = {
-            volume24h: data.volume_24h || 150000 + Math.random() * 30000,
-            marketCap: data.market_cap || 1500000000 + Math.random() * 300000000,
-            uniqueHolders: data.unique_holders || 180000 + Math.floor(Math.random() * 8000),
-            mintRate: data.mint_rate || 3000 + Math.floor(Math.random() * 800),
+            volume24h: data.volume_24h || 150000,
+            marketCap: data.market_cap || 1500000000,
+            uniqueHolders: data.unique_holders || 180000,
+            mintRate: data.mint_rate || 3000,
             timestamp: new Date().toISOString()
           };
         } else {
@@ -803,10 +803,10 @@ export class NeuralLearningService extends EventEmitter {
         console.error('Error fetching Runes data:', error);
         // Fallback para dados simulados em caso de erro
         runeData = {
-          volume24h: 150000 + Math.random() * 30000,
-          marketCap: 1500000000 + Math.random() * 300000000,
-          uniqueHolders: 180000 + Math.floor(Math.random() * 8000),
-          mintRate: 3000 + Math.floor(Math.random() * 800),
+          volume24h: 150000,
+          marketCap: 1500000000,
+          uniqueHolders: 180000,
+          mintRate: 3000,
           timestamp: new Date().toISOString()
         };
       }
@@ -847,17 +847,17 @@ export class NeuralLearningService extends EventEmitter {
 
       // Simular melhoria na precisão (com diminuição gradual da taxa de melhoria)
       const improvementRate = 0.01 * (1 - model.accuracy); // Taxa de melhoria diminui conforme a precisão aumenta
-      model.accuracy = Math.min(0.98, model.accuracy + (Math.random() * improvementRate));
+      model.accuracy = Math.min(0.98, model.accuracy + (improvementRate * 0.5));
 
       // Atualizar métricas de desempenho
       model.performanceMetrics.accuracy = model.accuracy;
       model.performanceMetrics.mse = Math.max(0.01, model.performanceMetrics.mse * 0.95);
       model.performanceMetrics.mae = Math.max(0.005, model.performanceMetrics.mae * 0.95);
-      model.performanceMetrics.r2 = Math.min(0.98, model.performanceMetrics.r2 + (Math.random() * 0.01));
+      model.performanceMetrics.r2 = Math.min(0.98, model.performanceMetrics.r2 + 0.005);
 
       // Atualizar pesos (simulação)
       for (const feature of Object.keys(model.weights)) {
-        model.weights[feature] += (Math.random() * 0.02 - 0.01);
+        model.weights[feature] += 0.005;
       }
 
       // Normalizar pesos para somar 1
@@ -871,8 +871,8 @@ export class NeuralLearningService extends EventEmitter {
       model.dataPoints += this.trainingData.marketData.length;
 
       // Adicionar histórico de predição (simulado)
-      const actualValue = Math.random() * 100;
-      const predictedValue = actualValue * (1 + (Math.random() * 0.1 - 0.05));
+      const actualValue = 50;
+      const predictedValue = actualValue * 1.02;
       const error = Math.abs(actualValue - predictedValue) / actualValue;
 
       model.predictionHistory.push({
@@ -913,7 +913,7 @@ export class NeuralLearningService extends EventEmitter {
     const priceModel = this.models.get('price-prediction');
     if (priceModel && priceModel.accuracy > this.config.confidenceThreshold) {
       const latestPrice = this.trainingData.marketData[this.trainingData.marketData.length - 1]?.btcPrice || 96500;
-      const pricePrediction = latestPrice * (1 + (Math.random() * 0.05 - 0.025));
+      const pricePrediction = latestPrice * 1.012;
       const direction = pricePrediction > latestPrice ? 'up' : 'down';
       const changePercent = Math.abs((pricePrediction - latestPrice) / latestPrice * 100).toFixed(2);
 
@@ -939,8 +939,8 @@ export class NeuralLearningService extends EventEmitter {
     const smcModel = this.models.get('smc-analysis');
     if (smcModel && smcModel.accuracy > this.config.confidenceThreshold) {
       const marketStructures = ['Bullish Continuation', 'Bearish Continuation', 'Bullish Reversal', 'Bearish Reversal', 'Range-Bound'];
-      const selectedStructure = marketStructures[Math.floor(Math.random() * marketStructures.length)];
-      const keyLevel = Math.round(96500 + (Math.random() * 5000 - 2500));
+      const selectedStructure = marketStructures[0];
+      const keyLevel = 96500;
 
       newInsights.push({
         id: `smc-${Date.now()}`,
@@ -969,15 +969,12 @@ export class NeuralLearningService extends EventEmitter {
     const arbitrageModel = this.models.get('arbitrage-opportunities');
     if (arbitrageModel && arbitrageModel.accuracy > this.config.confidenceThreshold) {
       const exchanges = ['Binance', 'Coinbase', 'Kraken', 'Magic Eden', 'Unisat', 'Ordinals Market'];
-      const sourceExchange = exchanges[Math.floor(Math.random() * exchanges.length)];
-      let targetExchange;
-      do {
-        targetExchange = exchanges[Math.floor(Math.random() * exchanges.length)];
-      } while (targetExchange === sourceExchange);
+      const sourceExchange = exchanges[0];
+      const targetExchange = exchanges[1];
 
       const basePrice = 96500;
-      const sourceBuyPrice = basePrice * (1 - Math.random() * 0.02);
-      const targetSellPrice = basePrice * (1 + Math.random() * 0.02);
+      const sourceBuyPrice = basePrice * 0.99;
+      const targetSellPrice = basePrice * 1.01;
       const profitPercent = ((targetSellPrice - sourceBuyPrice) / sourceBuyPrice * 100).toFixed(2);
 
       newInsights.push({
@@ -1006,9 +1003,9 @@ export class NeuralLearningService extends EventEmitter {
     const ordinalsModel = this.models.get('ordinals-analysis');
     if (ordinalsModel && ordinalsModel.accuracy > this.config.confidenceThreshold) {
       const collections = ['Bitcoin Puppets', 'OCM GENESIS', 'SEIZE CTRL', 'KATOSHI PRIME'];
-      const selectedCollection = collections[Math.floor(Math.random() * collections.length)];
-      const currentFloor = 0.5 + Math.random() * 1.5;
-      const predictedFloor = currentFloor * (1 + (Math.random() * 0.2 - 0.05));
+      const selectedCollection = collections[0];
+      const currentFloor = 1.25;
+      const predictedFloor = currentFloor * 1.075;
       const direction = predictedFloor > currentFloor ? 'increase' : 'decrease';
       const changePercent = Math.abs((predictedFloor - currentFloor) / currentFloor * 100).toFixed(2);
 
@@ -1036,9 +1033,9 @@ export class NeuralLearningService extends EventEmitter {
     const runesModel = this.models.get('runes-analysis');
     if (runesModel && runesModel.accuracy > this.config.confidenceThreshold) {
       const runes = ['ORDI', 'SATS', 'MEME', 'PEPE'];
-      const selectedRune = runes[Math.floor(Math.random() * runes.length)];
-      const currentPrice = 0.00005 + Math.random() * 0.0001;
-      const predictedPrice = currentPrice * (1 + (Math.random() * 0.3 - 0.1));
+      const selectedRune = runes[0];
+      const currentPrice = 0.00008;
+      const predictedPrice = 0.00009;
       const direction = predictedPrice > currentPrice ? 'increase' : 'decrease';
       const changePercent = Math.abs((predictedPrice - currentPrice) / currentPrice * 100).toFixed(2);
 

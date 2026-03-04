@@ -4,7 +4,17 @@
  * Provides real-time price feeds, order book depth, and trade execution
  */
 
-import ccxt, { type Exchange as CCXTExchange, type Ticker as CCXTTicker } from 'ccxt';
+import type { Exchange as CCXTExchange, Ticker as CCXTTicker } from 'ccxt';
+
+// Lazy load CCXT to avoid bundle bloat (130+ exchanges)
+let _ccxt: typeof import('ccxt')['default'] | null = null;
+async function getCcxt() {
+  if (!_ccxt) {
+    const mod = await import('ccxt');
+    _ccxt = mod.default;
+  }
+  return _ccxt;
+}
 import { cache } from '@/lib/cache/redis.config';
 
 export interface ExchangePrice {

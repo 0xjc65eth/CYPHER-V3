@@ -312,8 +312,7 @@ class CypherQuoteEngine {
     // Enhanced simulation with more realistic market conditions
     const basePrice = this.getTokenPrice(fromToken);
     const marketVolatility = this.getMarketVolatility(fromToken, toToken);
-    const priceVariation = (Math.random() - 0.5) * marketVolatility;
-    const price = basePrice * (1 + priceVariation);
+    const price = basePrice;
     
     const liquidityUSD = this.calculateLiquidity(amount, price, dexConfig, network);
     const priceImpact = this.calculateEnhancedPriceImpact(amount, liquidityUSD, dexConfig);
@@ -385,9 +384,7 @@ class CypherQuoteEngine {
   private calculateLiquidity(amount: number, price: number, dexConfig: any, network: string): number {
     const baseMultiplier = dexConfig.liquidityWeight;
     const networkMultiplier = network === 'ethereum' ? 1.5 : network === 'solana' ? 1.2 : 1.0;
-    const randomFactor = 0.8 + (Math.random() * 0.4); // 0.8 to 1.2
-    
-    return amount * price * baseMultiplier * networkMultiplier * randomFactor * (100 + Math.random() * 500);
+    return amount * price * baseMultiplier * networkMultiplier * 300;
   }
 
   private calculateEnhancedPriceImpact(amount: number, liquidityUSD: number, dexConfig: any): number {
@@ -414,7 +411,7 @@ class CypherQuoteEngine {
     if (priceImpact > 3) score -= 3;
     else if (priceImpact < 0.5) score += 1;
     
-    return Math.max(0, Math.min(100, score + (Math.random() - 0.5) * 4));
+    return Math.max(0, Math.min(100, score));
   }
 
   private calculateConfidence(liquidityUSD: number, priceImpact: number, trustScore: number): number {
@@ -431,7 +428,7 @@ class CypherQuoteEngine {
                     5000; // milliseconds
     
     const complexityMultiplier = dexConfig.features?.includes('aggregator') ? 1.5 : 1.0;
-    return baseTime * complexityMultiplier * (0.8 + Math.random() * 0.4);
+    return baseTime * complexityMultiplier;
   }
 
   private estimateGas(network: string, multiplier: number, amount: number): number {
@@ -458,11 +455,11 @@ class CypherQuoteEngine {
   }
 
   private generatePoolAddress(): string {
-    return `0x${Math.random().toString(16).substr(2, 40)}`;
+    return `0x${'0'.repeat(40)}`;
   }
 
   private generateRouterAddress(): string {
-    return `0x${Math.random().toString(16).substr(2, 40)}`;
+    return `0x${'1'.repeat(40)}`;
   }
 
   findBestQuote(quotes: DexQuote[]): DexQuote {

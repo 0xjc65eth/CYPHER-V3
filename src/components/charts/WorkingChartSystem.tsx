@@ -12,15 +12,15 @@ import RechartsChart from './RechartsChart'
 // Types
 type ChartType = 'line' | 'area' | 'bar' | 'candlestick'
 
-// Sample data generators
+// Deterministic sample data generators
 const generateLineData = (count: number = 50) => {
   const data = []
   const basePrice = 50000
-  let currentPrice = basePrice
-  
+
   for (let i = 0; i < count; i++) {
     const time = new Date(Date.now() - (count - i) * 60000).toLocaleTimeString()
-    currentPrice += (Math.random() - 0.5) * 1000
+    const t = i / count
+    const currentPrice = basePrice + Math.sin(t * Math.PI * 6) * 3000 + Math.cos(t * Math.PI * 3 + i * 0.2) * 1500
     data.push({
       time,
       value: Math.max(currentPrice, 1000)
@@ -31,34 +31,37 @@ const generateLineData = (count: number = 50) => {
 
 const generateBarData = () => {
   const categories = ['BTC', 'ETH', 'ADA', 'SOL', 'AVAX']
-  return categories.map(category => ({
+  const baseValues = [85000, 62000, 34000, 71000, 48000]
+  const hues = [30, 200, 120, 270, 350]
+  return categories.map((category, i) => ({
     category,
-    value: Math.random() * 100000,
-    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+    value: baseValues[i],
+    color: `hsl(${hues[i]}, 70%, 50%)`
   }))
 }
 
 const generateCandlestickData = (count: number = 30) => {
   const data = []
   let currentPrice = 50000
-  
+
   for (let i = 0; i < count; i++) {
     const time = new Date(Date.now() - (count - i) * 60000).toLocaleTimeString()
+    const t = i / count
     const open = currentPrice
-    const change = (Math.random() - 0.5) * 2000
+    const change = Math.sin(t * Math.PI * 5 + i * 0.4) * 800 + Math.cos(t * Math.PI * 3) * 400
     const close = Math.max(open + change, 1000)
-    const high = Math.max(open, close) + Math.random() * 500
-    const low = Math.min(open, close) - Math.random() * 500
-    
+    const high = Math.max(open, close) + Math.abs(Math.sin(i * 0.7)) * 300 + 100
+    const low = Math.min(open, close) - Math.abs(Math.cos(i * 0.9)) * 300 - 100
+
     data.push({
       time,
       open,
       high: Math.max(high, 1000),
       low: Math.max(low, 500),
       close,
-      volume: Math.random() * 1000000
+      volume: 500000 + Math.sin(i * 0.6) * 300000 + Math.cos(i * 1.1) * 150000
     })
-    
+
     currentPrice = close
   }
   return data
@@ -67,7 +70,7 @@ const generateCandlestickData = (count: number = 30) => {
 export function WorkingChartSystem() {
   const [chartType, setChartType] = useState<ChartType>('line')
   const [provider, setProvider] = useState<'simple' | 'recharts'>('simple')
-  
+
   // Generate data based on chart type
   const chartData = useMemo(() => {
     switch (chartType) {
@@ -98,12 +101,12 @@ export function WorkingChartSystem() {
     <div className="w-full max-w-6xl mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>📊 Working Chart System</CardTitle>
+          <CardTitle>Working Chart System</CardTitle>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Simplified chart system with working components
           </p>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           {/* Controls */}
           <div className="flex flex-wrap gap-4 items-center">
@@ -121,7 +124,7 @@ export function WorkingChartSystem() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium">Provider:</label>
               <Select value={provider} onValueChange={(value) => setProvider(value as 'simple' | 'recharts')}>
@@ -140,11 +143,11 @@ export function WorkingChartSystem() {
           <div className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-900">
             <div className="mb-4">
               <h3 className="font-medium text-lg">
-                {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart 
+                {chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart
                 <span className="text-sm text-gray-500 ml-2">({provider})</span>
               </h3>
             </div>
-            
+
             {provider === 'simple' ? (
               <SimpleChart
                 type={chartType}
@@ -167,7 +170,7 @@ export function WorkingChartSystem() {
         {/* Bitcoin Price - Simple */}
         <Card>
           <CardHeader>
-            <CardTitle>🪙 Bitcoin Price (Simple SVG)</CardTitle>
+            <CardTitle>Bitcoin Price (Simple SVG)</CardTitle>
           </CardHeader>
           <CardContent>
             <SimpleChart
@@ -188,7 +191,7 @@ export function WorkingChartSystem() {
         {/* Trading Volume - Recharts */}
         <Card>
           <CardHeader>
-            <CardTitle>📊 Trading Volume (Recharts)</CardTitle>
+            <CardTitle>Trading Volume (Recharts)</CardTitle>
           </CardHeader>
           <CardContent>
             <RechartsChart
@@ -209,36 +212,36 @@ export function WorkingChartSystem() {
       {/* Status & Info */}
       <Card>
         <CardHeader>
-          <CardTitle>✅ System Status</CardTitle>
+          <CardTitle>System Status</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h4 className="font-semibold mb-2 text-green-600">✅ Working Components</h4>
+              <h4 className="font-semibold mb-2 text-green-600">Working Components</h4>
               <ul className="space-y-1 text-sm">
-                <li>• Simple SVG Charts (All types)</li>
-                <li>• Recharts Integration (Line, Area, Bar)</li>
-                <li>• Data generation and processing</li>
-                <li>• Theme support (Dark/Light)</li>
-                <li>• Responsive design</li>
+                <li>Simple SVG Charts (All types)</li>
+                <li>Recharts Integration (Line, Area, Bar)</li>
+                <li>Data generation and processing</li>
+                <li>Theme support (Dark/Light)</li>
+                <li>Responsive design</li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-semibold mb-2 text-blue-600">🔄 Next Steps</h4>
+              <h4 className="font-semibold mb-2 text-blue-600">Next Steps</h4>
               <ul className="space-y-1 text-sm">
-                <li>• Fix LightweightChart dynamic import</li>
-                <li>• Add real-time data updates</li>
-                <li>• Implement error boundaries</li>
-                <li>• Add more chart types</li>
-                <li>• Performance optimizations</li>
+                <li>Fix LightweightChart dynamic import</li>
+                <li>Add real-time data updates</li>
+                <li>Implement error boundaries</li>
+                <li>Add more chart types</li>
+                <li>Performance optimizations</li>
               </ul>
             </div>
           </div>
-          
+
           <div className="mt-4 p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
             <p className="text-sm text-green-800 dark:text-green-200">
-              🎉 <strong>Charts are now working!</strong> You can use SimpleChart and RechartsChart components throughout your project.
+              <strong>Charts are now working!</strong> You can use SimpleChart and RechartsChart components throughout your project.
             </p>
           </div>
         </CardContent>

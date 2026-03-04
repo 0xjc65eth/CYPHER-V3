@@ -223,7 +223,7 @@ function generateRecentHistory(currentPrice: number, change24h: number) {
   for (let i = 23; i >= 0; i--) {
     const time = now - (i * 60 * 60 * 1000);
     // Create realistic price movement
-    const hourlyChange = (change24h / 24) + (Math.random() - 0.5) * 2; // ±1% random
+    const hourlyChange = (change24h / 24) + Math.sin(i * 0.8) * 0.5; // deterministic wave
     const price = currentPrice * (1 - (change24h / 100) * (i / 24) + (hourlyChange / 100));
     
     data.push({
@@ -233,7 +233,7 @@ function generateRecentHistory(currentPrice: number, change24h: number) {
         hour12: false
       }),
       price: Math.round(price),
-      volume: Math.round(Math.random() * 1000 + 500),
+      volume: 750,
       change: hourlyChange,
     });
   }

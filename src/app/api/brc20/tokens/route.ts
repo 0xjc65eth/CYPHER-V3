@@ -50,7 +50,7 @@ export async function GET(request: Request) {
 
         // Estimate holders based on transaction count (since Hiro doesn't provide direct holders count)
         const txCount = (token.tx_count as number) || 0;
-        const estimatedHolders = Math.max(1, Math.floor(txCount * 0.3 + Math.random() * 100));
+        const estimatedHolders = Math.max(1, Math.floor(txCount * 0.3));
 
         tokenMap.set(ticker, {
           ticker: token.ticker,

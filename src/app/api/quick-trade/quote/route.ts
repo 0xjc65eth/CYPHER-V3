@@ -255,10 +255,9 @@ class QuoteEngine {
   ): Promise<DexQuote> {
     // Simulação de chamada real para API - em produção, fazer chamadas HTTP reais
     const basePrice = this.getBaseTokenPrice(fromToken);
-    const priceVariation = (Math.random() - 0.5) * 0.01; // ±0.5% variação
-    const price = basePrice * (1 + priceVariation);
-    
-    const liquidityUSD = amount * price * dexConfig.liquidityWeight * (50 + Math.random() * 200);
+    const price = basePrice;
+
+    const liquidityUSD = amount * price * dexConfig.liquidityWeight * 100;
     const priceImpact = this.calculatePriceImpact(amount, liquidityUSD);
     
     const gasEstimate = this.estimateGas(network, dexConfig.gasMultiplier);
@@ -275,18 +274,18 @@ class QuoteEngine {
       liquidityUSD,
       gasEstimate,
       gasCostUSD,
-      executionTime: 2000 + Math.random() * 3000, // 2-5 segundos
-      trustScore: dexConfig.trustScore + (Math.random() - 0.5) * 5,
+      executionTime: 3000,
+      trustScore: dexConfig.trustScore,
       route: [fromToken, toToken],
-      confidenceLevel: Math.min(100, 85 + Math.random() * 15),
+      confidenceLevel: 90,
       fees: {
         protocolFee: dexConfig.fees.protocol,
         liquidityProviderFee: dexConfig.fees.lp,
         gasPrice: this.networkGasPrice[network]
       },
       metadata: {
-        poolAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
-        routerAddress: `0x${Math.random().toString(16).substr(2, 40)}`,
+        poolAddress: `0x${'0'.repeat(40)}`,
+        routerAddress: `0x${'0'.repeat(40)}`,
         lastUpdated: Date.now(),
         dataSource: dexConfig.name
       }

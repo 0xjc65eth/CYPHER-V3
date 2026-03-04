@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
         ...fallback,
         high24h: fallback.price * (1 + Math.abs(fallback.change24h) / 100 * 0.6),
         low24h: fallback.price * (1 - Math.abs(fallback.change24h) / 100 * 0.4),
-        marketCapDominance: symbol === 'BTC' ? 51.2 : symbol === 'ETH' ? 15.8 : Math.random() * 5,
+        marketCapDominance: symbol === 'BTC' ? 51.2 : symbol === 'ETH' ? 15.8 : 2.0,
         lastUpdated: new Date().toISOString()
       };
     }

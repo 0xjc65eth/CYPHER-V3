@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/api-middleware';
+
+const sessionKeysRateLimit = rateLimit({ windowMs: 60000, maxRequests: 10 });
 
 // Lazy require to avoid webpack async chunk splitting issues
 function getModules() {
@@ -17,6 +20,9 @@ function getModules() {
  */
 export async function GET(request: NextRequest) {
   try {
+    const rl = sessionKeysRateLimit(request);
+    if (rl) return rl;
+
     const url = new URL(request.url);
     const chain = url.searchParams.get('chain') || '';
     const activeOnly = url.searchParams.get('active') !== 'false';
@@ -78,6 +84,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const rl = sessionKeysRateLimit(request);
+    if (rl) return rl;
+
     const body = await request.json();
     const { chain, exchange, allowedPairs, maxSpendUSD, ttlMs, walletSignature } = body;
 
@@ -138,6 +147,9 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = sessionKeysRateLimit(request);
+    if (rl) return rl;
+
     const body = await request.json();
     const { getSessionKeyManager } = getModules();
     const manager = getSessionKeyManager();

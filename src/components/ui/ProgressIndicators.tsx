@@ -129,7 +129,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     }
   }, [percentage, animated]);
 
-  const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+  const gradientId = `gradient-circular-progress`;
 
   return (
     <div className={cn('relative inline-flex items-center justify-center', className)}>

@@ -8,9 +8,12 @@ export const TradingViewChart: React.FC<{ className?: string }> = ({ className =
   const [priceChange, setPriceChange] = useState(2.45);
 
   useEffect(() => {
+    let tick = 0;
     const interval = setInterval(() => {
-      setCurrentPrice(prev => prev + (Math.random() - 0.5) * 100);
-      setPriceChange((Math.random() - 0.5) * 5);
+      tick++;
+      const delta = Math.sin(tick * 0.3) * 40 + Math.cos(tick * 0.7) * 20;
+      setCurrentPrice(prev => prev + delta);
+      setPriceChange(Math.sin(tick * 0.5) * 2 + Math.cos(tick * 0.2) * 1);
     }, 3000);
     return () => clearInterval(interval);
   }, []);

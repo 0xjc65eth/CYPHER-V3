@@ -64,24 +64,24 @@ export function NetworkVisualization() {
           nodes.push({
             id: `node_${nodeId}`,
             group: type.group,
-            size: type.baseSize + Math.random() * 10,
+            size: type.baseSize + (i % 10),
             label: `${type.label} ${i + 1}`,
-            value: Math.random() * 1000
+            value: (i + 1) * 100
           })
           nodeId++
         }
       })
 
-      // Create random links
+      // Create deterministic links
       for (let i = 0; i < 80; i++) {
-        const sourceNode = nodes[Math.floor(Math.random() * nodes.length)]
-        const targetNode = nodes[Math.floor(Math.random() * nodes.length)]
-        
-        if (sourceNode.id !== targetNode.id) {
+        const sourceIdx = i % nodes.length
+        const targetIdx = (i * 3 + 7) % nodes.length
+
+        if (sourceIdx !== targetIdx) {
           links.push({
-            source: sourceNode.id,
-            target: targetNode.id,
-            value: Math.random() * 10,
+            source: nodes[sourceIdx].id,
+            target: nodes[targetIdx].id,
+            value: (i % 10) + 1,
             type: 'transaction'
           })
         }
@@ -97,9 +97,9 @@ export function NetworkVisualization() {
         nodes.push({
           id: `collection_${i}`,
           group: 1,
-          size: 25 + Math.random() * 15,
+          size: 25 + (i % 3) * 5,
           label: collection,
-          value: 1000 + Math.random() * 5000
+          value: 1000 + i * 625
         })
 
         // Add individual ordinals
@@ -108,15 +108,15 @@ export function NetworkVisualization() {
           nodes.push({
             id: ordinalId,
             group: 2,
-            size: 8 + Math.random() * 5,
+            size: 8 + (j % 5),
             label: `${collection} #${j + 1}`,
-            value: 10 + Math.random() * 100
+            value: 10 + j * 20
           })
 
           links.push({
             source: `collection_${i}`,
             target: ordinalId,
-            value: Math.random() * 5,
+            value: (j % 5) + 1,
             type: 'ownership'
           })
         }
@@ -145,15 +145,15 @@ export function NetworkVisualization() {
           nodes.push({
             id: holderId,
             group: 2,
-            size: 5 + Math.random() * 8,
+            size: 5 + (j % 8),
             label: `Holder ${j + 1}`,
-            value: Math.random() * 100
+            value: (j + 1) * 10
           })
 
           links.push({
             source: `rune_${i}`,
             target: holderId,
-            value: Math.random() * 10,
+            value: (j % 10) + 1,
             type: 'holding'
           })
         }

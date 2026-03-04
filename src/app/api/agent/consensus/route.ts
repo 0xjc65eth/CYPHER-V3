@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/api-middleware';
+
+const consensusRateLimit = rateLimit({ windowMs: 60000, maxRequests: 20 });
 
 // Lazy require to avoid webpack async chunk splitting issues
 function getModules() {
@@ -20,6 +23,9 @@ function getModules() {
  */
 export async function GET(request: NextRequest) {
   try {
+    const rl = consensusRateLimit(request);
+    if (rl) return rl;
+
     const { getAgentPersistence, getOrchestrator } = getModules();
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
@@ -86,6 +92,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const rl = consensusRateLimit(request);
+    if (rl) return rl;
+
     const { getConsensusEngine, getOrchestrator } = getModules();
     const body = await request.json();
 

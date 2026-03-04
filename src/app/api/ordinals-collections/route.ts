@@ -131,10 +131,10 @@ export async function GET() {
     // Adicionar dados de mercado simulados para todas as coleções
     collections = collections.map((collection: any) => {
       if (!collection.volume_24h) {
-        collection.volume_24h = Math.floor(Math.random() * 100) + 10;
+        collection.volume_24h = 42;
       }
       if (!collection.floor_price) {
-        collection.floor_price = (Math.random() * 0.1).toFixed(4);
+        collection.floor_price = '0.0250';
       }
       if (!collection.market_cap) {
         collection.market_cap = collection.item_count * parseFloat(collection.floor_price) * 65000;

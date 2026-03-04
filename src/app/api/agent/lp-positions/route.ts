@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/api-middleware';
+
+const lpRateLimit = rateLimit({ windowMs: 60000, maxRequests: 20 });
 
 // Lazy require to avoid webpack async chunk splitting issues
 function getModules() {
@@ -18,6 +21,9 @@ function getModules() {
  */
 export async function GET(request: NextRequest) {
   try {
+    const rl = lpRateLimit(request);
+    if (rl) return rl;
+
     const { getAgentPersistence, getOrchestrator } = getModules();
     const url = new URL(request.url);
     const activeOnly = url.searchParams.get('active') !== 'false';
@@ -99,6 +105,9 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const rl = lpRateLimit(request);
+    if (rl) return rl;
+
     const { getAgentPersistence, getOrchestrator } = getModules();
     const body = await request.json();
     const { pair, protocol, exchange, amountUSD, feeTier } = body;
@@ -190,6 +199,9 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const rl = lpRateLimit(request);
+    if (rl) return rl;
+
     const { getAgentPersistence, getOrchestrator } = getModules();
     const body = await request.json();
     const { positionId, exchange } = body;

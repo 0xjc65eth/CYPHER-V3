@@ -109,7 +109,7 @@ async function fetchCryptoCompareNews(): Promise<NewsItem[]> {
       }
       
       // Determine relevance based on categories and source
-      let relevance = 70 + Math.floor(Math.random() * 30); // Base relevance 70-99
+      let relevance = 85; // Fixed relevance score
       
       // Determine categories
       const categories = item.categories.split('|').filter((c: string) => c.trim() !== '');

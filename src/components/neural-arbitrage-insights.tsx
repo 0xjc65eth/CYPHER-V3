@@ -85,33 +85,31 @@ export function NeuralArbitrageInsights() {
 
     return Array.from({ length: count }, (_, i) => {
       // Selecionar exchanges diferentes
-      const sourceExchange = exchanges[Math.floor(Math.random() * exchanges.length)];
-      let targetExchange;
-      do {
-        targetExchange = exchanges[Math.floor(Math.random() * exchanges.length)];
-      } while (targetExchange === sourceExchange);
+      const sourceExchange = exchanges[i % exchanges.length];
+      const targetExchange = exchanges[(i + 1) % exchanges.length];
 
-      // Decidir se vamos usar uma runa ou outro ativo (70% chance de ser runa)
-      const useRune = Math.random() < 0.7;
+      // Decidir se vamos usar uma runa ou outro ativo (first 70% are runes)
+      const useRune = i % 10 < 7;
 
       // Selecionar um ativo
       let asset;
       if (useRune) {
-        const selectedRune = verifiedRunes[Math.floor(Math.random() * verifiedRunes.length)];
+        const selectedRune = verifiedRunes[i % verifiedRunes.length];
         asset = `Rune20/${selectedRune}`;
       } else {
-        asset = otherAssets[Math.floor(Math.random() * otherAssets.length)];
+        asset = otherAssets[i % otherAssets.length];
       }
 
       // Gerar preços e lucro
       const basePrice = asset.includes('BTC') ? 65000 : asset.includes('Rune') ? 0.0001 : 0.5;
-      const sourceBuyPrice = basePrice * (0.95 + Math.random() * 0.05);
-      const targetSellPrice = sourceBuyPrice * (1.05 + Math.random() * 0.1);
+      const spreadFactor = 0.97 + (i % 5) * 0.01;
+      const sourceBuyPrice = basePrice * spreadFactor;
+      const targetSellPrice = sourceBuyPrice * (1.05 + (i % 10) * 0.01);
       const profitPercent = ((targetSellPrice - sourceBuyPrice) / sourceBuyPrice * 100).toFixed(2);
       const estimatedProfit = (targetSellPrice - sourceBuyPrice) * (asset.includes('BTC') ? 0.1 : asset.includes('Rune') ? 1000 : 1);
 
       // Gerar timestamp recente
-      const timestamp = new Date(Date.now() - Math.floor(Math.random() * 3600000)).toISOString();
+      const timestamp = new Date(Date.now() - i * 180000).toISOString();
 
       return {
         id: `neural-arb-${i + 1}`,

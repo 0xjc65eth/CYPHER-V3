@@ -261,10 +261,10 @@ async function getInscriptionMarketData(_inscriptionId: string) {
 
 function generatePriceHistory(): Array<{ price: number; timestamp: Date }> {
   const history = [];
-  let currentPrice = Math.floor(Math.random() * 50000) + 10000;
-  
+  let currentPrice = 30000;
+
   for (let i = 30; i >= 0; i--) {
-    const change = (Math.random() - 0.5) * 0.2; // ±10% daily change
+    const change = Math.sin(i * 0.5) * 0.05; // Deterministic wave pattern
     currentPrice *= (1 + change);
     
     history.push({

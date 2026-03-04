@@ -135,21 +135,20 @@ export function QuickTradeSwapLogic({
 
         // FALLBACK: Replace with real DEX aggregator API calls (1inch, Jupiter, etc.)
         // Currently using simulated quotes until aggregator integration is complete
-        await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 400));
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         const basePrice = 2850; // Placeholder price - should come from real price feed
-        const priceVariation = (Math.random() - 0.5) * 0.02;
-        const price = basePrice * (1 + priceVariation);
-        
+        const price = basePrice;
+
         const quote: SwapQuote = {
           exchange,
           network,
           price,
-          liquidityUSD: Math.random() * 50000000 + 5000000, // 5M-55M
-          estimatedGas: Math.random() * 0.01 + 0.005, // 0.005-0.015 ETH
-          gasUSD: (Math.random() * 0.01 + 0.005) * price,
-          slippage: Math.random() * 0.5 + 0.1, // 0.1-0.6%
-          confidence: Math.random() * 20 + 80, // 80-100%
+          liquidityUSD: 30000000,
+          estimatedGas: 0.01,
+          gasUSD: 0.01 * price,
+          slippage: 0.3,
+          confidence: 90,
           url: `https://${exchange.toLowerCase()}.org/swap`,
           route: [fromToken, toToken]
         };

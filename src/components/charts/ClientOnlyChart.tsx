@@ -63,15 +63,18 @@ export function ClientOnlyChart({
 
   useEffect(() => {
     setMounted(true);
-    
+
     // Generate default data if none provided
     if (data.length === 0) {
-      const defaultData = Array.from({ length: 24 }, (_, i) => ({
-        [xAxisKey]: `${i}:00`,
-        [dataKey]: Math.random() * 100 + 50,
-        price: 65000 + Math.random() * 5000,
-        volume: Math.random() * 1000000,
-      }));
+      const defaultData = Array.from({ length: 24 }, (_, i) => {
+        const t = i / 24;
+        return {
+          [xAxisKey]: `${i}:00`,
+          [dataKey]: 75 + Math.sin(t * Math.PI * 4) * 25 + Math.cos(t * Math.PI * 2) * 15,
+          price: 65000 + Math.sin(t * Math.PI * 6) * 2000 + Math.cos(t * Math.PI * 3) * 1500,
+          volume: 500000 + Math.sin(t * Math.PI * 8) * 300000 + Math.cos(t * Math.PI * 5) * 200000,
+        };
+      });
       setChartData(defaultData);
     } else {
       setChartData(data);
@@ -94,7 +97,7 @@ export function ClientOnlyChart({
       {title && (
         <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
       )}
-      
+
       <RechartsComponents>
         {({ ResponsiveContainer, LineChart, AreaChart, BarChart, XAxis, YAxis, CartesianGrid, Tooltip, Line, Area, Bar }: any) => (
           <ResponsiveContainer width={width} height={height}>
@@ -103,24 +106,24 @@ export function ClientOnlyChart({
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey={xAxisKey} stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '6px',
                     color: '#F3F4F6'
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey={dataKey} 
-                  stroke={color} 
+                <Line
+                  type="monotone"
+                  dataKey={dataKey}
+                  stroke={color}
                   strokeWidth={2}
                   dot={false}
                 />
               </LineChart>
             )}
-            
+
             {type === 'area' && (
               <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <defs>
@@ -132,32 +135,32 @@ export function ClientOnlyChart({
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey={xAxisKey} stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '6px',
                     color: '#F3F4F6'
                   }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey={dataKey} 
-                  stroke={color} 
-                  fillOpacity={1} 
-                  fill="url(#colorGradient)" 
+                <Area
+                  type="monotone"
+                  dataKey={dataKey}
+                  stroke={color}
+                  fillOpacity={1}
+                  fill="url(#colorGradient)"
                 />
               </AreaChart>
             )}
-            
+
             {type === 'bar' && (
               <BarChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis dataKey={xAxisKey} stroke="#9CA3AF" />
                 <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#1F2937', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#1F2937',
                     border: '1px solid #374151',
                     borderRadius: '6px',
                     color: '#F3F4F6'

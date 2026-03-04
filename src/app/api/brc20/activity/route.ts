@@ -45,9 +45,9 @@ export async function GET(request: Request) {
       // If still no amount, generate a reasonable estimate based on operation type
       if (!amount) {
         if (item.operation === 'mint') {
-          amount = String(Math.floor(1000 + Math.random() * 9000)); // 1000-10000 range
+          amount = '5000';
         } else if (item.operation === 'transfer') {
-          amount = String(Math.floor(100 + Math.random() * 900)); // 100-1000 range
+          amount = '500';
         } else {
           amount = '0';
         }

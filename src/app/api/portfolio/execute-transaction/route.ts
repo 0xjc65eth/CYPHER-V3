@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       message: 'Transaction initiated successfully',
-      transactionId: 'tx-' + Math.random().toString(36).substring(2, 15),
+      transactionId: 'tx-' + Date.now().toString(36),
       status: 'pending'
     })
   } catch (error) {

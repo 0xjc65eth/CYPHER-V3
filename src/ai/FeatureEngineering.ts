@@ -9,7 +9,16 @@
  * - "Market Microstructure Features" (O'Hara, 1995)
  */
 
-import * as tf from '@tensorflow/tfjs-node';
+// Lazy load TensorFlow to avoid bundle bloat
+let _tf: any = null;
+async function getTf() {
+  if (!_tf) {
+    try { _tf = await import('@tensorflow/tfjs-node'); }
+    catch { try { _tf = require('@tensorflow/tfjs'); } catch { _tf = null; } }
+  }
+  return _tf;
+}
+
 import { EventEmitter } from 'events';
 
 // Feature Types

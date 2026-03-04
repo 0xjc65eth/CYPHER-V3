@@ -242,8 +242,8 @@ function generateAIAnalysis(data: PortfolioAnalysisRequest) {
     },
     neuralPredictions: {
       portfolioGrowthPotential: Math.round(15 + (riskScore / 5)),
-      btcPrice7d: Math.round(currentBtcPrice * (1 + (Math.random() - 0.5) * 0.1)),
-      btcPrice30d: Math.round(currentBtcPrice * (1 + (Math.random() - 0.3) * 0.3)),
+      btcPrice7d: Math.round(currentBtcPrice * 0.97),
+      btcPrice30d: Math.round(currentBtcPrice * 0.92),
       riskScore: riskScore / 10,
       confidenceLevel: 87.3
     },

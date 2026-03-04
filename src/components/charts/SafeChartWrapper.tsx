@@ -13,8 +13,8 @@ interface SafeChartWrapperProps {
 }
 
 // Safe wrapper for all chart components to prevent "Element type is invalid" errors
-export function SafeChartWrapper({ 
-  children, 
+export function SafeChartWrapper({
+  children,
   chartType = 'Chart',
   dataSource,
   data,
@@ -30,20 +30,23 @@ export function SafeChartWrapper({
   // Generate fallback data if none provided
   const fallbackData = React.useMemo(() => {
     if (data && data.length > 0) return data;
-    
-    // Generate simple mock data for fallback
-    return Array.from({ length: 10 }, (_, i) => ({
-      time: Date.now() - (9 - i) * 24 * 60 * 60 * 1000,
-      value: Math.random() * 0.5 + 0.25,
-      price: 40000 + Math.random() * 20000,
-      volume: Math.random() * 1000000,
-    }));
+
+    // Generate deterministic fallback data
+    return Array.from({ length: 10 }, (_, i) => {
+      const t = i / 10;
+      return {
+        time: Date.now() - (9 - i) * 24 * 60 * 60 * 1000,
+        value: 0.5 + Math.sin(t * Math.PI * 3) * 0.15 + Math.cos(t * Math.PI * 2) * 0.1,
+        price: 50000 + Math.sin(t * Math.PI * 4) * 5000 + Math.cos(t * Math.PI * 2.5) * 3000,
+        volume: 500000 + Math.sin(t * Math.PI * 5) * 300000 + Math.cos(t * Math.PI * 3) * 150000,
+      };
+    });
   }, [data]);
 
   // Don't render charts on server side to prevent hydration issues
   if (!isMounted) {
     return (
-      <div 
+      <div
         className={`bg-gray-900 border border-gray-800 rounded-lg flex items-center justify-center ${className}`}
         style={{ height: fallbackHeight }}
       >
@@ -91,7 +94,7 @@ export function withSafeChart<P extends object>(
   );
 
   SafeChart.displayName = `SafeChart(${ChartComponent.displayName || ChartComponent.name})`;
-  
+
   return SafeChart;
 }
 

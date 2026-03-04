@@ -6,15 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
-// Sample data generators
+// Deterministic sample data generators
 const generateLineData = (count: number = 50): ChartData => {
   const data = []
   const basePrice = 50000
-  let currentPrice = basePrice
-  
+
   for (let i = 0; i < count; i++) {
     const time = new Date(Date.now() - (count - i) * 60000).toISOString()
-    currentPrice += (Math.random() - 0.5) * 1000
+    const t = i / count
+    const currentPrice = basePrice + Math.sin(t * Math.PI * 6) * 3000 + Math.cos(t * Math.PI * 3 + i * 0.2) * 1500
     data.push({
       time,
       value: Math.max(currentPrice, 1000)
@@ -26,16 +26,17 @@ const generateLineData = (count: number = 50): ChartData => {
 const generateCandlestickData = (count: number = 50): ChartData => {
   const data = []
   let currentPrice = 50000
-  
+
   for (let i = 0; i < count; i++) {
     const time = new Date(Date.now() - (count - i) * 60000).toISOString()
+    const t = i / count
     const open = currentPrice
-    const change = (Math.random() - 0.5) * 2000
+    const change = Math.sin(t * Math.PI * 5 + i * 0.4) * 800 + Math.cos(t * Math.PI * 3) * 400
     const close = Math.max(open + change, 1000)
-    const high = Math.max(open, close) + Math.random() * 500
-    const low = Math.min(open, close) - Math.random() * 500
-    const volume = Math.random() * 1000000
-    
+    const high = Math.max(open, close) + Math.abs(Math.sin(i * 0.7)) * 300 + 100
+    const low = Math.min(open, close) - Math.abs(Math.cos(i * 0.9)) * 300 - 100
+    const volume = 500000 + Math.sin(i * 0.6) * 300000 + Math.cos(i * 1.1) * 150000
+
     data.push({
       time,
       open,
@@ -44,7 +45,7 @@ const generateCandlestickData = (count: number = 50): ChartData => {
       close,
       volume
     })
-    
+
     currentPrice = close
   }
   return data
@@ -52,10 +53,12 @@ const generateCandlestickData = (count: number = 50): ChartData => {
 
 const generateBarData = (): ChartData => {
   const categories = ['BTC', 'ETH', 'ADA', 'SOL', 'AVAX', 'DOT', 'MATIC', 'LINK']
-  return categories.map(category => ({
+  const baseValues = [85000, 62000, 34000, 71000, 48000, 55000, 42000, 67000]
+  const hues = [30, 200, 120, 270, 350, 60, 160, 300]
+  return categories.map((category, i) => ({
     category,
-    value: Math.random() * 100000,
-    color: `hsl(${Math.random() * 360}, 70%, 50%)`
+    value: baseValues[i],
+    color: `hsl(${hues[i]}, 70%, 50%)`
   }))
 }
 
@@ -67,7 +70,7 @@ export function ChartExample() {
   // Generate data based on chart type
   const generateData = () => {
     setIsLoading(true)
-    
+
     setTimeout(() => {
       switch (chartType) {
         case 'line':
@@ -95,12 +98,12 @@ export function ChartExample() {
     <div className="w-full max-w-6xl mx-auto p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>📊 Unified Chart System Demo</CardTitle>
+          <CardTitle>Unified Chart System Demo</CardTitle>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Professional Bitcoin analytics charts with automatic provider selection and error handling
           </p>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           {/* Controls */}
           <div className="flex flex-wrap gap-4 items-center">
@@ -118,7 +121,7 @@ export function ChartExample() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <Button onClick={generateData} disabled={isLoading}>
               {isLoading ? 'Generating...' : 'Generate New Data'}
             </Button>
@@ -154,7 +157,7 @@ export function ChartExample() {
         {/* Bitcoin Price Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>🪙 Bitcoin Price (24h)</CardTitle>
+            <CardTitle>Bitcoin Price (24h)</CardTitle>
           </CardHeader>
           <CardContent>
             <UnifiedChartSystem
@@ -176,7 +179,7 @@ export function ChartExample() {
         {/* Trading Volume */}
         <Card>
           <CardHeader>
-            <CardTitle>📊 Trading Volume</CardTitle>
+            <CardTitle>Trading Volume</CardTitle>
           </CardHeader>
           <CardContent>
             <UnifiedChartSystem
@@ -198,7 +201,7 @@ export function ChartExample() {
       {/* Professional Trading Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>📈 Professional Trading Terminal</CardTitle>
+          <CardTitle>Professional Trading Terminal</CardTitle>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Full-featured candlestick chart with lightweight-charts for maximum performance
           </p>
@@ -226,7 +229,7 @@ export function ChartExample() {
       {/* Usage Guide */}
       <Card>
         <CardHeader>
-          <CardTitle>🚀 Usage Guide</CardTitle>
+          <CardTitle>Usage Guide</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-sm space-y-2">
@@ -251,34 +254,34 @@ export function ChartExample() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <h4 className="font-semibold mb-2">📊 Chart Types</h4>
+              <h4 className="font-semibold mb-2">Chart Types</h4>
               <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                <li>• Line charts</li>
-                <li>• Area charts</li>
-                <li>• Candlestick charts</li>
-                <li>• Bar charts</li>
-                <li>• Heatmaps (coming soon)</li>
+                <li>Line charts</li>
+                <li>Area charts</li>
+                <li>Candlestick charts</li>
+                <li>Bar charts</li>
+                <li>Heatmaps (coming soon)</li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-2">🎯 Providers</h4>
+              <h4 className="font-semibold mb-2">Providers</h4>
               <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                <li>• <strong>Lightweight</strong>: Trading charts</li>
-                <li>• <strong>Recharts</strong>: Dashboard widgets</li>
-                <li>• <strong>Simple</strong>: Fallback SVG</li>
-                <li>• <strong>Auto</strong>: Smart selection</li>
+                <li><strong>Lightweight</strong>: Trading charts</li>
+                <li><strong>Recharts</strong>: Dashboard widgets</li>
+                <li><strong>Simple</strong>: Fallback SVG</li>
+                <li><strong>Auto</strong>: Smart selection</li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-2">✨ Features</h4>
+              <h4 className="font-semibold mb-2">Features</h4>
               <ul className="space-y-1 text-gray-600 dark:text-gray-400">
-                <li>• Error boundaries</li>
-                <li>• Automatic fallbacks</li>
-                <li>• Responsive design</li>
-                <li>• Dark/light themes</li>
-                <li>• Performance optimization</li>
+                <li>Error boundaries</li>
+                <li>Automatic fallbacks</li>
+                <li>Responsive design</li>
+                <li>Dark/light themes</li>
+                <li>Performance optimization</li>
               </ul>
             </div>
           </div>

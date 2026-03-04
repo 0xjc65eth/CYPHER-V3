@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/api-middleware';
+
+const tradesRateLimit = rateLimit({ windowMs: 60000, maxRequests: 30 });
 
 // Lazy require to avoid webpack async chunk splitting issues
 function getModules() {
@@ -24,6 +27,9 @@ function getModules() {
  */
 export async function GET(request: NextRequest) {
   try {
+    const rl = tradesRateLimit(request);
+    if (rl) return rl;
+
     const { getAgentPersistence, getOrchestrator } = getModules();
     const url = new URL(request.url);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);

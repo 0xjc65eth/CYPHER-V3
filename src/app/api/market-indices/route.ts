@@ -122,14 +122,9 @@ function generateRealisticPrice(basePrice: number, marketOpen: boolean): number 
   const now = new Date();
   const variance = marketOpen ? 0.002 : 0.0005; // More movement when market is open
   const timeVariation = Math.sin(now.getTime() / 1000000) * variance;
-  const randomVariation = (Math.random() - 0.5) * variance * 2;
-  
-  return Number((basePrice * (1 + timeVariation + randomVariation)).toFixed(2));
+  return Number((basePrice * (1 + timeVariation)).toFixed(2));
 }
 
 function generateRealisticChange(baseChange: number, marketOpen: boolean): number {
-  const variance = marketOpen ? 0.1 : 0.02;
-  const randomVariation = (Math.random() - 0.5) * variance * 2;
-  
-  return Number((baseChange + randomVariation).toFixed(2));
+  return Number(baseChange.toFixed(2));
 }

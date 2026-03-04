@@ -72,15 +72,15 @@ function generateFallbackData() {
   const currentPrice = 95000;
 
   for (let i = 0; i < 100; i++) {
-    const age = Math.floor(Math.random() * 365);
-    const createdPrice = currentPrice * (0.5 + Math.random() * 0.8);
-    const value = Math.random() * 10;
-    const isSpent = Math.random() > 0.6;
+    const age = (i * 3) % 365;
+    const createdPrice = currentPrice * (0.5 + (i % 80) * 0.01);
+    const value = (i % 10) * 1.0 + 0.1;
+    const isSpent = i % 3 === 0;
 
     outputs.push({
       value,
       createdPrice,
-      spentPrice: isSpent ? currentPrice * (0.9 + Math.random() * 0.2) : undefined,
+      spentPrice: isSpent ? currentPrice * 0.95 : undefined,
       age,
       isSpent,
       estimated: true,

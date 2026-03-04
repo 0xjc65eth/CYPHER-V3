@@ -265,7 +265,7 @@ export function OrderBookSkeleton({ rows = 8, className = '' }: OrderBookSkeleto
         {/* Bid side */}
         <div className="flex-1 border-r border-cypher-surface-2 space-y-0">
           {Array.from({ length: rows }).map((_, i) => {
-            const width = 40 + Math.random() * 50
+            const width = 40 + ((i * 13 + 7) % 50)
             return (
               <div key={`bid-${i}`} className="relative flex items-center justify-between px-3 py-1.5">
                 <div
@@ -281,7 +281,7 @@ export function OrderBookSkeleton({ rows = 8, className = '' }: OrderBookSkeleto
         {/* Ask side */}
         <div className="flex-1 space-y-0">
           {Array.from({ length: rows }).map((_, i) => {
-            const width = 40 + Math.random() * 50
+            const width = 40 + ((i * 17 + 11) % 50)
             return (
               <div key={`ask-${i}`} className="relative flex items-center justify-between px-3 py-1.5">
                 <div

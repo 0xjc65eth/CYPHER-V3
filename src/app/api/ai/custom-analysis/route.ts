@@ -87,8 +87,8 @@ async function aggregateMarketData(networks: string[]): Promise<any> {
 async function aggregateSocialData(query: string): Promise<any> {
   // Simulate social sentiment analysis
   // In production, integrate with Twitter API, Reddit API, etc.
-  const sentimentScore = Math.random() * 2 - 1; // -1 to 1
-  const mentions = Math.floor(Math.random() * 1000) + 100;
+  const sentimentScore = 0; // Fixed neutral value
+  const mentions = 500; // Fixed fallback value
   
   return {
     sentiment_score: sentimentScore,
@@ -112,14 +112,14 @@ async function aggregateOnchainData(networks: string[]): Promise<any> {
         transactions_24h: mempoolStats.transactions_24h || 0
       },
       ordinals: {
-        inscriptions_today: Math.floor(Math.random() * 5000) + 1000,
-        volume_24h: Math.floor(Math.random() * 100) + 10,
-        collections_active: Math.floor(Math.random() * 50) + 20
+        inscriptions_today: 3000,
+        volume_24h: 50,
+        collections_active: 35
       },
       runes: {
-        transfers_24h: Math.floor(Math.random() * 10000) + 2000,
-        new_tokens: Math.floor(Math.random() * 10) + 1,
-        volume_btc: Math.random() * 50 + 5
+        transfers_24h: 6000,
+        new_tokens: 5,
+        volume_btc: 25
       }
     };
   } catch (error) {
@@ -153,8 +153,8 @@ async function runAgentAnalysis(
   const additionalAgents = Array.from({ length: 20 }, (_, i) => ({
     id: i + 11,
     type: ['arbitrage', 'momentum', 'mean_reversion', 'breakout', 'scalping'][i % 5],
-    confidence: 0.7 + Math.random() * 0.25,
-    signal: ['bullish', 'bearish', 'neutral'][Math.floor(Math.random() * 3)],
+    confidence: 0.7 + (i % 5) * 0.05,
+    signal: (['bullish', 'bearish', 'neutral'] as const)[i % 3],
     reasoning: 'Advanced algorithmic pattern detected'
   }));
 

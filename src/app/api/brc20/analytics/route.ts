@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       const mintedSupply = parseFloat(token.minted_supply || '0');
 
       // Estimate holders
-      totalHolders += Math.max(1, Math.floor(txCount * 0.3 + Math.random() * 100));
+      totalHolders += Math.max(1, Math.floor(txCount * 0.3));
       totalTransactions += txCount;
 
       // Count mints based on minted percentage

@@ -182,7 +182,7 @@ class RealArbitrageDetector {
     const priceImpact = this.calculatePriceImpact(minTradeSize, buyMarket, sellMarket);
     
     const opportunity: RealArbitrageOpportunity = {
-      id: `arb_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: `arb_${Date.now()}_${buyMarket.exchange.slice(0, 3)}${sellMarket.exchange.slice(0, 3)}`,
       pair: buyMarket.pair,
       buyExchange: buyMarket.exchange,
       sellExchange: sellMarket.exchange,

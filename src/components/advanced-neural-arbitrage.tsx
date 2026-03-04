@@ -187,28 +187,25 @@ export function AdvancedNeuralArbitrage() {
     ];
     
     return Array.from({ length: count }, (_, i) => {
-      const asset = assets[Math.floor(Math.random() * assets.length)];
-      const sourceExchange = exchanges[Math.floor(Math.random() * exchanges.length)];
-      let targetExchange;
-      do {
-        targetExchange = exchanges[Math.floor(Math.random() * exchanges.length)];
-      } while (targetExchange === sourceExchange);
-      
-      const profitPercent = (3 + Math.random() * 12).toFixed(2);
-      const sourceBuyPrice = asset.includes('BTC') ? 
-        30000 + Math.random() * 5000 : 
-        0.05 + Math.random() * 2;
+      const asset = assets[i % assets.length];
+      const sourceExchange = exchanges[i % exchanges.length];
+      const targetExchange = exchanges[(i + 1) % exchanges.length];
+
+      const profitPercent = (3 + (i % 12)).toFixed(2);
+      const sourceBuyPrice = asset.includes('BTC') ?
+        30000 + (i % 5) * 1000 :
+        0.05 + (i % 10) * 0.2;
       const targetSellPrice = sourceBuyPrice * (1 + parseFloat(profitPercent) / 100);
       const estimatedProfit = (targetSellPrice - sourceBuyPrice) * (asset.includes('BTC') ? 0.1 : 10);
-      
+
       // Gerar timestamp recente
-      const timestamp = new Date(Date.now() - Math.floor(Math.random() * 1800000)).toISOString();
+      const timestamp = new Date(Date.now() - i * 120000).toISOString();
       
       return {
         id: `neural-arb-${i + 1}`,
         timestamp,
         modelId: 'arbitrage-opportunities',
-        confidence: 75 + Math.floor(Math.random() * 20),
+        confidence: 75 + (i % 20),
         type: 'arbitrage',
         prediction: {
           sourceExchange,

@@ -15,7 +15,7 @@ export function generateTechnicalIndicators(marketData: any): { name: string; va
   const indicators = [];
   
   // RSI (Relative Strength Index)
-  const rsi = 30 + Math.random() * 40; // 30-70 range
+  const rsi = 50; // Neutral default
   let rsiSignal: 'buy' | 'sell' | 'neutral';
   
   if (rsi < 30) {
@@ -33,8 +33,8 @@ export function generateTechnicalIndicators(marketData: any): { name: string; va
   });
   
   // MACD (Moving Average Convergence Divergence)
-  const macd = Math.random() * 200 - 100;
-  const macdSignal = Math.random() * 200 - 100;
+  const macd = 10;
+  const macdSignal = 5;
   let macdIndicatorSignal: 'buy' | 'sell' | 'neutral';
   
   if (macd > macdSignal) {
@@ -53,9 +53,9 @@ export function generateTechnicalIndicators(marketData: any): { name: string; va
   
   // Moving Averages
   const price = marketData.price;
-  const sma20 = price * (1 + (Math.random() * 0.05 - 0.025));
-  const sma50 = price * (1 + (Math.random() * 0.1 - 0.05));
-  const sma200 = price * (1 + (Math.random() * 0.2 - 0.1));
+  const sma20 = price * 0.99;
+  const sma50 = price * 0.97;
+  const sma200 = price * 0.95;
   
   let maSignal: 'buy' | 'sell' | 'neutral';
   
@@ -74,8 +74,8 @@ export function generateTechnicalIndicators(marketData: any): { name: string; va
   });
   
   // Bollinger Bands
-  const bollingerWidth = Math.random() * 0.1 + 0.02; // 2-12%
-  const bollingerValue = Math.random(); // 0-1 (position within bands)
+  const bollingerWidth = 0.06; // 6%
+  const bollingerValue = 0.5; // Middle of bands
   let bollingerSignal: 'buy' | 'sell' | 'neutral';
   
   if (bollingerValue < 0.2) {
@@ -93,8 +93,8 @@ export function generateTechnicalIndicators(marketData: any): { name: string; va
   });
   
   // Stochastic Oscillator
-  const stochasticK = Math.random() * 100;
-  const stochasticD = Math.random() * 100;
+  const stochasticK = 50;
+  const stochasticD = 50;
   let stochasticSignal: 'buy' | 'sell' | 'neutral';
   
   if (stochasticK < 20 && stochasticD < 20) {
@@ -121,11 +121,11 @@ export function generateSentimentAnalysis(symbol: string): { source: string; sen
   const sources = ['Twitter', 'Reddit', 'Discord', 'Telegram', 'News', 'GitHub'];
   const analysis = [];
   
-  for (const source of sources) {
+  for (let idx = 0; idx < sources.length; idx++) {
     analysis.push({
-      source,
-      sentiment: Math.random() * 2 - 1, // -1 to 1
-      volume: Math.floor(Math.random() * 10000)
+      source: sources[idx],
+      sentiment: 0.1 * (idx % 3 === 0 ? 1 : idx % 3 === 1 ? -0.5 : 0.3),
+      volume: 5000 + idx * 500
     });
   }
   
@@ -142,32 +142,32 @@ export function generateMarketCorrelations(symbol: string): { symbol: string; co
   if (symbol !== 'BTC:USD') {
     correlations.push({
       symbol: 'BTC:USD',
-      correlation: 0.7 + Math.random() * 0.3 // 0.7-1.0 (high correlation)
+      correlation: 0.85 // High correlation with BTC
     });
   }
   
   // Ethereum correlation
   correlations.push({
     symbol: 'ETH:USD',
-    correlation: 0.5 + Math.random() * 0.4 // 0.5-0.9
+    correlation: 0.7 // Moderate-high correlation with ETH
   });
   
   // S&P 500 correlation
   correlations.push({
     symbol: 'SPX:USD',
-    correlation: 0.2 + Math.random() * 0.3 // 0.2-0.5 (moderate correlation)
+    correlation: 0.35 // Moderate correlation with SPX
   });
   
   // Gold correlation
   correlations.push({
     symbol: 'GOLD:USD',
-    correlation: Math.random() * 0.4 - 0.2 // -0.2 to 0.2 (low correlation)
+    correlation: 0.05 // Low correlation with Gold
   });
   
   // Dollar index correlation
   correlations.push({
     symbol: 'DXY:USD',
-    correlation: Math.random() * 0.6 - 0.5 // -0.5 to 0.1 (negative correlation)
+    correlation: -0.2 // Negative correlation with DXY
   });
   
   return correlations;
@@ -180,34 +180,31 @@ export function calculateTechnicalFactor(marketData: any): number {
   // In a real implementation, this would analyze technical indicators
   // For now, we'll just generate a random value influenced by price change
   const priceChange = marketData.change_percent / 100;
-  return Math.max(-1, Math.min(1, priceChange * 5 + (Math.random() * 0.4 - 0.2)));
+  return Math.max(-1, Math.min(1, priceChange * 5));
 }
 
 /**
  * Calculate fundamental factor
  */
 export function calculateFundamentalFactor(marketData: any): number {
-  // In a real implementation, this would analyze fundamental metrics
-  // For now, we'll just generate a random value
-  return Math.random() * 2 - 1;
+  // Deterministic fallback - neutral fundamental outlook
+  return 0.1;
 }
 
 /**
  * Calculate market correlation factor
  */
 export function calculateMarketCorrelationFactor(symbol: string): number {
-  // In a real implementation, this would analyze correlations with other markets
-  // For now, we'll just generate a random value
-  return Math.random() * 2 - 1;
+  // Deterministic fallback - slight positive correlation
+  return 0.15;
 }
 
 /**
  * Calculate developer activity factor
  */
 export function calculateDeveloperActivityFactor(symbol: string): number {
-  // In a real implementation, this would analyze developer activity metrics
-  // For now, we'll just generate a random value
-  return Math.random() * 2 - 1;
+  // Deterministic fallback - neutral developer activity
+  return 0.2;
 }
 
 /**
@@ -231,20 +228,14 @@ export async function generatePrediction(symbol: string, accuracy: number = 0.5)
     // The accuracy of the prediction affects how close it is to the "true" future price
     const randomFactor = 1 - (1 - accuracy) * 2; // Higher accuracy = smaller random factor
     
-    // Short-term prediction (24 hours)
-    const shortTermTrend = Math.random() * 0.1 - 0.05; // ±5%
-    const shortTermNoise = (Math.random() * 0.1 - 0.05) * (1 - randomFactor); // Noise decreases with accuracy
-    const shortTermPrediction = currentPrice * (1 + shortTermTrend + shortTermNoise);
-    
-    // Medium-term prediction (7 days)
-    const mediumTermTrend = Math.random() * 0.2 - 0.1; // ±10%
-    const mediumTermNoise = (Math.random() * 0.2 - 0.1) * (1 - randomFactor);
-    const mediumTermPrediction = currentPrice * (1 + mediumTermTrend + mediumTermNoise);
-    
-    // Long-term prediction (30 days)
-    const longTermTrend = Math.random() * 0.4 - 0.2; // ±20%
-    const longTermNoise = (Math.random() * 0.4 - 0.2) * (1 - randomFactor);
-    const longTermPrediction = currentPrice * (1 + longTermTrend + longTermNoise);
+    // Short-term prediction (24 hours) - deterministic slight uptrend
+    const shortTermPrediction = currentPrice * 1.01;
+
+    // Medium-term prediction (7 days) - deterministic moderate uptrend
+    const mediumTermPrediction = currentPrice * 1.03;
+
+    // Long-term prediction (30 days) - deterministic trend based on accuracy
+    const longTermPrediction = currentPrice * 1.05;
     
     // Calculate confidence based on model accuracy and prediction timeframe
     const shortTermConfidence = accuracy * 0.9; // Short-term is most confident
@@ -254,7 +245,7 @@ export async function generatePrediction(symbol: string, accuracy: number = 0.5)
     // Calculate factors
     const technicalFactor = calculateTechnicalFactor(marketData);
     const fundamentalFactor = calculateFundamentalFactor(marketData);
-    const sentimentFactor = marketData.social_sentiment || (Math.random() * 2 - 1);
+    const sentimentFactor = marketData.social_sentiment || 0.1;
     const marketCorrelationFactor = calculateMarketCorrelationFactor(symbol);
     const developerActivityFactor = calculateDeveloperActivityFactor(symbol);
     

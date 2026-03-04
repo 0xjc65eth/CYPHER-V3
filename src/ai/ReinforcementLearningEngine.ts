@@ -9,11 +9,28 @@
  * - A3C: "Asynchronous Methods for Deep Reinforcement Learning" (Mnih et al., 2016)
  */
 
-import * as tf from '@tensorflow/tfjs-node';
+// Lazy load TensorFlow to avoid bundle bloat
+let _tf: any = null;
+async function getTf() {
+  if (!_tf) {
+    try { _tf = await import('@tensorflow/tfjs-node'); }
+    catch { try { _tf = require('@tensorflow/tfjs'); } catch { _tf = null; } }
+  }
+  return _tf;
+}
+
 import { EventEmitter } from 'events';
 
-// Type-safe TensorFlow operations
-const tfOps = tf as any;
+// Module-level tf reference (set lazily on first use)
+let tf: any = null;
+let tfOps: any = null;
+async function ensureTf() {
+  if (!tf) {
+    tf = await getTf();
+    tfOps = tf;
+  }
+  return tf;
+}
 
 // Environment and Action Spaces
 export interface TradingEnvironment {

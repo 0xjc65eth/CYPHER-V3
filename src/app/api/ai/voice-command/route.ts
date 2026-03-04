@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     // Dangerous actions require confirmation
     if (DANGEROUS_ACTIONS.has(matchedAction.action)) {
-      const id = `confirm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const id = `confirm_${Date.now()}`;
       pendingConfirmations.set(id, {
         action: matchedAction,
         expiresAt: Date.now() + 30000, // 30 second expiry

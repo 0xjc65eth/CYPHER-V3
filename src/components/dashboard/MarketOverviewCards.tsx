@@ -137,7 +137,7 @@ export default function MarketOverviewCards() {
                       isPositive ? 'bg-green-400/30' : 'bg-red-400/30'
                     } group-hover:bg-orange-400/50 transition-colors duration-300`}
                     style={{
-                      height: `${Math.random() * 100 + 20}%`,
+                      height: `${20 + ((i * 37 + 13) % 80)}%`,
                       animationDelay: `${i * 100}ms`
                     }}
                   />

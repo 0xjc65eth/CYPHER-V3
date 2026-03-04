@@ -5,7 +5,15 @@
 
 import { EventEmitter } from 'events';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
-import * as tf from '@tensorflow/tfjs-node';
+// Lazy load TensorFlow to avoid bundle bloat
+let _tf: any = null;
+async function getTf() {
+  if (!_tf) {
+    try { _tf = await import('@tensorflow/tfjs-node'); }
+    catch { try { _tf = require('@tensorflow/tfjs'); } catch { _tf = null; } }
+  }
+  return _tf;
+}
 
 // ML Types
 export interface MarketFeatures {
@@ -75,7 +83,7 @@ export interface TrainingData {
 }
 
 export class PredictionEngine extends EventEmitter {
-  private models: Map<string, tf.LayersModel> = new Map();
+  private models: Map<string, any> = new Map();
   private modelConfigs: Map<string, ModelConfig> = new Map();
   private featureScalers: Map<string, { mean: number[]; std: number[] }> = new Map();
   private trainingData: Map<string, TrainingData> = new Map();
@@ -140,6 +148,7 @@ export class PredictionEngine extends EventEmitter {
   async initialize(): Promise<void> {
     try {
       // Initialize TensorFlow backend
+      const tf = await getTf();
       await (tf as any).ready();
 
       // Load model configurations
@@ -262,6 +271,7 @@ export class PredictionEngine extends EventEmitter {
       }
 
       // Convert to tensors
+      const tf = await getTf();
       const xTrain = tf.tensor3d(trainingData.features);
       const yTrain = tf.tensor2d(trainingData.targets, [trainingData.targets.length, 1]);
 
@@ -395,7 +405,7 @@ export class PredictionEngine extends EventEmitter {
    * Private methods
    */
 
-  private async createModel(config: ModelConfig): Promise<tf.LayersModel> {
+  private async createModel(config: ModelConfig): Promise<any> {
     switch (config.type) {
       case 'lstm':
         return this.createLSTMModel(config);
@@ -410,7 +420,8 @@ export class PredictionEngine extends EventEmitter {
     }
   }
 
-  private createLSTMModel(config: ModelConfig): tf.LayersModel {
+  private async createLSTMModel(config: ModelConfig): Promise<any> {
+    const tf = await getTf();
     const model = tf.sequential();
 
     // Input layer
@@ -436,7 +447,8 @@ export class PredictionEngine extends EventEmitter {
     return model;
   }
 
-  private createGRUModel(config: ModelConfig): tf.LayersModel {
+  private async createGRUModel(config: ModelConfig): Promise<any> {
+    const tf = await getTf();
     const model = tf.sequential();
 
     model.add(tf.layers.gru({
@@ -458,7 +470,8 @@ export class PredictionEngine extends EventEmitter {
     return model;
   }
 
-  private createTransformerModel(config: ModelConfig): tf.LayersModel {
+  private async createTransformerModel(config: ModelConfig): Promise<any> {
+    const tf = await getTf();
     // Simplified transformer implementation
     const model = tf.sequential();
 
@@ -481,7 +494,7 @@ export class PredictionEngine extends EventEmitter {
     return model;
   }
 
-  private createEnsembleModel(config: ModelConfig): tf.LayersModel {
+  private async createEnsembleModel(config: ModelConfig): Promise<any> {
     // Simplified ensemble - in production would combine multiple models
     return this.createLSTMModel(config);
   }
