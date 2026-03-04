@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useEscapeKey } from '@/hooks/useEscapeKey'
 import { PremiumContent } from '@/components/premium-content'
+import { ErrorBoundary } from '@/components/error-boundaries/ErrorBoundary'
 
 function formatNum(n: number | string | null | undefined): string {
   if (n == null) return '--'
@@ -105,7 +106,7 @@ interface BRC20Analytics {
 type SortKey = 'ticker' | 'max_supply' | 'total_minted' | 'holders_count' | 'deployed_timestamp' | 'mint_pct'
 type SortDir = 'asc' | 'desc'
 
-export default function BRC20Page() {
+function BRC20PageContent() {
   const [tokens, setTokens] = useState<BRC20Token[]>([])
   const [activity, setActivity] = useState<BRC20Activity[]>([])
   const [loading, setLoading] = useState(true)
@@ -631,5 +632,13 @@ export default function BRC20Page() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function BRC20Page() {
+  return (
+    <ErrorBoundary level="page" name="BRC-20">
+      <BRC20PageContent />
+    </ErrorBoundary>
   )
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ErrorBoundary } from '@/components/error-boundaries/ErrorBoundary'
 
 function formatNum(n: number | string | null | undefined): string {
   if (n == null) return '--'
@@ -111,7 +112,7 @@ function inferRarity(listing: any): string {
   return 'common'
 }
 
-export default function RareSatsPage() {
+function RareSatsPageContent() {
   const [categories, setCategories] = useState<RareSatCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -481,5 +482,13 @@ export default function RareSatsPage() {
         </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function RareSatsPage() {
+  return (
+    <ErrorBoundary level="page" name="Rare Sats">
+      <RareSatsPageContent />
+    </ErrorBoundary>
   )
 }

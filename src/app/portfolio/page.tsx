@@ -15,8 +15,9 @@ import { usePortfolioWallet } from './usePortfolioWallet';
 import { PortfolioPerformanceChart } from '@/components/portfolio/PortfolioPerformanceChart';
 import { TaxReportGenerator } from '@/components/tax/TaxReportGenerator';
 import { ExportButton } from '@/components/common/ExportButton';
-import { 
-  Wallet, 
+import { ErrorBoundary } from '@/components/error-boundaries/ErrorBoundary';
+import {
+  Wallet,
   TrendingUp, 
   TrendingDown, 
   Bitcoin, 
@@ -71,7 +72,7 @@ interface MarketCondition {
   riskLevel: 'low' | 'medium' | 'high';
 }
 
-export default function PortfolioPage() {
+function PortfolioPageContent() {
   const [connectedWallets, setConnectedWallets] = useState<Map<string, WalletInfo>>(new Map());
   const [portfolioMetrics, setPortfolioMetrics] = useState<AdvancedPortfolioMetrics | null>(null);
   const [portfolioPnL, setPortfolioPnL] = useState<PortfolioPnL | null>(null);
@@ -1426,5 +1427,13 @@ export default function PortfolioPage() {
         </div>
       </div>
     </TopNavLayout>
+  );
+}
+
+export default function PortfolioPage() {
+  return (
+    <ErrorBoundary level="page" name="Portfolio">
+      <PortfolioPageContent />
+    </ErrorBoundary>
   );
 }
