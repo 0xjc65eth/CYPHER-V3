@@ -498,8 +498,8 @@ export function PortfolioSystem() {
                           {asset.type === 'brc20' && <Coins className="w-6 h-6 text-green-500" />}
                         </div>
                         <div>
-                          <p className="font-medium text-white">{asset.name}</p>
-                          <p className="text-sm text-gray-400">{asset.symbol}</p>
+                          <p className="font-medium text-white">{asset.name ?? '—'}</p>
+                          <p className="text-sm text-gray-400">{asset.symbol ?? '—'}</p>
                         </div>
                       </div>
                     </td>
@@ -563,7 +563,7 @@ export function PortfolioSystem() {
               className="bg-gray-900 rounded-xl border border-gray-800 p-6 max-w-lg w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-semibold text-white mb-4">{selectedAsset.name}</h3>
+              <h3 className="text-xl font-semibold text-white mb-4">{selectedAsset.name ?? '—'}</h3>
               {/* Add more asset details here */}
               <button
                 onClick={() => setSelectedAsset(null)}

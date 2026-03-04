@@ -263,9 +263,10 @@ export function BRC20TokenList({ onTokenSelect, showPortfolioOnly = false, userA
         </div>
 
         {filteredAndSortedTokens.length === 0 && (
-          <div className="text-center py-12 text-gray-400">
-            <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No tokens found matching your criteria</p>
+          <div className="flex flex-col items-center gap-3 py-12">
+            <BarChart3 className="h-10 w-10 text-[#666] opacity-50" />
+            <p className="text-sm font-medium text-[#888]">No BRC-20 tokens found</p>
+            <p className="text-xs text-[#555]">Try adjusting your search or filter criteria</p>
           </div>
         )}
       </div>
@@ -321,7 +322,7 @@ function TokenRow({ token, rank, onTrade, onViewDetails, onSelect }: TokenRowPro
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-white uppercase font-mono">{token.ticker}</span>
+              <span className="font-semibold text-white uppercase font-mono">{token.ticker ?? '—'}</span>
               {token.verified && (
                 <CheckCircle className="h-4 w-4 text-green-400" />
               )}
@@ -331,7 +332,7 @@ function TokenRow({ token, rank, onTrade, onViewDetails, onSelect }: TokenRowPro
                 </Badge>
               )}
             </div>
-            <div className="text-sm text-gray-400">{token.name}</div>
+            <div className="text-sm text-gray-400">{token.name ?? '—'}</div>
           </div>
         </div>
       </td>

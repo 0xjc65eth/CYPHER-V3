@@ -249,8 +249,8 @@ export const PortfolioPnL: React.FC = () => {
                 <tr key={asset.symbol} className="border-b border-gray-800 hover:bg-gray-800/50">
                   <td className="p-2">
                     <div>
-                      <p className="font-semibold">{asset.symbol}</p>
-                      <p className="text-xs text-gray-400">{asset.name}</p>
+                      <p className="font-semibold">{asset.symbol ?? '—'}</p>
+                      <p className="text-xs text-gray-400">{asset.name ?? '—'}</p>
                     </div>
                   </td>
                   <td className="text-right p-2">{asset.holdings.toFixed(8)}</td>

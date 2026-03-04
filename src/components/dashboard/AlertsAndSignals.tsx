@@ -296,7 +296,7 @@ export const AlertsAndSignals: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
-                        {alert.symbol}
+                        {alert.symbol ?? '—'}
                       </Badge>
                       <Badge 
                         variant={alert.triggered ? 'default' : 'secondary'} 
@@ -367,7 +367,7 @@ export const AlertsAndSignals: React.FC = () => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
-                        {signal.symbol}
+                        {signal.symbol ?? '—'}
                       </Badge>
                       <div className="flex items-center gap-1">
                         {signal.type === 'buy' ? 

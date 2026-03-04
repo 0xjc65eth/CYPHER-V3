@@ -91,7 +91,7 @@ const OpportunityCard = memo<OpportunityCardProps>(({ opportunity }) => {
           {/* Collection Name & Risk */}
           <div className="flex-1 min-w-0">
             <CardTitle className="text-base font-bold text-white truncate">
-              {opportunity.collectionName}
+              {opportunity.collectionName ?? '—'}
             </CardTitle>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant={riskVariant} size="sm">

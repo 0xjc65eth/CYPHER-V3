@@ -186,7 +186,7 @@ export function RoutePreview({ tradeDetails, onConfirm, onBack, slippageToleranc
                     {exchangeLogos[bestRoute.exchange] || '🔄'}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">{bestRoute.exchange}</h3>
+                    <h3 className="text-lg font-bold text-white">{bestRoute.exchange ?? '—'}</h3>
                     <div className="flex items-center gap-2">
                       <Badge className="bg-green-600 text-white text-xs">
                         {bestRoute.confidence}% Confiança
@@ -351,7 +351,7 @@ export function RoutePreview({ tradeDetails, onConfirm, onBack, slippageToleranc
                             {exchangeLogos[route.exchange] || '🔄'}
                           </span>
                           <div>
-                            <div className="font-medium text-white">{route.exchange}</div>
+                            <div className="font-medium text-white">{route.exchange ?? '—'}</div>
                             <div className="text-xs text-gray-400">
                               Gas: ${route.gasUSD.toFixed(2)} • Impacto: {route.priceImpact.toFixed(2)}%
                             </div>

@@ -408,8 +408,8 @@ const OpenOrders: React.FC = () => {
                   >
                     {order.side.toUpperCase()}
                   </Badge>
-                  <span className="text-sm font-medium">{order.symbol}</span>
-                  <span className="text-xs text-muted-foreground">{order.type.toUpperCase()}</span>
+                  <span className="text-sm font-medium">{order.symbol ?? '—'}</span>
+                  <span className="text-xs text-muted-foreground">{order.type?.toUpperCase() ?? '—'}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {order.quantity} @ ${order.price?.toLocaleString()}
@@ -431,8 +431,10 @@ const OpenOrders: React.FC = () => {
             </div>
           ))}
           {orders.filter(order => order.status === 'pending').length === 0 && (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              No open orders
+            <div className="flex flex-col items-center gap-3 py-12">
+              <Target className="h-10 w-10 text-[#666] opacity-50" />
+              <p className="text-sm font-medium text-[#888]">No open orders</p>
+              <p className="text-xs text-[#555]">Place a buy or sell order to get started</p>
             </div>
           )}
         </div>
@@ -491,7 +493,7 @@ const Positions: React.FC = () => {
                   >
                     {position.side.toUpperCase()}
                   </Badge>
-                  <span className="text-sm font-medium">{position.symbol}</span>
+                  <span className="text-sm font-medium">{position.symbol ?? '—'}</span>
                 </div>
                 <Button
                   size="sm"
@@ -526,8 +528,10 @@ const Positions: React.FC = () => {
             </div>
           ))}
           {positions.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              No open positions
+            <div className="flex flex-col items-center gap-3 py-12">
+              <Activity className="h-10 w-10 text-[#666] opacity-50" />
+              <p className="text-sm font-medium text-[#888]">No open positions</p>
+              <p className="text-xs text-[#555]">Your active trades will appear here once orders are filled</p>
             </div>
           )}
         </div>
@@ -629,7 +633,7 @@ const RiskAlerts: React.FC = () => {
         {alerts.map(alert => (
           <Alert key={alert.id} className="m-3 mb-0 last:mb-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm">{alert.message}</span>
+              <span className="text-sm">{alert.message ?? '—'}</span>
               <span className="text-xs text-muted-foreground">
                 {alert.timestamp.toLocaleTimeString()}
               </span>

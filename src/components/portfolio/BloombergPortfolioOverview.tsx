@@ -234,8 +234,8 @@ export function BloombergPortfolioOverview({ portfolioData, walletAddress }: Blo
                   <div className="flex items-center gap-3">
                     <Icon className="w-6 h-6" style={{ color: asset.color }} />
                     <div>
-                      <div className="text-white font-medium">{asset.symbol}</div>
-                      <div className="text-gray-400 text-sm">{asset.name}</div>
+                      <div className="text-white font-medium">{asset.symbol ?? '—'}</div>
+                      <div className="text-gray-400 text-sm">{asset.name ?? '—'}</div>
                     </div>
                   </div>
                   <div className="text-right">

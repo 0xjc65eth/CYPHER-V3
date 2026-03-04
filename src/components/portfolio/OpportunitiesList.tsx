@@ -119,7 +119,7 @@ export default function OpportunitiesList({ address }: OpportunitiesListProps) {
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center">
-                            <h3 className="font-bold text-lg">{opportunity.title}</h3>
+                            <h3 className="font-bold text-lg">{opportunity.title ?? '—'}</h3>
                             <div className={`ml-3 px-2 py-0.5 text-xs rounded-full ${
                               opportunity.type === 'Arbitrage'
                                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
@@ -130,7 +130,7 @@ export default function OpportunitiesList({ address }: OpportunitiesListProps) {
                               {opportunity.type}
                             </div>
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{opportunity.description}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{opportunity.description ?? '—'}</p>
                         </div>
                         <div className="flex flex-col items-end">
                           <Badge className={getProbabilityColor(opportunity.successProbability)}>

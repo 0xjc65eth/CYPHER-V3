@@ -113,12 +113,12 @@ export function TopMovers() {
               <div key={mover.symbol} className="bg-gray-800 rounded p-2 hover:bg-gray-750 transition-colors">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-medium text-white">{mover.symbol}</span>
-                    <span className="text-xs text-gray-500 ml-1">{mover.name}</span>
+                    <span className="text-xs font-medium text-white">{mover.symbol ?? '—'}</span>
+                    <span className="text-xs text-gray-500 ml-1">{mover.name ?? '—'}</span>
                   </div>
                   <div className="text-right">
                     <div className="text-xs font-medium text-white">${formatPrice(mover.price)}</div>
-                    <div className="text-xs text-green-500">+{mover.change}%</div>
+                    <div className="text-xs text-green-500">+{mover.change ?? 0}%</div>
                   </div>
                 </div>
               </div>
@@ -137,12 +137,12 @@ export function TopMovers() {
               <div key={mover.symbol} className="bg-gray-800 rounded p-2 hover:bg-gray-750 transition-colors">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs font-medium text-white">{mover.symbol}</span>
-                    <span className="text-xs text-gray-500 ml-1">{mover.name}</span>
+                    <span className="text-xs font-medium text-white">{mover.symbol ?? '—'}</span>
+                    <span className="text-xs text-gray-500 ml-1">{mover.name ?? '—'}</span>
                   </div>
                   <div className="text-right">
                     <div className="text-xs font-medium text-white">${formatPrice(mover.price)}</div>
-                    <div className="text-xs text-red-500">{mover.change}%</div>
+                    <div className="text-xs text-red-500">{mover.change ?? 0}%</div>
                   </div>
                 </div>
               </div>

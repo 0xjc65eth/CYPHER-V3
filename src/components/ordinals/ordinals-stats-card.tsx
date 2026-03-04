@@ -318,7 +318,7 @@ export function OrdinalsStatsCard() {
                         <span className={`w-6 h-6 rounded-lg ${colorScheme.text} bg-white/10 flex items-center justify-center text-xs font-bold`}>
                           {index + 1}
                         </span>
-                        {collection.name}
+                        {collection.name ?? '—'}
                       </span>
                       <div className="flex items-center gap-3">
                         <span className="text-emerald-400 font-medium">

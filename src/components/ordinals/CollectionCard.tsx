@@ -140,9 +140,9 @@ export const CollectionCardGrid = memo<CollectionCardGridProps>(({
         {/* Collection Name & Symbol */}
         <div>
           <h3 className="text-base font-bold text-white truncate">
-            {collection.name}
+            {collection.name ?? '—'}
           </h3>
-          <p className="text-xs text-gray-500 font-mono">{collection.symbol}</p>
+          <p className="text-xs text-gray-500 font-mono">{collection.symbol ?? '—'}</p>
         </div>
 
         {/* Floor Price & 24h Change */}
@@ -290,9 +290,9 @@ export const CollectionCardTable = memo<CollectionCardTableProps>(({
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold text-white truncate">
-            {collection.name}
+            {collection.name ?? '—'}
           </div>
-          <div className="text-xs text-gray-500 font-mono">{collection.symbol}</div>
+          <div className="text-xs text-gray-500 font-mono">{collection.symbol ?? '—'}</div>
         </div>
       </div>
 
