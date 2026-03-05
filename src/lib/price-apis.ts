@@ -54,10 +54,11 @@ export interface RuneMarketData {
 
 const API_CONFIG = {
   magicEden: {
-    baseUrl: 'https://api-mainnet.magiceden.dev/v2/ord/btc',
+    baseUrl: 'https://api.hiro.so/ordinals/v1',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
+      'x-hiro-api-key': process.env.HIRO_API_KEY || '',
     },
   },
   unisat: {
@@ -126,7 +127,7 @@ export async function fetchMagicEdenCollection(
 ): Promise<OrdinalsCollection | null> {
   try {
     const response = await fetch(
-      `${API_CONFIG.magicEden.baseUrl}/collections/${collectionSymbol}/stats`,
+      `${API_CONFIG.magicEden.baseUrl}/collections/${encodeURIComponent(collectionSymbol)}`,
       {
         headers: API_CONFIG.magicEden.headers,
         next: { revalidate: 300 }, // 5 minutes cache
@@ -134,27 +135,28 @@ export async function fetchMagicEdenCollection(
     );
 
     if (!response.ok) {
-      console.error(`Magic Eden API error for ${collectionSymbol}: ${response.status}`);
+      console.error(`Hiro API error for ${collectionSymbol}: ${response.status}`);
       return null;
     }
 
     const data = await response.json();
     const btcPrice = await fetchBTCPrice();
+    const floorPrice = data.floor_price ? parseInt(data.floor_price) / 1e8 : 0;
 
     return {
       id: collectionSymbol,
       name: data.name || collectionSymbol,
-      floorPrice: data.floorPrice || 0,
-      floorPriceUSD: (data.floorPrice || 0) * btcPrice,
-      volume24h: data.volume24hr || 0,
-      volumeChange24h: data.volumeChange24hr || 0,
-      totalSupply: data.totalSupply || 0,
-      listedSupply: data.listedCount || 0,
-      holders: data.uniqueOwners || 0,
+      floorPrice,
+      floorPriceUSD: floorPrice * btcPrice,
+      volume24h: data.volume_24h ? parseInt(data.volume_24h) / 1e8 : 0,
+      volumeChange24h: 0,
+      totalSupply: data.inscription_count || 0,
+      listedSupply: data.listed_count || 0,
+      holders: data.owner_count || 0,
       source: 'magiceden',
     };
   } catch (error) {
-    console.error(`Failed to fetch Magic Eden collection ${collectionSymbol}:`, error);
+    console.error(`Failed to fetch collection ${collectionSymbol}:`, error);
     return null;
   }
 }
@@ -165,7 +167,7 @@ export async function fetchMagicEdenListings(
 ): Promise<any[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.magicEden.baseUrl}/collections/${collectionSymbol}/listings?limit=${limit}`,
+      `${API_CONFIG.magicEden.baseUrl}/inscriptions?collection=${encodeURIComponent(collectionSymbol)}&limit=${limit}`,
       {
         headers: API_CONFIG.magicEden.headers,
         next: { revalidate: 60 }, // 1 minute cache
@@ -177,9 +179,9 @@ export async function fetchMagicEdenListings(
     }
 
     const data = await response.json();
-    return data.inscriptions || [];
+    return data.results || [];
   } catch (error) {
-    console.error(`Failed to fetch Magic Eden listings:`, error);
+    console.error(`Failed to fetch collection listings:`, error);
     return [];
   }
 }

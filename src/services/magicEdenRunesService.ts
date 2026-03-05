@@ -1,13 +1,12 @@
 /**
  * Runes API Service - CYPHER V3
- * Hiro-first with Magic Eden fallback for read endpoints.
- * ME-only for marketplace trading endpoints (orders, PSBT, swap).
+ * Hiro-first for read endpoints, ME for marketplace trading.
  *
  * Migration status (Magic Eden deprecation):
- * - Market Info: Hiro primary ✅, ME fallback
- * - Activities: Hiro primary ✅, ME fallback
- * - Wallet Balances: Hiro primary ✅, ME fallback
- * - Collection Stats: Hiro primary ✅, ME fallback
+ * - Market Info: Hiro primary ✅
+ * - Activities: Hiro primary ✅
+ * - Wallet Balances: Hiro primary ✅
+ * - Collection Stats: Hiro primary ✅
  * - Orders/UTXOs: ME only (marketplace-specific)
  * - Trading (PSBT/Swap): ME only (marketplace-specific)
  */
@@ -22,7 +21,8 @@ const hiroRunesApi = new HiroRunesAPI();
 // ============================================================================
 
 const CONFIG = {
-  BASE_URL: 'https://api-mainnet.magiceden.dev',
+  BASE_URL: 'https://api.hiro.so',
+  ME_FALLBACK_URL: 'https://api-mainnet.magiceden.dev',
   CACHE_TTL: 30_000,           // 30 seconds default
   CACHE_TTL_MARKET: 15_000,    // 15 seconds for market data
   CACHE_MAX_ENTRIES: 200,
@@ -532,18 +532,26 @@ export class MagicEdenRunesService {
   private requestTimestamps: number[] = [];
   private requestQueue: Promise<unknown> = Promise.resolve();
 
-  private getApiKey(): string {
-    return process.env.MAGIC_EDEN_API_KEY || '';
-  }
-
   private getHeaders(): Record<string, string> {
-    const apiKey = this.getApiKey();
+    const hiroApiKey = process.env.HIRO_API_KEY || '';
     const headers: Record<string, string> = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     };
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+    if (hiroApiKey) {
+      headers['x-hiro-api-key'] = hiroApiKey;
+    }
+    return headers;
+  }
+
+  private getMEHeaders(): Record<string, string> {
+    const meApiKey = process.env.MAGIC_EDEN_API_KEY || '';
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (meApiKey) {
+      headers['Authorization'] = `Bearer ${meApiKey}`;
     }
     return headers;
   }
@@ -623,7 +631,19 @@ export class MagicEdenRunesService {
   }
 
   /**
+   * Determine if a path is a marketplace-only endpoint (POST trading ops).
+   * These must use Magic Eden directly since Hiro doesn't provide them.
+   */
+  private isMarketplacePath(path: string): boolean {
+    return path.includes('/psbt/') || path.includes('/sweeping') ||
+           path.includes('/market-sell') || path.includes('/order-create') ||
+           path.includes('/order-cancel') || path.includes('/swap') ||
+           path.includes('/quote');
+  }
+
+  /**
    * Execute a single request with retry and exponential backoff.
+   * Uses ME for marketplace POST endpoints, Hiro for data GET endpoints.
    */
   private async executeWithRetry<T>(
     path: string,
@@ -633,14 +653,19 @@ export class MagicEdenRunesService {
   ): Promise<T> {
     await this.enforceRateLimit();
 
-    const url = `${CONFIG.BASE_URL}${path}`;
+    // Marketplace trading endpoints stay on ME; data endpoints use Hiro
+    const isMarketplace = this.isMarketplacePath(path);
+    const baseUrl = isMarketplace ? CONFIG.ME_FALLBACK_URL : CONFIG.BASE_URL;
+    const headers = isMarketplace ? this.getMEHeaders() : this.getHeaders();
+    const url = `${baseUrl}${path}`;
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
 
     try {
       const fetchOptions: RequestInit = {
         method,
-        headers: this.getHeaders(),
+        headers,
         signal: controller.signal,
       };
 
@@ -655,7 +680,7 @@ export class MagicEdenRunesService {
         // Handle rate limiting specifically
         if (response.status === 429) {
           const retryAfter = response.headers.get('Retry-After');
-          const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : CONFIG.RETRY_BASE_DELAY * Math.pow(2, attempt);
+          const waitMs = retryAfter ? Math.min(parseInt(retryAfter, 10), 60) * 1000 : CONFIG.RETRY_BASE_DELAY * Math.pow(2, attempt);
           if (attempt < CONFIG.MAX_RETRIES) {
             await this.sleep(waitMs);
             return this.executeWithRetry<T>(path, method, body, attempt + 1);
@@ -680,7 +705,7 @@ export class MagicEdenRunesService {
         }
 
         throw new Error(
-          `Magic Eden API error ${response.status}: ${errorMessage}`
+          `Runes API error ${response.status}: ${errorMessage}`
         );
       }
 

@@ -1,6 +1,6 @@
 /**
- * Magic Eden API Service - CYPHER V3
- * Dynamic Magic Eden API integration for Bitcoin Ordinals collections
+ * Ordinals API Service - CYPHER V3
+ * Hiro-primary with OKX fallback for Bitcoin Ordinals collections
  *
  * Features:
  * - Dynamic collection fetching (not hardcoded)
@@ -77,7 +77,8 @@ interface CoinGeckoBTCResponse {
  * Configuration constants
  */
 const CONFIG = {
-  MAGIC_EDEN_BASE_URL: 'https://api-mainnet.magiceden.dev/v2/ord/btc',
+  HIRO_BASE_URL: 'https://api.hiro.so/ordinals/v1',
+  ME_FALLBACK_URL: 'https://api-mainnet.magiceden.dev/v2/ord/btc',
   COINGECKO_BASE_URL: 'https://api.coingecko.com/api/v3',
   CACHE_TTL: 30000, // 30 seconds
   REQUEST_TIMEOUT: 10000, // 10 seconds
@@ -129,23 +130,24 @@ class MagicEdenAPIService {
       // OKX failed, try Magic Eden
     }
 
+    // Hiro fallback
     try {
-      const url = `${CONFIG.MAGIC_EDEN_BASE_URL}/stat?collectionSymbol=${encodeURIComponent(collectionSymbol)}`;
-      const data = await this.fetchWithRetry<MagicEdenStatsResponse>(url);
+      const url = `${CONFIG.HIRO_BASE_URL}/collections/${encodeURIComponent(collectionSymbol)}`;
+      const data = await this.fetchWithRetry<any>(url, 0, true);
 
-      if (!data) {
-        return null;
+      if (data) {
+        const adapted: MagicEdenStatsResponse = {
+          symbol: collectionSymbol,
+          floorPrice: data.floor_price ? parseInt(data.floor_price) / 1e8 : 0,
+          totalVolume: data.total_volume ? parseInt(data.total_volume) / 1e8 : 0,
+          listedCount: data.listed_count || 0,
+          owners: data.owner_count || 0,
+          supply: data.inscription_count || 0,
+        };
+        this.setCache(cacheKey, adapted);
+        return adapted;
       }
-
-      // Validate data quality
-      if (!data.floorPrice && !data.fp) {
-        return null;
-      }
-
-      // Cache the result
-      this.setCache(cacheKey, data);
-
-      return data;
+      return null;
     } catch (error) {
       console.error(`Error fetching collection stats for ${collectionSymbol}:`, error);
       return null;
@@ -292,7 +294,7 @@ class MagicEdenAPIService {
    * @param retryCount - Current retry attempt
    * @returns Fetched data
    */
-  private async fetchWithRetry<T>(url: string, retryCount: number = 0): Promise<T | null> {
+  private async fetchWithRetry<T>(url: string, retryCount: number = 0, useHiro: boolean = false): Promise<T | null> {
     // Queue requests to enforce rate limiting
     return this.requestQueue = this.requestQueue.then(async () => {
       // Rate limiting: ensure minimum delay between requests
@@ -308,12 +310,18 @@ class MagicEdenAPIService {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), CONFIG.REQUEST_TIMEOUT);
 
+        const headers: Record<string, string> = {
+          'Accept': 'application/json',
+          'User-Agent': 'CYPHER-V3-Terminal/1.0',
+        };
+
+        if (useHiro && process.env.HIRO_API_KEY) {
+          headers['x-hiro-api-key'] = process.env.HIRO_API_KEY;
+        }
+
         const response = await fetch(url, {
           signal: controller.signal,
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'CYPHER-V3-Terminal/1.0'
-          }
+          headers,
         });
 
         clearTimeout(timeoutId);
@@ -340,10 +348,10 @@ class MagicEdenAPIService {
         if (retryCount < CONFIG.MAX_RETRIES) {
           const delay = CONFIG.RETRY_DELAY * Math.pow(2, retryCount); // Exponential backoff
           await this.sleep(delay);
-          return this.fetchWithRetry<T>(url, retryCount + 1);
+          return this.fetchWithRetry<T>(url, retryCount + 1, useHiro);
         }
 
-        console.error(`❌ Request failed after ${CONFIG.MAX_RETRIES} retries:`, error);
+        console.error(`[OrdinalsAPI] Request failed after ${CONFIG.MAX_RETRIES} retries:`, error);
         throw error;
       }
     });

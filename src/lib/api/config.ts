@@ -46,16 +46,16 @@ export const API_CONFIG = {
     },
   },
 
-  // Magic Eden API
+  // Ordinals API (Hiro primary, replaces Magic Eden)
   magiceden: {
-    baseUrl: 'https://api-mainnet.magiceden.dev/v2',
-    apiKey: 'public_access',
+    baseUrl: process.env.HIRO_API_URL || 'https://api.hiro.so',
+    apiKey: process.env.HIRO_API_KEY || '',
     endpoints: {
-      collections: '/ord/btc/collections',
-      tokens: '/ord/btc/tokens',
-      activities: '/ord/btc/activities',
-      stats: '/ord/btc/stats',
-      marketplace: '/ord/btc/marketplace',
+      collections: '/ordinals/v1/collections',
+      tokens: '/ordinals/v1/inscriptions',
+      activities: '/ordinals/v1/inscriptions',
+      stats: '/ordinals/v1/stats',
+      marketplace: '/ordinals/v1/inscriptions',
     },
   },
 

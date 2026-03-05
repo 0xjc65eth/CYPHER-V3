@@ -1,14 +1,14 @@
 /**
  * Ordinals API Service - CYPHER V3
- * OKX-first with Magic Eden fallback for Bitcoin Ordinals, Collections, Tokens,
+ * OKX-first with Hiro fallback for Bitcoin Ordinals, Collections, Tokens,
  * Block Activities, and Rare Sats.
  *
  * Migration status (Magic Eden deprecation):
- * - Collections: OKX primary ✅, ME fallback
- * - Statistics: OKX primary ✅, ME fallback
- * - Tokens/Inscriptions: OKX primary ✅, ME fallback
- * - Activities: OKX primary ✅, ME fallback
- * - Rare Sats: ME only (no OKX equivalent)
+ * - Collections: OKX primary ✅, Hiro fallback
+ * - Statistics: OKX primary ✅, Hiro fallback
+ * - Tokens/Inscriptions: OKX primary ✅, Hiro fallback
+ * - Activities: OKX primary ✅, Hiro fallback
+ * - Rare Sats: Hiro fallback (no OKX equivalent)
  * - Rate limiting, caching, retry logic preserved
  */
 
@@ -228,7 +228,8 @@ interface CacheEntry<T> {
 // ─── Configuration ───────────────────────────────────────────────────────────
 
 const CONFIG = {
-  BASE_URL: 'https://api-mainnet.magiceden.dev',
+  BASE_URL: 'https://api.hiro.so',
+  ME_FALLBACK_URL: 'https://api-mainnet.magiceden.dev',
   CACHE_TTL: 30000,          // 30 seconds
   REQUEST_TIMEOUT: 15000,    // 15 seconds
   MAX_RETRIES: 3,
@@ -618,13 +619,7 @@ export class MagicEdenService {
     await this.waitForRateLimit();
 
     const url = `${CONFIG.BASE_URL}${path}`;
-    const apiKey = process.env.MAGIC_EDEN_API_KEY;
-
-    // DEBUG: Log API key status
-    if (!apiKey) {
-      console.error('[MagicEdenService] ❌ MAGIC_EDEN_API_KEY not found in environment!');
-    } else {
-    }
+    const hiroApiKey = process.env.HIRO_API_KEY || '';
 
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -632,8 +627,8 @@ export class MagicEdenService {
       ...(options.headers as Record<string, string> || {}),
     };
 
-    if (apiKey) {
-      headers['Authorization'] = `Bearer ${apiKey}`;
+    if (hiroApiKey) {
+      headers['x-hiro-api-key'] = hiroApiKey;
     }
 
     if (options.method === 'POST') {
@@ -656,13 +651,11 @@ export class MagicEdenService {
 
       if (!response.ok) {
         if (response.status === 429) {
-          // Rate limited by the server - wait and retry
           const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
-          // 🔧 FIX: Cap retry-after to max 60 seconds (Magic Eden sometimes returns 60000 seconds!)
           const cappedRetryAfter = Math.min(retryAfter, 60);
           const waitMs = cappedRetryAfter * 1000;
           console.warn(
-            `[MagicEdenService] Rate limited (429). Waiting ${cappedRetryAfter}s before retry.`
+            `[OrdinalsService] Rate limited (429). Waiting ${cappedRetryAfter}s before retry.`
           );
           await this.sleep(waitMs);
           if (retryCount < CONFIG.MAX_RETRIES) {
@@ -683,14 +676,10 @@ export class MagicEdenService {
     } catch (error: unknown) {
       clearTimeout(timeoutId);
 
-      const isAbort = error instanceof Error && error.name === 'AbortError';
-      if (isAbort) {
-      }
-
       if (retryCount < CONFIG.MAX_RETRIES) {
         const delay = CONFIG.INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
         console.warn(
-          `[MagicEdenService] Request failed (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}), retrying in ${delay}ms: ${path}`
+          `[OrdinalsService] Request failed (attempt ${retryCount + 1}/${CONFIG.MAX_RETRIES}), retrying in ${delay}ms: ${path}`
         );
         await this.sleep(delay);
         return this.executeRequest<T>(path, options, retryCount + 1);
