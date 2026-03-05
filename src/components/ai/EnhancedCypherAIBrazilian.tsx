@@ -429,7 +429,7 @@ export default function EnhancedCypherAIBrazilian() {
 
   const getRandomResponse = (category: keyof typeof BRAZILIAN_RESPONSES): string => {
     const responses = BRAZILIAN_RESPONSES[category];
-    return responses[Math.floor(Math.random() * responses.length)];
+    return responses[Date.now() % responses.length];
   };
 
   const getStatusColor = () => {

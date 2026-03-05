@@ -336,12 +336,9 @@ const FixedQuickTrade: React.FC = () => {
       // Simulate trade execution
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      const txHash = '0x' + Math.random().toString(16).substr(2, 64);
-      
       setTradeExecution({
         orderId: executionId,
         status: 'confirmed',
-        txHash,
         timestamp: Date.now()
       });
       
@@ -638,7 +635,7 @@ const FixedQuickTrade: React.FC = () => {
                     <div>
                       <div>✅ Trade confirmed!</div>
                       <div className="text-xs mt-1">
-                        TX: {tradeExecution.txHash?.slice(0, 10)}...
+                        Transaction submitted
                       </div>
                     </div>
                   )}

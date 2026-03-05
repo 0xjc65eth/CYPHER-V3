@@ -293,7 +293,7 @@ export const VoiceInterface: React.FC<VoiceInterfaceProps> = ({
         'Hmm, não captei. Reformula aí pra mim.',
         'Desculpa, não peguei direito. Pode repetir?'
       ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+      const randomResponse = responses[Date.now() % responses.length];
       setAiResponse(randomResponse);
       speak(randomResponse);
     } finally {
