@@ -139,8 +139,8 @@ export interface OKXTrendingCollection {
 }
 
 export class OKXOrdinalsAPI {
-  private baseUrl = 'https://www.okx.com/api/v5/mktdata/nft';
-  private ordinalsUrl = 'https://www.okx.com/api/v5/mktdata/nft/ordinals';
+  private baseUrl = 'https://web3.okx.com/api/v5/mktplace/nft';
+  private ordinalsUrl = 'https://web3.okx.com/api/v5/mktplace/nft/ordinals';
   private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
   private rateLimiter: Map<string, number> = new Map();
   private readonly RATE_LIMIT_MS = 500; // 500ms between requests (OKX allows higher frequency)

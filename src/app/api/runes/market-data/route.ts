@@ -343,10 +343,20 @@ function buildAnalytics(runes: RuneMarketData[]): RunesAnalytics {
 // Handler function
 async function handleRunesMarketData(request: NextRequest): Promise<NextResponse> {
   try {
-    // Redirect to the real endpoint that uses Hiro data
-    const redirectUrl = new URL('/api/runes/list/', request.url);
-    redirectUrl.search = new URL(request.url).search;
-    return NextResponse.redirect(redirectUrl, 308);
+    // Proxy to the real endpoint instead of redirect (redirects return HTML in Next.js)
+    const origin = new URL(request.url).origin;
+    const listUrl = `${origin}/api/runes/list/${new URL(request.url).search}`;
+    try {
+      const proxyRes = await fetch(listUrl, { headers: { 'Accept': 'application/json' } });
+      if (proxyRes.ok) {
+        const proxyData = await proxyRes.json();
+        return NextResponse.json(proxyData, {
+          headers: { ...corsHeaders, 'X-Deprecated': 'Use /api/runes/list/ instead' }
+        });
+      }
+    } catch {
+      // Proxy failed, fall through to local implementation
+    }
 
     const url = new URL(request.url);
     const searchParams = Object.fromEntries(url.searchParams.entries());

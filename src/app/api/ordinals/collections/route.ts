@@ -24,48 +24,91 @@ export async function GET(request: Request) {
     const sort = searchParams.get('sort') || 'volume7d';
 
     let data: unknown[] = [];
-    let source = 'hiro';
+    let source = '';
 
-    // Primary: Hiro Ordinals API
-    try {
-      const hiroHeaders: Record<string, string> = {
-        'Accept': 'application/json',
-      };
-      const hiroApiKey = process.env.HIRO_API_KEY;
-      if (hiroApiKey) {
-        hiroHeaders['x-hiro-api-key'] = hiroApiKey;
-      }
-
-      const hiroRes = await fetchWithTimeout(
-        `https://api.hiro.so/ordinals/v1/collections?limit=${limit}&order_by=volume_24h&order=desc`,
-        hiroHeaders,
-        8000
-      );
-      if (hiroRes.ok) {
-        const hiroData = await hiroRes.json();
-        const results = hiroData.results || [];
-        if (results.length > 0) {
-          data = results.map((c: Record<string, unknown>) => ({
-            name: c.name || c.id || 'Unknown',
-            slug: c.id || '',
-            symbol: c.id || '',
-            imageURI: '',
-            floorPrice: c.floor_price ? parseInt(String(c.floor_price)) : null,
-            volume7d: null,
-            volume24h: c.volume_24h ? parseInt(String(c.volume_24h)) : null,
-            supply: c.inscription_count || 0,
-            listed: c.listed_count || null,
-            owners: c.distinct_owner_count || null,
-            description: '',
-          }));
+    // Primary: Best-in-Slot API (most comprehensive ordinals collection data)
+    const bisApiKey = process.env.BESTINSLOT_API_KEY;
+    if (bisApiKey && data.length === 0) {
+      try {
+        const bisSortMap: Record<string, string> = {
+          'volume7d': 'vol_7d_in_btc',
+          'volume24h': 'vol_24h_in_btc',
+          'floorPrice': 'floor_price',
+          'newest': 'median_number',
+        };
+        const bisSort = bisSortMap[sort] || 'vol_7d_in_btc';
+        const bisRes = await fetchWithTimeout(
+          `https://api.bestinslot.xyz/v3/collection/collections?sort_by=${bisSort}&order=desc&offset=0&count=${limit}`,
+          { 'x-api-key': bisApiKey, 'Accept': 'application/json' },
+          8000
+        );
+        if (bisRes.ok) {
+          const bisData = await bisRes.json();
+          const collections = bisData.data || bisData.collections || bisData;
+          if (Array.isArray(collections) && collections.length > 0) {
+            data = collections.map((c: Record<string, unknown>) => ({
+              name: c.collection_name || c.name || 'Unknown',
+              slug: c.slug || c.collection_slug || '',
+              symbol: c.slug || '',
+              imageURI: c.icon || c.image || c.logo || '',
+              floorPrice: c.floor_price,
+              volume7d: c.vol_7d_in_btc,
+              volume24h: c.vol_24h_in_btc,
+              supply: c.inscription_count || c.total_supply || 0,
+              listed: c.listed_count || null,
+              owners: c.owner_count || null,
+              description: '',
+              marketCap: c.marketcap || null,
+            }));
+            source = 'bestinslot';
+          }
         }
+      } catch {
+        // BIS failed, continue to fallbacks
       }
-    } catch (err) {
-      // Hiro failed, continue to fallbacks
     }
 
-    // Fallback 0: OKX Ordinals API
-    if (!data || data.length === 0) {
+    // Fallback 1: UniSat Marketplace API
+    const unisatApiKey = process.env.UNISAT_API_KEY;
+    if (unisatApiKey && data.length === 0) {
+      try {
+        const unisatRes = await fetchWithTimeout(
+          'https://open-api.unisat.io/v3/market/collection/auction/collection_statistic_list',
+          {
+            'Authorization': `Bearer ${unisatApiKey}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          8000
+        );
+        // UniSat uses POST but try GET first; if that fails we'll skip
+        if (unisatRes.ok) {
+          const unisatData = await unisatRes.json();
+          const list = unisatData.data?.list || unisatData.data || [];
+          if (Array.isArray(list) && list.length > 0) {
+            data = list.slice(0, limit).map((c: Record<string, unknown>) => ({
+              name: c.name || c.collectionName || 'Unknown',
+              slug: c.collectionId || c.slug || '',
+              symbol: c.collectionId || '',
+              imageURI: c.icon || c.logoUrl || c.imageUrl || '',
+              floorPrice: c.floorPrice,
+              volume7d: c.volume7d || null,
+              volume24h: c.volume24h || null,
+              supply: c.totalSupply || c.supply || 0,
+              listed: c.listedCount || null,
+              owners: c.ownerCount || null,
+              description: c.description || '',
+            }));
+            source = 'unisat';
+          }
+        }
+      } catch {
+        // UniSat failed, continue to fallbacks
+      }
+    }
+
+    // Fallback 2: OKX Ordinals API
+    if (data.length === 0) {
       try {
         const sortMap: Record<string, 'volume24h' | 'floorPrice' | 'createdAt'> = {
           'volume7d': 'volume24h',
@@ -94,64 +137,91 @@ export async function GET(request: Request) {
           }));
           source = 'okx';
         }
-      } catch (err) {
+      } catch {
         // OKX failed, continue to fallbacks
       }
     }
 
-    // Fallback 1: Hiro inscriptions grouped approach
-    if (!data || data.length === 0) {
+    // Fallback 3: Ordiscan API (metadata only, limited pricing)
+    const ordiscanApiKey = process.env.ORDISCAN_API_KEY;
+    if (ordiscanApiKey && data.length === 0) {
       try {
+        const ordiscanRes = await fetchWithTimeout(
+          'https://ordiscan.com/api/v1/collections',
+          { 'Authorization': `Bearer ${ordiscanApiKey}`, 'Accept': 'application/json' },
+          8000
+        );
+        if (ordiscanRes.ok) {
+          const ordiscanData = await ordiscanRes.json();
+          const collections = ordiscanData.collections || ordiscanData.data || ordiscanData;
+          if (Array.isArray(collections) && collections.length > 0) {
+            data = collections.slice(0, limit).map((c: Record<string, unknown>) => ({
+              name: c.name || 'Unknown',
+              slug: c.slug || '',
+              symbol: c.slug || '',
+              imageURI: c.icon || c.image || '',
+              floorPrice: null,
+              volume7d: null,
+              volume24h: null,
+              supply: c.item_count || c.supply || 0,
+              listed: null,
+              owners: null,
+              description: c.description || '',
+            }));
+            source = 'ordiscan';
+          }
+        }
+      } catch {
+        // Ordiscan failed
+      }
+    }
+
+    // Last resort: Hiro inscriptions grouped by content_type
+    if (data.length === 0) {
+      try {
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+
         const hiroRes = await fetchWithTimeout(
-          'https://api.hiro.so/ordinals/v1/inscriptions?limit=60&order=desc'
+          'https://api.hiro.so/ordinals/v1/inscriptions?limit=60&order=desc',
+          hiroHeaders
         );
         if (hiroRes.ok) {
           const hiroData = await hiroRes.json();
-          // Group inscriptions by content_type to provide some collection-like data
-          const grouped: Record<string, { count: number; items: unknown[]; totalFees: number }> = {};
+          const grouped: Record<string, { count: number; totalFees: number }> = {};
           for (const item of hiroData.results || []) {
             const ins = item as Record<string, unknown>;
             const ct = ins.content_type as string || 'unknown';
-            if (!grouped[ct]) grouped[ct] = { count: 0, items: [], totalFees: 0 };
+            if (!grouped[ct]) grouped[ct] = { count: 0, totalFees: 0 };
             grouped[ct].count++;
-            grouped[ct].items.push(item);
-            // Accumulate genesis fees for volume estimation (parse string to number)
             const feeStr = ins.genesis_fee as string | number;
             const fee = typeof feeStr === 'string' ? parseInt(feeStr, 10) : (feeStr || 0);
             grouped[ct].totalFees += (isNaN(fee) ? 0 : fee);
           }
           data = Object.entries(grouped)
-            .filter(([_, info]) => info.count >= 3) // Only include collections with 3+ inscriptions
+            .filter(([, info]) => info.count >= 3)
             .map(([contentType, info]) => {
-              // Calculate average floor price from fees (already in satoshis)
               const avgFee = info.totalFees > 0 ? Math.floor(info.totalFees / info.count) : null;
-              // Estimate 7d volume as 5x avg fee per item
-              const estimatedVolume7d = avgFee ? avgFee * info.count * 5 : null;
-              // Estimate 24h volume as 1/7 of 7d volume
-              const estimatedVolume24h = estimatedVolume7d ? Math.floor(estimatedVolume7d / 7) : null;
-
               return {
                 name: `${contentType} inscriptions`,
                 content_type: contentType,
-                count: info.count,
-                sample_items: info.items.slice(0, 3),
-                // Map fields to expected Collection structure (all values in satoshis)
                 floorPrice: avgFee,
-                volume7d: estimatedVolume7d,
-                volume24h: estimatedVolume24h,
+                volume7d: null,
+                volume24h: null,
                 supply: info.count,
-                listed: Math.floor(info.count * 0.15), // Estimate 15% listed
-                owners: Math.floor(info.count * 0.8), // Estimate unique owners
+                listed: null,
+                owners: null,
               };
             });
           source = 'hiro_grouped';
         }
-      } catch (err) {
-        console.error('Hiro fallback error:', err);
+      } catch {
+        // All sources failed
       }
     }
 
-    if (!data || data.length === 0) {
+    if (data.length === 0) {
       return NextResponse.json(
         { success: false, error: 'No collection data available from any source' },
         { status: 502, headers: { 'Cache-Control': 'no-cache' } }
@@ -159,7 +229,6 @@ export async function GET(request: Request) {
     }
 
     const collections = (data as Record<string, unknown>[]).map((item) => {
-      // Helper function to parse numeric values (handles both strings and numbers)
       const parseNumeric = (value: unknown): number | null => {
         if (value == null) return null;
         if (typeof value === 'number') return value;
@@ -171,31 +240,29 @@ export async function GET(request: Request) {
       };
 
       // Convert floor price from BTC to satoshis if it's in BTC format
-      const floorPrice = parseNumeric(item.floorPrice ?? item.fp ?? item.floor_price ?? item.floorUnitPrice);
+      const floorPrice = parseNumeric(item.floorPrice ?? item.fp ?? item.floor_price);
       const floorPriceSats = floorPrice !== null
-        ? (floorPrice < 1 ? Math.round(floorPrice * 1e8) : floorPrice) // Convert BTC to sats if < 1
+        ? (floorPrice < 1 ? Math.round(floorPrice * 1e8) : floorPrice)
         : null;
 
-      // Convert volume from BTC to satoshis
-      const volume7d = parseNumeric(item.volume7d ?? item.totalVol ?? item.total_volume ?? item.volume ?? item.totalVolume);
+      const volume7d = parseNumeric(item.volume7d ?? item.totalVol ?? item.total_volume);
       const volume7dSats = volume7d !== null
         ? (volume7d < 100 ? Math.round(volume7d * 1e8) : volume7d)
         : null;
 
-      const volume24h = parseNumeric(item.volume24h ?? item.volume_1d ?? item.dailyVolume);
+      const volume24h = parseNumeric(item.volume24h ?? item.volume_1d);
       const volume24hSats = volume24h !== null
         ? (volume24h < 100 ? Math.round(volume24h * 1e8) : volume24h)
         : null;
 
-      // Parse integer fields (can also be strings from Magic Eden)
-      const listed = parseNumeric(item.listed ?? item.listedCount ?? item.listed_count ?? item.totalListed);
-      const supply = parseNumeric(item.supply ?? item.totalSupply ?? item.total_supply ?? item.size ?? item.totalItems);
-      const owners = parseNumeric(item.owners ?? item.ownerCount ?? item.owner_count ?? item.numOwners ?? item.unique_holders);
+      const listed = parseNumeric(item.listed ?? item.listedCount ?? item.listed_count);
+      const supply = parseNumeric(item.supply ?? item.totalSupply ?? item.total_supply);
+      const owners = parseNumeric(item.owners ?? item.ownerCount ?? item.owner_count);
 
       return {
         name: item.name || item.collectionName || item.symbol || 'Unknown',
         slug: item.slug || item.collectionSymbol || item.symbol || '',
-        imageURI: item.imageURI || item.image || item.imageUrl || item.image_url || '',
+        imageURI: item.imageURI || item.image || item.imageUrl || item.icon || '',
         floorPrice: floorPriceSats,
         volume7d: volume7dSats,
         volume24h: volume24hSats,
@@ -203,7 +270,10 @@ export async function GET(request: Request) {
         supply: supply !== null ? Math.floor(supply) : null,
         owners: owners !== null ? Math.floor(owners) : null,
         description: item.description || '',
-        ...(item.content_type ? { content_type: item.content_type, count: item.count, sample_items: item.sample_items } : {}),
+        ...(item.marketCap ? { marketCap: parseNumeric(item.marketCap) } : {}),
+        ...(item.change24h ? { change24h: item.change24h } : {}),
+        ...(item.change7d ? { change7d: item.change7d } : {}),
+        ...(item.content_type ? { content_type: item.content_type } : {}),
       };
     });
 
