@@ -3,11 +3,16 @@ import { rateLimit } from '@/lib/api-middleware';
 
 const lpRateLimit = rateLimit({ windowMs: 60000, maxRequests: 20 });
 
-// Lazy require to avoid webpack async chunk splitting issues
-function getModules() {
-  const { getAgentPersistence } = require('@/agent/persistence') as any;
-  const { getOrchestrator } = require('@/agent/core/AgentOrchestrator') as any;
-  return { getAgentPersistence, getOrchestrator };
+// Lazy dynamic import for ESM compatibility
+async function getModules() {
+  const [persistenceMod, orchestratorMod] = await Promise.all([
+    import('@/agent/persistence'),
+    import('@/agent/core/AgentOrchestrator'),
+  ]);
+  return {
+    getAgentPersistence: persistenceMod.getAgentPersistence,
+    getOrchestrator: orchestratorMod.getOrchestrator,
+  };
 }
 
 /**
@@ -24,12 +29,13 @@ export async function GET(request: NextRequest) {
     const rl = lpRateLimit(request);
     if (rl) return rl;
 
-    const { getAgentPersistence, getOrchestrator } = getModules();
+    const { getAgentPersistence, getOrchestrator } = await getModules();
     const url = new URL(request.url);
+    const walletAddress = url.searchParams.get('walletAddress') || 'default';
     const activeOnly = url.searchParams.get('active') !== 'false';
     const protocol = url.searchParams.get('protocol');
 
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator(walletAddress);
     const persistence = getAgentPersistence();
     const configId = (orchestrator as any).configId;
 
@@ -108,9 +114,9 @@ export async function POST(request: NextRequest) {
     const rl = lpRateLimit(request);
     if (rl) return rl;
 
-    const { getAgentPersistence, getOrchestrator } = getModules();
+    const { getAgentPersistence, getOrchestrator } = await getModules();
     const body = await request.json();
-    const { pair, protocol, exchange, amountUSD, feeTier } = body;
+    const { pair, protocol, exchange, amountUSD, feeTier, walletAddress } = body;
 
     if (!pair || !protocol || !amountUSD) {
       return NextResponse.json(
@@ -119,7 +125,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator(walletAddress || 'default');
     const connector = orchestrator.getConnector(exchange || protocol);
 
     if (!connector || !('createLPPosition' in connector)) {
@@ -154,17 +160,14 @@ export async function POST(request: NextRequest) {
         agent_config_id: configId,
         pair,
         protocol,
-        exchange: exchange || protocol,
-        position_id: result.positionId || '',
-        token_a: pair.split('/')[0],
-        token_b: pair.split('/')[1] || 'USDC',
-        amount_a: amountUSD / 2,
-        amount_b: amountUSD / 2,
+        chain: exchange || protocol,
+        on_chain_id: result.positionId || '',
+        token0_amount: amountUSD / 2,
+        token1_amount: amountUSD / 2,
         tick_lower: result.tickLower || 0,
         tick_upper: result.tickUpper || 0,
         fee_tier: feeTier || 0.003,
         status: 'active',
-        tx_hash: result.txHash || '',
       });
     }
 
@@ -202,9 +205,9 @@ export async function DELETE(request: NextRequest) {
     const rl = lpRateLimit(request);
     if (rl) return rl;
 
-    const { getAgentPersistence, getOrchestrator } = getModules();
+    const { getAgentPersistence, getOrchestrator } = await getModules();
     const body = await request.json();
-    const { positionId, exchange } = body;
+    const { positionId, exchange, walletAddress } = body;
 
     if (!positionId) {
       return NextResponse.json(
@@ -213,7 +216,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator(walletAddress || 'default');
     const connector = orchestrator.getConnector(exchange || 'jupiter');
 
     if (connector && 'closeLPPosition' in connector) {

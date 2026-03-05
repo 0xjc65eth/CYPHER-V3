@@ -3,12 +3,18 @@ import { rateLimit } from '@/lib/api-middleware';
 
 const consensusRateLimit = rateLimit({ windowMs: 60000, maxRequests: 20 });
 
-// Lazy require to avoid webpack async chunk splitting issues
-function getModules() {
-  const { getConsensusEngine } = require('@/agent/consensus/ConsensusEngine') as any;
-  const { getAgentPersistence } = require('@/agent/persistence') as any;
-  const { getOrchestrator } = require('@/agent/core/AgentOrchestrator') as any;
-  return { getConsensusEngine, getAgentPersistence, getOrchestrator };
+// Lazy dynamic import for ESM compatibility
+async function getModules() {
+  const [consensusMod, persistenceMod, orchestratorMod] = await Promise.all([
+    import('@/agent/consensus/ConsensusEngine'),
+    import('@/agent/persistence'),
+    import('@/agent/core/AgentOrchestrator'),
+  ]);
+  return {
+    getConsensusEngine: consensusMod.getConsensusEngine,
+    getAgentPersistence: persistenceMod.getAgentPersistence,
+    getOrchestrator: orchestratorMod.getOrchestrator,
+  };
 }
 
 /**
@@ -26,14 +32,15 @@ export async function GET(request: NextRequest) {
     const rl = consensusRateLimit(request);
     if (rl) return rl;
 
-    const { getAgentPersistence, getOrchestrator } = getModules();
+    const { getAgentPersistence, getOrchestrator } = await getModules();
     const url = new URL(request.url);
+    const walletAddress = url.searchParams.get('walletAddress') || 'default';
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '20'), 100);
     const pair = url.searchParams.get('pair');
     const approvedParam = url.searchParams.get('approved');
 
     const persistence = getAgentPersistence();
-    const orchestrator = getOrchestrator();
+    const orchestrator = getOrchestrator(walletAddress);
     const configId = (orchestrator as any).configId;
 
     if (!configId) {
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
     const rl = consensusRateLimit(request);
     if (rl) return rl;
 
-    const { getConsensusEngine, getOrchestrator } = getModules();
+    const { getConsensusEngine, getOrchestrator } = await getModules();
     const body = await request.json();
 
     if (body.action === 'set_weights') {
@@ -119,7 +126,8 @@ export async function POST(request: NextRequest) {
     }
 
     const consensus = getConsensusEngine();
-    const orchestrator = getOrchestrator();
+    const walletAddress = body.walletAddress || 'default';
+    const orchestrator = getOrchestrator(walletAddress);
 
     const proposal = {
       pair,

@@ -35,10 +35,10 @@ function revokeSessionToken(walletAddress: string): void {
   sessionTokens.delete(walletAddress);
 }
 
-// Lazy require to avoid webpack async chunk splitting issues
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-function getOrchestratorModule() {
-  return require('@/agent/core/AgentOrchestrator') as {
+// Lazy dynamic import for ESM compatibility with webpack
+async function getOrchestratorModule() {
+  const mod = await import('@/agent/core/AgentOrchestrator');
+  return mod as {
     getOrchestrator: (userId: string, config?: any, credentials?: UserCredentials) => any;
     resetOrchestrator: (userId: string) => void;
     getAllActiveUsers: () => string[];
@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { getOrchestrator } = getOrchestratorModule();
+    const { getOrchestrator } = await getOrchestratorModule();
     const orchestrator = getOrchestrator(walletAddress);
     const state = orchestrator.getState();
     const config = orchestrator.getConfig();
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { getOrchestrator, resetOrchestrator } = getOrchestratorModule();
+    const { getOrchestrator, resetOrchestrator } = await getOrchestratorModule();
     const body = await request.json();
     const { action, config, credentials } = body;
 

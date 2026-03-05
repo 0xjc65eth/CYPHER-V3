@@ -3,10 +3,10 @@ import { rateLimit } from '@/lib/api-middleware';
 
 const sessionKeysRateLimit = rateLimit({ windowMs: 60000, maxRequests: 10 });
 
-// Lazy require to avoid webpack async chunk splitting issues
-function getModules() {
-  const { getSessionKeyManager } = require('@/agent/wallet') as any;
-  return { getSessionKeyManager };
+// Lazy dynamic import for ESM compatibility
+async function getModules() {
+  const walletMod = await import('@/agent/wallet');
+  return { getSessionKeyManager: walletMod.getSessionKeyManager };
 }
 
 /**
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const chain = url.searchParams.get('chain') || '';
     const activeOnly = url.searchParams.get('active') !== 'false';
 
-    const { getSessionKeyManager } = getModules();
+    const { getSessionKeyManager } = await getModules();
     const manager = getSessionKeyManager();
     let keys = manager.getActiveKeys(chain);
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { getSessionKeyManager } = getModules();
+    const { getSessionKeyManager } = await getModules();
     const manager = getSessionKeyManager();
 
     const ttlHours = (ttlMs || 24 * 60 * 60 * 1000) / 3600_000;
@@ -151,7 +151,7 @@ export async function DELETE(request: NextRequest) {
     if (rl) return rl;
 
     const body = await request.json();
-    const { getSessionKeyManager } = getModules();
+    const { getSessionKeyManager } = await getModules();
     const manager = getSessionKeyManager();
 
     if (body.action === 'revoke_all') {

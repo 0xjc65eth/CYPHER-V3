@@ -3,11 +3,16 @@ import { rateLimit } from '@/lib/api-middleware';
 
 const tradesRateLimit = rateLimit({ windowMs: 60000, maxRequests: 30 });
 
-// Lazy require to avoid webpack async chunk splitting issues
-function getModules() {
-  const { getAgentPersistence } = require('@/agent/persistence') as any;
-  const { getOrchestrator } = require('@/agent/core/AgentOrchestrator') as any;
-  return { getAgentPersistence, getOrchestrator };
+// Lazy dynamic import for ESM compatibility
+async function getModules() {
+  const [persistenceMod, orchestratorMod] = await Promise.all([
+    import('@/agent/persistence'),
+    import('@/agent/core/AgentOrchestrator'),
+  ]);
+  return {
+    getAgentPersistence: persistenceMod.getAgentPersistence,
+    getOrchestrator: orchestratorMod.getOrchestrator,
+  };
 }
 
 /**
@@ -30,8 +35,9 @@ export async function GET(request: NextRequest) {
     const rl = tradesRateLimit(request);
     if (rl) return rl;
 
-    const { getAgentPersistence, getOrchestrator } = getModules();
+    const { getAgentPersistence, getOrchestrator } = await getModules();
     const url = new URL(request.url);
+    const walletAddress = url.searchParams.get('walletAddress') || 'default';
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 200);
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const pair = url.searchParams.get('pair');
@@ -42,7 +48,7 @@ export async function GET(request: NextRequest) {
     const to = url.searchParams.get('to');
 
     const persistence = getAgentPersistence();
-    const orchestrator = getOrchestrator() as any;
+    const orchestrator = getOrchestrator(walletAddress) as any;
     const configId = (orchestrator as any).configId;
 
     if (!configId) {
