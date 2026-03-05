@@ -124,6 +124,7 @@ export async function GET(request: NextRequest) {
         errors: state.errors.slice(-10),
         lastCompound: state.lastCompound,
       },
+      enableTrading: config?.enableTrading ?? false,
       performance,
       config,
     };
@@ -196,7 +197,7 @@ export async function POST(request: NextRequest) {
     const { action, config, credentials } = body;
 
     // Validate action is a known string
-    const VALID_ACTIONS = ['start', 'stop', 'pause', 'resume', 'emergency_stop', 'config', 'reset', 'status'];
+    const VALID_ACTIONS = ['start', 'stop', 'pause', 'resume', 'emergency_stop', 'config', 'reset', 'status', 'sync_positions'];
     if (typeof action !== 'string' || !VALID_ACTIONS.includes(action)) {
       return NextResponse.json(
         { success: false, error: 'Invalid action. Use: start, stop, pause, resume, emergency_stop, config, reset, status' },
@@ -337,6 +338,19 @@ export async function POST(request: NextRequest) {
           state: orchestrator.getState(),
           performance: orchestrator.getPerformance(),
           config: orchestrator.getConfig(),
+        });
+      }
+
+      case 'sync_positions': {
+        const orchestrator = getOrchestrator(walletAddress);
+        const state = orchestrator.getState();
+        return NextResponse.json({
+          success: true,
+          message: 'Positions synced from exchange',
+          positions: state.positions,
+          lpPositions: state.lpPositions,
+          openOrders: state.openOrders,
+          syncedAt: Date.now(),
         });
       }
 

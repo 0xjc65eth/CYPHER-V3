@@ -69,6 +69,7 @@ interface AgentApiResponse {
     errors: Array<{ message: string; timestamp: number; source: string }>;
     lastCompound: any;
   };
+  enableTrading?: boolean;
   performance: AgentPerformance;
   config: AgentConfig;
   tradeHistory?: Array<{ pair?: string; direction?: string; pnl?: number; executedAt: number; entry?: number }>;
@@ -940,6 +941,11 @@ function AgentDashboard({
   const [uptime, setUptime] = useState(0);
   const startedAtRef = useRef<number>(0);
   const sessionTokenRef = useRef<string | null>(null);
+  const [enableTrading, setEnableTrading] = useState<boolean>(false);
+  const [lastSyncAt, setLastSyncAt] = useState<number>(0);
+  const [syncInProgress, setSyncInProgress] = useState(false);
+  const [tradeToast, setTradeToast] = useState<string | null>(null);
+  const prevTradeCountRef = useRef<number>(0);
 
   // Map API status string to local AgentStatus
   const mapApiStatus = useCallback((apiStatus: string): AgentStatus => {
@@ -987,10 +993,29 @@ function AgentDashboard({
       setLpPositions(data.state.lpPositions || []);
       setErrors(data.state.errors || []);
 
+      // Track enableTrading from API
+      if (data.enableTrading !== undefined) {
+        setEnableTrading(data.enableTrading);
+      }
+
       // Update started time
       if (data.state.startedAt) {
         startedAtRef.current = data.state.startedAt;
       }
+
+      // Detect new trade executions for toast notification
+      const currentTradeCount = data.performance?.totalTrades ?? 0;
+      if (prevTradeCountRef.current > 0 && currentTradeCount > prevTradeCountRef.current && data.state.recentTrades?.length > 0) {
+        const latestTrade = data.state.recentTrades[0];
+        if (latestTrade) {
+          const dir = (latestTrade.direction || 'long').toUpperCase();
+          const pair = latestTrade.pair || 'BTC-PERP';
+          const price = latestTrade.entry ? `@ $${Number(latestTrade.entry).toLocaleString()}` : '';
+          setTradeToast(`Trade Executed: ${dir} ${pair} ${price}`);
+          setTimeout(() => setTradeToast(null), 5000);
+        }
+      }
+      prevTradeCountRef.current = currentTradeCount;
 
       // Map recent trades from state
       if (data.state.recentTrades?.length > 0) {
@@ -1159,6 +1184,16 @@ function AgentDashboard({
     executeAction('emergency_stop');
   }, [executeAction]);
 
+  const handleSyncPositions = useCallback(async () => {
+    setSyncInProgress(true);
+    try {
+      await executeAction('sync_positions');
+      setLastSyncAt(Date.now());
+    } finally {
+      setSyncInProgress(false);
+    }
+  }, [executeAction]);
+
   const formatUptime = (s: number) => {
     const d = Math.floor(s / 86400);
     const h = Math.floor((s % 86400) / 3600);
@@ -1188,6 +1223,17 @@ function AgentDashboard({
         />
       )}
 
+      {/* Trade Execution Toast */}
+      {tradeToast && (
+        <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-2 px-4 py-3 rounded-lg border border-emerald-500/40 bg-emerald-500/10 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+            <span className="text-xs font-mono font-bold text-emerald-400">{tradeToast}</span>
+            <button onClick={() => setTradeToast(null)} className="text-white/30 hover:text-white/60 text-xs ml-2">✕</button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="border-b border-orange-500/30 bg-[#0a0a0a]">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -1206,6 +1252,19 @@ function AgentDashboard({
                 )}
                 {statusLabel}
               </div>
+              {agentStatus === 'active' && (
+                enableTrading ? (
+                  <div className="px-2.5 py-1 rounded border text-[10px] font-mono font-bold flex items-center text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
+                    <span className="inline-block w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1.5 animate-pulse" />
+                    LIVE TRADING
+                  </div>
+                ) : (
+                  <div className="px-2.5 py-1 rounded border text-[10px] font-mono font-bold flex items-center text-yellow-400 bg-yellow-500/10 border-yellow-500/30">
+                    <span className="inline-block w-1.5 h-1.5 bg-yellow-400 rounded-full mr-1.5" />
+                    OBSERVATION MODE
+                  </div>
+                )
+              )}
               {agentStatus === 'active' && (
                 <span className="text-xs text-white/30 font-mono">UPTIME: {formatUptime(uptime)}</span>
               )}
@@ -1400,8 +1459,22 @@ function AgentDashboard({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Open Positions */}
             <div className="border border-orange-500/20 rounded-lg bg-[#0a0a0a]">
-              <div className="px-4 py-3 border-b border-white/5">
+              <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
                 <div className="text-[10px] text-orange-400/60 font-mono">OPEN POSITIONS ({positions.length})</div>
+                <div className="flex items-center gap-2">
+                  {lastSyncAt > 0 && (
+                    <span className="text-[10px] text-white/20 font-mono">
+                      synced {Math.round((Date.now() - lastSyncAt) / 1000)}s ago
+                    </span>
+                  )}
+                  <button
+                    onClick={handleSyncPositions}
+                    disabled={syncInProgress || agentStatus === 'off'}
+                    className="px-2 py-0.5 text-[10px] font-mono border border-white/10 text-white/40 rounded hover:bg-white/5 transition-colors disabled:opacity-30"
+                  >
+                    {syncInProgress ? 'SYNCING...' : 'SYNC'}
+                  </button>
+                </div>
               </div>
               <div className="divide-y divide-white/5">
                 {positions.length === 0 && (

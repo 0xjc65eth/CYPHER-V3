@@ -250,12 +250,22 @@ export class AgentOrchestrator {
       this.validateConfig();
 
       // Connect all configured exchange connectors
+      // Validate at least the primary connector (Hyperliquid) connects successfully
+      const connectionResults: Array<{ name: string; success: boolean }> = [];
       for (const [name, conn] of this.connectors) {
         try {
-          await (conn as any).connect();
+          const result = await (conn as any).connect();
+          connectionResults.push({ name, success: result !== false });
         } catch {
-          // Connection failure is non-critical - will retry
+          connectionResults.push({ name, success: false });
         }
+      }
+
+      // If the primary connector (hyperliquid) failed, abort start
+      const primaryResult = connectionResults.find(r => r.name === 'hyperliquid');
+      if (primaryResult && !primaryResult.success) {
+        this.updateStatus('error');
+        throw new Error('Failed to connect to Hyperliquid. Check your API credentials (Agent Key / Agent Secret).');
       }
 
       // Save config to database
@@ -509,6 +519,18 @@ export class AgentOrchestrator {
         votes: consensusResult.votes,
         timestamp: Date.now(),
       });
+      // Persist rejected decisions (observation mode visibility)
+      if (this.configId) {
+        this.persistence.recordConsensusDecision({
+          agent_config_id: this.configId,
+          pair: market.pair,
+          proposal,
+          votes: consensusResult.votes,
+          result: consensusResult,
+          approved: false,
+          executed: false,
+        }).catch(() => {}); // non-critical
+      }
       return;
     }
 
@@ -517,6 +539,19 @@ export class AgentOrchestrator {
 
     // Execute the trade
     await this.executeSignal(signal, connector);
+
+    // Persist approved consensus decision
+    if (this.configId) {
+      this.persistence.recordConsensusDecision({
+        agent_config_id: this.configId,
+        pair: market.pair,
+        proposal,
+        votes: consensusResult.votes,
+        result: consensusResult,
+        approved: true,
+        executed: true,
+      }).catch(() => {}); // non-critical
+    }
   }
 
   /**
@@ -636,10 +671,37 @@ export class AgentOrchestrator {
       }
     );
 
-    if (!consensusResult.approved) return;
+    if (!consensusResult.approved) {
+      // Persist rejected decisions for observation mode visibility
+      if (this.configId) {
+        this.persistence.recordConsensusDecision({
+          agent_config_id: this.configId,
+          pair: market.pair,
+          proposal,
+          votes: consensusResult.votes,
+          result: consensusResult,
+          approved: false,
+          executed: false,
+        }).catch(() => {}); // non-critical
+      }
+      return;
+    }
     signal.positionSize = consensusResult.positionSize;
 
     await this.executeSignal(signal, connector as any);
+
+    // Persist approved consensus decision
+    if (this.configId) {
+      this.persistence.recordConsensusDecision({
+        agent_config_id: this.configId,
+        pair: market.pair,
+        proposal,
+        votes: consensusResult.votes,
+        result: consensusResult,
+        approved: true,
+        executed: true,
+      }).catch(() => {}); // non-critical
+    }
   }
 
   /**

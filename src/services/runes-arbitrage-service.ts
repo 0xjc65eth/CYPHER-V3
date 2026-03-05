@@ -1,5 +1,6 @@
 import { neuralLearningService } from './neural-learning-service';
 import { magicEdenRunesService, type RuneMarketInfo, type RuneCollectionStat } from './magicEdenRunesService';
+import { xverseAPI } from '@/lib/api/xverse';
 
 // Runas populares para monitorar arbitragem (nomes reais do protocolo)
 const TRACKED_RUNES = [
@@ -15,6 +16,12 @@ const TRACKED_RUNES = [
 
 // Exchanges reais que suportam Runes com taxas verificadas
 const RUNE_EXCHANGES = [
+  {
+    name: 'Xverse/Aggregated',
+    url: 'https://wallet.xverse.app',
+    fee: 1.5,
+    source: 'xverse' as const,
+  },
   {
     name: 'Gamma.io',
     url: 'https://gamma.io/ordinals/collections/runes',
@@ -188,9 +195,48 @@ export class RunesArbitrageService {
   }
 
   /**
-   * Busca dados top de mercado do Gamma.io para obter lista de runas ativas
+   * Fetch Xverse price data for a rune (aggregated from multiple marketplaces)
+   */
+  private async fetchXversePrice(runeName: string): Promise<ExchangePrice | null> {
+    try {
+      // Try batch info first for efficiency
+      const batchResult = await xverseAPI.getRunesBatchInfo([runeName]);
+      if (batchResult) {
+        const runeData = Object.values(batchResult)[0];
+        if (runeData && runeData.floorPrice > 0) {
+          return {
+            exchange: RUNE_EXCHANGES.find(e => e.source === 'xverse')!,
+            floorPriceSats: runeData.floorPrice,
+            volume24h: runeData.volume24h || 0,
+            listedCount: 0,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn(`[RunesArbitrage] Xverse API failed for ${runeName}:`, err instanceof Error ? err.message : err);
+    }
+    return null;
+  }
+
+  /**
+   * Busca dados top de mercado — Xverse primary, Gamma.io fallback
    */
   private async fetchTopRunes(): Promise<RuneCollectionStat[]> {
+    // Try Xverse first (richer data)
+    try {
+      const xverseTop = await xverseAPI.getTopRunes({ limit: 20, timePeriod: '24h' });
+      if (xverseTop && xverseTop.length > 0) {
+        return xverseTop.map(r => ({
+          rune: r.runeName,
+          spacedRune: r.spacedRuneName,
+          floorUnitPrice: { value: r.floorPrice },
+          volume24h: r.volume,
+          listedCount: 0,
+        })) as unknown as RuneCollectionStat[];
+      }
+    } catch { /* fallback below */ }
+
+    // Fallback: Gamma.io / Magic Eden
     try {
       const stats = await magicEdenRunesService.getRuneCollectionStats({
         sortBy: 'volume',
@@ -198,7 +244,7 @@ export class RunesArbitrageService {
         limit: 20,
       });
       return stats?.runes || [];
-    } catch (error) {
+    } catch {
       return [];
     }
   }
@@ -225,13 +271,15 @@ export class RunesArbitrageService {
         const runeName = runeNames[i];
 
         // Buscar preços reais de todas as exchanges em paralelo
-        const [mePriceData, altPrices] = await Promise.all([
+        const [xversePriceData, mePriceData, altPrices] = await Promise.all([
+          this.fetchXversePrice(runeName),
           this.fetchMagicEdenPrice(runeName),
           this.fetchAlternativePrices(runeName),
         ]);
 
         // Agregar todos os preços disponíveis
         const allPrices: ExchangePrice[] = [];
+        if (xversePriceData) allPrices.push(xversePriceData);
         if (mePriceData) allPrices.push(mePriceData);
         allPrices.push(...altPrices);
 

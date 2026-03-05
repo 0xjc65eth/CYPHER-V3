@@ -68,39 +68,50 @@ export async function GET(request: Request) {
       }
     }
 
-    // Fallback 1: UniSat Marketplace API
+    // Fallback 1: UniSat Marketplace API (POST endpoint)
     const unisatApiKey = process.env.UNISAT_API_KEY;
     if (unisatApiKey && data.length === 0) {
       try {
-        const unisatRes = await fetchWithTimeout(
-          'https://open-api.unisat.io/v3/market/collection/auction/collection_statistic_list',
-          {
-            'Authorization': `Bearer ${unisatApiKey}`,
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          8000
-        );
-        // UniSat uses POST but try GET first; if that fails we'll skip
-        if (unisatRes.ok) {
-          const unisatData = await unisatRes.json();
-          const list = unisatData.data?.list || unisatData.data || [];
-          if (Array.isArray(list) && list.length > 0) {
-            data = list.slice(0, limit).map((c: Record<string, unknown>) => ({
-              name: c.name || c.collectionName || 'Unknown',
-              slug: c.collectionId || c.slug || '',
-              symbol: c.collectionId || '',
-              imageURI: c.icon || c.logoUrl || c.imageUrl || '',
-              floorPrice: c.floorPrice,
-              volume7d: c.volume7d || null,
-              volume24h: c.volume24h || null,
-              supply: c.totalSupply || c.supply || 0,
-              listed: c.listedCount || null,
-              owners: c.ownerCount || null,
-              description: c.description || '',
-            }));
-            source = 'unisat';
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        try {
+          const unisatRes = await fetch(
+            'https://open-api.unisat.io/v3/market/collection/auction/collection_statistic_list',
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${unisatApiKey}`,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ start: 0, limit, sort: {} }),
+              signal: controller.signal,
+            }
+          );
+          if (unisatRes.ok) {
+            const unisatData = await unisatRes.json();
+            if (unisatData.code === 0 || unisatData.code === '0') {
+              const list = unisatData.data?.list || unisatData.data || [];
+              if (Array.isArray(list) && list.length > 0) {
+                data = list.slice(0, limit).map((c: Record<string, unknown>) => ({
+                  name: c.name || c.collectionName || 'Unknown',
+                  slug: c.collectionId || c.slug || '',
+                  symbol: c.collectionId || '',
+                  imageURI: c.icon || c.logoUrl || c.imageUrl || '',
+                  floorPrice: c.floorPrice,
+                  volume7d: c.volume7d || null,
+                  volume24h: c.volume24h || null,
+                  supply: c.totalSupply || c.supply || 0,
+                  listed: c.listedCount || null,
+                  owners: c.ownerCount || null,
+                  description: c.description || '',
+                }));
+                source = 'unisat';
+              }
+            }
           }
+        } finally {
+          clearTimeout(timeout);
         }
       } catch {
         // UniSat failed, continue to fallbacks
