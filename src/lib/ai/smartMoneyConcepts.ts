@@ -118,7 +118,7 @@ export class SmartMoneyConceptsEngine {
   private opportunities: TradingOpportunity[] = [];
 
   constructor() {
-    console.log('🧠 Smart Money Concepts Engine initialized');
+    // SMC Engine initialized
   }
 
   async analyzeMarket(symbol: string, priceData: PriceCandle[], volume: number[]): Promise<SMCAnalysis> {
@@ -172,15 +172,6 @@ export class SmartMoneyConceptsEngine {
       this.liquidityPools.set(symbol, liquidityPools);
       this.institutionalFlow.set(symbol, institutionalFlow);
       this.opportunities.push(...opportunities);
-
-      console.log(`📊 SMC Analysis completed for ${symbol}:`, {
-        structure: structure.trend,
-        orderBlocks: orderBlocks.length,
-        fairValueGaps: fairValueGaps.length,
-        liquidityPools: liquidityPools.length,
-        opportunities: opportunities.length,
-        confidence: analysis.confidence
-      });
 
       return analysis;
     } catch (error) {

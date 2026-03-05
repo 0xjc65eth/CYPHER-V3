@@ -56,7 +56,7 @@ class ExtensionConflictResolver {
   }
 
   private scanProviders() {
-    console.log('🔍 Scanning wallet providers...');
+    // Scanning wallet providers
     
     // Ethereum/EVM providers
     if (window.ethereum) {
@@ -111,11 +111,7 @@ class ExtensionConflictResolver {
     // Expor providers organizados globalmente
     window.cypherWalletProviders = this.providers;
 
-    console.log('✅ Wallet providers scanned:', {
-      ethereum: this.providers.ethereum.length,
-      bitcoin: this.providers.bitcoin.length,
-      solana: this.providers.solana.length
-    });
+    // Wallet providers scanned
   }
 
   private setupConflictResolution() {
@@ -270,13 +266,13 @@ class ExtensionConflictResolver {
 
     setInterval(() => {
       if (window.ethereum !== lastEthereumProvider) {
-        console.log('🔄 Ethereum provider changed, re-scanning...');
+        // Ethereum provider changed, re-scanning
         lastEthereumProvider = window.ethereum;
         this.scanProviders();
       }
       
       if (window.solana !== lastSolanaProvider) {
-        console.log('🔄 Solana provider changed, re-scanning...');
+        // Solana provider changed, re-scanning
         lastSolanaProvider = window.solana;
         this.scanProviders();
       }

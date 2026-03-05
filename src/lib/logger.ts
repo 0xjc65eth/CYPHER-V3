@@ -20,12 +20,12 @@ export class DevelopmentLogger {
   }
 
   log(category: string, message: string, data?: unknown) {
-    console.log(`[${category}]`, message, data || '');
+    console.debug(`[${category}]`, message, data || '');
   }
 
   milestone(title: string, details: string) {
-    console.log('MILESTONE:', title);
-    console.log(details);
+    console.debug('MILESTONE:', title);
+    console.debug(details);
   }
 
   progress(feature: string, percentage: number) {

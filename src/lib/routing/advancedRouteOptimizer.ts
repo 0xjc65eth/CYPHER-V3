@@ -110,13 +110,6 @@ class AdvancedRouteOptimizer {
 
       const executionTime = performance.now() - startTime;
       
-      console.log(`🔍 Route optimization completed in ${executionTime.toFixed(2)}ms`, {
-        possibleRoutes: possibleRoutes.length,
-        validRoutes: validRoutes.length,
-        optimizedRoutes: optimizedRoutes.length,
-        bestRoute: sortedRoutes[0]?.dexPath.join(' → ')
-      });
-
       return sortedRoutes.slice(0, this.config.maxRoutes);
     } catch (error) {
       console.error('❌ Route optimization failed:', error);
@@ -624,7 +617,7 @@ class AdvancedRouteOptimizer {
   async warmRouteCache(
     commonPairs: Array<{tokenIn: Token; tokenOut: Token; amounts: string[]}>
   ): Promise<void> {
-    console.log('🔥 Warming route cache...');
+    // Warming route cache
     
     for (const pair of commonPairs) {
       for (const amount of pair.amounts) {
@@ -636,7 +629,7 @@ class AdvancedRouteOptimizer {
       }
     }
     
-    console.log('✅ Route cache warming completed');
+    // Route cache warming completed
   }
 
   getOptimizationStats() {

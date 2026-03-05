@@ -507,7 +507,7 @@ export class DatabaseService {
       }
       this._isConnected = true
       this._connectionTested = true
-      console.log('[DB] Supabase connected successfully')
+      // Connected successfully
       return true
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

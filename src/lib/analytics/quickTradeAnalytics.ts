@@ -213,12 +213,7 @@ class QuickTradeAnalytics {
       }
     });
 
-    console.log(`📊 Trade recorded: ${trade.tradeId}`, {
-      volume: parseFloat(trade.amountIn),
-      dex: trade.dex,
-      network: trade.network,
-      success: trade.success
-    });
+    // Trade recorded
   }
 
   private recordMetric(metric: PerformanceMetric): void {
@@ -423,11 +418,7 @@ class QuickTradeAnalytics {
 
       await quickTradeCache.cacheAnalytics('hourly_aggregate', hourlyData);
       
-      console.log('📈 Hourly data aggregated', {
-        trades: hourlyData.trades.count,
-        revenue: hourlyData.revenue.total.toFixed(2),
-        avgResponseTime: hourlyData.performance.avgResponseTime.toFixed(2)
-      });
+      // Hourly data aggregated
     } catch (error) {
       console.error('❌ Failed to aggregate hourly data:', error);
     }
@@ -501,11 +492,7 @@ class QuickTradeAnalytics {
 
       await quickTradeCache.cacheAnalytics('daily_report', dailyStats);
       
-      console.log('📊 Daily report generated', {
-        trades: dailyStats.trades.count,
-        revenue: dailyStats.revenue.total.toFixed(2),
-        successRate: dailyStats.trades.successRate.toFixed(1)
-      });
+      // Daily report generated
     } catch (error) {
       console.error('❌ Failed to generate daily report:', error);
     }
@@ -627,11 +614,7 @@ class QuickTradeAnalytics {
       }
     }
 
-    console.log('🧹 Old analytics data cleaned', {
-      tradesRetained: this.trades.size,
-      metricsRetained: this.metrics.size,
-      healthRecordsRetained: this.systemHealth.size
-    });
+    // Old analytics data cleaned
   }
 
   // Public API methods

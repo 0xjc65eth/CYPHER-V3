@@ -109,10 +109,10 @@ export class EnhancedLogger {
           console.error(fullMessage);
           break;
         case 'performance':
-          console.log(`⚡ ${fullMessage}`);
+          console.debug(`⚡ ${fullMessage}`);
           break;
         default:
-          console.log(fullMessage);
+          console.debug(fullMessage);
       }
     }
   }

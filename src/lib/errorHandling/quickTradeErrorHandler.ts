@@ -45,7 +45,7 @@ class CircuitBreaker {
     if (this.state === CircuitState.OPEN) {
       if (Date.now() - this.lastFailureTime > this.config.resetTimeout) {
         this.state = CircuitState.HALF_OPEN;
-        console.log(`🔄 Circuit breaker ${this.name} transitioning to HALF_OPEN`);
+        console.warn(`Circuit breaker ${this.name} transitioning to HALF_OPEN`);
       } else {
         throw new Error(`Circuit breaker ${this.name} is OPEN - operation blocked`);
       }

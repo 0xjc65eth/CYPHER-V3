@@ -25,13 +25,7 @@ export class CMCClient {
     this.client.interceptors.request.use(
       (config) => {
         // Log request in development
-        if (process.env.NODE_ENV === 'development') {
-          console.log('CMC Request:', {
-            method: config.method,
-            url: config.url,
-            params: config.params,
-          });
-        }
+        // Request logged via interceptor
         return config;
       },
       (error) => {
@@ -43,13 +37,7 @@ export class CMCClient {
     this.client.interceptors.response.use(
       (response) => {
         // Log response in development
-        if (process.env.NODE_ENV === 'development') {
-          console.log('CMC Response:', {
-            status: response.status,
-            credits: response.data?.status?.credit_count,
-            elapsed: response.data?.status?.elapsed,
-          });
-        }
+        // Response logged via interceptor
         return response;
       },
       (error) => {

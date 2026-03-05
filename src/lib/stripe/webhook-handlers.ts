@@ -49,7 +49,7 @@ export async function handleCheckoutComplete(event: Stripe.Event): Promise<void>
     data: { tier, stripe_subscription_id: stripeSubscriptionId },
   })
 
-  console.log(`[Webhook] Subscription activated: ${walletAddress} -> ${tier}`)
+  // Subscription activated
 }
 
 /**
@@ -103,7 +103,7 @@ export async function handleSubscriptionUpdated(event: Stripe.Event): Promise<vo
     data: { tier, status: mappedStatus, cancel_at_period_end: subscription.cancel_at_period_end },
   })
 
-  console.log(`[Webhook] Subscription updated: ${walletAddress} status=${mappedStatus}`)
+  // Subscription updated
 }
 
 /**
@@ -138,7 +138,7 @@ export async function handleSubscriptionDeleted(event: Stripe.Event): Promise<vo
     data: { stripe_subscription_id: subscription.id },
   })
 
-  console.log(`[Webhook] Subscription canceled: ${walletAddress}`)
+  // Subscription canceled
 }
 
 /**
@@ -167,7 +167,7 @@ export async function handlePaymentFailed(event: Stripe.Event): Promise<void> {
     data: { stripe_subscription_id: subscriptionId, stripe_customer_id: customerId },
   })
 
-  console.log(`[Webhook] Payment failed for subscription: ${subscriptionId}`)
+  console.error(`[Webhook] Payment failed for subscription: ${subscriptionId}`)
 }
 
 function mapStripeStatus(stripeStatus: string): string {

@@ -34,11 +34,7 @@ export function usePerformanceMonitor(componentName: string) {
         } : null
       });
 
-      console.log(`📊 Performance [${componentName}]:`, {
-        renderTime: `${renderTime.toFixed(2)}ms`,
-        domElements: document.querySelectorAll('*').length,
-        memoryUsed: memoryInfo ? `${(memoryInfo.usedJSHeapSize / 1024 / 1024).toFixed(2)}MB` : 'N/A'
-      });
+      // Performance metrics collected
     };
 
     // Aguardar próximo frame para métricas mais precisas

@@ -126,14 +126,6 @@ export class CypherFeeDistributor {
 
     this.distributions.set(calculatedFee.network, distribution);
 
-    console.log('📊 FEE ADDED TO DISTRIBUTION:', {
-      network: calculatedFee.network,
-      feeAmount: calculatedFee.feeAmountUSD,
-      totalCollected: distribution.totalCollected,
-      pendingDistribution: distribution.pendingDistribution,
-      timestamp: new Date().toISOString()
-    });
-
     // Verifica se precisa distribuir automaticamente
     if (this.config.autoDistribution) {
       await this.checkAutoDistribution(calculatedFee.network);
@@ -214,14 +206,6 @@ export class CypherFeeDistributor {
       
       this.distributions.set(network, distribution);
 
-      console.log('💸 FEE DISTRIBUTION COMPLETED:', {
-        transactionId: transaction.id,
-        network,
-        amount: transaction.amount,
-        recipientAddress: transaction.recipientAddress,
-        timestamp: transaction.timestamp
-      });
-
       return transaction;
     } catch (error) {
       const distribution = this.distributions.get(network)!;
@@ -295,7 +279,7 @@ export class CypherFeeDistributor {
   public updateConfig(newConfig: Partial<DistributionConfig>): void {
     this.config = { ...this.config, ...newConfig };
     
-    console.log('⚙️ DISTRIBUTION CONFIG UPDATED:', this.config);
+    // Config updated
   }
 
   /**

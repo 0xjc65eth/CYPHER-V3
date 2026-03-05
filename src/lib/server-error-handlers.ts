@@ -54,7 +54,7 @@ if (typeof process !== 'undefined' && !g[INIT_KEY]) {
   });
 
   const gracefulShutdown = (signal: string) => {
-    console.log(`[CYPHER] ${signal} received, cleaning up...`);
+    console.warn(`[CYPHER] ${signal} received, cleaning up...`);
     try {
       intervalManager.clearAll();
       requestDeduplicator.clearAll();

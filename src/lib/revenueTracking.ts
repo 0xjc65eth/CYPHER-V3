@@ -121,14 +121,6 @@ export class CypherRevenueTracker {
 
     this.revenueEntries.set(entry.id, entry);
 
-    console.log('📊 REVENUE RECORDED:', {
-      entryId: entry.id,
-      network: entry.network,
-      amountUSD: entry.amountUSD,
-      status: entry.status,
-      timestamp: entry.timestamp.toISOString()
-    });
-
     return entry;
   }
 
@@ -153,13 +145,6 @@ export class CypherRevenueTracker {
     if (distributionTxHash) entry.distributionTxHash = distributionTxHash;
 
     this.revenueEntries.set(entryId, entry);
-
-    console.log('🔄 REVENUE STATUS UPDATED:', {
-      entryId,
-      status,
-      txHash,
-      distributionTxHash
-    });
   }
 
   /**
@@ -170,13 +155,6 @@ export class CypherRevenueTracker {
 
     // Atualiza status das entradas relacionadas
     this.updateRelatedRevenueEntries(distribution);
-
-    console.log('💸 DISTRIBUTION RECORDED:', {
-      distributionId: distribution.id,
-      network: distribution.network,
-      amount: distribution.amount,
-      status: distribution.status
-    });
   }
 
   /**
