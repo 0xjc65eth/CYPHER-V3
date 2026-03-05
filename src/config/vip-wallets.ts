@@ -22,6 +22,7 @@ const HARDCODED_VIP_WALLETS = [
 /** ETH wallets with full VIP access (owner / team). */
 export const VIP_ETH_WALLETS = [
   '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+  '0xBaD5B3cc59D5c57dB99DF07fB86C6f1475F0Dae0',
 ].map(a => a.toLowerCase())
 
 /** Check if an ETH address is a VIP wallet (case-insensitive). */
@@ -55,6 +56,7 @@ export function isVIPWallet(address: string): boolean {
 /** CEO / Dev wallet — full super_admin access on both BTC and ETH. */
 const SUPER_ADMIN_ETH = [
   '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
+  '0xBaD5B3cc59D5c57dB99DF07fB86C6f1475F0Dae0',
 ].map(a => a.toLowerCase())
 
 export function isSuperAdmin(address: string): boolean {
