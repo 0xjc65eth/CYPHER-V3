@@ -333,8 +333,51 @@ class XverseAPI {
   ): Promise<XverseCollection[] | null> {
     const { limit = 20, timePeriod = '24h' } = params;
     const path = `/v1/ordinals/stats/collections/top-by-volume?limit=${limit}&timePeriod=${timePeriod}`;
-    const result = await this.fetch<{ results: XverseCollection[] }>(path, { ttlMs: 60_000 });
-    return result?.results ?? null;
+
+    interface RawCollection {
+      collectionId?: string;
+      name?: string;
+      logo?: string;
+      tradingVolumeSats?: string;
+      floorPrice?: {
+        valueInSats?: string;
+        valueInUsd?: string;
+        percentageChange24h?: { valueInSats?: string; valueInUsd?: string };
+      };
+      totalSupply?: number;
+      listedCount?: number;
+      ownerCount?: number;
+      description?: string;
+      links?: Record<string, string>;
+    }
+
+    const result = await this.fetch<{ collections?: RawCollection[]; results?: RawCollection[] }>(path, { ttlMs: 60_000 });
+    const rawItems = result?.collections ?? result?.results;
+    if (!rawItems || rawItems.length === 0) return null;
+
+    return rawItems.map((raw): XverseCollection => {
+      const floorSats = parseFloat(raw.floorPrice?.valueInSats ?? '0') || 0;
+      const floorUsd = parseFloat(raw.floorPrice?.valueInUsd ?? '0') || 0;
+      const volumeSats = parseFloat(raw.tradingVolumeSats ?? '0') || 0;
+      const pctChange = parseFloat(raw.floorPrice?.percentageChange24h?.valueInSats ?? '0') || 0;
+      return {
+        collectionId: raw.collectionId ?? '',
+        name: raw.name ?? '',
+        imageUrl: raw.logo ?? null,
+        floorPrice: floorSats,
+        floorPriceUsd: floorUsd,
+        totalVolume: volumeSats,
+        volume: volumeSats,
+        volumeUsd: 0,
+        volumePercentChange: pctChange,
+        totalSupply: raw.totalSupply ?? 0,
+        listedCount: raw.listedCount ?? 0,
+        ownerCount: raw.ownerCount ?? 0,
+        marketCapUsd: floorUsd * (raw.totalSupply ?? 0),
+        description: raw.description,
+        links: raw.links,
+      };
+    });
   }
 
   /** Full collection detail */
@@ -394,8 +437,52 @@ class XverseAPI {
   ): Promise<XverseRune[] | null> {
     const { limit = 50, timePeriod = '24h' } = params;
     const path = `/v1/runes/stats/top-by-volume?limit=${limit}&timePeriod=${timePeriod}`;
-    const result = await this.fetch<{ results: XverseRune[] }>(path, { ttlMs: 60_000 });
-    return result?.results ?? null;
+    interface RawRune {
+      runeId?: string;
+      name?: string;
+      spacedName?: string;
+      runeNumber?: number;
+      symbol?: string;
+      inscriptionRenderUrl?: string;
+      tradingVolumeSats?: string;
+      floorPrice?: { valueInSats?: string; valueInUsd?: string };
+      marketCap?: { valueInSats?: string; valueInUsd?: string };
+      totalSupply?: string;
+      holders?: number;
+      divisibility?: number;
+      mintable?: boolean;
+    }
+
+    const result = await this.fetch<{ runes?: RawRune[]; results?: RawRune[] }>(path, { ttlMs: 60_000 });
+    const rawItems = result?.runes ?? result?.results;
+    if (!rawItems || rawItems.length === 0) return null;
+
+    return rawItems.map((raw): XverseRune => {
+      const floorSats = parseFloat(raw.floorPrice?.valueInSats ?? '0') || 0;
+      const floorUsd = parseFloat(raw.floorPrice?.valueInUsd ?? '0') || 0;
+      const mcapSats = parseFloat(raw.marketCap?.valueInSats ?? '0') || 0;
+      const mcapUsd = parseFloat(raw.marketCap?.valueInUsd ?? '0') || 0;
+      const volumeSats = parseFloat(raw.tradingVolumeSats ?? '0') || 0;
+      return {
+        runeId: raw.runeId ?? '',
+        runeName: raw.name ?? '',
+        spacedRuneName: raw.spacedName ?? raw.name ?? '',
+        runeNumber: raw.runeNumber ?? 0,
+        symbol: raw.symbol ?? '',
+        imageUrl: raw.inscriptionRenderUrl ?? null,
+        floorPrice: floorSats,
+        floorPriceUsd: floorUsd,
+        marketCap: mcapSats,
+        marketCapUsd: mcapUsd,
+        volume: volumeSats,
+        volumeUsd: 0,
+        volumePercentChange: 0,
+        totalSupply: raw.totalSupply ?? '0',
+        holders: raw.holders ?? 0,
+        divisibility: raw.divisibility ?? 0,
+        mintable: raw.mintable ?? false,
+      };
+    });
   }
 
   /** Top gainers and losers */
@@ -494,10 +581,37 @@ class XverseAPI {
   /** Batch BRC-20 tickers (up to 100) */
   async getBRC20BatchTickers(tickers: string[]): Promise<Record<string, XverseBRC20Token> | null> {
     if (tickers.length === 0) return null;
-    return this.fetch(
+
+    interface RawBRC20Item {
+      ticker?: string;
+      prices?: {
+        floorPrice?: { valueInSats?: string; valueInUsd?: string; marketplace?: string };
+        lastSalePrice?: { valueInSats?: string; valueInUsd?: string; marketplace?: string };
+      };
+      volume24h?: { valueInSats?: string; valueInUsd?: string };
+    }
+
+    const result = await this.fetch<{ items?: RawBRC20Item[] }>(
       '/v1/brc20/batch/tickers',
       { ttlMs: 60_000, method: 'POST', body: { tickers } }
     );
+    const rawItems = result?.items;
+    if (!rawItems || rawItems.length === 0) return null;
+
+    const record: Record<string, XverseBRC20Token> = {};
+    for (const raw of rawItems) {
+      const tick = raw.ticker ?? '';
+      if (!tick) continue;
+      record[tick] = {
+        ticker: tick,
+        floorPrice: parseFloat(raw.prices?.floorPrice?.valueInSats ?? '0') || 0,
+        floorPriceUsd: parseFloat(raw.prices?.floorPrice?.valueInUsd ?? '0') || 0,
+        volume24h: parseFloat(raw.volume24h?.valueInSats ?? '0') || 0,
+        lastSalePrice: parseFloat(raw.prices?.lastSalePrice?.valueInSats ?? '0') || 0,
+        marketplaceSource: raw.prices?.floorPrice?.marketplace ?? raw.prices?.lastSalePrice?.marketplace ?? '',
+      };
+    }
+    return Object.keys(record).length > 0 ? record : null;
   }
 
   /** User's BRC-20 balances */

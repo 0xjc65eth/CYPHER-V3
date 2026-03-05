@@ -1,7 +1,14 @@
 {
-  "name": "cypher-ordi-future-v3",
-  "version": "3.0.0",
+  "name": "cypher-v3",
+  "version": "3.1.0",
+  "description": "Professional Bitcoin trading terminal for Ordinals, Runes, and BRC-20",
   "private": true,
+  "author": "0xjc65eth",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0xjc65eth/CYPHER-V3"
+  },
   "engines": {
     "node": "22.x",
     "npm": ">=9.0.0"
