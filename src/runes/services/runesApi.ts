@@ -1,6 +1,6 @@
 // =============================================================================
-// CYPHER V3 - Magic Eden Runes API Service
-// Serviço para comunicação com a API de Runes da Magic Eden
+// CYPHER V3 - Runes API Service
+// Serviço para comunicação com a API de Runes (Hiro primary, ME fallback)
 // Módulo independente - não depende de Ordinals
 // =============================================================================
 
@@ -24,7 +24,8 @@ import {
 // Configuração
 // -----------------------------------------------------------------------------
 
-const API_BASE_URL = 'https://api-mainnet.magiceden.dev';
+const API_BASE_URL = 'https://api.hiro.so';
+const ME_FALLBACK_URL = 'https://api-mainnet.magiceden.dev';
 const API_TIMEOUT = 15000;
 
 const cache = new Map<string, { data: unknown; timestamp: number }>();
@@ -43,11 +44,13 @@ async function fetchWithRetry<T>(
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
   try {
+    const hiroKey = process.env.HIRO_API_KEY;
     const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
+        ...(hiroKey && url.includes('api.hiro.so') ? { 'x-hiro-api-key': hiroKey } : {}),
         ...options.headers,
       },
     });
@@ -105,26 +108,74 @@ export async function fetchRuneStats(
 ): Promise<RuneCollectionStats[]> {
   const queryParams = new URLSearchParams();
 
-  if (params?.sort) queryParams.set('sort', params.sort);
-  if (params?.direction) queryParams.set('direction', params.direction);
   if (params?.offset) queryParams.set('offset', params.offset.toString());
   if (params?.limit) queryParams.set('limit', params.limit.toString());
-  if (params?.window) queryParams.set('window', params.window);
 
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/collection_stats/search${queryParams.toString() ? '?' + queryParams : ''}`;
+  const url = `${API_BASE_URL}/runes/v1/etchings${queryParams.toString() ? '?' + queryParams : ''}`;
   const cacheKey = `rune-stats:${queryParams.toString()}`;
 
-  return cachedFetch(cacheKey, () => fetchWithRetry<RuneCollectionStats[]>(url));
+  try {
+    const hiroData = await cachedFetch(cacheKey, () => fetchWithRetry<any>(url));
+    // Transform Hiro etchings response to match RuneCollectionStats shape
+    const results = hiroData.results || hiroData;
+    if (Array.isArray(results)) {
+      return results.map((r: any) => {
+        const supply = r.supply || {};
+        return {
+          rune: r.spaced_name || r.name || '',
+          runeId: r.id || '',
+          runeNumber: r.number || 0,
+          symbol: r.symbol || '◆',
+          totalSupply: parseFloat(supply.current || supply.total || '0'),
+          pendingSupply: 0,
+          divisibility: r.divisibility ?? 0,
+          holders: 0,
+          listed: 0,
+          floorUnitPrice: 0,
+          marketCap: 0,
+          volume24h: 0,
+          volume7d: 0,
+          totalVolume: 0,
+          sales24h: 0,
+          sales7d: 0,
+          priceChange24h: 0,
+          priceChange7d: 0,
+          mintable: supply.mintable || false,
+          turbo: r.turbo || false,
+          imageURI: '',
+          etching: r.location?.tx_id || '',
+          etchingBlock: r.location?.block_height || 0,
+        } as RuneCollectionStats;
+      });
+    }
+    return [];
+  } catch {
+    // Fallback to Magic Eden
+    const meParams = new URLSearchParams();
+    if (params?.sort) meParams.set('sort', params.sort);
+    if (params?.direction) meParams.set('direction', params.direction);
+    if (params?.offset) meParams.set('offset', params.offset.toString());
+    if (params?.limit) meParams.set('limit', params.limit.toString());
+    if (params?.window) meParams.set('window', params.window);
+    const meUrl = `${ME_FALLBACK_URL}/v2/ord/btc/runes/collection_stats/search${meParams.toString() ? '?' + meParams : ''}`;
+    return fetchWithRetry<RuneCollectionStats[]>(meUrl);
+  }
 }
 
 export async function fetchRuneMarketInfo(
   rune: string
 ): Promise<RuneMarketInfo> {
   const encodedRune = encodeURIComponent(rune);
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/market/${encodedRune}/info`;
   const cacheKey = `rune-info:${rune}`;
 
-  return cachedFetch(cacheKey, () => fetchWithRetry<RuneMarketInfo>(url), 60000);
+  try {
+    const url = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}`;
+    return await cachedFetch(cacheKey, () => fetchWithRetry<RuneMarketInfo>(url), 60000);
+  } catch {
+    // Fallback to Magic Eden
+    const meUrl = `${ME_FALLBACK_URL}/v2/ord/btc/runes/market/${encodedRune}/info`;
+    return cachedFetch(`${cacheKey}:me`, () => fetchWithRetry<RuneMarketInfo>(meUrl), 60000);
+  }
 }
 
 export async function fetchRuneOrders(
@@ -139,7 +190,8 @@ export async function fetchRuneOrders(
   if (params?.status) queryParams.set('status', params.status);
 
   const encodedRune = encodeURIComponent(rune);
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/orders/${encodedRune}${queryParams.toString() ? '?' + queryParams : ''}`;
+  // Orders endpoint only available on Magic Eden
+  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/orders/${encodedRune}${queryParams.toString() ? '?' + queryParams : ''}`;
   const cacheKey = `rune-orders:${rune}:${queryParams.toString()}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneOrder[]>(url));
@@ -156,10 +208,17 @@ export async function fetchRuneActivities(
   if (params?.type && params.type !== 'all') queryParams.set('type', params.type);
 
   const encodedRune = encodeURIComponent(rune);
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/activities/${encodedRune}${queryParams.toString() ? '?' + queryParams : ''}`;
-  const cacheKey = `rune-activities:${rune}:${queryParams.toString()}`;
 
-  return cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(url));
+  // Try Hiro activity endpoint first, fallback to ME
+  try {
+    const hiroUrl = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}/activity${queryParams.toString() ? '?' + queryParams : ''}`;
+    const cacheKey = `rune-activities:${rune}:${queryParams.toString()}`;
+    return await cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(hiroUrl));
+  } catch {
+    const meUrl = `${ME_FALLBACK_URL}/v2/ord/btc/runes/activities/${encodedRune}${queryParams.toString() ? '?' + queryParams : ''}`;
+    const cacheKey = `rune-activities:me:${rune}:${queryParams.toString()}`;
+    return cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(meUrl));
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -169,7 +228,8 @@ export async function fetchRuneActivities(
 export async function fetchWalletRuneUtxos(
   address: string
 ): Promise<RuneUtxo[]> {
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/utxos/wallet/${address}`;
+  // Wallet UTXOs only available on Magic Eden
+  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/utxos/wallet/${address}`;
   const cacheKey = `wallet-utxos:${address}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneUtxo[]>(url));
@@ -184,7 +244,8 @@ export async function fetchWalletRuneActivities(
   if (params?.offset) queryParams.set('offset', params.offset.toString());
   if (params?.limit) queryParams.set('limit', params.limit.toString());
 
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/wallet/activities/${address}${queryParams.toString() ? '?' + queryParams : ''}`;
+  // Wallet activities only available on Magic Eden
+  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/wallet/activities/${address}${queryParams.toString() ? '?' + queryParams : ''}`;
   const cacheKey = `wallet-activities:${address}:${queryParams.toString()}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(url));
@@ -195,7 +256,8 @@ export async function fetchWalletRuneBalance(
   rune: string
 ): Promise<RuneBalance> {
   const encodedRune = encodeURIComponent(rune);
-  const url = `${API_BASE_URL}/v2/ord/btc/runes/wallet/balances/${address}/${encodedRune}`;
+  // Wallet balance only available on Magic Eden
+  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/wallet/balances/${address}/${encodedRune}`;
   const cacheKey = `wallet-balance:${address}:${rune}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneBalance>(url));
@@ -238,7 +300,8 @@ export function formatRuneName(name: string): string {
 
 function getRuneImageUrl(rune: string, imageUri?: string): string {
   if (imageUri) return imageUri;
-  return `https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://ord.cdn.magiceden.dev/runes/${encodeURIComponent(rune)}/image`;
+  // No default image URL available from Hiro — return empty string
+  return '';
 }
 
 export async function processRunes(

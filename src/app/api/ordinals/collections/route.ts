@@ -24,91 +24,82 @@ export async function GET(request: Request) {
     const sort = searchParams.get('sort') || 'volume7d';
 
     let data: unknown[] = [];
-    let source = 'okx';
+    let source = 'hiro';
 
-    // Primary: OKX Ordinals API
+    // Primary: Hiro Ordinals API
     try {
-      const sortMap: Record<string, 'volume24h' | 'floorPrice' | 'createdAt'> = {
-        'volume7d': 'volume24h',
-        'volume24h': 'volume24h',
-        'floorPrice': 'floorPrice',
-        'newest': 'createdAt',
+      const hiroHeaders: Record<string, string> = {
+        'Accept': 'application/json',
       };
-      const okxSort = sortMap[sort] || 'volume24h';
-      const { collections } = await okxApi.getCollections(limit, undefined, okxSort);
-      if (collections && collections.length > 0) {
-        data = collections.map((c) => ({
-          name: c.name,
-          slug: c.symbol || c.collectionId,
-          symbol: c.symbol || c.collectionId,
-          imageURI: c.logoUrl,
-          floorPrice: c.floorPrice,
-          volume7d: c.volume7d,
-          volume24h: c.volume24h,
-          supply: c.totalSupply,
-          listed: c.listedRate ? Math.floor(c.totalSupply * parseFloat(c.listedRate)) : null,
-          owners: c.ownerCount,
-          description: c.description,
-          change24h: c.change24h,
-          change7d: c.change7d,
-          isVerified: c.isVerified,
-        }));
+      const hiroApiKey = process.env.HIRO_API_KEY;
+      if (hiroApiKey) {
+        hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+      }
+
+      const hiroRes = await fetchWithTimeout(
+        `https://api.hiro.so/ordinals/v1/collections?limit=${limit}&order_by=volume_24h&order=desc`,
+        hiroHeaders,
+        8000
+      );
+      if (hiroRes.ok) {
+        const hiroData = await hiroRes.json();
+        const results = hiroData.results || [];
+        if (results.length > 0) {
+          data = results.map((c: Record<string, unknown>) => ({
+            name: c.name || c.id || 'Unknown',
+            slug: c.id || '',
+            symbol: c.id || '',
+            imageURI: '',
+            floorPrice: c.floor_price ? parseInt(String(c.floor_price)) : null,
+            volume7d: null,
+            volume24h: c.volume_24h ? parseInt(String(c.volume_24h)) : null,
+            supply: c.inscription_count || 0,
+            listed: c.listed_count || null,
+            owners: c.distinct_owner_count || null,
+            description: '',
+          }));
+        }
       }
     } catch (err) {
-      // OKX failed, continue to fallbacks
+      // Hiro failed, continue to fallbacks
     }
 
-    // Fallback 1: Magic Eden
+    // Fallback 0: OKX Ordinals API
     if (!data || data.length === 0) {
-      const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
-      const magicEdenHeaders: Record<string, string> = {
-        'Accept': 'application/json',
-        'User-Agent': 'CYPHER-ORDi-Future-V3'
-      };
-      if (MAGIC_EDEN_API_KEY) {
-        magicEdenHeaders['Authorization'] = `Bearer ${MAGIC_EDEN_API_KEY}`;
-      }
-
-      const popularCollections = [
-        'bitcoin-puppets', 'nodemonkes', 'bitcoin-frogs', 'taproot_wizards',
-        'quantum_cats', 'pizza-ninjas', 'ombs', 'runestone',
-        'ordinal-maxi-biz', 'natcats', 'bitcoin-rocks', 'ocm-genesis',
-        'ord-bot', 'time-chain-collectibles', 'rsic',
-        'bitmaps', 'ordibots', 'omb'
-      ].slice(0, limit);
-
       try {
-        const statsPromises = popularCollections.map(async (symbol) => {
-          try {
-            const res = await fetchWithTimeout(
-              `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
-              magicEdenHeaders,
-              5000
-            );
-            if (res.ok) {
-              const stats = await res.json();
-              const detailsRes = await fetchWithTimeout(
-                `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${symbol}`,
-                magicEdenHeaders,
-                5000
-              );
-              const details = detailsRes.ok ? await detailsRes.json() : {};
-              return { ...stats, ...details, slug: symbol, symbol };
-            }
-            return null;
-          } catch {
-            return null;
-          }
-        });
-        const results = await Promise.all(statsPromises);
-        data = results.filter(Boolean) as unknown[];
-        if (data.length > 0) source = 'magic_eden';
+        const sortMap: Record<string, 'volume24h' | 'floorPrice' | 'createdAt'> = {
+          'volume7d': 'volume24h',
+          'volume24h': 'volume24h',
+          'floorPrice': 'floorPrice',
+          'newest': 'createdAt',
+        };
+        const okxSort = sortMap[sort] || 'volume24h';
+        const { collections } = await okxApi.getCollections(limit, undefined, okxSort);
+        if (collections && collections.length > 0) {
+          data = collections.map((c) => ({
+            name: c.name,
+            slug: c.symbol || c.collectionId,
+            symbol: c.symbol || c.collectionId,
+            imageURI: c.logoUrl,
+            floorPrice: c.floorPrice,
+            volume7d: c.volume7d,
+            volume24h: c.volume24h,
+            supply: c.totalSupply,
+            listed: c.listedRate ? Math.floor(c.totalSupply * parseFloat(c.listedRate)) : null,
+            owners: c.ownerCount,
+            description: c.description,
+            change24h: c.change24h,
+            change7d: c.change7d,
+            isVerified: c.isVerified,
+          }));
+          source = 'okx';
+        }
       } catch (err) {
-        console.error('[Collections API] Magic Eden fallback error:', err);
+        // OKX failed, continue to fallbacks
       }
     }
 
-    // Fallback 2: Hiro inscriptions grouped approach
+    // Fallback 1: Hiro inscriptions grouped approach
     if (!data || data.length === 0) {
       try {
         const hiroRes = await fetchWithTimeout(

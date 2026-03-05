@@ -42,83 +42,72 @@ export async function GET(request: Request) {
     }
 
     const result = await deduplicatedFetch(cacheKey, async () => {
-      // STRATEGY 1: Magic Eden (has price + volume data)
+      // STRATEGY 1: Hiro API (primary source for runes data)
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const meRes = await fetch(
-          `https://api-mainnet.magiceden.dev/v2/ord/btc/runes/collection_stats/search?window=1d&sort=volume24h&direction=desc&offset=0&limit=${limit}`,
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        if (process.env.HIRO_API_KEY) hiroHeaders['x-hiro-api-key'] = process.env.HIRO_API_KEY;
+
+        const hiroRes = await fetch(
+          `https://api.hiro.so/runes/v1/etchings?limit=${limit}&offset=0`,
           {
-            headers: { 'Accept': 'application/json' },
+            headers: hiroHeaders,
             signal: controller.signal
           }
         );
         clearTimeout(timeout);
 
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          const runes = Array.isArray(meData) ? meData : meData.results || [];
+        if (hiroRes.ok) {
+          const hiroData = await hiroRes.json();
+          const runes = hiroData.results || [];
 
           if (runes.length > 0) {
 
             const enrichedRunes = runes.map((r: any, idx: number) => {
-              const supply = parseFloat(r.totalSupply?.toString() || '0');
+              const supply = r.supply || {};
+              const supplyStr = supply.current || supply.total || '0';
+              const supplyNum = parseFloat(supplyStr) || 0;
+              const decimals = r.divisibility ?? r.decimals ?? 0;
 
-              // floorUnitPrice from Magic Eden can be:
-              //   - a number in sats (e.g. 1500 = 0.00001500 BTC)
-              //   - an object { formatted, value }
-              //   - already in BTC (if < 1, it's likely BTC; if >= 1, it's sats)
-              const rawFloor = r.floorUnitPrice ?? r.fp ?? r.floorPrice;
-              let floorPrice: number;
-              if (typeof rawFloor === 'object' && rawFloor !== null) {
-                floorPrice = parseFloat(rawFloor.formatted || rawFloor.value?.toString() || '0');
-              } else {
-                floorPrice = parseFloat(rawFloor?.toString() || '0');
-              }
-              // Magic Eden typically returns prices in sats for runes — convert to BTC
-              // Heuristic: if > 1, it's almost certainly sats (a rune floor of 1+ BTC is extremely rare)
-              if (floorPrice >= 1) {
-                floorPrice = floorPrice / 1e8;
-              }
+              // Hiro does not provide price/volume — set to 0
+              const floorPrice = 0;
+              const volume24h = 0;
 
-              // volume24h from Magic Eden is typically in sats
-              let volume24h = parseFloat(r.volume24h?.toString() || r.vol24h?.toString() || '0');
-              if (volume24h >= 1000) {
-                volume24h = volume24h / 1e8; // Convert sats to BTC
-              }
+              const holders = 0; // holder count requires separate API call
+              const listed = 0;
+              const sales24h = 0;
+              const marketCap = 0;
 
-              const holders = r.holders || r.ownerCount || 0;
-              const listed = r.listedCount || r.listed || 0;
-              const sales24h = r.sales24h || r.salesCount24h || 0;
-              const marketCap = floorPrice * supply;
+              const ts = r.timestamp || null;
 
               return {
-                id: r.runeId || `${r.rune}-${idx}`,
-                name: r.rune?.replace(/•/g, '') || '',
-                spaced_name: r.rune || '',
-                number: r.runeNumber || idx + 1,
+                id: r.id || `hiro-${idx}`,
+                name: r.name || '',
+                spaced_name: r.spaced_name || r.name || '',
+                number: r.number || idx + 1,
                 symbol: r.symbol || '◆',
-                decimals: r.divisibility || 0,
-                supply: r.totalSupply?.toString() || '0',
-                burned: '0',
-                premine: '0',
+                decimals,
+                supply: supplyStr,
+                burned: supply.burned || '0',
+                premine: supply.premine || '0',
                 holders,
                 listed,
                 transactions: 0,
                 floorPrice,
                 volume24h,
-                volume7d: (() => { const v = parseFloat(r.volume7d?.toString() || '0'); return v >= 1000 ? v / 1e8 : v; })(),
+                volume7d: 0,
                 sales24h,
                 marketCap,
-                change24h: parseFloat(r.priceChange24h?.toString() || '0'),
+                change24h: 0,
                 turbo: r.turbo || false,
-                mintable: r.mintable || false,
-                image_uri: r.imageURI || null,
-                timestamp: null,
-                etching_tx_id: null,
-                etching_block_height: null,
-                mint_terms: null,
+                mintable: supply.mintable || false,
+                image_uri: null,
+                timestamp: ts ? new Date(typeof ts === 'number' && ts < 1e12 ? ts * 1000 : ts).toISOString() : null,
+                etching_tx_id: r.location?.tx_id || null,
+                etching_block_height: r.location?.block_height || null,
+                mint_terms: r.mint_terms || null,
               };
             });
 
@@ -135,15 +124,15 @@ export async function GET(request: Request) {
               success: true,
               data: enrichedRunes,
               stats,
-              total: enrichedRunes.length,
+              total: hiroData.total || enrichedRunes.length,
               timestamp: Date.now(),
-              source: 'magiceden'
+              source: 'hiro'
             };
           }
         }
 
       } catch (error: any) {
-        console.error('[market-overview] ❌ Magic Eden error:', error.message);
+        console.error('[market-overview] Hiro API error:', error.message);
       }
 
       // STRATEGY 2: UniSat (has holder data, no prices)

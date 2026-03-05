@@ -247,81 +247,6 @@ async function fetchFromOrdScan(address: string, page = 0, limit = 50): Promise<
 }
 
 /**
- * Legacy Magic Eden API Client (deprecated — migrating to Gamma.io)
- */
-async function fetchFromMagicEden(address: string, page = 0, limit = 50): Promise<OrdinalsBalance> {
-  const baseUrl = 'https://api-mainnet.magiceden.io/v2';
-  
-  const offset = page * limit;
-  
-  const response = await fetch(
-    `${baseUrl}/ord/btc/tokens?ownerAddress=${address}&limit=${limit}&offset=${offset}`,
-    {
-      headers: {
-        'Accept': 'application/json'
-      },
-      next: { revalidate: 300 }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Magic Eden API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  
-  const inscriptions: Inscription[] = (data.tokens || []).map((token: any) => {
-    return {
-      id: token.id,
-      number: token.inscriptionNumber,
-      address,
-      content_type: token.contentType,
-      sat: token.sat,
-      location: token.location,
-      output: token.output,
-      output_value: token.outputValue,
-      collection: token.collectionSymbol ? {
-        id: token.collectionSymbol,
-        name: token.collectionName || token.collectionSymbol,
-        slug: token.collectionSymbol
-      } : undefined,
-      metadata: {
-        name: token.meta?.name,
-        description: token.meta?.description,
-        attributes: token.meta?.attributes
-      }
-    };
-  });
-
-  // Group by collections
-  const collectionsMap = new Map<string, any>();
-  
-  inscriptions.forEach(inscription => {
-    if (inscription.collection) {
-      const collectionId = inscription.collection.id;
-      if (!collectionsMap.has(collectionId)) {
-        collectionsMap.set(collectionId, {
-          id: collectionId,
-          name: inscription.collection.name,
-          count: 0
-        });
-      }
-      collectionsMap.get(collectionId).count++;
-    }
-  });
-
-  return {
-    address,
-    total_inscriptions: data.total || inscriptions.length,
-    inscriptions,
-    collections: Array.from(collectionsMap.values()),
-    page,
-    limit,
-    has_more: inscriptions.length === limit // Estimate based on response size
-  };
-}
-
-/**
  * Main API Handler
  */
 export async function GET(
@@ -382,12 +307,6 @@ export async function GET(
             endpoint: 'inscriptions',
             fetchFn: () => fetchFromOrdScan(sanitizedAddress, page, limit)
           }
-          // Magic Eden commented out as it may have stricter rate limits
-          // {
-          //   name: 'magiceden',
-          //   endpoint: 'tokens',
-          //   fetchFn: () => fetchFromMagicEden(sanitizedAddress, page, limit)
-          // }
         ],
         CACHE_TTL.ordinals
       );

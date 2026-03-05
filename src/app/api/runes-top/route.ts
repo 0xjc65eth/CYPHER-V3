@@ -19,58 +19,16 @@ export async function GET() {
     }
 
 
-    // Strategy 1: Try Magic Eden collection stats (has real market data)
+    // Strategy 1: Hiro API (primary source)
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const meHeaders: Record<string, string> = { 'Accept': 'application/json' };
-      const meApiKey = process.env.MAGICEDEN_API_KEY;
-      if (meApiKey) meHeaders['Authorization'] = `Bearer ${meApiKey}`;
-      const meRes = await fetch(
-        'https://api-mainnet.magiceden.dev/v2/ord/btc/runes/collection_stats/search?window=1d&sort=volume24h&direction=desc&offset=0&limit=30',
-        { headers: meHeaders, signal: controller.signal }
-      );
-      clearTimeout(timeout);
-
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        const runes = Array.isArray(meData) ? meData : meData.results || [];
-        if (runes.length > 0) {
-          const processed = runes.map((r: any, index: number) => ({
-            rank: index + 1,
-            name: r.rune?.replace(/[•]/g, '') || '',
-            formatted_name: r.rune || '',
-            price: r.floorUnitPrice ? (typeof r.floorUnitPrice === 'object' ? r.floorUnitPrice.value || 0 : r.floorUnitPrice) / 1e8 : 0,
-            price_usd: 0,
-            volume_24h: r.volume24h || r.volume || 0,
-            market_cap: r.marketCap || 0,
-            holders: r.holders || r.ownerCount || 0,
-            supply: r.totalSupply || 0,
-            change_24h: r.priceChange24h || r.volumeChange || 0,
-            verified: true,
-            source: 'magiceden',
-          }));
-
-          cache.set('runes-top', { data: processed, timestamp: Date.now() });
-          return NextResponse.json(processed);
-        }
-      }
-    } catch (error) {
-    }
-
-    // Strategy 2: Try Hiro API sorted by total mints
-    try {
-      const apiKey = process.env.HIRO_API_KEY;
-      const headers: Record<string, string> = { 'Accept': 'application/json' };
-      if (apiKey) {
-        headers['x-hiro-api-key'] = apiKey;
-      }
+      const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+      if (process.env.HIRO_API_KEY) hiroHeaders['x-hiro-api-key'] = process.env.HIRO_API_KEY;
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10000);
       const hiroRes = await fetch(
         'https://api.hiro.so/runes/v1/etchings?limit=30&offset=0',
-        { headers, signal: controller.signal }
+        { headers: hiroHeaders, signal: controller.signal }
       );
       clearTimeout(timeout);
 
@@ -100,13 +58,14 @@ export async function GET() {
         return NextResponse.json(processed);
       }
     } catch (error) {
+      console.error('[runes-top] Hiro API error:', error);
     }
 
     // All sources failed - return structured error
-    console.error('All runes-top data sources failed');
+    console.error('[runes-top] All data sources failed');
     return NextResponse.json({
       error: 'Failed to fetch top runes data from all sources',
-      sources_tried: ['magiceden', 'hiro'],
+      sources_tried: ['hiro'],
       timestamp: Date.now(),
     }, { status: 502 });
   } catch (error) {

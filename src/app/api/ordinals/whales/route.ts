@@ -40,28 +40,26 @@ export async function GET(request: NextRequest) {
       // OKX failed, will fall through to ME
     }
 
-    // Fallback to Magic Eden if OKX didn't return data
+    // Fallback to Hiro if OKX didn't return data
     if (totalSupply === 0 && floorPrice === 0) {
       try {
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+
         const statsResponse = await fetch(
-          `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${collection}`,
-          {
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'CYPHER-ORDi-Future-V3'
-            },
-            next: { revalidate: 60 }
-          }
+          `https://api.hiro.so/ordinals/v1/collections/${collection}`,
+          { headers: hiroHeaders, next: { revalidate: 60 } }
         );
 
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
-          totalSupply = parseInt(statsData.supply || '0');
-          floorPrice = parseFloat(statsData.floorPrice || '0');
-          totalHolders = parseInt(statsData.owners || '0');
+          totalSupply = statsData.inscription_count || 0;
+          floorPrice = statsData.floor_price ? parseInt(String(statsData.floor_price)) / 1e8 : 0;
+          totalHolders = statsData.distinct_owner_count || 0;
         }
       } catch (error) {
-        // Both sources failed, continue with zeros
+        // Hiro failed, continue with zeros
       }
     }
 
@@ -147,53 +145,49 @@ export async function GET(request: NextRequest) {
       // OKX activities failed, will fall through to ME
     }
 
-    // Fallback to Magic Eden if OKX didn't return activities
+    // Fallback to Hiro if OKX didn't return activities
     if (recentActivity.length === 0) {
       try {
-        const activitiesResponse = await fetch(
-          `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?collectionSymbol=${collection}&limit=100`,
-          {
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'CYPHER-ORDi-Future-V3'
-            },
-            next: { revalidate: 30 }
-          }
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+
+        const hiroRes = await fetch(
+          `https://api.hiro.so/ordinals/v1/inscriptions?limit=100&order=desc&order_by=genesis_block_height`,
+          { headers: hiroHeaders, next: { revalidate: 30 } }
         );
 
-        if (activitiesResponse.ok) {
-          const activitiesData = await activitiesResponse.json();
+        if (hiroRes.ok) {
+          const hiroData = await hiroRes.json();
+          const inscriptions = hiroData.results || [];
 
-          if (Array.isArray(activitiesData)) {
-            activitiesData
-              .filter((activity: any) => {
-                const address = activity.buyer || activity.seller || activity.toAddress || activity.fromAddress;
-                return whaleAddresses.has(address);
-              })
-              .slice(0, 50)
-              .forEach((activity: any) => {
-                const address = activity.buyer || activity.seller || activity.toAddress || activity.fromAddress;
-                const type = activity.kind === 'buying_broadcasted' || activity.kind === 'sale' ? 'buy' :
-                            activity.kind === 'list' ? 'sell' :
-                            activity.kind === 'transfer' ? 'transfer_in' : 'transfer_out';
-
-                recentActivity.push({
-                  id: activity.txid || activity.id,
-                  address,
-                  type,
-                  collectionSymbol: collection,
-                  inscriptionId: activity.tokenInscriptionId || activity.inscriptionId,
-                  inscriptionNumber: activity.inscriptionNumber,
-                  price: activity.listedPrice || activity.price,
-                  quantity: 1,
-                  timestamp: activity.createdAt ? new Date(activity.createdAt).getTime() : Date.now(),
-                  txid: activity.txid,
-                  impact: getActivityImpact(1, totalSupply)
-                });
+          inscriptions
+            .filter((ins: any) => {
+              const address = ins.address || ins.genesis_address;
+              return whaleAddresses.has(address);
+            })
+            .slice(0, 50)
+            .forEach((ins: any) => {
+              const address = ins.address || ins.genesis_address;
+              recentActivity.push({
+                id: ins.tx_id || ins.id,
+                address,
+                type: 'transfer_in',
+                collectionSymbol: collection,
+                inscriptionId: ins.id,
+                inscriptionNumber: ins.number,
+                price: ins.genesis_fee ? parseInt(String(ins.genesis_fee)) : undefined,
+                quantity: 1,
+                timestamp: ins.genesis_timestamp
+                  ? (ins.genesis_timestamp < 1e12 ? ins.genesis_timestamp * 1000 : ins.genesis_timestamp)
+                  : Date.now(),
+                txid: ins.tx_id,
+                impact: getActivityImpact(1, totalSupply)
               });
-          }
+            });
         }
       } catch (error) {
+        // Hiro activities fallback failed
       }
     }
 

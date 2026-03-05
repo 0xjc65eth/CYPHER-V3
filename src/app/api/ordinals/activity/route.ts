@@ -67,40 +67,51 @@ export async function GET(request: Request) {
       // OKX failed, continue to fallbacks
     }
 
-    // Fallback 1: Magic Eden
+    // Fallback 1: Hiro recent inscriptions
     if (!data || data.length === 0) {
-      const MAGIC_EDEN_API_KEY = process.env.MAGIC_EDEN_API_KEY;
-      const kindParam = kind ? `&kind=${kind}` : '';
-      const meEndpoints = [
-        `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?limit=${limit}${kindParam}`,
-        `https://api-mainnet.magiceden.dev/v2/ord/btc/activities/trades?limit=${limit}`,
-      ];
-
-      for (const endpoint of meEndpoints) {
-        const meController = new AbortController();
-        const meTimeout = setTimeout(() => meController.abort(), 10000);
-        try {
-          const headers: Record<string, string> = {
-            'Accept': 'application/json',
-            'User-Agent': 'CYPHER-ORDi-Future-V3'
-          };
-          if (MAGIC_EDEN_API_KEY) {
-            headers['Authorization'] = `Bearer ${MAGIC_EDEN_API_KEY}`;
-          }
-          const res = await fetch(endpoint, { headers, signal: meController.signal });
-          if (res.ok) {
-            const json = await res.json();
-            data = Array.isArray(json) ? json : json.activities || json.results || json.data || null;
-            if (data && data.length > 0) {
-              source = 'magic_eden';
-              break;
-            }
-          }
-        } catch (error) {
-          // ME endpoint failed, try next
-        } finally {
-          clearTimeout(meTimeout);
+      const hiroController = new AbortController();
+      const hiroTimeout = setTimeout(() => hiroController.abort(), 10000);
+      try {
+        const hiroHeaders: Record<string, string> = {
+          'Accept': 'application/json',
+        };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) {
+          hiroHeaders['x-hiro-api-key'] = hiroApiKey;
         }
+
+        const hiroRes = await fetch(
+          `https://api.hiro.so/ordinals/v1/inscriptions?limit=${limit}&order=desc&order_by=genesis_block_height`,
+          {
+            headers: hiroHeaders,
+            signal: hiroController.signal,
+          }
+        );
+        if (hiroRes.ok) {
+          const hiroData = await hiroRes.json();
+          data = (Array.isArray(hiroData.results) ? hiroData.results : []).map((item: Record<string, unknown>) => ({
+            kind: 'inscription',
+            tokenId: item.id,
+            inscription_id: item.id,
+            number: item.number,
+            inscriptionNumber: item.number,
+            content_type: item.content_type,
+            genesis_block_height: item.genesis_block_height,
+            createdAt: typeof item.genesis_timestamp === 'number'
+              ? new Date((item.genesis_timestamp as number) < 1e12 ? (item.genesis_timestamp as number) * 1000 : (item.genesis_timestamp as number)).toISOString()
+              : undefined,
+            timestamp: item.genesis_timestamp,
+            tx_id: item.tx_id,
+            listedPrice: typeof item.genesis_fee === 'string' ? parseInt(item.genesis_fee as string) : null,
+            price: typeof item.genesis_fee === 'string' ? parseInt(item.genesis_fee as string) : null,
+            address: item.address || item.genesis_address,
+          }));
+          if (data && data.length > 0) source = 'hiro';
+        }
+      } catch (error) {
+        // Hiro failed, continue to next fallback
+      } finally {
+        clearTimeout(hiroTimeout);
       }
     }
 
@@ -127,54 +138,6 @@ export async function GET(request: Request) {
         // Ordiscan failed, continue to next fallback
       } finally {
         clearTimeout(ordTimeout);
-      }
-    }
-
-    // Fallback 3: Use Hiro recent inscriptions as activity proxy
-    if (!data || data.length === 0) {
-      const controller4 = new AbortController();
-      const timeout4 = setTimeout(() => controller4.abort(), 10000);
-      try {
-        const hiroHeaders: Record<string, string> = {
-          'Accept': 'application/json',
-        };
-        const hiroApiKey = process.env.HIRO_API_KEY;
-        if (hiroApiKey) {
-          hiroHeaders['x-api-key'] = hiroApiKey;
-        }
-
-        const hiroRes = await fetch(
-          `https://api.hiro.so/ordinals/v1/inscriptions?limit=${limit}&order=desc&order_by=genesis_block_height`,
-          {
-            headers: hiroHeaders,
-            signal: controller4.signal,
-          }
-        );
-        if (hiroRes.ok) {
-          const hiroData = await hiroRes.json();
-          data = (Array.isArray(hiroData.results) ? hiroData.results : []).map((item: Record<string, unknown>) => ({
-            kind: 'inscription',
-            tokenId: item.id,
-            inscription_id: item.id,
-            number: item.number,
-            inscriptionNumber: item.number,
-            content_type: item.content_type,
-            genesis_block_height: item.genesis_block_height,
-            createdAt: typeof item.genesis_timestamp === 'number'
-              ? new Date((item.genesis_timestamp as number) < 1e12 ? (item.genesis_timestamp as number) * 1000 : (item.genesis_timestamp as number)).toISOString()
-              : undefined,
-            timestamp: item.genesis_timestamp,
-            tx_id: item.tx_id,
-            listedPrice: typeof item.genesis_fee === 'string' ? parseInt(item.genesis_fee as string) : null,
-            price: typeof item.genesis_fee === 'string' ? parseInt(item.genesis_fee as string) : null,
-            address: item.address || item.genesis_address,
-          }));
-          source = 'hiro';
-        }
-      } catch (error) {
-        console.error('[Marketplace API] Hiro fallback error:', error);
-      } finally {
-        clearTimeout(timeout4);
       }
     }
 

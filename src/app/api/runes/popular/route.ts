@@ -112,47 +112,54 @@ export async function GET(request: Request) {
     }
 
     const result = await deduplicatedFetch(cacheKey, async () => {
-      // Strategy 1: Try Magic Eden first (has market data)
+      // Strategy 1: Hiro etchings list (primary source)
       try {
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 8000);
-        const meRes = await fetch(
-          `https://api-mainnet.magiceden.dev/v2/ord/btc/runes/collection_stats/search?window=1d&sort=volume24h&direction=desc&offset=0&limit=${limit}`,
-          { headers: { 'Accept': 'application/json' }, signal: controller.signal }
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        if (process.env.HIRO_API_KEY) hiroHeaders['x-hiro-api-key'] = process.env.HIRO_API_KEY;
+
+        const hiroRes = await fetch(
+          `https://api.hiro.so/runes/v1/etchings?limit=${limit}&offset=0`,
+          { headers: hiroHeaders, signal: controller.signal }
         );
         clearTimeout(timeout);
 
-        if (meRes.ok) {
-          const meData = await meRes.json();
-          const runes = Array.isArray(meData) ? meData : meData.results || [];
+        if (hiroRes.ok) {
+          const hiroData = await hiroRes.json();
+          const runes = hiroData.results || [];
           if (runes.length > 0) {
-            const processed = runes.map((r: any) => ({
-              id: r.runeId || r.rune,
-              name: r.rune?.replace(/•/g, ' ') || '',
-              spaced_name: r.rune || '',
-              symbol: r.symbol || '◆',
-              number: r.runeNumber || null,
-              decimals: r.divisibility || 0,
-              supply: r.totalSupply?.toString() || '0',
-              burned: '0',
-              premine: '0',
-              turbo: r.turbo || false,
-              timestamp: null,
-              holders: r.holders || 0,
-              listed: r.listed || 0,
-              floor_price_sats: r.floorUnitPrice || 0,
-              market_cap_sats: r.marketCap || 0,
-              volume_24h_sats: r.volume24h || 0,
-              volume_7d_sats: r.volume7d || 0,
-              price_change_24h: r.priceChange24h || 0,
-              mintable: r.mintable || false,
-              image_uri: r.imageURI || null,
-            }));
-            return { success: true, data: processed, total: processed.length, timestamp: Date.now(), source: 'magiceden' };
+            const processed = runes.map((r: any) => {
+              const supply = r.supply || {};
+              return {
+                id: r.id,
+                name: r.name || '',
+                spaced_name: r.spaced_name || r.name || '',
+                symbol: r.symbol || '◆',
+                number: r.number || null,
+                decimals: r.divisibility ?? r.decimals ?? 0,
+                supply: supply.current || supply.total || '0',
+                burned: supply.burned || '0',
+                premine: supply.premine || '0',
+                turbo: r.turbo || false,
+                timestamp: r.timestamp || null,
+                holders: 0,
+                listed: 0,
+                floor_price_sats: 0,
+                market_cap_sats: 0,
+                volume_24h_sats: 0,
+                volume_7d_sats: 0,
+                price_change_24h: 0,
+                mintable: supply.mintable || false,
+                image_uri: null,
+                mint_terms: r.mint_terms || null,
+              };
+            });
+            return { success: true, data: processed, total: hiroData.total || processed.length, timestamp: Date.now(), source: 'hiro' };
           }
         }
       } catch {
-        // ME failed, fallback below
+        // Hiro list failed, fallback below
       }
 
       // Strategy 2: Fetch popular runes individually from Hiro (batched in groups of 5)

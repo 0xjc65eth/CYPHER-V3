@@ -46,26 +46,26 @@ export async function GET(
       totalSupply = okxStats.itemCount || 0;
       totalListed = okxStats.listedCount || 0;
     } else {
-      // Fallback to Magic Eden
-      const magicEdenResponse = await fetch(
-        `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'User-Agent': 'CYPHER-ORDi-Future-V3'
-          },
-          next: { revalidate: 60 } // Cache for 1 minute
+      // Fallback to Hiro
+      const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+      const hiroApiKey = process.env.HIRO_API_KEY;
+      if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+
+      try {
+        const hiroResponse = await fetch(
+          `https://api.hiro.so/ordinals/v1/collections/${symbol}`,
+          { headers: hiroHeaders, next: { revalidate: 60 } }
+        );
+
+        if (hiroResponse.ok) {
+          const hiroData = await hiroResponse.json();
+          totalHolders = hiroData.distinct_owner_count || 0;
+          totalSupply = hiroData.inscription_count || 0;
+          totalListed = hiroData.listed_count || 0;
         }
-      );
-
-      if (!magicEdenResponse.ok) {
-        throw new Error(`Magic Eden API error: ${magicEdenResponse.status}`);
+      } catch (error) {
+        // Hiro failed, continue with zeros
       }
-
-      const magicEdenData = await magicEdenResponse.json();
-      totalHolders = parseInt(magicEdenData.owners || '0');
-      totalSupply = parseInt(magicEdenData.supply || '0');
-      totalListed = parseInt(magicEdenData.totalListed || '0');
     }
 
     // Calculate basic metrics

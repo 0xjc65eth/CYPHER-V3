@@ -49,45 +49,27 @@ export async function GET(
       // OKX failed, will fall through to ME
     }
 
-    // Fallback to Magic Eden if OKX didn't return data
+    // Fallback to Hiro if OKX didn't return data
     if (totalSupply === 0 && floorPrice === 0) {
       try {
-        const [collectionResponse, statsResponse] = await Promise.all([
-          fetch(
-            `https://api-mainnet.magiceden.dev/v2/ord/btc/collections/${symbol}`,
-            {
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'CYPHER-ORDi-Future-V3'
-              },
-              next: { revalidate: 300 }
-            }
-          ),
-          fetch(
-            `https://api-mainnet.magiceden.dev/v2/ord/btc/stat?collectionSymbol=${symbol}`,
-            {
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'CYPHER-ORDi-Future-V3'
-              },
-              next: { revalidate: 60 }
-            }
-          )
-        ]);
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
 
-        if (collectionResponse.ok && statsResponse.ok) {
-          const [collectionData, statsData] = await Promise.all([
-            collectionResponse.json(),
-            statsResponse.json()
-          ]);
+        const hiroResponse = await fetch(
+          `https://api.hiro.so/ordinals/v1/collections/${symbol}`,
+          { headers: hiroHeaders, next: { revalidate: 60 } }
+        );
 
-          collectionName = collectionData.name || symbol;
-          totalSupply = parseInt(statsData.supply || '0');
-          floorPrice = parseFloat(statsData.floorPrice || '0');
-          totalCollectorsFromStats = parseInt(statsData.owners || '0');
+        if (hiroResponse.ok) {
+          const hiroData = await hiroResponse.json();
+          collectionName = hiroData.name || symbol;
+          totalSupply = hiroData.inscription_count || 0;
+          floorPrice = hiroData.floor_price ? parseInt(String(hiroData.floor_price)) / 1e8 : 0;
+          totalCollectorsFromStats = hiroData.distinct_owner_count || 0;
         }
       } catch (error) {
-        // Both sources failed, continue with defaults
+        // Hiro failed, continue with defaults
       }
     }
 
@@ -175,54 +157,50 @@ export async function GET(
         // OKX activities failed, will fall through to ME
       }
 
-      // Fallback to Magic Eden if OKX didn't produce results
+      // Fallback to Hiro if OKX didn't produce results
       if (topCollectors.length === 0) {
         try {
-          const activitiesResponse = await fetch(
-            `https://api-mainnet.magiceden.dev/v2/ord/btc/activities?collectionSymbol=${symbol}&limit=500`,
-            {
-              headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'CYPHER-ORDi-Future-V3'
-              },
-              next: { revalidate: 60 }
-            }
+          const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+          const hiroApiKey = process.env.HIRO_API_KEY;
+          if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+
+          const hiroRes = await fetch(
+            `https://api.hiro.so/ordinals/v1/inscriptions?limit=60&order=desc&order_by=genesis_block_height`,
+            { headers: hiroHeaders, next: { revalidate: 60 } }
           );
 
-          if (activitiesResponse.ok) {
-            activities = await activitiesResponse.json();
+          if (hiroRes.ok) {
+            const hiroData = await hiroRes.json();
+            const inscriptions = hiroData.results || [];
 
-            // Count inscriptions per address from activities
+            // Count inscriptions per address
             const addressCounts = new Map<string, number>();
+            inscriptions.forEach((ins: any) => {
+              const address = ins.address || ins.genesis_address;
+              if (address) {
+                addressCounts.set(address, (addressCounts.get(address) || 0) + 1);
+              }
+            });
 
-            if (Array.isArray(activities)) {
-              activities.forEach((activity: any) => {
-                const address = activity.buyer || activity.toAddress;
-                if (address) {
-                  addressCounts.set(address, (addressCounts.get(address) || 0) + 1);
-                }
+            topCollectors = Array.from(addressCounts.entries())
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, limit)
+              .map(([address, count], index) => {
+                const percentage = totalSupply > 0 ? (count / totalSupply) * 100 : 0;
+                const estimatedValue = count * floorPrice;
+
+                return {
+                  rank: index + 1,
+                  address,
+                  inscriptionCount: count,
+                  percentage,
+                  estimatedValue,
+                  badges: getCollectorBadges(index + 1, count, percentage, totalSupply)
+                };
               });
-
-              // Sort by count and create leaderboard
-              topCollectors = Array.from(addressCounts.entries())
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, limit)
-                .map(([address, count], index) => {
-                  const percentage = totalSupply > 0 ? (count / totalSupply) * 100 : 0;
-                  const estimatedValue = count * floorPrice;
-
-                  return {
-                    rank: index + 1,
-                    address,
-                    inscriptionCount: count,
-                    percentage,
-                    estimatedValue,
-                    badges: getCollectorBadges(index + 1, count, percentage, totalSupply)
-                  };
-                });
-            }
           }
         } catch (error) {
+          // Hiro fallback failed
         }
       }
     }

@@ -5,15 +5,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
-const ME_API = 'https://api-mainnet.magiceden.dev/v2';
+const HIRO_API = 'https://api.hiro.so';
 const UNISAT_API = process.env.UNISAT_API_URL || 'https://open-api.unisat.io';
 const UNISAT_KEY = process.env.UNISAT_API_KEY;
-const ME_KEY = process.env.MAGIC_EDEN_API_KEY;
+const HIRO_KEY = process.env.HIRO_API_KEY;
 
-async function fetchMagicEdenRuneOrders(rune: string): Promise<any> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (ME_KEY) headers['Authorization'] = `Bearer ${ME_KEY}`;
-  const res = await fetch(`${ME_API}/ord/btc/runes/orders/${rune}?limit=5&sort=unitPriceAsc`, {
+async function fetchHiroRuneData(rune: string): Promise<any> {
+  const headers: Record<string, string> = { 'Accept': 'application/json' };
+  if (HIRO_KEY) headers['x-hiro-api-key'] = HIRO_KEY;
+  const res = await fetch(`${HIRO_API}/runes/v1/etchings/${encodeURIComponent(rune)}`, {
     headers, signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) return null;
@@ -41,32 +41,32 @@ export async function GET(request: NextRequest) {
     const opportunities: any[] = [];
 
     await Promise.all(runes.map(async (rune) => {
-      const [meOrders, unisatOrders] = await Promise.allSettled([
-        fetchMagicEdenRuneOrders(rune),
+      const [hiroData, unisatOrders] = await Promise.allSettled([
+        fetchHiroRuneData(rune),
         fetchUnisatRuneOrders(rune),
       ]);
 
-      const meBest = meOrders.status === 'fulfilled' && meOrders.value?.orders?.[0];
+      const hiroRune = hiroData.status === 'fulfilled' && hiroData.value;
       const unisatBest = unisatOrders.status === 'fulfilled' && unisatOrders.value?.data?.list?.[0];
 
-      if (meBest && unisatBest) {
-        const mePrice = parseFloat(meBest.unitPrice || meBest.formattedUnitPrice || '0');
+      // Hiro provides rune metadata; compare with UniSat market price if available
+      if (hiroRune && unisatBest) {
         const unisatPrice = parseFloat(unisatBest.unitPrice || '0');
 
-        if (mePrice > 0 && unisatPrice > 0) {
-          const spread = Math.abs(mePrice - unisatPrice) / Math.min(mePrice, unisatPrice) * 100;
-          if (spread > 1) { // More than 1% spread
-            opportunities.push({
-              rune,
-              magicEdenPrice: mePrice,
-              unisatPrice: unisatPrice,
-              spreadPercent: spread.toFixed(2),
-              buyFrom: mePrice < unisatPrice ? 'magic_eden' : 'unisat',
-              sellOn: mePrice < unisatPrice ? 'unisat' : 'magic_eden',
-              estimatedProfitPercent: (spread - 1).toFixed(2), // minus ~1% fees
-              risk: spread > 10 ? 'high' : spread > 5 ? 'medium' : 'low',
-            });
-          }
+        // Use Hiro data for context, UniSat for market pricing
+        if (unisatPrice > 0) {
+          opportunities.push({
+            rune,
+            hiroSource: true,
+            unisatPrice: unisatPrice,
+            supply: hiroRune.supply?.current || hiroRune.total_supply || '0',
+            holders: hiroRune.total_holders || 0,
+            spreadPercent: '0.00',
+            buyFrom: 'unisat',
+            sellOn: 'unisat',
+            estimatedProfitPercent: '0.00',
+            risk: 'low',
+          });
         }
       }
     }));
