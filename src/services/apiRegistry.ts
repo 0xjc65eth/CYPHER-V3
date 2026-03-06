@@ -3,17 +3,29 @@
  * Central registry that imports and exports all API services for unified access.
  *
  * Usage:
- *   import { magicEdenService, unisatService } from '@/services/apiRegistry';
+ *   import { ordinalsMarketService, xverseAPI, bitcoinEcosystemService } from '@/services/apiRegistry';
  */
 
-// Magic Eden - Core Ordinals service (collections, tokens, blocks, rare sats)
-export { magicEdenService, MagicEdenService } from './magicEdenService';
+// Ordinals marketplace service (OKX primary → Hiro fallback)
+export { ordinalsMarketService, OrdinalsMarketService } from './ordinalsMarketService';
 
-// Magic Eden - Runes-specific service (runes info, listings, sweeping, market sell, swaps)
-export { magicEdenRunesService, MagicEdenRunesService } from './magicEdenRunesService';
+// Runes marketplace service (Hiro primary → Gamma fallback)
+export { runesMarketService, RunesMarketService } from './runesMarketService';
 
 // UniSat - Core Bitcoin service (addresses, UTXOs, blocks, transactions, BRC-20)
 export { unisatService, UniSatService } from './unisatService';
 
 // UniSat - Runes + Marketplace service (runes indexer, marketplace operations)
 export { unisatRunesService, UniSatRunesService } from './unisatRunesService';
+
+// Xverse - Primary data source (Ordinals, Runes, BRC-20, Bitcoin price/fees)
+export { xverseAPI } from '@/lib/api/xverse';
+
+// Hiro - Ordinals/Runes/BRC-20 indexer
+export { hiroAPI } from '@/lib/api/hiro';
+
+// Bitcoin Ecosystem - Aggregated ecosystem stats
+export { bitcoinEcosystemService } from './BitcoinEcosystemService';
+
+// Ordinals API - Collection stats and processing
+export { ordinalsAPI } from './ordinalsApi';

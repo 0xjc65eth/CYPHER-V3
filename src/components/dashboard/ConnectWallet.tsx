@@ -39,7 +39,7 @@ const BTC_WALLETS = [
     recommended: false,
   },
   {
-    id: 'magic_eden' as const,
+    id: 'gamma' as const,
     name: 'Gamma.io',
     description: 'Bitcoin NFT marketplace wallet',
     icon: '🎨',

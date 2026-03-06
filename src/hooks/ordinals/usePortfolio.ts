@@ -1,7 +1,7 @@
 /**
  * usePortfolio Hook
  * Comprehensive portfolio management for Bitcoin Ordinals
- * Aggregates data from UniSat, Magic Eden, and Mempool.space
+ * Aggregates data from UniSat, Gamma.io, and Mempool.space
  * Uses proxy API endpoints instead of direct external calls
  */
 
@@ -67,11 +67,11 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
   // MAGIC EDEN DATA (via proxy)
   // ──────────────────────────────────────────────────────────────────────────
 
-  const magicEdenTokens = useQuery({
+  const marketTokens = useQuery({
     queryKey: ['portfolio', 'magic-eden-tokens', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/magiceden/tokens/?ownerAddress=${ordAddr}`)
-      if (!response.ok) throw new Error('Failed to fetch Magic Eden tokens')
+      const response = await fetch(`/api/marketplace/tokens/?ownerAddress=${ordAddr}`)
+      if (!response.ok) throw new Error('Failed to fetch Gamma.io tokens')
       return response.json()
     },
     enabled: ordEnabled,
@@ -80,7 +80,7 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
   const rareSats = useQuery({
     queryKey: ['portfolio', 'rare-sats', ordAddr],
     queryFn: async () => {
-      const response = await fetch(`/api/magiceden/raresats/wallet/${ordAddr}/`)
+      const response = await fetch(`/api/marketplace/raresats/wallet/${ordAddr}/`)
       if (!response.ok) throw new Error('Failed to fetch rare sats')
       return response.json()
     },
@@ -321,8 +321,8 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
         total: hiroInscriptions.data.total,
       }
     }
-    return magicEdenTokens.data || { tokens: [], total: 0 }
-  }, [hiroInscriptions.data, magicEdenTokens.data])
+    return marketTokens.data || { tokens: [], total: 0 }
+  }, [hiroInscriptions.data, marketTokens.data])
 
   // Show loading only when ALL critical queries are still loading (no data at all yet)
   const isLoading =
@@ -342,7 +342,7 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
     collectionSummary: collectionSummary.data,
     inscriptions: inscriptions.data,
     brc20Summary: brc20Summary.data,
-    magicEdenTokens: inscriptionItems,
+    marketTokens: inscriptionItems,
     rareSats: rareSats.data,
     addressInfo: addressInfo.data,
     utxos: utxos.data,
@@ -371,7 +371,7 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
       collections.refetch()
       inscriptions.refetch()
       brc20Summary.refetch()
-      magicEdenTokens.refetch()
+      marketTokens.refetch()
       rareSats.refetch()
       addressInfo.refetch()
       utxos.refetch()

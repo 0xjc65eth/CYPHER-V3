@@ -23,7 +23,7 @@ interface MarketMetrics {
 /**
  * useMarketMetrics - Fetches market depth and order book data for a collection.
  * Currently returns null as no aggregated order book API is integrated.
- * When marketplace APIs (MagicEden, Gamma, etc.) provide order book data,
+ * When marketplace APIs (Ordinals, Gamma, etc.) provide order book data,
  * this hook should aggregate it.
  */
 export function useMarketMetrics(collection: string) {
@@ -31,7 +31,7 @@ export function useMarketMetrics(collection: string) {
     queryKey: ['ordinals', 'market-metrics', collection],
     queryFn: async () => {
       // No aggregated order book API integrated yet
-      // TODO: Aggregate from MagicEden, Gamma, OKX marketplace APIs
+      // TODO: Aggregate from Ordinals, Gamma, OKX marketplace APIs
       return null
     },
     enabled: !!collection,

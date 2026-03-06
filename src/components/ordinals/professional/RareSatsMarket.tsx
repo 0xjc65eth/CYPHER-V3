@@ -8,7 +8,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 // ✅ FIXED: Removed direct service import (caused CORS errors)
-// import { magicEdenService } from '@/services/magicEdenService'
+// import { ordinalsMarketService } from '@/services/ordinalsMarketService'
 import { Card } from '@/components/ui/primitives/Card'
 import { Button } from '@/components/ui/primitives/Button'
 import {

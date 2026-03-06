@@ -18,7 +18,7 @@ export function UpgradePrompt({ requiredTier, requiredFeature }: UpgradePromptPr
 
   // Determine the target tier
   const targetTier: SubscriptionTier = requiredTier
-    || (requiredFeature ? FEATURE_TIER_MAP[requiredFeature] || 'explorer' : 'explorer')
+    || (requiredFeature ? FEATURE_TIER_MAP[requiredFeature] || 'pro' : 'pro')
 
   const tierConfig = SUBSCRIPTION_TIERS[targetTier]
 

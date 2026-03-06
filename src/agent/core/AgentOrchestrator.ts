@@ -81,6 +81,7 @@ export class AgentOrchestrator {
   // Trade history (persists across cycles)
   private tradeHistory: Array<TradeSignal & { executedAt: number; result?: string }> = [];
   private realizedPnl: number = 0;
+  private mmPnl: number = 0;
   private equitySnapshotCounter: number = 0;
 
   // Order dedup cache: prevents double-execution (signalId -> timestamp)
@@ -1311,6 +1312,13 @@ export class AgentOrchestrator {
     if (!this.isRunning || !this.config.autoCompound.enabled) return;
 
     try {
+      // Inject current state before compound cycle
+      this.compounder.setContext({
+        connectors: this.connectors,
+        lpPositions: this.state.lpPositions,
+        realizedPnl: this.realizedPnl,
+        mmPnl: this.mmPnl,
+      });
       const result = await this.compounder.runCompoundCycle();
       this.state.lastCompound = result;
       this.emit('compound_cycle', result);

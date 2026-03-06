@@ -19,29 +19,29 @@ interface RuneMarketData {
 interface AggregatedMarketData {
   unisat: RuneMarketData | null;
   okx: RuneMarketData | null;
-  magiceden: RuneMarketData | null;
+  gamma: RuneMarketData | null;
   aggregated: RuneMarketData | null;
 }
 
 export function useRunesMarket(runeName: string = 'all') {
-  const fetchMarketData = async (): Promise<AggregatedMarketData> => {
+  const fetchAllMarketData = async (): Promise<AggregatedMarketData> => {
     try {
       // Fetch from multiple sources in parallel
-      const [unisatData, magicEdenData] = await Promise.allSettled([
+      const [unisatData, marketDataResult] = await Promise.allSettled([
         fetchUnisatData(runeName),
-        fetchMagicEdenData(runeName)
+        fetchMarketData(runeName)
       ]);
 
       const unisat = unisatData.status === 'fulfilled' ? unisatData.value : null;
-      const magiceden = magicEdenData.status === 'fulfilled' ? magicEdenData.value : null;
+      const gamma = marketDataResult.status === 'fulfilled' ? marketDataResult.value : null;
 
       // Aggregate data from multiple sources
-      const aggregated = aggregateMarketData(unisat, magiceden);
+      const aggregated = aggregateMarketData(unisat, gamma);
 
       return {
         unisat,
         okx: null, // OKX integration not yet available
-        magiceden,
+        gamma,
         aggregated
       };
     } catch (error) {
@@ -51,7 +51,7 @@ export function useRunesMarket(runeName: string = 'all') {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['runesMarket', runeName],
-    queryFn: fetchMarketData,
+    queryFn: fetchAllMarketData,
     refetchInterval: 30000, // Refetch every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
     retry: 2,
@@ -114,7 +114,7 @@ async function fetchUnisatData(runeName: string): Promise<RuneMarketData | null>
     }
 
     const supply = parseFloat(rune.supply || '0');
-    const marketCap = 0; // Price not available from UniSat indexer - will use Magic Eden data if available
+    const marketCap = 0; // Price not available from UniSat indexer - will use Gamma.io data if available
 
     return {
       name: rune.spacedRune,
@@ -134,16 +134,16 @@ async function fetchUnisatData(runeName: string): Promise<RuneMarketData | null>
   }
 }
 
-async function fetchMagicEdenData(runeName: string): Promise<RuneMarketData | null> {
+async function fetchMarketData(runeName: string): Promise<RuneMarketData | null> {
   try {
     if (runeName === 'all') {
-      // Magic Eden doesn't have aggregated endpoint, skip for 'all'
+      // Gamma.io doesn't have aggregated endpoint, skip for 'all'
       return null;
     }
 
     // Fetch market info and activities for specific rune via proxy
     const [marketInfo, activities] = await Promise.allSettled([
-      fetch(`/api/magiceden/runes/${runeName}/market/`).then(r => r.ok ? r.json() : null),
+      fetch(`/api/marketplace/runes/${runeName}/market/`).then(r => r.ok ? r.json() : null),
       fetch(`/api/runes/activity/${runeName}/?limit=100`).then(r => r.ok ? r.json() : null)
     ]);
 
@@ -173,7 +173,7 @@ async function fetchMagicEdenData(runeName: string): Promise<RuneMarketData | nu
       name: market.runeName || runeName,
       symbol: market.runeSymbol || '',
       price: floorPrice,
-      change24h: 0, // Magic Eden doesn't provide 24h change
+      change24h: 0, // Gamma.io doesn't provide 24h change
       volume24h: volume24h,
       marketCap: floorPrice * totalListings, // Rough estimate
       holders: market.uniqueHolders || 0,
@@ -189,27 +189,27 @@ async function fetchMagicEdenData(runeName: string): Promise<RuneMarketData | nu
 
 function aggregateMarketData(
   unisat: RuneMarketData | null,
-  magiceden: RuneMarketData | null
+  gamma: RuneMarketData | null
 ): RuneMarketData | null {
   // If both are null, return null
-  if (!unisat && !magiceden) return null;
+  if (!unisat && !gamma) return null;
 
   // If one is null, return the other
-  if (!unisat) return magiceden;
-  if (!magiceden) return unisat;
+  if (!unisat) return gamma;
+  if (!gamma) return unisat;
 
   // Aggregate data from both sources
   return {
-    name: unisat.name || magiceden.name,
-    symbol: unisat.symbol || magiceden.symbol,
-    price: magiceden.price || 0, // Magic Eden has price, UniSat doesn't
-    change24h: magiceden.change24h || 0,
-    volume24h: magiceden.volume24h || 0,
-    marketCap: magiceden.marketCap || unisat.marketCap || 0,
-    holders: Math.max(unisat.holders || 0, magiceden.holders || 0), // Take higher value
-    transactions24h: Math.max(unisat.transactions24h || 0, magiceden.transactions24h || 0),
-    highPrice24h: magiceden.highPrice24h || 0,
-    lowPrice24h: magiceden.lowPrice24h || 0,
-    priceHistory: magiceden.priceHistory || unisat.priceHistory || []
+    name: unisat.name || gamma.name,
+    symbol: unisat.symbol || gamma.symbol,
+    price: gamma.price || 0, // Gamma.io has price, UniSat doesn't
+    change24h: gamma.change24h || 0,
+    volume24h: gamma.volume24h || 0,
+    marketCap: gamma.marketCap || unisat.marketCap || 0,
+    holders: Math.max(unisat.holders || 0, gamma.holders || 0), // Take higher value
+    transactions24h: Math.max(unisat.transactions24h || 0, gamma.transactions24h || 0),
+    highPrice24h: gamma.highPrice24h || 0,
+    lowPrice24h: gamma.lowPrice24h || 0,
+    priceHistory: gamma.priceHistory || unisat.priceHistory || []
   };
 }

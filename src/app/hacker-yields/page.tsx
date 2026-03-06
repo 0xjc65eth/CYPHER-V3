@@ -301,7 +301,7 @@ function SetupWizard({
   const [hlApiSecret, setHlApiSecret] = useState('');
   const [solanaRpc, setSolanaRpc] = useState('https://api.mainnet-beta.solana.com');
   const [ethRpc, setEthRpc] = useState('https://eth.llamarpc.com');
-  const [hlTestnet, setHlTestnet] = useState(true);
+  const [hlTestnet, setHlTestnet] = useState(false);
   const [solanaPrivateKey, setSolanaPrivateKey] = useState('');
   const [evmPrivateKey, setEvmPrivateKey] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
@@ -517,9 +517,9 @@ function SetupWizard({
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={hlTestnet} onChange={e => setHlTestnet(e.target.checked)} className="accent-orange-500" />
-                    <label className="text-xs text-white/60 font-mono">Use Testnet (recommended for first run)</label>
+                  <div className="flex items-center gap-2 px-3 py-2 rounded border border-emerald-500/20 bg-emerald-500/5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold">MAINNET — LIVE TRADING</span>
                   </div>
                   {hlApiKey && hlApiSecret && (
                     <div className="text-[10px] text-emerald-400 font-mono mt-1">Keys configured</div>
@@ -778,7 +778,7 @@ function SetupWizard({
                     <div className="flex items-center gap-2">
                       <span className={`w-1.5 h-1.5 rounded-full ${hlApiKey ? 'bg-emerald-400' : 'bg-red-400'}`} />
                       <span className="text-white/40">Hyperliquid:</span>
-                      <span className={hlApiKey ? 'text-emerald-400' : 'text-red-400'}>{hlApiKey ? `Key: ${hlApiKey.slice(0, 6)}... ${hlTestnet ? '(TESTNET)' : '(MAINNET)'}` : 'No API key'}</span>
+                      <span className={hlApiKey ? 'text-emerald-400' : 'text-red-400'}>{hlApiKey ? `Key: ${hlApiKey.slice(0, 6)}... (MAINNET)` : 'No API key'}</span>
                     </div>
                   </div>
                 </div>
@@ -816,13 +816,26 @@ function SetupWizard({
                 </div>
               </div>
 
+              {/* Strategy Summary */}
+              <div className="border border-emerald-500/20 rounded-lg p-4 bg-emerald-500/5 mb-4">
+                <div className="text-[10px] text-emerald-400 font-mono font-bold mb-2">AUTONOMOUS EXECUTION</div>
+                <div className="space-y-1.5 text-xs text-white/60 font-mono">
+                  <div className="flex justify-between"><span>Mode:</span><span className="text-emerald-400 font-bold">LIVE MAINNET — Real money</span></div>
+                  <div className="flex justify-between"><span>Strategy:</span><span className="text-white">LP {Math.round(config.capitalAllocation.lp * 100)}% / MM {Math.round(config.capitalAllocation.mm * 100)}% / Scalp {Math.round(config.capitalAllocation.scalp * 100)}%</span></div>
+                  <div className="flex justify-between"><span>Auto-compound:</span><span className={config.autoCompound.enabled ? 'text-emerald-400' : 'text-red-400'}>{config.autoCompound.enabled ? 'ON — every 4h, profits redistributed 50/25/25' : 'OFF'}</span></div>
+                  <div className="flex justify-between"><span>Consensus required:</span><span className="text-white">≥65% (4 AI agents vote)</span></div>
+                  <div className="flex justify-between"><span>Emergency stop:</span><span className="text-red-400">Dashboard button + {Math.round(config.riskLimits.shutdownOnDrawdown * 100)}% drawdown auto-shutdown</span></div>
+                </div>
+              </div>
+
               {/* Disclaimer */}
-              <div className="border border-yellow-500/30 rounded-lg p-4 bg-yellow-500/5 mb-4">
-                <div className="text-[10px] text-yellow-400 font-mono font-bold mb-2">RISK DISCLAIMER</div>
-                <p className="text-xs text-yellow-400/70 leading-relaxed">
-                  Automated trading involves substantial risk of loss. Past performance is not indicative of future results.
-                  You are solely responsible for all trading activity and outcomes. The agent operates with delegated
-                  authority over your configured capital. Ensure you understand the risks before activating.
+              <div className="border border-red-500/30 rounded-lg p-4 bg-red-500/5 mb-4">
+                <div className="text-[10px] text-red-400 font-mono font-bold mb-2">RISK DISCLAIMER — REAL MONEY</div>
+                <p className="text-xs text-red-400/70 leading-relaxed">
+                  This agent trades with REAL funds on MAINNET. Automated trading involves substantial risk of loss.
+                  Past performance is not indicative of future results. You are solely responsible for all trading
+                  activity and outcomes. The agent will autonomously execute trades, manage LP positions, and
+                  auto-compound profits with your configured capital.
                 </p>
               </div>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -1159,7 +1172,7 @@ function AgentDashboard({
         testnet: creds.hlTestnet,
         portfolioUSD: config.capitalAllocation.total,
         maxRiskPercent: config.riskLimits.maxDailyDrawdown * 100,
-        enableTrading: !creds.hlTestnet,
+        enableTrading: true,
       },
       credentials: {
         hyperliquid: {
@@ -1429,9 +1442,20 @@ function AgentDashboard({
             />
           </div>
 
-          {/* Capital Allocation */}
+          {/* Capital Allocation + Auto-Compound */}
           <div className="border border-orange-500/20 rounded-lg p-4 bg-[#0a0a0a]">
-            <div className="text-[10px] text-orange-400/60 font-mono mb-3">CAPITAL ALLOCATION</div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] text-orange-400/60 font-mono">CAPITAL ALLOCATION</div>
+              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-mono ${
+                config.autoCompound.enabled
+                  ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                  : 'text-white/30 bg-white/5 border-white/10'
+              }`}>
+                <span className={`w-1 h-1 rounded-full ${config.autoCompound.enabled ? 'bg-emerald-400 animate-pulse' : 'bg-white/20'}`} />
+                AUTO-COMPOUND {config.autoCompound.enabled ? 'ON' : 'OFF'}
+                {config.autoCompound.enabled && <span className="text-white/30 ml-1">every 4h → 50/25/25</span>}
+              </div>
+            </div>
             <div className="grid grid-cols-4 gap-4">
               <div>
                 <div className="text-xs text-white/30 font-mono">Total Capital</div>
@@ -1783,7 +1807,7 @@ export default function TradingAgentPage() {
             testnet: credentials.hlTestnet,
             portfolioUSD: config.capitalAllocation.total,
             maxRiskPercent: config.riskLimits.maxDailyDrawdown * 100,
-            enableTrading: !credentials.hlTestnet,
+            enableTrading: true,
             markets: config.markets.filter(m => m.enabled).map(m => m.pair),
           },
           credentials: {

@@ -66,7 +66,7 @@ export function SalesHistoryTable() {
 
   const getMarketplaceColor = (marketplace: string) => {
     switch (marketplace) {
-      case 'Magic Eden': return 'bg-purple-500/20 text-purple-500 border-purple-500/50'
+      case 'Gamma.io': return 'bg-purple-500/20 text-purple-500 border-purple-500/50'
       case 'Gamma': return 'bg-blue-500/20 text-blue-500 border-blue-500/50'
       case 'OKX': return 'bg-green-500/20 text-green-500 border-green-500/50'
       default: return 'bg-gray-500/20 text-gray-500 border-gray-500/50'

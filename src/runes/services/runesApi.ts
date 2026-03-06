@@ -1,6 +1,6 @@
 // =============================================================================
 // CYPHER V3 - Runes API Service
-// Serviço para comunicação com a API de Runes (Hiro primary, ME fallback)
+// Serviço para comunicação com a API de Runes (Hiro primary)
 // Módulo independente - não depende de Ordinals
 // =============================================================================
 
@@ -25,7 +25,6 @@ import {
 // -----------------------------------------------------------------------------
 
 const API_BASE_URL = 'https://api.hiro.so';
-const ME_FALLBACK_URL = 'https://api-mainnet.magiceden.dev';
 const API_TIMEOUT = 15000;
 
 const cache = new Map<string, { data: unknown; timestamp: number }>();
@@ -150,15 +149,8 @@ export async function fetchRuneStats(
     }
     return [];
   } catch {
-    // Fallback to Magic Eden
-    const meParams = new URLSearchParams();
-    if (params?.sort) meParams.set('sort', params.sort);
-    if (params?.direction) meParams.set('direction', params.direction);
-    if (params?.offset) meParams.set('offset', params.offset.toString());
-    if (params?.limit) meParams.set('limit', params.limit.toString());
-    if (params?.window) meParams.set('window', params.window);
-    const meUrl = `${ME_FALLBACK_URL}/v2/ord/btc/runes/collection_stats/search${meParams.toString() ? '?' + meParams : ''}`;
-    return fetchWithRetry<RuneCollectionStats[]>(meUrl);
+    // All sources failed, return empty
+    return [];
   }
 }
 
@@ -168,14 +160,8 @@ export async function fetchRuneMarketInfo(
   const encodedRune = encodeURIComponent(rune);
   const cacheKey = `rune-info:${rune}`;
 
-  try {
-    const url = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}`;
-    return await cachedFetch(cacheKey, () => fetchWithRetry<RuneMarketInfo>(url), 60000);
-  } catch {
-    // Fallback to Magic Eden
-    const meUrl = `${ME_FALLBACK_URL}/v2/ord/btc/runes/market/${encodedRune}/info`;
-    return cachedFetch(`${cacheKey}:me`, () => fetchWithRetry<RuneMarketInfo>(meUrl), 60000);
-  }
+  const url = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}`;
+  return cachedFetch(cacheKey, () => fetchWithRetry<RuneMarketInfo>(url), 60000);
 }
 
 export async function fetchRuneOrders(
@@ -190,8 +176,8 @@ export async function fetchRuneOrders(
   if (params?.status) queryParams.set('status', params.status);
 
   const encodedRune = encodeURIComponent(rune);
-  // Orders endpoint only available on Magic Eden
-  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/orders/${encodedRune}${queryParams.toString() ? '?' + queryParams : ''}`;
+  // Orders endpoint via Hiro
+  const url = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}/orders${queryParams.toString() ? '?' + queryParams : ''}`;
   const cacheKey = `rune-orders:${rune}:${queryParams.toString()}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneOrder[]>(url));
@@ -209,16 +195,10 @@ export async function fetchRuneActivities(
 
   const encodedRune = encodeURIComponent(rune);
 
-  // Try Hiro activity endpoint first, fallback to ME
-  try {
-    const hiroUrl = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}/activity${queryParams.toString() ? '?' + queryParams : ''}`;
-    const cacheKey = `rune-activities:${rune}:${queryParams.toString()}`;
-    return await cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(hiroUrl));
-  } catch {
-    const meUrl = `${ME_FALLBACK_URL}/v2/ord/btc/runes/activities/${encodedRune}${queryParams.toString() ? '?' + queryParams : ''}`;
-    const cacheKey = `rune-activities:me:${rune}:${queryParams.toString()}`;
-    return cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(meUrl));
-  }
+  // Hiro activity endpoint
+  const hiroUrl = `${API_BASE_URL}/runes/v1/etchings/${encodedRune}/activity${queryParams.toString() ? '?' + queryParams : ''}`;
+  const cacheKey = `rune-activities:${rune}:${queryParams.toString()}`;
+  return cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(hiroUrl));
 }
 
 // -----------------------------------------------------------------------------
@@ -228,8 +208,8 @@ export async function fetchRuneActivities(
 export async function fetchWalletRuneUtxos(
   address: string
 ): Promise<RuneUtxo[]> {
-  // Wallet UTXOs only available on Magic Eden
-  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/utxos/wallet/${address}`;
+  // Wallet UTXOs via Hiro
+  const url = `${API_BASE_URL}/runes/v1/addresses/${address}/utxos`;
   const cacheKey = `wallet-utxos:${address}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneUtxo[]>(url));
@@ -244,8 +224,8 @@ export async function fetchWalletRuneActivities(
   if (params?.offset) queryParams.set('offset', params.offset.toString());
   if (params?.limit) queryParams.set('limit', params.limit.toString());
 
-  // Wallet activities only available on Magic Eden
-  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/wallet/activities/${address}${queryParams.toString() ? '?' + queryParams : ''}`;
+  // Wallet activities via Hiro
+  const url = `${API_BASE_URL}/runes/v1/addresses/${address}/activity${queryParams.toString() ? '?' + queryParams : ''}`;
   const cacheKey = `wallet-activities:${address}:${queryParams.toString()}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneActivity[]>(url));
@@ -256,8 +236,8 @@ export async function fetchWalletRuneBalance(
   rune: string
 ): Promise<RuneBalance> {
   const encodedRune = encodeURIComponent(rune);
-  // Wallet balance only available on Magic Eden
-  const url = `${ME_FALLBACK_URL}/v2/ord/btc/runes/wallet/balances/${address}/${encodedRune}`;
+  // Wallet balance via Hiro
+  const url = `${API_BASE_URL}/runes/v1/addresses/${address}/balances/${encodedRune}`;
   const cacheKey = `wallet-balance:${address}:${rune}`;
 
   return cachedFetch(cacheKey, () => fetchWithRetry<RuneBalance>(url));
@@ -379,7 +359,7 @@ export async function processRunes(
 
 /**
  * Fetch real historical price data from rune activities
- * Uses Magic Eden activities API to build accurate price history
+ * Uses Gamma.io activities API to build accurate price history
  */
 export async function fetchRunePriceHistory(
   rune: string,
@@ -424,7 +404,7 @@ export async function fetchRunePriceHistory(
 
 /**
  * Fetch real historical volume data from rune activities
- * Uses Magic Eden activities API to build accurate volume history
+ * Uses Gamma.io activities API to build accurate volume history
  */
 export async function fetchRuneVolumeHistory(
   rune: string,

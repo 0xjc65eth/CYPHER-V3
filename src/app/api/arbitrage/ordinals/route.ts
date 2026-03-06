@@ -1,6 +1,6 @@
 /**
  * Ordinals & Runes Arbitrage Scanner
- * Compara preços entre UniSat e Magic Eden para encontrar oportunidades reais.
+ * Compara preços entre UniSat e Gamma.io para encontrar oportunidades reais.
  */
 
 import { NextRequest, NextResponse } from 'next/server';

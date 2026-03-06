@@ -28,7 +28,7 @@ function mapProviderToWalletType(provider: string): WalletType | null {
   const normalized = String(provider).toLowerCase()
   if (normalized === 'unisat') return 'unisat'
   if (normalized === 'xverse') return 'xverse'
-  // Magic Eden, OYL, Leather, Wizz, Phantom, Orange all use sats-connect (xverse path)
+  // Gamma.io, OYL, Leather, Wizz, Phantom, Orange all use sats-connect (xverse path)
   if (['magic eden', 'magic-eden', 'oyl', 'leather', 'wizz', 'phantom', 'orange'].includes(normalized)) {
     return 'xverse'
   }
@@ -122,7 +122,7 @@ export function useLaserEyes() {
 // Re-export wallet provider constants so consumers don't need @omnisat/lasereyes-core
 export const UNISAT = 'unisat'
 export const XVERSE = 'xverse'
-export const MAGIC_EDEN = 'magic eden'
+export const GAMMA = 'magic eden'
 export const OYL = 'oyl'
 export const LEATHER = 'leather'
 export const WIZZ = 'wizz'

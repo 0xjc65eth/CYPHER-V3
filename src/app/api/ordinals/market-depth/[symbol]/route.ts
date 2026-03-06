@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { magicEdenAPI } from '@/services/ordinals/integrations/MagicEdenAPI';
+import { okxOrdinalsAPI as ordinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
 
 export interface MarketDepthAnalysis {
   symbol: string;
@@ -12,8 +12,8 @@ export interface MarketDepthAnalysis {
     totalBTCAvailable: number;
     totalItemsListed: number;
     liquidityConcentration: 'concentrated' | 'distributed' | 'scattered';
-    depthAt10Percent: number; // Items available within ±10% of floor
-    depthAt20Percent: number; // Items available within ±20% of floor
+    depthAt10Percent: number;
+    depthAt20Percent: number;
     liquidityScore: number;
   };
   walls: {
@@ -43,7 +43,7 @@ export interface MarketDepthAnalysis {
     hasMarketMakers: boolean;
     marketMakerCount: number;
     spreadTightness: 'tight' | 'moderate' | 'wide';
-    marketMakerActivity: number; // 0-100 score
+    marketMakerActivity: number;
   };
   supportResistance: {
     supportLevels: number[];
@@ -68,10 +68,10 @@ export async function GET(
       );
     }
 
-    // Fetch listings and stats
-    const [inscriptions, stats] = await Promise.all([
-      magicEdenAPI.getInscriptions(symbol, undefined, 'priceAsc', 200, 0),
-      magicEdenAPI.getCollectionStats(symbol)
+    // Fetch listings and stats from OKX API
+    const [inscriptionsResult, stats] = await Promise.all([
+      ordinalsAPI.getInscriptions(symbol, undefined, undefined, undefined, 'priceAsc', 200),
+      ordinalsAPI.getCollectionStats(symbol)
     ]);
 
     if (!stats) {
@@ -81,101 +81,105 @@ export async function GET(
       );
     }
 
-    // Extract listed items
+    const inscriptions = inscriptionsResult.inscriptions;
+
+    // Extract listed items (OKX prices are strings)
     const listedItems = inscriptions
-      .filter(i => i.listed && i.listedPrice)
-      .map(i => ({
-        price: i.listedPrice!,
-        owner: i.owner
+      .filter((i) => i.listingInfo?.price)
+      .map((i) => ({
+        price: parseFloat(i.listingInfo!.price),
+        owner: i.address
       }))
       .sort((a, b) => a.price - b.price);
 
-    const floorPrice = stats.floorPrice;
+    const floorPrice = parseFloat(stats.floorPrice) || 0;
+    const totalSupply = stats.itemCount || 0;
     const totalItemsListed = listedItems.length;
     const totalBTCAvailable = listedItems.reduce((sum, item) => sum + item.price, 0);
 
     // Liquidity concentration analysis
     const priceRanges = {
-      atFloor: listedItems.filter(i => i.price <= floorPrice * 1.05).length,
-      low: listedItems.filter(i => i.price > floorPrice * 1.05 && i.price <= floorPrice * 1.5).length,
-      mid: listedItems.filter(i => i.price > floorPrice * 1.5 && i.price <= floorPrice * 3).length,
-      high: listedItems.filter(i => i.price > floorPrice * 3).length
+      atFloor: listedItems.filter((i) => i.price <= floorPrice * 1.05).length,
+      low: listedItems.filter((i) => i.price > floorPrice * 1.05 && i.price <= floorPrice * 1.5).length,
+      mid: listedItems.filter((i) => i.price > floorPrice * 1.5 && i.price <= floorPrice * 3).length,
+      high: listedItems.filter((i) => i.price > floorPrice * 3).length
     };
 
     const atFloorPercentage = totalItemsListed > 0 ? priceRanges.atFloor / totalItemsListed : 0;
-    const liquidityConcentration = atFloorPercentage > 0.6 ? 'concentrated' :
-                                  atFloorPercentage > 0.3 ? 'distributed' : 'scattered';
+    const liquidityConcentration: 'concentrated' | 'distributed' | 'scattered' =
+      atFloorPercentage > 0.6 ? 'concentrated' :
+      atFloorPercentage > 0.3 ? 'distributed' : 'scattered';
 
     // Depth at price levels
-    const depthAt10Percent = listedItems.filter(i =>
+    const depthAt10Percent = listedItems.filter((i) =>
       i.price >= floorPrice * 0.9 && i.price <= floorPrice * 1.1
     ).length;
 
-    const depthAt20Percent = listedItems.filter(i =>
+    const depthAt20Percent = listedItems.filter((i) =>
       i.price >= floorPrice * 0.8 && i.price <= floorPrice * 1.2
     ).length;
 
     // Liquidity score (0-100)
     const liquidityScore = Math.min(100,
-      (totalItemsListed / (stats as any).supply) * 100 * 2 +
+      (totalSupply > 0 ? (totalItemsListed / totalSupply) * 100 * 2 : 0) +
       (depthAt10Percent / 10) * 10 +
-      (totalBTCAvailable / (floorPrice * 100)) * 20
+      (floorPrice > 0 ? (totalBTCAvailable / (floorPrice * 100)) * 20 : 0)
     );
 
     // Detect sell walls (clusters of listings at similar prices)
-    const priceGrouping = floorPrice * 0.02; // Group within 2% of price
+    const priceGrouping = floorPrice * 0.02 || 0.0001;
     const priceGroups = new Map<number, number>();
 
-    listedItems.forEach(item => {
+    listedItems.forEach((item) => {
       const priceLevel = Math.round(item.price / priceGrouping) * priceGrouping;
       priceGroups.set(priceLevel, (priceGroups.get(priceLevel) || 0) + 1);
     });
 
-    const avgGroupSize = Array.from(priceGroups.values()).reduce((a, b) => a + b, 0) / priceGroups.size;
+    const groupValues = Array.from(priceGroups.values());
+    const avgGroupSize = groupValues.length > 0
+      ? groupValues.reduce((a, b) => a + b, 0) / groupValues.length
+      : 1;
 
     const sellWalls = Array.from(priceGroups.entries())
-      .filter(([_, volume]) => volume >= avgGroupSize * 1.5) // Walls are 1.5x avg size or more
-      .sort((a, b) => b[1] - a[1]) // Sort by volume
-      .slice(0, 5) // Top 5 walls
-      .map(([price, volume]) => ({
+      .filter(([, volume]) => volume >= avgGroupSize * 1.5)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([price, volume]): { price: number; volume: number; strength: 'weak' | 'moderate' | 'strong' } => ({
         price,
         volume,
         strength: volume >= avgGroupSize * 3 ? 'strong' :
-                 volume >= avgGroupSize * 2 ? 'moderate' : 'weak' as 'weak' | 'moderate' | 'strong'
+                 volume >= avgGroupSize * 2 ? 'moderate' : 'weak'
       }));
 
     // Buy walls (estimate from floor price)
-    const buyWalls = [
+    const buyWalls: Array<{ price: number; volume: number; strength: 'weak' | 'moderate' | 'strong' }> = [
       {
         price: floorPrice * 0.95,
         volume: Math.floor(totalItemsListed * 0.05),
-        strength: 'moderate' as 'weak' | 'moderate' | 'strong'
+        strength: 'moderate'
       },
       {
         price: floorPrice * 0.90,
         volume: Math.floor(totalItemsListed * 0.08),
-        strength: 'weak' as 'weak' | 'moderate' | 'strong'
+        strength: 'weak'
       }
     ];
 
     // Slippage estimation
     const calculateSlippage = (quantity: number) => {
       if (quantity > listedItems.length) {
-        return {
-          expectedPrice: 0,
-          slippagePercent: 100
-        };
+        return { expectedPrice: 0, slippagePercent: 100 };
       }
 
       const itemsNeeded = listedItems.slice(0, quantity);
       const totalCost = itemsNeeded.reduce((sum, item) => sum + item.price, 0);
       const expectedPrice = totalCost / quantity;
-      const slippagePercent = ((expectedPrice - floorPrice) / floorPrice) * 100;
+      const slippagePercent = floorPrice > 0 ? ((expectedPrice - floorPrice) / floorPrice) * 100 : 0;
 
       return { expectedPrice, slippagePercent };
     };
 
-    const slippageCurve = [1, 2, 5, 10, 15, 20, 30, 50].map(qty => ({
+    const slippageCurve = [1, 2, 5, 10, 15, 20, 30, 50].map((qty) => ({
       quantity: qty,
       ...calculateSlippage(qty)
     }));
@@ -190,21 +194,22 @@ export async function GET(
 
     // Market maker detection (owners with multiple listings)
     const ownerCounts = new Map<string, number>();
-    listedItems.forEach(item => {
+    listedItems.forEach((item) => {
       ownerCounts.set(item.owner, (ownerCounts.get(item.owner) || 0) + 1);
     });
 
-    const marketMakers = Array.from(ownerCounts.entries()).filter(([_, count]) => count >= 3);
+    const marketMakers = Array.from(ownerCounts.entries()).filter(([, count]) => count >= 3);
     const hasMarketMakers = marketMakers.length > 0;
     const marketMakerCount = marketMakers.length;
 
-    const spreadTightness = slippage.buy1Item < 1 ? 'tight' :
-                           slippage.buy1Item < 3 ? 'moderate' : 'wide';
+    const spreadTightness: 'tight' | 'moderate' | 'wide' =
+      slippage.buy1Item < 1 ? 'tight' :
+      slippage.buy1Item < 3 ? 'moderate' : 'wide';
 
     const marketMakerActivity = Math.min(100, marketMakerCount * 10 + (hasMarketMakers ? 30 : 0));
 
-    // Support and resistance levels (clustering analysis)
-    const resistanceLevels = sellWalls.map(w => w.price).slice(0, 3);
+    // Support and resistance levels
+    const resistanceLevels = sellWalls.map((w) => w.price).slice(0, 3);
     const supportLevels = [
       floorPrice * 0.95,
       floorPrice * 0.90,
@@ -224,10 +229,7 @@ export async function GET(
         depthAt20Percent,
         liquidityScore
       },
-      walls: {
-        buyWalls,
-        sellWalls
-      },
+      walls: { buyWalls, sellWalls },
       slippage,
       marketMaking: {
         hasMarketMakers,

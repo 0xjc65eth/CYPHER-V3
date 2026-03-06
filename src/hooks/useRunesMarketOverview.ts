@@ -54,7 +54,7 @@ export interface RunesMarketOverviewResponse {
   stats: MarketStats;
   total: number;
   timestamp: number;
-  source: 'magiceden' | 'hiro-fallback';
+  source: 'xverse' | 'hiro' | 'okx' | 'none' | 'error';
   error?: string;
   message?: string;
 }

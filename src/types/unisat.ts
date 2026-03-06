@@ -2,7 +2,7 @@
  * UniSat API Types - CYPHER V3
  *
  * Types for UniSat API integration (Bitcoin Ordinals, BRC-20, Runes).
- * UniSat is one of the primary replacement APIs for the deprecated Magic Eden.
+ * UniSat is one of the primary replacement APIs for the deprecated Gamma.io.
  */
 
 // ─── Address & Balance ────────────────────────────────────────────────────────

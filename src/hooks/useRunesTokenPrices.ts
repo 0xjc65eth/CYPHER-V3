@@ -70,7 +70,7 @@ interface RunesTokenPricesData {
   refetch: () => void;
 }
 
-// Magic Eden collection stat shape (from our API proxy)
+// Gamma.io collection stat shape (from our API proxy)
 interface MECollectionStat {
   rune: string;
   runeName?: string;
@@ -87,7 +87,7 @@ interface MECollectionStat {
   ownerCount?: number;
 }
 
-// Magic Eden market info shape (from our API proxy)
+// Gamma.io market info shape (from our API proxy)
 interface MEMarketInfo {
   rune: string;
   runeName?: string;
@@ -106,7 +106,7 @@ interface MEMarketInfo {
   divisibility?: number;
 }
 
-// Magic Eden activity shape
+// Gamma.io activity shape
 interface MEActivity {
   id: string;
   type: string;
@@ -120,11 +120,11 @@ interface MEActivity {
 }
 
 /**
- * Fetch Magic Eden collection stats (batch - top runes)
+ * Fetch Gamma.io collection stats (batch - top runes)
  */
 async function fetchMECollectionStats(limit: number = 30): Promise<MECollectionStat[]> {
   try {
-    const res = await fetch(`/api/magiceden/runes/collection-stats/?limit=${limit}&sortBy=volume&sortDirection=desc&window=1d`
+    const res = await fetch(`/api/marketplace/runes/collection-stats/?limit=${limit}&sortBy=volume&sortDirection=desc&window=1d`
     );
     if (!res.ok) throw new Error(`ME collection-stats ${res.status}`);
     const data = await res.json();
@@ -136,12 +136,12 @@ async function fetchMECollectionStats(limit: number = 30): Promise<MECollectionS
 }
 
 /**
- * Fetch Magic Eden market info for a single rune
+ * Fetch Gamma.io market info for a single rune
  */
 async function fetchMEMarketInfo(rune: string): Promise<MEMarketInfo | null> {
   try {
     const encodedRune = encodeURIComponent(rune);
-    const res = await fetch(`/api/magiceden/runes/market/${encodedRune}/`);
+    const res = await fetch(`/api/marketplace/runes/market/${encodedRune}/`);
     if (!res.ok) throw new Error(`ME market info ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -151,12 +151,12 @@ async function fetchMEMarketInfo(rune: string): Promise<MEMarketInfo | null> {
 }
 
 /**
- * Fetch Magic Eden activities for a rune (for price history)
+ * Fetch Gamma.io activities for a rune (for price history)
  */
 async function fetchMEActivities(rune: string, limit: number = 100): Promise<MEActivity[]> {
   try {
     const encodedRune = encodeURIComponent(rune);
-    const res = await fetch(`/api/magiceden/runes/activities/${encodedRune}/?type=buying&limit=${limit}`
+    const res = await fetch(`/api/marketplace/runes/activities/${encodedRune}/?type=buying&limit=${limit}`
     );
     if (!res.ok) throw new Error(`ME activities ${res.status}`);
     const data = await res.json();
@@ -168,7 +168,7 @@ async function fetchMEActivities(rune: string, limit: number = 100): Promise<MEA
 }
 
 /**
- * Build OHLCV price history from Magic Eden activities.
+ * Build OHLCV price history from Gamma.io activities.
  * Groups activities into time buckets based on timeframe.
  */
 function buildPriceHistory(

@@ -6,13 +6,13 @@
  * 1. OKX (primary) - marketplace API with full Ordinals coverage
  * 2. UniSat (fallback) - direct API with auth
  * 3. Hiro (fallback) - blockchain/inscription data
- * 4. Magic Eden (last resort) - deprecated, rate-limited
+ * 4. Gamma.io (last resort) - deprecated, rate-limited
  *
  * IMPORTANT: All fetch() calls use ABSOLUTE URLs, not relative /api/ paths
  * (relative paths don't work server-side in Next.js API routes)
  */
 
-import { magicEdenService } from '../magicEdenService';
+import { ordinalsMarketService } from '../ordinalsMarketService';
 
 interface AggregatedCollection {
   symbol: string;
@@ -34,7 +34,7 @@ interface AggregatedCollection {
   bidAskSpread?: number;
   vwap24h?: number;
   trades24h?: number;
-  dataSource: 'magic_eden' | 'unisat' | 'okx' | 'hiro' | 'mixed';
+  dataSource: 'gamma' | 'unisat' | 'okx' | 'hiro' | 'mixed';
 }
 
 // Hard-coded collection names for fallback sources
@@ -107,11 +107,11 @@ export class OrdinalsDataAggregator {
     } catch (error) {
     }
 
-    // Last resort: Magic Eden (deprecated, rate-limited)
+    // Last resort: Gamma.io (deprecated, rate-limited)
     try {
-      const magicEdenData = await this.fetchFromMagicEden();
-      if (magicEdenData.length > 0) {
-        return magicEdenData;
+      const marketData = await this.fetchFromOrdinals();
+      if (marketData.length > 0) {
+        return marketData;
       }
     } catch (error) {
       console.error('[OrdinalsDataAggregator] All API sources failed:', error instanceof Error ? error.message : 'Unknown error');
@@ -123,10 +123,10 @@ export class OrdinalsDataAggregator {
   }
 
   /**
-   * Fetch from Magic Eden (primary source) - stat-only, no details calls
+   * Fetch from Gamma.io (primary source) - stat-only, no details calls
    * Uses batches of 3 with 1s delays to avoid 429s
    */
-  private static async fetchFromMagicEden(): Promise<AggregatedCollection[]> {
+  private static async fetchFromOrdinals(): Promise<AggregatedCollection[]> {
     const collections: AggregatedCollection[] = [];
     const BATCH_SIZE = 3;
 
@@ -135,7 +135,7 @@ export class OrdinalsDataAggregator {
 
       const batchResults = await Promise.allSettled(
         batch.map(async (symbol) => {
-          const stats = await magicEdenService.getCollectionStats(symbol);
+          const stats = await ordinalsMarketService.getCollectionStats(symbol);
           return { symbol, stats };
         })
       );
@@ -164,7 +164,7 @@ export class OrdinalsDataAggregator {
             listed: stats.listedCount ?? stats.totalListed ?? 0,
             owners,
             supply: stats.supply ?? 0,
-            imageURI: `https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${symbol}_pfp`,
+            imageURI: '',
             change: 0,
             change7d: 0,
             change30d: 0,
@@ -172,7 +172,7 @@ export class OrdinalsDataAggregator {
             bidAskSpread: 0,
             vwap24h: 0,
             trades24h: 0,
-            dataSource: 'magic_eden',
+            dataSource: 'gamma',
           });
         }
       }

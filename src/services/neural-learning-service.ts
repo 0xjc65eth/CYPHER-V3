@@ -968,7 +968,7 @@ export class NeuralLearningService extends EventEmitter {
     // Insight de arbitragem
     const arbitrageModel = this.models.get('arbitrage-opportunities');
     if (arbitrageModel && arbitrageModel.accuracy > this.config.confidenceThreshold) {
-      const exchanges = ['Binance', 'Coinbase', 'Kraken', 'Magic Eden', 'Unisat', 'Ordinals Market'];
+      const exchanges = ['Binance', 'Coinbase', 'Kraken', 'Gamma.io', 'Unisat', 'Ordinals Market'];
       const sourceExchange = exchanges[0];
       const targetExchange = exchanges[1];
 

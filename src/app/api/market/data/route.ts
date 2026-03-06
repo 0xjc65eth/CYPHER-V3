@@ -257,7 +257,7 @@ async function fetchBitcoinEcosystemData(options: any) {
     }
 
     // Note: Runes (SATOSHI•NAKAMOTO, DOG•GO•TO•THE•MOON) and Ordinals collections
-    // are not available on CoinGecko. These would need Magic Eden API integration.
+    // are not available on CoinGecko. These would need Gamma.io API integration.
     // Rather than returning fake data, we skip them.
 
     return ecosystemAssets;

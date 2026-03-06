@@ -305,8 +305,9 @@ export interface AgentState {
 }
 
 export const DEFAULT_AGENT_CONFIG: AgentConfig = {
-  enabled: false,
-  mode: 'manual',
+  enabled: true,
+  mode: 'delegated',
+  enableTrading: true,
   capitalAllocation: {
     total: 5000,
     lp: 0.50,

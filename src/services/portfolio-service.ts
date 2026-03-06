@@ -228,7 +228,7 @@ class PortfolioService {
       // Sincronizar ativos da carteira
       const assets = await this.syncWalletAssets(this.walletAddress);
       
-      // Obter transações (simuladas por enquanto, já que walletConnector não tem este método)
+      // Transaction history — empty until on-chain indexer integration
       const transactions = await this.getSimulatedTransactions(this.walletAddress);
       
       // Calcular valor total
@@ -390,75 +390,63 @@ class PortfolioService {
   }
 
   /**
-   * Calcula as métricas do portfólio
+   * Calcula as métricas do portfólio a partir dos dados reais dos assets
    */
   private calculatePortfolioMetrics(
     assets: Asset[],
     transactions: Transaction[],
     btcPrice: number
   ): PortfolioMetrics {
-    // Implementação do cálculo das métricas do portfólio
-    // Valores simulados para demonstração
-    const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0) || 100000;
-    const totalCostBasis = totalValue * 0.8; // Simulado: 80% do valor atual
-    
-    // Calcular alocação de ativos
-    const btcValue = totalValue * 0.6; // 60% em Bitcoin
-    const ordiValue = totalValue * 0.25; // 25% em Ordinals
-    const runeValue = totalValue * 0.15; // 15% em Runes
-    
-    // Calcular mudanças percentuais (default 0 - no data)
-    const dailyChangePct = 0;
-    const weeklyChangePct = 0;
-    const monthlyChangePct = 0;
-    const allTimeReturnPct = 0;
+    const totalValue = assets.reduce((sum, asset) => sum + asset.value, 0);
 
-    // Calcular mudanças em USD
-    const dailyChangeUsd = totalValue * dailyChangePct;
-    const weeklyChangeUsd = totalValue * weeklyChangePct;
-    const monthlyChangeUsd = totalValue * monthlyChangePct;
-    const allTimeReturnUsd = totalValue * allTimeReturnPct;
+    // Calculate real asset allocation from actual asset values
+    const btcValue = assets
+      .filter(a => a.asset === 'BTC' || a.asset === 'bitcoin')
+      .reduce((s, a) => s + a.value, 0);
+    const ordiValue = assets
+      .filter(a => a.asset === 'ordinal' || a.asset === 'ORDI')
+      .reduce((s, a) => s + a.value, 0);
+    const runeValue = assets
+      .filter(a => a.asset === 'rune' || a.asset === 'RUNE')
+      .reduce((s, a) => s + a.value, 0);
 
-    // Calcular métricas de risco (default 0 - no data)
-    const volatility = 0;
-    const sharpeRatio = 0;
-    const maxDrawdown = 0;
-    const riskScore = 0;
-    
+    const btcDominance = totalValue > 0 ? (btcValue / totalValue) * 100 : 0;
+    const ordinalsDominance = totalValue > 0 ? (ordiValue / totalValue) * 100 : 0;
+    const runesDominance = totalValue > 0 ? (runeValue / totalValue) * 100 : 0;
+
+    // Cost basis and P&L not available without transaction history — honest zeros
     return {
       totalValue,
-      totalChange24h: dailyChangeUsd,
-      totalChange7d: weeklyChangeUsd,
-      totalChange30d: monthlyChangeUsd,
-      btcDominance: 60, // 60%
-      ordinalsDominance: 25, // 25%
-      runesDominance: 15, // 15%
-      roi: allTimeReturnPct,
-      volatility,
-      sharpeRatio,
-      maxDrawdown,
-      bestDay: { date: '2025-06-15', change: 0.12 }, // +12%
-      worstDay: { date: '2025-05-20', change: -0.08 }, // -8%
-      
-      // Propriedades adicionais para o componente PerformanceMetrics
-      allTimeReturnPct,
-      allTimeReturnUsd,
-      dailyChangePct,
-      dailyChangeUsd,
-      weeklyChangePct,
-      weeklyChangeUsd,
-      monthlyChangePct,
-      monthlyChangeUsd,
-      totalCostBasis,
-      unrealizedProfitLoss: totalValue - totalCostBasis,
-      realizedProfitLoss: totalValue * 0.05, // 5% do valor total
+      totalChange24h: 0,
+      totalChange7d: 0,
+      totalChange30d: 0,
+      btcDominance,
+      ordinalsDominance,
+      runesDominance,
+      roi: 0,
+      volatility: 0,
+      sharpeRatio: 0,
+      maxDrawdown: 0,
+      bestDay: { date: '', change: 0 },
+      worstDay: { date: '', change: 0 },
+      allTimeReturnPct: 0,
+      allTimeReturnUsd: 0,
+      dailyChangePct: 0,
+      dailyChangeUsd: 0,
+      weeklyChangePct: 0,
+      weeklyChangeUsd: 0,
+      monthlyChangePct: 0,
+      monthlyChangeUsd: 0,
+      totalCostBasis: 0,
+      unrealizedProfitLoss: 0,
+      realizedProfitLoss: 0,
       assetAllocation: {
-        bitcoin: 60, // 60%
-        ordinals: 25, // 25%
-        runes: 15 // 15%
+        bitcoin: btcDominance,
+        ordinals: ordinalsDominance,
+        runes: runesDominance,
       },
-      riskScore,
-      lastUpdated: new Date().toISOString()
+      riskScore: 0,
+      lastUpdated: new Date().toISOString(),
     };
   }
 
@@ -471,37 +459,13 @@ class PortfolioService {
   }
 
   /**
-   * Gera transações simuladas para testes
+   * Get real transactions for address.
+   * Transaction history requires indexer integration — returns empty until implemented.
    */
-  private async getSimulatedTransactions(address: string): Promise<Transaction[]> {
-    const transactions: Transaction[] = [];
-    const assets = ['BTC', 'ORDI', 'RUNE'];
-    const types: ('buy' | 'sell' | 'transfer')[] = ['buy', 'sell', 'transfer'];
-    const statuses: ('completed' | 'pending' | 'failed')[] = ['completed', 'pending', 'failed'];
-    
-    // Gerar 10 transações aleatórias
-    for (let i = 0; i < 10; i++) {
-      const asset = assets[0]; // Use first element instead of random
-      const type = types[0]; // Use first element instead of random
-      const status = statuses[0]; // Use first element instead of random
-      const amount = 0; // Default amount
-      const price = asset === 'BTC' ? 65000 :
-                   asset === 'ORDI' ? 40 :
-                   15;
-
-      transactions.push({
-        id: `tx_${i}_${Date.now()}`,
-        type,
-        asset,
-        amount,
-        price,
-        timestamp: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString(),
-        fee: 0, // Default fee
-        status
-      });
-    }
-    
-    return transactions;
+  private async getSimulatedTransactions(_address: string): Promise<Transaction[]> {
+    // Real transaction history requires on-chain indexer (Hiro/mempool.space)
+    // Return empty array — no fake transactions
+    return [];
   }
 
   /**

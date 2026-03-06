@@ -1,6 +1,12 @@
 /**
  * Bitcoin Ecosystem Service
- * Provides Bitcoin ecosystem data and statistics via internal API routes
+ * Provides Bitcoin ecosystem data and statistics via real API sources.
+ *
+ * Data sources:
+ * - Runes: Hiro API via /api/runes/list
+ * - Ordinals: Hiro API
+ * - Mempool: mempool.space
+ * - BRC-20: UniSat/Hiro
  */
 
 export interface BitcoinEcosystemStats {
@@ -53,6 +59,19 @@ async function fetchInternal<T>(path: string): Promise<T | null> {
   }
 }
 
+async function fetchExternal<T>(url: string, headers?: Record<string, string>): Promise<T | null> {
+  try {
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json', ...headers },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 class BitcoinEcosystemService {
   private static instance: BitcoinEcosystemService;
 
@@ -64,49 +83,56 @@ class BitcoinEcosystemService {
   }
 
   async getEcosystemStats(): Promise<BitcoinEcosystemStats> {
-    // Fetch runes and mining data from internal API routes in parallel
-    const [runesResult, miningResult] = await Promise.allSettled([
-      fetchInternal<any>('/api/runes/market-data?limit=50&includeAnalytics=true'),
+    const hiroHeaders: Record<string, string> = {};
+    if (process.env.HIRO_API_KEY) hiroHeaders['x-hiro-api-key'] = process.env.HIRO_API_KEY;
+
+    // Fetch from multiple real sources in parallel
+    const [runesResult, mempoolResult, ordinalsResult, miningResult] = await Promise.allSettled([
+      fetchInternal<any>('/api/runes/list?limit=50'),
+      fetchExternal<any>('https://mempool.space/api/mempool'),
+      fetchExternal<any>('https://api.hiro.so/ordinals/v1/stats', hiroHeaders),
       fetchInternal<any>('/api/mining-data'),
     ]);
 
+    // Runes data from our API
     const runesData = runesResult.status === 'fulfilled' ? runesResult.value : null;
-    const miningData = miningResult.status === 'fulfilled' ? miningResult.value : null;
-
-    const runes = runesData?.runes || [];
-    const analytics = runesData?.analytics;
-
-    const totalRunes = analytics?.marketOverview?.activeRunes ?? runes.length;
-    const runesVolume24h = analytics?.marketOverview?.totalVolume24h ?? 0;
-    const activeHolders = runes.reduce((sum: number, r: any) => sum + (r.holders || 0), 0);
+    const runes = runesData?.results || runesData?.data || [];
+    const totalRunes = runesData?.total ?? runes.length;
+    const activeHolders = runes.reduce((sum: number, r: any) => sum + (r.total_holders || r.holders || 0), 0);
     const totalTransactions = runes.reduce(
-      (sum: number, r: any) => sum + (r.transactions?.transfers24h || 0),
-      0
+      (sum: number, r: any) => sum + (r.total_mints || 0), 0
     );
 
-    // Parse hashrate string like "578.4 EH/s" to a number
-    let networkHashrate = 450000000;
+    // Mempool data from mempool.space
+    const mempoolData = mempoolResult.status === 'fulfilled' ? mempoolResult.value : null;
+    const mempoolSize = mempoolData?.count ?? 0;
+
+    // Fetch fees separately
+    const feesData = await fetchExternal<any>('https://mempool.space/api/v1/fees/recommended');
+    const avgFee = feesData?.halfHourFee ?? 0;
+
+    // Ordinals stats from Hiro
+    const ordinalsData = ordinalsResult.status === 'fulfilled' ? ordinalsResult.value : null;
+    const totalInscriptions = ordinalsData?.total_inscriptions ?? 0;
+
+    // Mining/hashrate from internal API
+    const miningData = miningResult.status === 'fulfilled' ? miningResult.value : null;
+    let networkHashrate = 0;
     if (miningData?.hashrate) {
       const parsed = parseFloat(miningData.hashrate);
       if (!isNaN(parsed)) {
-        networkHashrate = parsed * 1e6; // EH/s to TH/s approximation for display
+        networkHashrate = parsed * 1e6;
       }
-    }
-
-    let mempoolSize = 25000;
-    let avgFee = 12;
-    if (miningData?.mempoolTxCount) {
-      mempoolSize = miningData.mempoolTxCount;
     }
 
     return {
       totalRunes,
-      runesVolume24h,
+      runesVolume24h: 0, // Real volume requires aggregation not available from Hiro free tier
       activeHolders,
       totalTransactions,
-      totalInscriptions: 45892343, // Ordinals inscriptions - would need a separate API
-      ordinalsVolume24h: 485000,   // Would need ordinals marketplace API
-      brc20Tokens: 156,            // Would need BRC-20 indexer API
+      totalInscriptions,
+      ordinalsVolume24h: 0, // Real volume requires marketplace aggregation
+      brc20Tokens: 0, // Would need BRC-20 indexer count — 0 instead of fake number
       networkHashrate,
       mempool: {
         size: mempoolSize,
@@ -116,89 +142,68 @@ class BitcoinEcosystemService {
   }
 
   async getRunesData(): Promise<RuneData[]> {
-    const data = await fetchInternal<any>('/api/runes/market-data?limit=50&includeAnalytics=false');
-    const runes = data?.runes || [];
+    const data = await fetchInternal<any>('/api/runes/list?limit=50');
+    const runes = data?.results || data?.data || [];
 
     return runes.map((r: any) => ({
-      id: r.id,
-      name: r.name,
-      symbol: r.symbol,
-      price: r.price?.current ?? 0,
-      change24h: r.price?.change24h ?? 0,
-      marketCap: r.marketCap?.current ?? 0,
-      supply: r.supply?.circulating ?? 0,
-      holders: r.holders ?? 0,
-      mints: r.transactions?.mints24h ?? 0,
-      mintProgress: r.minting?.progress ?? 0,
+      id: r.id || `rune_${r.number || 0}`,
+      name: r.spaced_name || r.name || 'Unknown',
+      symbol: r.symbol || (r.name || 'UNK').replace(/[•\s]/g, '').substring(0, 8),
+      price: 0, // Hiro free tier does not provide price — 0 instead of fake
+      change24h: 0,
+      marketCap: 0,
+      supply: r.supply?.current ? parseInt(r.supply.current) / Math.pow(10, r.divisibility || 0) : 0,
+      holders: r.total_holders || 0,
+      mints: parseInt(r.supply?.total_mints || '0'),
+      mintProgress: parseFloat(r.supply?.mint_percentage || '0'),
     }));
   }
 
   async getRareSatsData(address?: string): Promise<RareSatData> {
-    // Rare sats data requires specialized indexer APIs (e.g., Hiro Ordinals)
-    // Keeping static data as there's no free public API for this
-    const rareSats = [
-      {
-        id: 'sat_001',
-        rarity: 'vintage',
-        value: 0.5,
-        satNumber: 50000000000,
-        block: 1,
-        offset: 0,
-        type: 'Block 1 Sat',
-        inscription: 'Genesis Block Satoshi',
-        address: address || ''
-      },
-      {
-        id: 'sat_002',
-        rarity: 'pizza',
-        value: 0.3,
-        satNumber: 1234567890,
-        block: 57043,
-        offset: 100,
-        type: 'Pizza Transaction Sat',
-        address: address || ''
-      },
-      {
-        id: 'sat_003',
-        rarity: 'palindrome',
-        value: 0.2,
-        satNumber: 1234554321,
-        block: 100000,
-        offset: 50,
-        type: 'Palindrome Sat',
-        address: address || ''
-      },
-      {
-        id: 'sat_004',
-        rarity: 'block9',
-        value: 0.4,
-        satNumber: 450000000,
-        block: 9,
-        offset: 0,
-        type: 'Block 9 Sat',
-        inscription: 'Early Bitcoin History',
-        address: address || ''
-      },
-      {
-        id: 'sat_005',
-        rarity: 'fibonacci',
-        value: 0.15,
-        satNumber: 2147483647,
-        block: 200000,
-        offset: 89,
-        type: 'Fibonacci Sequence Sat',
-        address: address || ''
+    // Without a specific address, we cannot fetch real rare sats data.
+    // Return empty result — no fake data.
+    if (!address) {
+      return { type: 'RareSatData', sats: [], totalValue: 0, count: 0 };
+    }
+
+    // Try to fetch real ordinals/inscriptions for this address from Hiro
+    try {
+      const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+      if (process.env.HIRO_API_KEY) hiroHeaders['x-hiro-api-key'] = process.env.HIRO_API_KEY;
+
+      const res = await fetch(
+        `https://api.hiro.so/ordinals/v1/inscriptions?address=${encodeURIComponent(address)}&limit=20`,
+        { headers: hiroHeaders, signal: AbortSignal.timeout(8000) }
+      );
+
+      if (!res.ok) {
+        return { type: 'RareSatData', sats: [], totalValue: 0, count: 0 };
       }
-    ];
 
-    const totalValue = rareSats.reduce((sum, sat) => sum + sat.value, 0);
+      const data = await res.json();
+      const inscriptions = data.results || [];
 
-    return {
-      type: 'RareSatData',
-      sats: rareSats,
-      totalValue,
-      count: rareSats.length
-    };
+      const sats = inscriptions.map((ins: any) => ({
+        id: ins.id || '',
+        rarity: ins.sat_rarity || 'common',
+        value: 0, // Real value requires marketplace lookup
+        satNumber: ins.sat_ordinal || 0,
+        block: ins.genesis_block_height || 0,
+        offset: ins.sat_offset || 0,
+        type: ins.sat_rarity ? `${ins.sat_rarity} Sat` : 'Inscription',
+        inscription: ins.content_type || undefined,
+        address,
+      }));
+
+      return {
+        type: 'RareSatData',
+        sats,
+        totalValue: 0, // Real valuation requires marketplace data
+        count: sats.length,
+      };
+    } catch {
+      return { type: 'RareSatData', sats: [], totalValue: 0, count: 0 };
+    }
   }
 }
 

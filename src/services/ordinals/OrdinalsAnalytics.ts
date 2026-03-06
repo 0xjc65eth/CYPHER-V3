@@ -972,7 +972,7 @@ export class OrdinalsAnalytics {
   // Marketplace-specific data fetching methods
   private async getCollectionFromMarketplace(collectionId: string, marketplace: OrdinalsMarketplace, client: any) {
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
+      case OrdinalsMarketplace.GAMMA:
         return await client.getCollection(collectionId);
       case OrdinalsMarketplace.OKX:
         return await client.getCollection(collectionId);
@@ -987,7 +987,7 @@ export class OrdinalsAnalytics {
 
   private async getInscriptionsFromMarketplace(collectionId: string, marketplace: OrdinalsMarketplace, client: any) {
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
+      case OrdinalsMarketplace.GAMMA:
         return await client.getInscriptions(collectionId);
       case OrdinalsMarketplace.OKX:
         const result = await client.getInscriptions(collectionId);
@@ -1004,7 +1004,7 @@ export class OrdinalsAnalytics {
 
   private async getActivitiesFromMarketplace(collectionId: string, marketplace: OrdinalsMarketplace, client: any) {
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
+      case OrdinalsMarketplace.GAMMA:
         return await client.getCollectionActivity(collectionId);
       case OrdinalsMarketplace.OKX:
         const result = await client.getCollectionActivity(collectionId);
@@ -1022,7 +1022,7 @@ export class OrdinalsAnalytics {
 
   private async getListingsFromMarketplace(collectionId: string, marketplace: OrdinalsMarketplace, client: any) {
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
+      case OrdinalsMarketplace.GAMMA:
         const inscriptions = await client.getInscriptions(collectionId);
         return inscriptions.filter((i: any) => i.listed).map((i: any) => ({
           price: i.listedPrice,
@@ -1131,8 +1131,8 @@ export class OrdinalsAnalytics {
     
     try {
       const clients = this.initializeClients();
-      const magicEdenCollections = await clients[OrdinalsMarketplace.MAGIC_EDEN].getCollections(limit);
-      collections.push(...magicEdenCollections.map((c: any) => c.symbol));
+      const marketCollections = await clients[OrdinalsMarketplace.GAMMA].getCollections(limit);
+      collections.push(...marketCollections.map((c: any) => c.symbol));
     } catch (error) {
     }
 
@@ -1149,7 +1149,7 @@ export class OrdinalsAnalytics {
         let inscription;
         
         switch (mp) {
-          case OrdinalsMarketplace.MAGIC_EDEN:
+          case OrdinalsMarketplace.GAMMA:
             inscription = await client.getInscription(inscriptionId);
             break;
           case OrdinalsMarketplace.OKX:
@@ -1176,7 +1176,7 @@ export class OrdinalsAnalytics {
   private async getRecentSales(collectionId: string): Promise<Array<{ price: number; timestamp: number }>> {
     // Get recent sales data for bid estimation
     const clients = this.initializeClients();
-    const activities = await this.getActivitiesFromMarketplace(collectionId, OrdinalsMarketplace.MAGIC_EDEN, clients[OrdinalsMarketplace.MAGIC_EDEN]);
+    const activities = await this.getActivitiesFromMarketplace(collectionId, OrdinalsMarketplace.GAMMA, clients[OrdinalsMarketplace.GAMMA]);
     return activities
       .filter((a: any) => a.type === 'sale' && a.price)
       .map((a: any) => ({ price: a.price, timestamp: a.timestamp }))

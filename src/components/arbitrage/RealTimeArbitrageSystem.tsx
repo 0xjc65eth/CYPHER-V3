@@ -254,7 +254,7 @@ export function RealTimeArbitrageSystem() {
     setSystemState(prev => ({
       ...prev,
       exchangeHealth: {
-        'Magic Eden': true,
+        'Gamma.io': true,
         'UniSat': true
       }
     }));

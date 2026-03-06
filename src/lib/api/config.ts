@@ -46,8 +46,8 @@ export const API_CONFIG = {
     },
   },
 
-  // Ordinals API (Hiro primary, replaces Magic Eden)
-  magiceden: {
+  // Ordinals API (Hiro primary)
+  gamma: {
     baseUrl: process.env.HIRO_API_URL || 'https://api.hiro.so',
     apiKey: process.env.HIRO_API_KEY || '',
     endpoints: {

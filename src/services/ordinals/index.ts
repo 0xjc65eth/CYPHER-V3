@@ -85,7 +85,7 @@ export { OrdinalsDataConverter, OrdinalsMarketplaceFactory } from './integration
  *      'inscription123',
  *      'buy',
  *      0.045,
- *      OrdinalsMarketplace.MAGIC_EDEN
+ *      OrdinalsMarketplace.GAMMA
  *    );
  *    
  *    // Monitor session status
@@ -147,15 +147,15 @@ export { OrdinalsDataConverter, OrdinalsMarketplaceFactory } from './integration
  * 6. Individual Marketplace APIs:
  *    ```typescript
  *    import { 
- *      magicEdenAPI, 
+ *      ordinalsAPI, 
  *      okxOrdinalsAPI, 
  *      uniSatAPI, 
  *      hiroOrdinalsService 
  *    } from '@/services/ordinals';
  *    
- *    // Magic Eden
- *    const meCollections = await magicEdenAPI.getCollections();
- *    const meInscription = await magicEdenAPI.getInscription('inscription123');
+ *    // Gamma.io
+ *    const meCollections = await ordinalsAPI.getCollections();
+ *    const meInscription = await ordinalsAPI.getInscription('inscription123');
  *    
  *    // OKX
  *    const okxTrending = await okxOrdinalsAPI.getTrendingCollections();
@@ -171,7 +171,7 @@ export { OrdinalsDataConverter, OrdinalsMarketplaceFactory } from './integration
  *    ```
  * 
  * Key Features:
- * ✅ Multi-marketplace integration (Magic Eden, OKX, UniSat, Hiro)
+ * ✅ Multi-marketplace integration (Gamma.io, OKX, UniSat, Hiro)
  * ✅ Advanced rarity calculation algorithms
  * ✅ Market depth and liquidity analysis
  * ✅ Automated trading with risk management
@@ -216,7 +216,7 @@ export const OrdinalsSystemHealth = {
       trader: false,
       webSocket: false,
       apis: {
-        magicEden: false,
+        gamma: false,
         okx: false,
         uniSat: false,
         hiro: false
@@ -241,7 +241,7 @@ export const OrdinalsSystemHealth = {
       status.webSocket = Object.keys(wsStatus).length > 0;
 
       // Check individual APIs (simplified)
-      status.apis.magicEden = true; // Would test actual API calls
+      status.apis.gamma = true; // Would test actual API calls
       status.apis.okx = true;
       status.apis.uniSat = true;
       status.apis.hiro = true;
@@ -259,7 +259,7 @@ export const OrdinalsConfig = {
   // Default configurations for different environments
   development: {
     enabledMarketplaces: [
-      'magic_eden' as const,
+      'gamma' as const,
       'hiro' as const
     ],
     updateIntervals: {
@@ -281,7 +281,7 @@ export const OrdinalsConfig = {
   
   production: {
     enabledMarketplaces: [
-      'magic_eden' as const,
+      'gamma' as const,
       'okx' as const,
       'unisat' as const,
       'hiro' as const

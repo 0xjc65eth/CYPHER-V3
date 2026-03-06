@@ -13,7 +13,7 @@ export interface FilterPanelProps {
 }
 
 const MARKETPLACE_OPTIONS: { value: OrdinalsMarketplace; label: string }[] = [
-  { value: 'magic_eden', label: 'Magic Eden' },
+  { value: 'gamma', label: 'Gamma.io' },
   { value: 'unisat', label: 'UniSat' },
   { value: 'okx', label: 'OKX' },
   { value: 'gamma', label: 'Gamma' },

@@ -9,8 +9,8 @@ const safeFixed = (value: any, decimals = 2): string =>
 function getMarketplaceUrl(marketplace: string, rune: string): string {
   const encoded = encodeURIComponent(rune);
   switch (marketplace) {
-    case 'Gamma.io':
-      return `https://gamma.io/ordinals/collections/${encoded}`;
+    case 'Xverse':
+      return `https://ordinals.com/rune/${encoded}`;
     case 'OKX':
       return `https://www.okx.com/web3/marketplace/runes/token/${encoded}`;
     case 'UniSat':
@@ -22,13 +22,13 @@ function getMarketplaceUrl(marketplace: string, rune: string): string {
 
 export function DetailPanel({ opp }: { opp: ArbitrageOpportunity }) {
   const prices = [
-    { name: 'Gamma.io', price: opp.magicEdenPrice, color: 'bg-green-500' },
+    { name: 'Xverse', price: opp.xversePrice, color: 'bg-green-500' },
     { name: 'UniSat', price: opp.uniSatPrice, color: 'bg-yellow-500' },
   ];
   const maxPrice = Math.max(...prices.map((p) => p.price));
 
-  const buyPrice = Math.min(opp.magicEdenPrice, opp.uniSatPrice);
-  const sellPrice = Math.max(opp.magicEdenPrice, opp.uniSatPrice);
+  const buyPrice = Math.min(opp.xversePrice, opp.uniSatPrice);
+  const sellPrice = Math.max(opp.xversePrice, opp.uniSatPrice);
   const buyFee = buyPrice * 0.02;
   const sellFee = sellPrice * 0.02;
   const networkFee = buyPrice * 0.005;

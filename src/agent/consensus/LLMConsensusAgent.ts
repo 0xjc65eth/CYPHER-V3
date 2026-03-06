@@ -1,6 +1,6 @@
 /**
  * CYPHER AI Trading Agent - LLM Consensus Agent
- * Uses Grok (xAI) for high-level market assessment
+ * Uses Gemini (primary) or any OpenAI-compatible API as fallback.
  * Rate-limited: max 1 call per pair per 5 minutes
  */
 
@@ -26,18 +26,65 @@ interface LLMResponse {
   riskLevel: 'low' | 'medium' | 'high';
 }
 
+interface LLMProvider {
+  name: string;
+  apiKey: string;
+  apiUrl: string;
+  model: string;
+  format: 'openai' | 'gemini';
+}
+
 export class LLMConsensusAgent {
   private name = 'LLMConsensus';
   private rateLimitCache: Map<string, number> = new Map();
   private rateLimitMs = 5 * 60_000; // 5 minutes per pair
-  private model: string;
-  private apiKey: string | null;
-  private apiUrl: string;
+  private providers: LLMProvider[] = [];
 
   constructor() {
-    this.model = process.env.CONSENSUS_LLM_MODEL || 'grok-3-mini';
-    this.apiKey = process.env.XAI_API_KEY || null;
-    this.apiUrl = process.env.XAI_API_URL || 'https://api.x.ai/v1/chat/completions';
+    // Build provider chain in priority order
+    // 1. Gemini (free tier available, user has key)
+    if (process.env.GEMINI_API_KEY) {
+      this.providers.push({
+        name: 'Gemini',
+        apiKey: process.env.GEMINI_API_KEY,
+        apiUrl: 'https://generativelanguage.googleapis.com/v1beta/models',
+        model: process.env.CONSENSUS_GEMINI_MODEL || 'gemini-2.0-flash',
+        format: 'gemini',
+      });
+    }
+
+    // 2. Grok / xAI (OpenAI-compatible)
+    if (process.env.XAI_API_KEY) {
+      this.providers.push({
+        name: 'Grok',
+        apiKey: process.env.XAI_API_KEY,
+        apiUrl: process.env.XAI_API_URL || 'https://api.x.ai/v1/chat/completions',
+        model: process.env.CONSENSUS_LLM_MODEL || 'grok-3-mini',
+        format: 'openai',
+      });
+    }
+
+    // 3. OpenAI
+    if (process.env.OPENAI_API_KEY) {
+      this.providers.push({
+        name: 'OpenAI',
+        apiKey: process.env.OPENAI_API_KEY,
+        apiUrl: 'https://api.openai.com/v1/chat/completions',
+        model: 'gpt-4o-mini',
+        format: 'openai',
+      });
+    }
+
+    // 4. Anthropic (OpenAI-compatible via messages API)
+    if (process.env.ANTHROPIC_API_KEY) {
+      this.providers.push({
+        name: 'Anthropic',
+        apiKey: process.env.ANTHROPIC_API_KEY,
+        apiUrl: 'https://api.anthropic.com/v1/messages',
+        model: 'claude-haiku-4-5-20251001',
+        format: 'openai', // handled specially in callLLM
+      });
+    }
   }
 
   async analyze(context: LLMMarketContext): Promise<ConsensusVote> {
@@ -53,37 +100,44 @@ export class LLMConsensusAgent {
       };
     }
 
-    if (!this.apiKey) {
+    if (this.providers.length === 0) {
       return {
         agent: this.name,
         direction: 'abstain',
         confidence: 0,
-        reasoning: 'No LLM API key configured',
+        reasoning: 'No LLM API key configured (set GEMINI_API_KEY, XAI_API_KEY, or OPENAI_API_KEY)',
         timestamp: Date.now(),
       };
     }
 
     try {
       this.rateLimitCache.set(context.pair, Date.now());
-
       const prompt = this.buildPrompt(context);
-      const response = await this.callLLM(prompt);
 
-      if (!response) {
-        return {
-          agent: this.name,
-          direction: 'abstain',
-          confidence: 0,
-          reasoning: 'LLM response parsing failed',
-          timestamp: Date.now(),
-        };
+      // Try each provider in order until one succeeds
+      for (const provider of this.providers) {
+        try {
+          const response = await this.callLLM(prompt, provider);
+          if (response) {
+            return {
+              agent: this.name,
+              direction: response.direction,
+              confidence: Math.min(response.confidence, 0.9), // Cap LLM confidence
+              reasoning: `[${provider.name}/${provider.model}] ${response.reasoning}`,
+              timestamp: Date.now(),
+            };
+          }
+        } catch (err) {
+          console.error(`[LLMConsensus] ${provider.name} failed:`, err instanceof Error ? err.message : err);
+          // Continue to next provider
+        }
       }
 
       return {
         agent: this.name,
-        direction: response.direction,
-        confidence: Math.min(response.confidence, 0.9), // Cap LLM confidence
-        reasoning: `[${this.model}] ${response.reasoning}`,
+        direction: 'abstain',
+        confidence: 0,
+        reasoning: `All LLM providers failed (tried: ${this.providers.map(p => p.name).join(', ')})`,
         timestamp: Date.now(),
       };
     } catch (error) {
@@ -146,47 +200,90 @@ Respond in EXACTLY this JSON format (no other text):
 }`;
   }
 
-  private async callLLM(prompt: string): Promise<LLMResponse | null> {
+  private async callLLM(prompt: string, provider: LLMProvider): Promise<LLMResponse | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
-      // Timeout: 15s max for LLM calls
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      let response: Response;
 
-      // Grok (xAI) API - OpenAI-compatible endpoint
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a professional trading analyst. Always respond with valid JSON only.',
-            },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.3,
-          max_tokens: 300,
-        }),
-      });
+      if (provider.format === 'gemini') {
+        // Gemini native API
+        response = await fetch(
+          `${provider.apiUrl}/${provider.model}:generateContent?key=${provider.apiKey}`,
+          {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: `You are a professional trading analyst. Always respond with valid JSON only.\n\n${prompt}` }],
+              }],
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 300,
+              },
+            }),
+          }
+        );
 
-      clearTimeout(timeout);
+        clearTimeout(timeout);
+        if (!response.ok) {
+          console.error(`[LLMConsensus] ${provider.name} HTTP ${response.status}`);
+          return null;
+        }
 
-      if (!response.ok) {
-        console.error(`[LLMConsensus] API error: ${response.status}`);
-        return null;
+        const data = await response.json();
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!content) return null;
+
+        return this.parseResponse(content);
+
+      } else {
+        // OpenAI-compatible API (Grok, OpenAI, etc.)
+        response = await fetch(provider.apiUrl, {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${provider.apiKey}`,
+          },
+          body: JSON.stringify({
+            model: provider.model,
+            messages: [
+              { role: 'system', content: 'You are a professional trading analyst. Always respond with valid JSON only.' },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.3,
+            max_tokens: 300,
+          }),
+        });
+
+        clearTimeout(timeout);
+        if (!response.ok) {
+          console.error(`[LLMConsensus] ${provider.name} HTTP ${response.status}`);
+          return null;
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) return null;
+
+        return this.parseResponse(content);
       }
+    } catch (error) {
+      clearTimeout(timeout);
+      throw error;
+    }
+  }
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
+  private parseResponse(content: string): LLMResponse | null {
+    try {
+      // Extract JSON from potential markdown code blocks
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
 
-      if (!content) return null;
-
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(jsonMatch[0]);
 
       // Validate response structure
       if (!['long', 'short', 'neutral'].includes(parsed.direction)) return null;
@@ -198,8 +295,7 @@ Respond in EXACTLY this JSON format (no other text):
         reasoning: parsed.reasoning || 'No reasoning provided',
         riskLevel: parsed.riskLevel || 'medium',
       };
-    } catch (error) {
-      console.error('[LLMConsensus] Parse error:', error);
+    } catch {
       return null;
     }
   }

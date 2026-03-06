@@ -256,7 +256,7 @@ export function RuneCard({
           </div>
 
           <button className="mt-4 w-full py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-black font-semibold text-sm flex items-center justify-center gap-2 transition-colors">
-            View on Magic Eden
+            View on Gamma.io
             <ExternalLink className="w-4 h-4" />
           </button>
         </div>

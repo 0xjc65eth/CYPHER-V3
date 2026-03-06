@@ -52,7 +52,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
 
   // WebSocket endpoints for each marketplace
   private readonly WEBSOCKET_ENDPOINTS = {
-    [OrdinalsMarketplace.MAGIC_EDEN]: 'wss://api-mainnet.magiceden.dev/v2/ws',
+    [OrdinalsMarketplace.GAMMA]: 'wss://api.hiro.so/ordinals/v1/ws',
     [OrdinalsMarketplace.OKX]: 'wss://ws.okx.com:8443/ws/v5/public',
     [OrdinalsMarketplace.UNISAT]: 'wss://api.unisat.io/ws',
     [OrdinalsMarketplace.HIRO]: 'wss://api.hiro.so/ordinals/v1/ws'
@@ -62,7 +62,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
     super();
     
     this.config = {
-      enabledMarketplaces: config.enabledMarketplaces || [OrdinalsMarketplace.MAGIC_EDEN],
+      enabledMarketplaces: config.enabledMarketplaces || [OrdinalsMarketplace.GAMMA],
       autoReconnect: config.autoReconnect ?? true,
       reconnectInterval: config.reconnectInterval || 5000,
       maxReconnectAttempts: config.maxReconnectAttempts || 10,
@@ -407,8 +407,8 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   private sendInitialSubscriptions(marketplace: OrdinalsMarketplace, ws: WebSocket): void {
     // Send marketplace-specific subscription messages
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
-        this.sendMagicEdenSubscriptions(ws);
+      case OrdinalsMarketplace.GAMMA:
+        this.sendMarketSubscriptions(ws);
         break;
       case OrdinalsMarketplace.OKX:
         this.sendOKXSubscriptions(ws);
@@ -439,7 +439,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   private formatSubscriptionMessage(marketplace: OrdinalsMarketplace, action: string, data: any): any {
     // Format message according to each marketplace's protocol
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
+      case OrdinalsMarketplace.GAMMA:
         return { op: action, arg: data };
       case OrdinalsMarketplace.OKX:
         return { op: action, args: data };
@@ -458,8 +458,8 @@ export class OrdinalsWebSocketManager extends EventEmitter {
       let normalizedMessage: WebSocketMessage;
 
       switch (marketplace) {
-        case OrdinalsMarketplace.MAGIC_EDEN:
-          normalizedMessage = this.normalizeMagicEdenMessage(data);
+        case OrdinalsMarketplace.GAMMA:
+          normalizedMessage = this.normalizeMarketMessage(data);
           break;
         case OrdinalsMarketplace.OKX:
           normalizedMessage = this.normalizeOKXMessage(data);
@@ -577,7 +577,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
   }
 
   // Marketplace-specific message handlers
-  private sendMagicEdenSubscriptions(ws: WebSocket): void {
+  private sendMarketSubscriptions(ws: WebSocket): void {
     if (this.config.subscriptions.priceUpdates) {
       ws.send(JSON.stringify({ op: 'subscribe', arg: 'ordinals.price_updates' }));
     }
@@ -613,7 +613,7 @@ export class OrdinalsWebSocketManager extends EventEmitter {
     }
   }
 
-  private normalizeMagicEdenMessage(data: any): WebSocketMessage {
+  private normalizeMarketMessage(data: any): WebSocketMessage {
     return {
       type: data.event || 'message',
       data: data.data || data,

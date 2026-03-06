@@ -24,8 +24,8 @@ import {
   Loader2
 } from 'lucide-react'
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
-import { useMagicEdenCollections } from '@/hooks/ordinals/useMagicEdenCollections'
-import { useMagicEdenActivity } from '@/hooks/ordinals/useMagicEdenActivity'
+import { useOrdinalsCollections } from '@/hooks/ordinals/useOrdinalsCollections'
+import { useOrdinalsActivity } from '@/hooks/ordinals/useOrdinalsActivity'
 
 interface CypherOrdinalsDashboardProps {
   searchQuery: string
@@ -72,8 +72,8 @@ export function CypherOrdinalsDashboard({ searchQuery }: CypherOrdinalsDashboard
   const [recentInscriptions, setRecentInscriptions] = useState<any[]>([])
   const [topBRC20, setTopBRC20] = useState<{symbol: string; price: number; volume24h: number; change: number; marketCap: number}[]>([])
 
-  const { collections: meCollections, loading: meCollectionsLoading, error: meCollectionsError } = useMagicEdenCollections(20)
-  const { activities: meActivities, loading: meActivityLoading, error: meActivityError } = useMagicEdenActivity()
+  const { collections: meCollections, loading: meCollectionsLoading, error: meCollectionsError } = useOrdinalsCollections(20)
+  const { activities: meActivities, loading: meActivityLoading, error: meActivityError } = useOrdinalsActivity()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -247,13 +247,13 @@ export function CypherOrdinalsDashboard({ searchQuery }: CypherOrdinalsDashboard
         </Card>
       </div>
 
-      {/* Magic Eden Collections & Activity */}
+      {/* Gamma.io Collections & Activity */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ShoppingBag className="h-5 w-5 text-pink-500" />
-            Magic Eden Marketplace
-            <Badge variant="outline" className="ml-2 text-pink-400 border-pink-400/50">Magic Eden</Badge>
+            Gamma.io Marketplace
+            <Badge variant="outline" className="ml-2 text-pink-400 border-pink-400/50">Gamma.io</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -267,9 +267,9 @@ export function CypherOrdinalsDashboard({ searchQuery }: CypherOrdinalsDashboard
               {meCollectionsError ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <AlertCircle className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                  <p className="text-sm text-muted-foreground">Connect Magic Eden API</p>
+                  <p className="text-sm text-muted-foreground">Connect Gamma.io API</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Magic Eden API key may not be configured. Showing Hiro data only.
+                    Gamma.io API key may not be configured. Showing Hiro data only.
                   </p>
                 </div>
               ) : meCollectionsLoading ? (
@@ -296,21 +296,21 @@ export function CypherOrdinalsDashboard({ searchQuery }: CypherOrdinalsDashboard
                       </tr>
                     </thead>
                     <tbody>
-                      {meCollections.slice(0, 10).map((col, idx) => (
+                      {meCollections.slice(0, 10).map((col: any, idx) => (
                         <tr key={col.symbol} className="border-b border-gray-800 hover:bg-muted/20 transition-colors">
                           <td className="py-2 px-3 text-muted-foreground">{idx + 1}</td>
                           <td className="py-2 px-3">
                             <div className="flex items-center gap-2">
-                              {col.imageUri && (
-                                <img src={col.imageUri} alt="" className="w-6 h-6 rounded-full object-cover" />
+                              {col.image && (
+                                <img src={col.image} alt="" className="w-6 h-6 rounded-full object-cover" />
                               )}
                               <span className="font-medium">{col.name}</span>
                             </div>
                           </td>
-                          <td className="py-2 px-3 text-right font-mono">{formatBtcPrice(col.floorPrice)}</td>
-                          <td className="py-2 px-3 text-right font-mono">{formatBtcPrice(col.volume24hr)}</td>
-                          <td className="py-2 px-3 text-right">{col.listedCount.toLocaleString()}</td>
-                          <td className="py-2 px-3 text-right font-mono">{formatBtcPrice(col.avgPrice24hr)}</td>
+                          <td className="py-2 px-3 text-right font-mono">{formatBtcPrice(col.floorPrice || 0)}</td>
+                          <td className="py-2 px-3 text-right font-mono">{formatBtcPrice(col.volume24h || 0)}</td>
+                          <td className="py-2 px-3 text-right">{(col.supply || 0).toLocaleString()}</td>
+                          <td className="py-2 px-3 text-right font-mono">{formatBtcPrice(col.floorPrice || 0)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -323,9 +323,9 @@ export function CypherOrdinalsDashboard({ searchQuery }: CypherOrdinalsDashboard
               {meActivityError ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <AlertCircle className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                  <p className="text-sm text-muted-foreground">Connect Magic Eden API</p>
+                  <p className="text-sm text-muted-foreground">Connect Gamma.io API</p>
                   <p className="text-xs text-muted-foreground/60 mt-1">
-                    Magic Eden API key may not be configured. Activity feed unavailable.
+                    Gamma.io API key may not be configured. Activity feed unavailable.
                   </p>
                 </div>
               ) : meActivityLoading ? (
@@ -340,33 +340,40 @@ export function CypherOrdinalsDashboard({ searchQuery }: CypherOrdinalsDashboard
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                  {meActivities.slice(0, 20).map((act, idx) => (
-                    <div key={`${act.txId}-${idx}`} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${activityTypeColor[act.type] || 'bg-gray-500'}`} />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{act.collectionSymbol}</span>
-                            <Badge variant="outline" className="text-xs px-1.5 py-0">
-                              {activityTypeLabel[act.type] || act.type}
-                            </Badge>
+                  {meActivities.slice(0, 20).map((act: any, idx) => {
+                    const actType = act.type || act.kind || 'unknown'
+                    const actFrom = act.from || act.oldOwner || '--'
+                    const actTo = act.to || act.newOwner || ''
+                    const actTimestamp = act.timestamp || act.createdAt || ''
+                    const actCollection = act.collectionSymbol || act.tokenId || '--'
+                    return (
+                      <div key={`${act.txId}-${idx}`} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${activityTypeColor[actType] || 'bg-gray-500'}`} />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{actCollection}</span>
+                              <Badge variant="outline" className="text-xs px-1.5 py-0">
+                                {activityTypeLabel[actType] || actType}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {actFrom.slice(0, 8)}...  {actTo ? `-> ${actTo.slice(0, 8)}...` : ''}
+                            </p>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {act.from.slice(0, 8)}...  {act.to ? `-> ${act.to.slice(0, 8)}...` : ''}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-sm font-mono">
+                            {act.price ? formatBtcPrice(act.price) : '--'}
+                          </p>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                            <Clock className="h-3 w-3" />
+                            {actTimestamp ? formatTimeAgo(actTimestamp) : '--'}
                           </p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium text-sm font-mono">
-                          {act.price ? formatBtcPrice(act.price) : '--'}
-                        </p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                          <Clock className="h-3 w-3" />
-                          {formatTimeAgo(act.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </TabsContent>

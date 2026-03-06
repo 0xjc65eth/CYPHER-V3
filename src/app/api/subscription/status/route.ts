@@ -1,11 +1,22 @@
 /**
  * GET /api/subscription/status?wallet=ADDRESS
- * Returns the current subscription status and features for a wallet.
+ * Returns the current subscription status and features for a wallet/user.
+ * Checks BTCPay user_subscriptions table (primary) and falls back to
+ * legacy dbService for backward compatibility.
  */
 
 import { NextResponse } from 'next/server'
-import { dbService } from '@/lib/database/db-service'
 import { SUBSCRIPTION_TIERS, type SubscriptionTier } from '@/lib/stripe/config'
+import { getSupabaseServiceClient } from '@/lib/database/supabase-client'
+
+const FREE_RESPONSE = {
+  tier: 'free' as SubscriptionTier,
+  status: 'active',
+  features: SUBSCRIPTION_TIERS.free.features,
+  currentPeriodEnd: null,
+  cancelAtPeriodEnd: false,
+  isActive: true,
+}
 
 export async function GET(request: Request) {
   try {
@@ -19,49 +30,56 @@ export async function GET(request: Request) {
       )
     }
 
-    // Fetch user and active subscription
-    const [user, subscription] = await Promise.all([
-      dbService.getUserByWallet(wallet),
-      dbService.getActiveSubscriptionByWallet(wallet),
-    ])
+    const supabase = getSupabaseServiceClient()
 
-    // Default to free tier if no subscription found
-    if (!subscription) {
-      const freeTier = SUBSCRIPTION_TIERS.free
-      return NextResponse.json(
-        {
-          tier: 'free' as SubscriptionTier,
-          status: 'active',
-          features: freeTier.features,
-          currentPeriodEnd: null,
-          cancelAtPeriodEnd: false,
-          isActive: true,
-        },
-        {
-          headers: {
-            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
-          },
-        }
-      )
+    // Try to find user by wallet address in the users table
+    const { data: user } = await supabase
+      .from('users')
+      .select('id')
+      .eq('wallet_address', wallet)
+      .single()
+
+    if (!user?.id) {
+      return NextResponse.json(FREE_RESPONSE, {
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
+      })
     }
 
-    const tier = (subscription.tier || 'free') as SubscriptionTier
+    // Query BTCPay user_subscriptions table
+    const { data: subscription } = await supabase
+      .from('user_subscriptions')
+      .select('plan, status, expires_at')
+      .eq('user_id', user.id)
+      .single()
+
+    if (!subscription || subscription.plan === 'free') {
+      return NextResponse.json(FREE_RESPONSE, {
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
+      })
+    }
+
+    // Check if subscription has expired
+    const isExpired = subscription.expires_at
+      ? new Date(subscription.expires_at) < new Date()
+      : false
+
+    const effectiveStatus = isExpired ? 'expired' : subscription.status
+    const isActive = effectiveStatus === 'active'
+
+    const tier = (subscription.plan || 'free') as SubscriptionTier
     const tierConfig = SUBSCRIPTION_TIERS[tier] || SUBSCRIPTION_TIERS.free
-    const isActive = subscription.status === 'active' || subscription.status === 'trialing'
 
     return NextResponse.json(
       {
         tier,
-        status: subscription.status,
+        status: effectiveStatus,
         features: tierConfig.features,
-        currentPeriodEnd: subscription.current_period_end || null,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+        currentPeriodEnd: subscription.expires_at || null,
+        cancelAtPeriodEnd: false,
         isActive,
       },
       {
-        headers: {
-          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30',
-        },
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=30' },
       }
     )
   } catch (error) {

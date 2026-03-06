@@ -3,24 +3,15 @@
  * Exports all marketplace APIs with standardized interfaces
  */
 
-import { MagicEdenAPI as _MagicEdenAPI, magicEdenAPI as _magicEdenAPI } from './MagicEdenAPI';
 import { OKXOrdinalsAPI as _OKXOrdinalsAPI, okxOrdinalsAPI as _okxOrdinalsAPI } from './OKXOrdinalsAPI';
 import { UniSatAPI as _UniSatAPI, uniSatAPI as _uniSatAPI } from './UniSatAPI';
 import { HiroOrdinalsService as _HiroOrdinalsService, hiroOrdinalsService as _hiroOrdinalsService } from '../../HiroOrdinalsService';
 
-export { _MagicEdenAPI as MagicEdenAPI, _magicEdenAPI as magicEdenAPI };
 export { _OKXOrdinalsAPI as OKXOrdinalsAPI, _okxOrdinalsAPI as okxOrdinalsAPI };
 export { _UniSatAPI as UniSatAPI, _uniSatAPI as uniSatAPI };
 export { _HiroOrdinalsService as HiroOrdinalsService, _hiroOrdinalsService as hiroOrdinalsService };
 
 // Re-export all types for easier imports
-export type {
-  MagicEdenCollection,
-  MagicEdenInscription,
-  MagicEdenActivity,
-  MagicEdenStats
-} from './MagicEdenAPI';
-
 export type {
   OKXCollection,
   OKXInscription,
@@ -40,11 +31,11 @@ export type {
 
 // Unified marketplace enum
 export enum OrdinalsMarketplace {
-  MAGIC_EDEN = 'magic_eden',
   OKX = 'okx',
   UNISAT = 'unisat',
   HIRO = 'hiro',
-  BESTINSLOT = 'bestinslot'
+  BESTINSLOT = 'bestinslot',
+  GAMMA = 'gamma'
 }
 
 // Standardized interfaces for cross-marketplace compatibility
@@ -164,32 +155,6 @@ export class OrdinalsDataConverter {
     return Math.round(btc * this.SATS_PER_BTC);
   }
 
-  // Convert Magic Eden collection to standardized format
-  static convertMagicEdenCollection(collection: any, marketplace: OrdinalsMarketplace): StandardizedCollection {
-    return {
-      id: collection.symbol,
-      name: collection.name,
-      symbol: collection.symbol,
-      description: collection.description || '',
-      image: collection.image || '',
-      totalSupply: collection.totalItems || collection.supply || 0,
-      floorPrice: collection.floorPrice || 0,
-      volume24h: collection.volume24h || 0,
-      volume7d: collection.volume7d,
-      volume30d: collection.volume30d,
-      holdersCount: collection.owners || collection.ownerCount || 0,
-      listedCount: collection.listedCount || collection.listed || 0,
-      listedPercentage: collection.listedRatio || (collection.listedCount / collection.totalItems * 100) || 0,
-      marketplace,
-      verified: collection.verified,
-      website: collection.website,
-      twitter: collection.twitter,
-      discord: collection.discord,
-      createdAt: collection.createTime ? new Date(collection.createTime).toISOString() : undefined,
-      updatedAt: collection.updateTime ? new Date(collection.updateTime).toISOString() : undefined
-    };
-  }
-
   // Convert OKX collection to standardized format
   static convertOKXCollection(collection: any, marketplace: OrdinalsMarketplace): StandardizedCollection {
     return {
@@ -294,8 +259,6 @@ export class OrdinalsDataConverter {
   // Generic converter that detects marketplace and converts accordingly
   static convertCollection(collection: any, marketplace: OrdinalsMarketplace): StandardizedCollection {
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
-        return this.convertMagicEdenCollection(collection, marketplace);
       case OrdinalsMarketplace.OKX:
         return this.convertOKXCollection(collection, marketplace);
       case OrdinalsMarketplace.UNISAT:
@@ -326,23 +289,19 @@ export class OrdinalsMarketplaceFactory {
   static getPreferredOrder(domain: OrdinalsDataDomain = 'collections'): OrdinalsMarketplace[] {
     switch (domain) {
       case 'runes':
-        // OKX has 0% Runes coverage - use UniSat + Hiro, ME as last resort
-        return [OrdinalsMarketplace.UNISAT, OrdinalsMarketplace.HIRO, OrdinalsMarketplace.MAGIC_EDEN];
+        return [OrdinalsMarketplace.UNISAT, OrdinalsMarketplace.HIRO];
       case 'brc20':
-        // UniSat is the primary BRC-20 source
-        return [OrdinalsMarketplace.UNISAT, OrdinalsMarketplace.HIRO, OrdinalsMarketplace.MAGIC_EDEN];
+        return [OrdinalsMarketplace.UNISAT, OrdinalsMarketplace.HIRO];
       case 'collections':
       case 'inscriptions':
       case 'activities':
       case 'stats':
       default:
-        // OKX primary for all Ordinals data, ME as degraded fallback
         return [
           OrdinalsMarketplace.OKX,
           OrdinalsMarketplace.BESTINSLOT,
           OrdinalsMarketplace.UNISAT,
           OrdinalsMarketplace.HIRO,
-          OrdinalsMarketplace.MAGIC_EDEN,
         ];
     }
   }
@@ -366,8 +325,6 @@ export class OrdinalsMarketplaceFactory {
 
   static createClient(marketplace: OrdinalsMarketplace, config?: any) {
     switch (marketplace) {
-      case OrdinalsMarketplace.MAGIC_EDEN:
-        return _magicEdenAPI;
       case OrdinalsMarketplace.OKX:
         return _okxOrdinalsAPI;
       case OrdinalsMarketplace.UNISAT:
@@ -380,20 +337,9 @@ export class OrdinalsMarketplaceFactory {
   }
 
   static getAllClients(config?: { uniSatApiKey?: string }) {
-    // Lazy initialization to avoid circular dependency issues
     const clients: Record<string, any> = {};
 
     try {
-      // Import magicEdenAPI lazily
-      const { magicEdenAPI } = require('./MagicEdenAPI');
-      clients[OrdinalsMarketplace.MAGIC_EDEN] = magicEdenAPI;
-    } catch (error) {
-      console.warn('[OrdinalsMarketplaceFactory] Failed to load MagicEdenAPI:', error instanceof Error ? error.message : error);
-      clients[OrdinalsMarketplace.MAGIC_EDEN] = null;
-    }
-
-    try {
-      // Import okxOrdinalsAPI lazily
       const { okxOrdinalsAPI } = require('./OKXOrdinalsAPI');
       clients[OrdinalsMarketplace.OKX] = okxOrdinalsAPI;
     } catch (error) {

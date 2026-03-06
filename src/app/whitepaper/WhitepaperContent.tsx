@@ -156,7 +156,7 @@ export default function WhitepaperContent() {
                   <span className="text-[#F7931A] text-xs mt-0.5">02</span>
                   <div>
                     <span className="text-gray-300 text-sm font-bold">Market Unification</span>
-                    <span className="text-gray-500 text-sm"> — Real-time aggregation of fragmented liquidity across Magic Eden, UniSat, OKX, and Hiro into a single Bloomberg Terminal-grade interface.</span>
+                    <span className="text-gray-500 text-sm"> — Real-time aggregation of fragmented liquidity across Gamma.io, UniSat, OKX, and Hiro into a single Bloomberg Terminal-grade interface.</span>
                   </div>
                 </div>
                 <div className="flex gap-3">
@@ -180,7 +180,7 @@ export default function WhitepaperContent() {
               <Subsection title="1.1 Market Fragmentation">
                 <p>
                   The current ecosystem forces participants to maintain parallel sessions across isolated platforms.
-                  Runes market data lives on Hiro. Ordinals listings surface on Magic Eden. Floor price discovery
+                  Runes market data lives on Hiro. Ordinals listings surface on Gamma.io. Floor price discovery
                   requires UniSat. EVM portfolio tracking depends on DeBank. Mempool analysis demands mempool.space.
                   Chart analysis requires TradingView.
                 </p>
@@ -488,7 +488,7 @@ export default function WhitepaperContent() {
                       <td className="py-2 text-gray-500">Partner fee — Paraswap-deducted</td>
                     </tr>
                     <tr>
-                      <td className="py-2 pr-4 text-gray-300">Magic Eden</td>
+                      <td className="py-2 pr-4 text-gray-300">Gamma.io</td>
                       <td className="py-2 pr-4 text-right text-[#F7931A]">35 bps</td>
                       <td className="py-2 text-gray-500">PSBT fee output — BTC tx native</td>
                     </tr>

@@ -21,7 +21,7 @@ import {
 } from '@/types/ordinals';
 
 /**
- * Target collection symbols to fetch from Magic Eden
+ * Target collection symbols to fetch from Gamma.io
  * (Not used directly - API route has its own list, but kept for reference)
  */
 const COLLECTION_SYMBOLS = [
@@ -70,7 +70,7 @@ export function useCollections(filters?: Partial<FilterOptions>, watchlist: stri
   const watchlistRef = useRef(watchlist);
   watchlistRef.current = watchlist;
 
-  // Fetch collections from Magic Eden API
+  // Fetch collections from Gamma.io API
   const fetchCollections = useCallback(async () => {
     try {
       setLoading(true);

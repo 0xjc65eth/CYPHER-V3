@@ -3,6 +3,7 @@ import { portfolioDataSchema, bitcoinAddressSchema } from '@/lib/validation/sche
 import { cacheInstances } from '@/lib/cache/advancedCache';
 import { applyRateLimit, apiRateLimiters } from '@/lib/api/middleware/rateLimiter';
 import { hiroAPI } from '@/lib/api/hiro';
+import { xverseAPI } from '@/lib/api/xverse';
 
 export async function GET(request: NextRequest) {
   // Apply rate limiting
@@ -393,19 +394,150 @@ async function getBitcoinChange24h(): Promise<number> {
   }
 }
 
+/** In-memory price caches to avoid redundant API calls within the same request cycle */
+const runePriceCache = new Map<string, { price: number; ts: number }>();
+const brc20PriceCache = new Map<string, { price: number; ts: number }>();
+const PRICE_CACHE_TTL = 60_000; // 60s
+
 async function getInscriptionValue(inscriptionId: string): Promise<number> {
-  // TODO: Implementar busca real via Magic Eden/UniSat APIs
-  return 0;
+  try {
+    // Look up the inscription via Hiro to find its collection
+    const res = await fetch(
+      `https://api.hiro.so/ordinals/v1/inscriptions/${encodeURIComponent(inscriptionId)}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          ...(process.env.HIRO_API_KEY ? { 'x-hiro-api-key': process.env.HIRO_API_KEY } : {}),
+        },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!res.ok) return 0;
+    const inscription = await res.json();
+
+    // If we can identify the collection, get its floor price as value estimate
+    const collectionId = inscription?.collection_id;
+    if (!collectionId) return 0;
+
+    // Try Xverse for collection floor price
+    if (xverseAPI.isEnabled()) {
+      try {
+        const detail = await xverseAPI.getCollectionDetail(collectionId);
+        if (detail?.floorPrice) {
+          return detail.floorPrice / 1e8; // sats to BTC
+        }
+      } catch { /* fall through to Hiro */ }
+    }
+
+    // Fallback: Hiro collection stats
+    const statsRes = await fetch(
+      `https://api.hiro.so/ordinals/v1/collections/${encodeURIComponent(collectionId)}`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          ...(process.env.HIRO_API_KEY ? { 'x-hiro-api-key': process.env.HIRO_API_KEY } : {}),
+        },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!statsRes.ok) return 0;
+    const stats = await statsRes.json();
+    return stats.floor_price ? parseInt(String(stats.floor_price)) / 1e8 : 0;
+  } catch {
+    return 0;
+  }
 }
 
 async function getRunePrice(runeName: string): Promise<number> {
-  // TODO: Implementar busca real via Hiro/Magic Eden Runes APIs
-  return 0;
+  // Check in-memory cache
+  const cached = runePriceCache.get(runeName);
+  if (cached && Date.now() - cached.ts < PRICE_CACHE_TTL) return cached.price;
+
+  let price = 0;
+
+  // 1. Try Xverse (has floor price in sats)
+  if (xverseAPI.isEnabled()) {
+    try {
+      const detail = await xverseAPI.getRuneDetail(runeName);
+      if (detail?.floorPrice && detail.floorPrice > 0) {
+        price = detail.floorPrice / 1e8; // sats to BTC
+      }
+    } catch { /* fall through */ }
+  }
+
+  // 2. Fallback: Hiro runes API
+  if (price === 0) {
+    try {
+      const encodedName = encodeURIComponent(runeName);
+      const res = await fetch(
+        `https://api.hiro.so/runes/v1/etchings/${encodedName}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            ...(process.env.HIRO_API_KEY ? { 'x-hiro-api-key': process.env.HIRO_API_KEY } : {}),
+          },
+          signal: AbortSignal.timeout(8000),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        // Hiro doesn't provide price directly, but we can estimate from market data
+        if (data.market?.floor_price_sats) {
+          price = parseInt(String(data.market.floor_price_sats)) / 1e8;
+        }
+      }
+    } catch { /* no price available */ }
+  }
+
+  runePriceCache.set(runeName, { price, ts: Date.now() });
+  return price;
 }
 
 async function getBRC20Price(ticker: string): Promise<number> {
-  // TODO: Implementar busca real via UniSat/OKX BRC-20 APIs
-  return 0;
+  // Check in-memory cache
+  const cached = brc20PriceCache.get(ticker);
+  if (cached && Date.now() - cached.ts < PRICE_CACHE_TTL) return cached.price;
+
+  let price = 0;
+
+  // 1. Try Xverse BRC-20 ticker (has floorPriceUsd)
+  if (xverseAPI.isEnabled()) {
+    try {
+      const tokenInfo = await xverseAPI.getBRC20Ticker(ticker);
+      if (tokenInfo?.floorPriceUsd && tokenInfo.floorPriceUsd > 0) {
+        price = tokenInfo.floorPriceUsd;
+      } else if (tokenInfo?.floorPrice && tokenInfo.floorPrice > 0) {
+        // Convert sats price to USD using BTC price
+        const btcPrice = await getCurrentBitcoinPrice();
+        price = (tokenInfo.floorPrice / 1e8) * btcPrice;
+      }
+    } catch { /* fall through */ }
+  }
+
+  // 2. Fallback: UniSat API
+  if (price === 0 && process.env.UNISAT_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://open-api.unisat.io/v1/indexer/brc20/${encodeURIComponent(ticker)}/info`,
+        {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${process.env.UNISAT_API_KEY}`,
+          },
+          signal: AbortSignal.timeout(8000),
+        }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.data?.price) {
+          price = parseFloat(data.data.price);
+        }
+      }
+    } catch { /* no price available */ }
+  }
+
+  brc20PriceCache.set(ticker, { price, ts: Date.now() });
+  return price;
 }
 
 async function calculatePerformance(_address: string, _assets: any[]) {

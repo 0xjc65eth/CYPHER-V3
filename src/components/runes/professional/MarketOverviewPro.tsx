@@ -25,6 +25,24 @@ const safeFixed = (value: any, decimals = 2): string =>
 
 export default function MarketOverviewPro() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [btcPrice, setBtcPrice] = useState(0);
+
+  // Fetch real BTC price for USD conversions
+  useEffect(() => {
+    const fetchBtcPrice = async () => {
+      try {
+        const res = await fetch('/api/market/bitcoin/');
+        if (res.ok) {
+          const data = await res.json();
+          const price = data.price || data.data?.price || 0;
+          if (price > 0) setBtcPrice(price);
+        }
+      } catch { /* use 0 as fallback — show BTC only */ }
+    };
+    fetchBtcPrice();
+    const interval = setInterval(fetchBtcPrice, 60_000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Use React Query hook for data fetching (replaces 101 client-side API calls!)
   const { data, isLoading, error: queryError, refetch } = useRunesMarketOverview({
@@ -116,7 +134,7 @@ export default function MarketOverviewPro() {
           </span>
           {rune.floorPrice && (
             <span className="text-xs text-gray-500">
-              ${safeFixed((rune.floorPrice / 100_000_000) * 65000, 2)}
+              {btcPrice > 0 ? `$${safeFixed((rune.floorPrice / 100_000_000) * btcPrice, 2)}` : ''}
             </span>
           )}
         </div>
@@ -133,7 +151,7 @@ export default function MarketOverviewPro() {
           </span>
           {rune.volume24h && (
             <span className="text-xs text-gray-500">
-              ${safeFixed((rune.volume24h / 100_000_000) * 65000, 0)}
+              {btcPrice > 0 ? `$${safeFixed((rune.volume24h / 100_000_000) * btcPrice, 0)}` : ''}
             </span>
           )}
         </div>
@@ -190,7 +208,7 @@ export default function MarketOverviewPro() {
         <div className="flex items-center justify-center h-96 bg-gray-900/40 border border-gray-800 rounded">
           <div className="text-center">
             <RefreshCw className="h-8 w-8 text-orange-400 animate-spin mx-auto mb-2" />
-            <p className="text-gray-400">Loading real-time market data from Magic Eden...</p>
+            <p className="text-gray-400">Loading real-time market data...</p>
           </div>
         </div>
       </div>
@@ -223,7 +241,7 @@ export default function MarketOverviewPro() {
         <MetricsCard
           title="Total Runes"
           value={stats.totalRunes.toLocaleString()}
-          subtitle="UniSat Indexer"
+          subtitle={data?.source ? `Source: ${data.source}` : 'Loading...'}
           icon={Activity}
           iconColor="text-orange-500"
         />
@@ -237,7 +255,7 @@ export default function MarketOverviewPro() {
         <MetricsCard
           title="24h Volume"
           value={`${safeFixed(stats.totalVolume24h / 100_000_000, 2)} BTC`}
-          subtitle={`$${((stats.totalVolume24h / 100_000_000) * 65000).toLocaleString()}`}
+          subtitle={btcPrice > 0 ? `$${((stats.totalVolume24h / 100_000_000) * btcPrice).toLocaleString()}` : 'BTC only'}
           icon={DollarSign}
           iconColor="text-green-500"
         />
@@ -258,7 +276,7 @@ export default function MarketOverviewPro() {
               Runes Market Overview
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Real-time data from Magic Eden • Last update: {lastUpdate.toLocaleTimeString()} • Source: {data?.source || 'loading'}
+              Real-time data from {data?.source === 'xverse' ? 'Xverse' : data?.source === 'hiro' ? 'Hiro' : data?.source === 'okx' ? 'OKX' : 'Bitcoin APIs'} • Last update: {lastUpdate.toLocaleTimeString()} • Source: {data?.source || 'loading'}
             </p>
           </div>
           <div className="flex gap-2">
@@ -309,7 +327,7 @@ export default function MarketOverviewPro() {
 
       {/* Data Source Attribution */}
       <div className="text-xs text-gray-600 text-center">
-        Data sourced from UniSat Runes API (indexer) + Magic Eden Runes API (marketplace) • Updated every 60 seconds
+        Data sourced from Xverse + Hiro + UniSat Runes APIs • Updated every 60 seconds
       </div>
     </div>
   );

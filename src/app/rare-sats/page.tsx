@@ -141,7 +141,7 @@ function RareSatsPageContent() {
   const fetchMarketListings = useCallback(async () => {
     try {
       setMarketLoading(true)
-      const res = await fetch('/api/magiceden/raresats/listings/?limit=20&sortBy=price&sortDirection=asc')
+      const res = await fetch('/api/marketplace/raresats/listings/?limit=20&sortBy=price&sortDirection=asc')
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       const rawListings = data.listings || data.data || data;
@@ -426,7 +426,7 @@ function RareSatsPageContent() {
               </div>
 
               <div className="text-center py-4">
-                <p className="text-xs text-gray-500">Live data from Magic Eden Rare Sats API.</p>
+                <p className="text-xs text-gray-500">Live data from Gamma.io Rare Sats API.</p>
               </div>
             </div>
           </TabsContent>

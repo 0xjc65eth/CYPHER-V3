@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 /**
  * Fetches runes stats. Primary source: /api/runes-stats.
- * Fallback: /api/magiceden/runes/collection-stats?limit=50 aggregated.
+ * Fallback: /api/marketplace/runes/collection-stats?limit=50 aggregated.
  * Never returns hardcoded fake numbers – zeros for missing data.
  */
 export function useRunesStats() {
@@ -21,9 +21,9 @@ export function useRunesStats() {
       } catch (err) {
       }
 
-      // ---- Fallback: Magic Eden collection-stats ----
+      // ---- Fallback: Gamma.io collection-stats ----
       try {
-        const response = await fetch('/api/magiceden/runes/collection-stats/?limit=50&sortBy=volume&sortDirection=desc')
+        const response = await fetch('/api/marketplace/runes/collection-stats/?limit=50&sortBy=volume&sortDirection=desc')
         if (!response.ok) {
           throw new Error(`collection-stats failed: ${response.status}`)
         }

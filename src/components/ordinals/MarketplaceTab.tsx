@@ -36,7 +36,7 @@ interface FilterState {
 }
 
 export default function MarketplaceTab() {
-  // Professional marketplace hook for UniSat + Magic Eden data
+  // Professional marketplace hook for UniSat + Gamma.io data
   const marketplace = useMarketplace();
 
   const [activities, setActivities] = useState<MarketActivity[]>([]);

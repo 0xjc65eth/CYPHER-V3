@@ -27,7 +27,7 @@ import {
   calculateBollingerBands
 } from '@/components/ui/professional';
 import { ExportButton } from '@/components/common/ExportButton';
-import { magicEdenRunesService } from '@/services/magicEdenRunesService';
+// Gamma.io removed — using Hiro API for activity data
 
 interface RuneAnalytics {
   id: string;
@@ -105,11 +105,10 @@ export default function AnalyticsPro() {
         // Fetch activities for the top runes to calculate volume
         const activitiesPromises = topRunes.map(async (rune) => {
           try {
-            const activities = await magicEdenRunesService.getRuneActivities({
-              rune: rune.spaced_name || rune.name,
-              limit: 100
-            });
-            return { rune: rune.spaced_name || rune.name, activities: activities.activities || [] };
+            const res = await fetch(`/api/runes/activity/${encodeURIComponent(rune.spaced_name || rune.name)}/?limit=100&order=desc`);
+            const data = res.ok ? await res.json() : { data: { results: [] } };
+            const activityList = data.data?.results || data.activities || [];
+            return { rune: rune.spaced_name || rune.name, activities: activityList };
           } catch (err) {
             return { rune: rune.spaced_name || rune.name, activities: [] };
           }

@@ -71,11 +71,26 @@ export function activityToEvent(activity: any, rune: string): FeedEvent | null {
   const price = Number(activity.unitPrice?.value || activity.price || activity.totalPrice?.value || 0);
   const from = activity.from || activity.oldOwner || activity.seller || 'Unknown';
   const to = activity.to || activity.newOwner || activity.buyer || 'Unknown';
-  const rawTs = activity.timestamp ? new Date(activity.timestamp).getTime()
-    : activity.createdAt ? new Date(activity.createdAt).getTime()
-    : Date.now();
-  // If timestamp is in seconds (< year 2100 in ms), convert to milliseconds
-  const ts = rawTs < 1e12 ? rawTs * 1000 : rawTs;
+  // Parse timestamp — handle seconds, milliseconds, ISO strings, and invalid values
+  let ts = Date.now();
+  const rawValue = activity.timestamp || activity.createdAt;
+  if (rawValue) {
+    const parsed = typeof rawValue === 'number' ? rawValue : new Date(rawValue).getTime();
+    if (!isNaN(parsed) && parsed > 0) {
+      // If it looks like seconds (before year 2100 in seconds = ~4.1e9), convert to ms
+      // A valid ms timestamp for year 2020+ is > 1.577e12
+      if (parsed < 1e12) {
+        ts = parsed * 1000;
+      } else {
+        ts = parsed;
+      }
+    }
+    // Sanity check: timestamp should be within last 30 days and not in the future
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    if (ts < thirtyDaysAgo || ts > Date.now() + 60_000) {
+      ts = Date.now(); // fallback to now for nonsensical timestamps
+    }
+  }
 
   const isWhale = amount > 1_000_000 && price > 0;
   const finalType: EventType = isWhale ? 'WHALE' : type;
@@ -118,8 +133,17 @@ async function fetchHiroActivities(runeName: string): Promise<FeedEvent[]> {
         const amount = Number(a.amount || 0);
         const from = a.from_address || a.sender || 'Unknown';
         const to = a.to_address || a.receiver || 'Unknown';
-        const rawTs = a.timestamp ? new Date(a.timestamp).getTime() : Date.now();
-        const ts = rawTs < 1e12 ? rawTs * 1000 : rawTs;
+        let ts = Date.now();
+        if (a.timestamp) {
+          const parsed = typeof a.timestamp === 'number' ? a.timestamp : new Date(a.timestamp).getTime();
+          if (!isNaN(parsed) && parsed > 0) {
+            ts = parsed < 1e12 ? parsed * 1000 : parsed;
+          }
+          const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+          if (ts < thirtyDaysAgo || ts > Date.now() + 60_000) {
+            ts = Date.now();
+          }
+        }
         const description = `${getOperationLabel(type)} ${formatNumber(amount)} ${runeName}`;
 
         return {
@@ -141,14 +165,14 @@ async function fetchHiroActivities(runeName: string): Promise<FeedEvent[]> {
   }
 }
 
-async function fetchMagicEdenActivities(runeName: string): Promise<FeedEvent[]> {
+async function fetchXverseActivities(runeName: string): Promise<FeedEvent[]> {
   try {
-    const encoded = encodeURIComponent(runeName);
-    const res = await fetch(`/api/magiceden/runes/activities/${encoded}/?limit=15`);
+    // Use recent rune trades endpoint from Xverse
+    const res = await fetch(`/api/runes/activity/${encodeURIComponent(runeName)}/?limit=15&source=xverse`);
     if (!res.ok) return [];
 
     const data = await res.json();
-    const activities = data.activities || data.data || (Array.isArray(data) ? data : []);
+    const activities = data.activities || data.data?.results || data.data || (Array.isArray(data) ? data : []);
 
     return activities
       .map((a: any) => activityToEvent(a, runeName))
@@ -160,7 +184,7 @@ async function fetchMagicEdenActivities(runeName: string): Promise<FeedEvent[]> 
 }
 
 // ---------------------------------------------------------------------------
-// Combined fetcher (Magic Eden + Hiro, deduplicated)
+// Combined fetcher (Xverse + Hiro, deduplicated)
 // ---------------------------------------------------------------------------
 
 export async function fetchLiveActivities(runeNames: string[]): Promise<FeedEvent[]> {
@@ -168,7 +192,7 @@ export async function fetchLiveActivities(runeNames: string[]): Promise<FeedEven
 
   const results = await Promise.allSettled(
     runesToFetch.flatMap((rune) => [
-      fetchMagicEdenActivities(rune),
+      fetchXverseActivities(rune),
       fetchHiroActivities(rune),
     ])
   );

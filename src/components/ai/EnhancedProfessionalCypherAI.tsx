@@ -304,7 +304,7 @@ Confidence: 94% | Sources: TradingView, Glassnode, CoinMetrics`,
 🎯 **Trending Opportunities**:
 1. **Runes Protocol**: RSIC, DOG•GO•TO•THE•MOON showing volume spikes
 2. **Ordinal Art**: Sub-10K inscription numbers gaining premium
-3. **Utility Projects**: OrdinalsBot, Magic Eden gaining traction
+3. **Utility Projects**: OrdinalsBot, Gamma.io gaining traction
 
 ⚡ **Immediate Actions**:
 - Monitor sub-1K inscriptions for blue-chip potential
@@ -314,7 +314,7 @@ Confidence: 94% | Sources: TradingView, Glassnode, CoinMetrics`,
 Confidence: 89% | Next update in 4 hours`,
         confidence: 0.89,
         timestamp: Date.now(),
-        sources: ['Gemini Pro Scanner', 'Ordinals API', 'Runes Market Data', 'Magic Eden'],
+        sources: ['Gemini Pro Scanner', 'Ordinals API', 'Runes Market Data', 'Gamma.io'],
         actions: [
           {
             id: 'ordinals-scan',

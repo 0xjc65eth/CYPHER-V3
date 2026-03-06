@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/professional';
 import { ExportButton } from '@/components/common/ExportButton';
 
-import { magicEdenRunesService } from '@/services/magicEdenRunesService';
+// Gamma.io removed — using Xverse + UniSat as data sources
 
 const safeFixed = (value: any, decimals = 2): string =>
   (typeof value === 'number' && !isNaN(value)) ? value.toFixed(decimals) : '0'.padEnd(decimals > 0 ? decimals + 2 : 1, '0');
@@ -30,7 +30,7 @@ interface RuneListing {
   unitPrice: number; // sats per rune
   totalPrice: number; // total sats
   seller: string;
-  source: 'UniSat' | 'Magic Eden';
+  source: 'UniSat' | 'Xverse';
   listedAt: string;
   txid?: string;
 }
@@ -49,23 +49,43 @@ export default function RunesMarketplace() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRune, setSelectedRune] = useState<string>('all');
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [btcPrice, setBtcPrice] = useState(0);
 
-  // Fetch marketplace listings from UniSat + Magic Eden
+  // Fetch real BTC price for USD conversions
+  useEffect(() => {
+    const fetchBtcPrice = async () => {
+      try {
+        const res = await fetch('/api/market/bitcoin/');
+        if (res.ok) {
+          const data = await res.json();
+          const price = data.price || data.data?.price || 0;
+          if (price > 0) setBtcPrice(price);
+        }
+      } catch { /* use 0 — show BTC only */ }
+    };
+    fetchBtcPrice();
+    const interval = setInterval(fetchBtcPrice, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch marketplace listings from Xverse + UniSat
   const fetchListings = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Fetch from both marketplaces via server proxy (avoids CORS)
-      const [auctionsRes, runesRes] = await Promise.all([
+      // Fetch from Xverse (recent trades) and UniSat (auctions) in parallel
+      const [xverseRes, auctionsRes, runesRes] = await Promise.all([
+        fetch('/api/runes/market-overview/?limit=50'),
         fetch('/api/unisat/runes/auctions/?limit=100'),
         fetch('/api/unisat/runes/list/?limit=50')
       ]);
+
+      const xverseData = xverseRes.ok ? await xverseRes.json() : { data: [] };
       const unisatAuctions = auctionsRes.ok ? await auctionsRes.json() : { list: [] };
       const topRunes = runesRes.ok ? await runesRes.json() : { list: [] };
 
       const auctionList = Array.isArray(unisatAuctions?.list) ? unisatAuctions.list : [];
-      const runeList = Array.isArray(topRunes?.list) ? topRunes.list : [];
 
       // Convert UniSat auctions to listings
       const unisatListings: RuneListing[] = auctionList.map((auction: any) => {
@@ -86,38 +106,24 @@ export default function RunesMarketplace() {
         };
       });
 
-      // Fetch Magic Eden orders for popular runes
-      const magicEdenListings: RuneListing[] = [];
-
-      for (const rune of runeList.slice(0, 20)) {
-        try {
-          const orders = await magicEdenRunesService.getRuneOrders({
-            rune: rune.spacedRune,
-            sortBy: 'unitPriceAsc',
-            limit: 20
-          } as any);
-
-          const orderList = Array.isArray(orders?.orders) ? orders.orders : [];
-          const meListings = orderList.map((order: any, orderIdx: number) => ({
-            id: order.id || `me-${Date.now()}-${orderIdx}`,
-            rune: rune.rune,
-            runeName: rune.spacedRune,
-            amount: parseFloat(order.amount?.formatted || '0'),
-            unitPrice: parseFloat(order.unitPrice?.formatted || '0'),
-            totalPrice: parseFloat(order.total?.formatted || '0'),
-            seller: order.maker || 'Unknown',
-            source: 'Magic Eden' as const,
-            listedAt: order.createdAt || new Date().toISOString(),
-          }));
-
-          magicEdenListings.push(...meListings);
-        } catch (err) {
-          // Magic Eden order fetch failed for this rune - continue
-        }
-      }
+      // Convert Xverse market data to listings (these have real floor prices)
+      const xverseRunes = Array.isArray(xverseData?.data) ? xverseData.data : [];
+      const xverseListings: RuneListing[] = xverseRunes
+        .filter((r: any) => r.floorPrice > 0)
+        .map((r: any, idx: number) => ({
+          id: `xverse-${r.id || idx}`,
+          rune: r.name || 'UNKNOWN',
+          runeName: r.spaced_name || r.name || 'UNKNOWN',
+          amount: r.listed || 1,
+          unitPrice: r.floorPrice || 0,
+          totalPrice: (r.floorPrice || 0) * (r.listed || 1),
+          seller: 'Market Floor',
+          source: 'UniSat' as const,
+          listedAt: new Date().toISOString(),
+        }));
 
       // Combine and sort by price
-      const allListings = [...unisatListings, ...magicEdenListings]
+      const allListings = [...unisatListings, ...xverseListings]
         .filter(l => l.unitPrice > 0)
         .sort((a, b) => a.unitPrice - b.unitPrice);
 
@@ -206,7 +212,7 @@ export default function RunesMarketplace() {
             {listing.unitPrice.toLocaleString()} sats
           </span>
           <span className="text-xs text-gray-500">
-            ${safeFixed(listing.unitPrice * 0.00000065, 6)}
+            {btcPrice > 0 ? `$${safeFixed(listing.unitPrice * (btcPrice / 100_000_000), 6)}` : ''}
           </span>
         </div>
       ),
@@ -221,7 +227,7 @@ export default function RunesMarketplace() {
             {safeFixed(listing.totalPrice / 100_000_000, 8)} BTC
           </span>
           <span className="text-xs text-gray-500">
-            ${safeFixed((listing.totalPrice / 100_000_000) * 65000, 2)}
+            {btcPrice > 0 ? `$${safeFixed((listing.totalPrice / 100_000_000) * btcPrice, 2)}` : ''}
           </span>
         </div>
       ),
@@ -293,7 +299,7 @@ export default function RunesMarketplace() {
         <div className="flex items-center justify-center h-96 bg-gray-900/40 border border-gray-800 rounded">
           <div className="text-center">
             <RefreshCw className="h-8 w-8 text-orange-400 animate-spin mx-auto mb-2" />
-            <p className="text-gray-400">Loading marketplace from UniSat + Magic Eden...</p>
+            <p className="text-gray-400">Loading marketplace from Xverse + UniSat...</p>
           </div>
         </div>
       </div>
@@ -333,7 +339,7 @@ export default function RunesMarketplace() {
         <MetricsCard
           title="24h Volume"
           value={`${safeFixed(stats.totalVolume24h / 100_000_000, 2)} BTC`}
-          subtitle={`$${((stats.totalVolume24h / 100_000_000) * 65000).toLocaleString()}`}
+          subtitle={btcPrice > 0 ? `$${((stats.totalVolume24h / 100_000_000) * btcPrice).toLocaleString()}` : 'BTC only'}
           icon={DollarSign}
           iconColor="text-green-500"
         />
@@ -386,7 +392,7 @@ export default function RunesMarketplace() {
               Active Marketplace Listings
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Real-time orders from UniSat + Magic Eden • Last update: {lastUpdate.toLocaleTimeString()}
+              Real-time orders from Xverse + UniSat • Last update: {lastUpdate.toLocaleTimeString()}
             </p>
           </div>
           <div className="flex gap-2">
@@ -436,7 +442,7 @@ export default function RunesMarketplace() {
 
       {/* Data Source Attribution */}
       <div className="text-xs text-gray-600 text-center">
-        Marketplace data from UniSat Auctions API + Magic Eden Orders API • Updated every 60 seconds
+        Marketplace data from Xverse + UniSat Runes APIs • Updated every 60 seconds
       </div>
     </div>
   );

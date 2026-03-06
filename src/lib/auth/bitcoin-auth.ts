@@ -84,7 +84,7 @@ export function getWalletDisplayName(walletType: string): string {
     xverse: 'Xverse',
     unisat: 'UniSat',
     oyl: 'OYL',
-    magiceden: 'Magic Eden'
+    gamma: 'Gamma.io'
   };
 
   return walletNames[walletType] || walletType;

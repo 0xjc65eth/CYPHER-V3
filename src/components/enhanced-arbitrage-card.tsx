@@ -86,7 +86,7 @@ export function EnhancedArbitrageCard() {
           let mePrice = 0;
           let meVolume = 0;
           try {
-            const meResp = await fetch(`/api/magiceden/runes/${encodeURIComponent(name)}/`);
+            const meResp = await fetch(`/api/marketplace/runes/${encodeURIComponent(name)}/`);
             if (meResp.ok) {
               const meData = await meResp.json();
               mePrice = meData.floorUnitPrice?.value || meData.floorPrice || 0;

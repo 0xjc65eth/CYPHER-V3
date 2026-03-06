@@ -9,9 +9,8 @@ interface TierBadgeProps {
 
 const TIER_STYLES: Record<SubscriptionTier, string> = {
   free: 'bg-gray-500/10 border-gray-500/20 text-gray-400',
-  explorer: 'bg-[#3B82F6]/10 border-[#3B82F6]/20 text-[#3B82F6]',
-  trader: 'bg-[#8B5CF6]/10 border-[#8B5CF6]/20 text-[#8B5CF6]',
-  hacker_yields: 'bg-gradient-to-r from-[#F7931A]/10 to-[#FBBF24]/10 border-[#F7931A]/30 text-[#F7931A]',
+  pro: 'bg-[#3B82F6]/10 border-[#3B82F6]/20 text-[#3B82F6]',
+  elite: 'bg-gradient-to-r from-[#F7931A]/10 to-[#FBBF24]/10 border-[#F7931A]/30 text-[#F7931A]',
 }
 
 export function TierBadge({ tier, size = 'sm' }: TierBadgeProps) {

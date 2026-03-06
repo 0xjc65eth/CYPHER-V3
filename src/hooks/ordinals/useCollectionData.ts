@@ -197,12 +197,12 @@ export function useAggregatedMarketData(collectionSlug: string) {
 
         // Deterministic marketplace split based on typical market share
         const marketplaceData = {
-          magicEden: {
+          gamma: {
             floorPrice: baseFloor,
             listedCount: Math.floor(baseListed * 0.50),
             volume24h: baseVolume * 0.55
           },
-          gamma: {
+          unisat: {
             floorPrice: baseFloor * 1.01, // Typically slightly higher
             listedCount: Math.floor(baseListed * 0.30),
             volume24h: baseVolume * 0.30
@@ -216,18 +216,18 @@ export function useAggregatedMarketData(collectionSlug: string) {
 
         const aggregated = {
           bestFloor: Math.min(
-            marketplaceData.magicEden.floorPrice,
             marketplaceData.gamma.floorPrice,
+            marketplaceData.unisat.floorPrice,
             marketplaceData.okx.floorPrice
           ),
-          bestMarketplace: marketplaceData.magicEden.floorPrice <= marketplaceData.gamma.floorPrice && 
-                          marketplaceData.magicEden.floorPrice <= marketplaceData.okx.floorPrice ? 'Magic Eden' :
-                          marketplaceData.gamma.floorPrice <= marketplaceData.okx.floorPrice ? 'Gamma' : 'OKX',
-          totalListed: marketplaceData.magicEden.listedCount + 
-                      marketplaceData.gamma.listedCount + 
+          bestMarketplace: marketplaceData.gamma.floorPrice <= marketplaceData.unisat.floorPrice &&
+                          marketplaceData.gamma.floorPrice <= marketplaceData.okx.floorPrice ? 'Gamma.io' :
+                          marketplaceData.unisat.floorPrice <= marketplaceData.okx.floorPrice ? 'UniSat' : 'OKX',
+          totalListed: marketplaceData.gamma.listedCount +
+                      marketplaceData.unisat.listedCount +
                       marketplaceData.okx.listedCount,
-          totalVolume24h: marketplaceData.magicEden.volume24h + 
-                         marketplaceData.gamma.volume24h + 
+          totalVolume24h: marketplaceData.gamma.volume24h +
+                         marketplaceData.unisat.volume24h +
                          marketplaceData.okx.volume24h
         }
 

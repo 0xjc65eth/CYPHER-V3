@@ -6,7 +6,7 @@
 /**
  * Supported Ordinals marketplaces
  */
-export type OrdinalsMarketplace = 'magic_eden' | 'unisat' | 'okx' | 'hiro' | 'gamma' | 'bestinslot';
+export type OrdinalsMarketplace = 'gamma' | 'unisat' | 'okx' | 'hiro' | 'bestinslot';
 
 /**
  * Risk score levels for arbitrage opportunities
@@ -216,11 +216,10 @@ export interface ArbitrageError {
  * Constants for marketplace fees (as percentages in decimal form)
  */
 export const MARKETPLACE_FEES: Record<OrdinalsMarketplace, number> = {
-  magic_eden: 0.025,    // 2.5%
+  gamma: 0.025,         // 2.5%
   unisat: 0.02,         // 2%
   okx: 0.02,            // 2%
   hiro: 0.015,          // 1.5%
-  gamma: 0.02,          // 2%
   bestinslot: 0.02      // 2% (marketplace aggregator)
 };
 
@@ -247,11 +246,10 @@ export const DEFAULT_CONFIG = {
  * Marketplace display names
  */
 export const MARKETPLACE_NAMES: Record<OrdinalsMarketplace, string> = {
-  magic_eden: 'Gamma.io',
+  gamma: 'Gamma.io',
   unisat: 'UniSat',
   okx: 'OKX',
   hiro: 'Hiro/Ordiscan',
-  gamma: 'Gamma',
   bestinslot: 'BestInSlot'
 };
 
@@ -259,11 +257,10 @@ export const MARKETPLACE_NAMES: Record<OrdinalsMarketplace, string> = {
  * Marketplace URLs
  */
 export const MARKETPLACE_URLS: Record<OrdinalsMarketplace, string> = {
-  magic_eden: 'https://gamma.io/ordinals',
+  gamma: 'https://gamma.io/ordinals',
   unisat: 'https://unisat.io/market',
   okx: 'https://www.okx.com/web3/marketplace/ordinals',
   hiro: 'https://ordinals.hiro.so',
-  gamma: 'https://gamma.io',
   bestinslot: 'https://bestinslot.xyz'
 };
 
@@ -271,7 +268,7 @@ export const MARKETPLACE_URLS: Record<OrdinalsMarketplace, string> = {
  * Type guard to check if a string is a valid OrdinalsMarketplace
  */
 export function isValidMarketplace(value: string): value is OrdinalsMarketplace {
-  return ['magic_eden', 'unisat', 'okx', 'hiro', 'gamma', 'bestinslot'].includes(value);
+  return ['gamma', 'unisat', 'okx', 'hiro', 'bestinslot'].includes(value);
 }
 
 /**

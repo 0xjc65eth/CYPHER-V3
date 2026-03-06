@@ -597,7 +597,7 @@ export class RealArbitrageService {
     // Try OKX rune price
     try {
       const okxRes = await fetch(
-        `${process.env.NEXT_PUBLIC_SITE_URL || 'https://cypherordifuture.xyz'}/api/magiceden/runes/collection-stats/?collectionSymbol=${encodeURIComponent(runeName)}`,
+        `${process.env.NEXT_PUBLIC_SITE_URL || 'https://cypherordifuture.xyz'}/api/marketplace/runes/collection-stats/?collectionSymbol=${encodeURIComponent(runeName)}`,
         { signal: AbortSignal.timeout(5000) }
       );
       if (okxRes.ok) {

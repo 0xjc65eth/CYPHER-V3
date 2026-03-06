@@ -12,7 +12,7 @@ interface ArbitrageHeatmapProps {
 export default function ArbitrageHeatmap({ opportunities }: ArbitrageHeatmapProps) {
   // Group opportunities by asset type and source
   const heatmapData = useMemo(() => {
-    const sources = ['Magic Eden', 'UniSat', 'OKX', 'Ordiscan', 'Gate.io'];
+    const sources = ['Gamma.io', 'UniSat', 'OKX', 'Ordiscan', 'Gate.io'];
     const assetTypes = ['ordinals', 'runes', 'tokens'];
     
     return sources.map(source => ({

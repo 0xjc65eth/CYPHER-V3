@@ -13,7 +13,7 @@
  *   4. Fee is 0.35% of trade amount in sats
  *
  * Integration points:
- *   - Magic Eden Ordinals/Runes trades
+ *   - Gamma.io Ordinals/Runes trades
  *   - UniSat marketplace trades
  *   - OKX Web3 BRC-20 trades
  *   - Any custom PSBT construction

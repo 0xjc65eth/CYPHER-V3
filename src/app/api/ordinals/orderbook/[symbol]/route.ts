@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { magicEdenAPI } from '@/services/ordinals/integrations/MagicEdenAPI';
+import { okxOrdinalsAPI as ordinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
 
 export interface OrderBookLevel {
   price: number;
@@ -44,18 +44,21 @@ export async function GET(
       );
     }
 
-    // Fetch listings (asks/sell orders) from Magic Eden
-    const inscriptions = await magicEdenAPI.getInscriptions(symbol, undefined, 'priceAsc', 100, 0);
+    // Fetch listings (asks/sell orders) from OKX
+    const inscriptionsResult = await ordinalsAPI.getInscriptions(symbol, undefined, undefined, undefined, 'priceAsc', 100);
 
     // Fetch recent sales for bid estimation
-    const activities = await magicEdenAPI.getCollectionActivity(symbol, ['sale'], 50, 0);
+    const activitiesResult = await ordinalsAPI.getCollectionActivity(symbol, ['BUY'], 50);
+
+    const inscriptions = inscriptionsResult.inscriptions;
+    const activities = activitiesResult.activities;
 
     // Build ask side (sell orders) from listings
     const listedItems = inscriptions
-      .filter(i => i.listed && i.listedPrice)
-      .map(i => ({
-        price: i.listedPrice!,
-        inscriptionId: i.id
+      .filter((i) => i.listingInfo?.price)
+      .map((i) => ({
+        price: parseFloat(i.listingInfo!.price),
+        inscriptionId: i.inscriptionId
       }))
       .sort((a, b) => a.price - b.price);
 
@@ -63,7 +66,7 @@ export async function GET(
     const priceGrouping = 0.0001;
     const asksMap = new Map<number, number>();
 
-    listedItems.forEach(item => {
+    listedItems.forEach((item) => {
       const priceLevel = Math.round(item.price / priceGrouping) * priceGrouping;
       asksMap.set(priceLevel, (asksMap.get(priceLevel) || 0) + 1);
     });
@@ -74,7 +77,7 @@ export async function GET(
 
     const asks: OrderBookLevel[] = Array.from(asksMap.entries())
       .sort((a, b) => a[0] - b[0])
-      .slice(0, 20) // Top 20 price levels
+      .slice(0, 20)
       .map(([price, quantity]) => {
         cumulativeQty += quantity;
         const totalValue = price * quantity;
@@ -91,21 +94,20 @@ export async function GET(
 
     // Estimate bids from recent sales (use prices slightly below recent sales)
     const recentSales = activities
-      .filter(a => a.price)
+      .filter((a) => a.price)
       .slice(0, 30)
-      .map(a => a.price!);
+      .map((a) => parseFloat(a.price!));
 
     const avgRecentPrice = recentSales.length > 0
       ? recentSales.reduce((sum, p) => sum + p, 0) / recentSales.length
-      : asks[0]?.price * 0.95 || 0;
+      : (asks[0]?.price ?? 0) * 0.95;
 
     // Generate synthetic bid levels (typically 2-5% below market)
     const bidsMap = new Map<number, number>();
-    const bidPriceSteps = [0.98, 0.96, 0.94, 0.92, 0.90, 0.88]; // Percentages of avg price
+    const bidPriceSteps = [0.98, 0.96, 0.94, 0.92, 0.90, 0.88];
 
     bidPriceSteps.forEach((pct, index) => {
       const bidPrice = Math.round((avgRecentPrice * pct) / priceGrouping) * priceGrouping;
-      // Estimate quantity based on recent volume (more aggressive bids have less quantity)
       const estimatedQty = Math.max(1, Math.floor(5 - index * 0.5));
       bidsMap.set(bidPrice, estimatedQty);
     });
@@ -115,7 +117,7 @@ export async function GET(
     cumulativeVal = 0;
 
     const bids: OrderBookLevel[] = Array.from(bidsMap.entries())
-      .sort((a, b) => b[0] - a[0]) // Descending order for bids
+      .sort((a, b) => b[0] - a[0])
       .map(([price, quantity]) => {
         cumulativeQty += quantity;
         const totalValue = price * quantity;

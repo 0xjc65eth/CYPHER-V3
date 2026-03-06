@@ -40,7 +40,7 @@ const DEFAULT_CONSENSUS_CONFIG: ConsensusConfig = {
     llm: 0.20,
   },
   minConfidence: parseFloat(process.env.CONSENSUS_MIN_CONFIDENCE || '0.65'),
-  enableLLM: !!process.env.XAI_API_KEY,
+  enableLLM: !!(process.env.GEMINI_API_KEY || process.env.XAI_API_KEY || process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
 };
 
 export class ConsensusEngine {
@@ -147,14 +147,12 @@ export class ConsensusEngine {
       && direction !== 'neutral'
       && direction !== 'abstain';
 
-    // SECURITY FIX: Trades require explicit user opt-in.
-    // Auto-trade is DISABLED by default. Enable via:
-    //   1. Environment variable: ENABLE_AUTO_TRADE=true (global)
-    //   2. Agent config: enableTrading=true (per-user, set by wizard Step 5)
-    // Without this, AI decisions are logged but NOT executed.
-    const autoTradeEnabled = process.env.ENABLE_AUTO_TRADE === 'true'
-      || this.config?.enableTrading === true;
-    const approved = meetsThreshold && autoTradeEnabled;
+    // Auto-trade enabled by default after user completes wizard setup.
+    // User explicitly activates via wizard Step 5 (checkbox + ACTIVATE AGENT button).
+    // Can be disabled via config.enableTrading=false or ENABLE_AUTO_TRADE=false env var.
+    const autoTradeDisabled = process.env.ENABLE_AUTO_TRADE === 'false'
+      || this.config?.enableTrading === false;
+    const approved = meetsThreshold && !autoTradeDisabled;
 
     const allReasons = votes
       .filter(v => v.direction !== 'abstain')

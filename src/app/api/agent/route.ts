@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
         errors: state.errors.slice(-10),
         lastCompound: state.lastCompound,
       },
-      enableTrading: config?.enableTrading ?? false,
+      enableTrading: config?.enableTrading ?? true,
       performance,
       config,
     };

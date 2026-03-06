@@ -7,7 +7,7 @@ interface LaserEyesState {
   connecting: boolean
   hasUnisat: boolean
   hasXverse: boolean
-  hasMagicEden: boolean
+  hasOrdinals: boolean
   hasOkx: boolean
   hasLeather: boolean
   hasPhantom: boolean
@@ -29,7 +29,7 @@ const initialState: LaserEyesState = {
   connecting: false,
   hasUnisat: false,
   hasXverse: false,
-  hasMagicEden: false,
+  hasOrdinals: false,
   hasOkx: false,
   hasLeather: false,
   hasPhantom: false,

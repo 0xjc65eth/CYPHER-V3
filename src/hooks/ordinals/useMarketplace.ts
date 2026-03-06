@@ -1,7 +1,7 @@
 /**
  * useMarketplace Hook
  * Comprehensive marketplace data and trading operations
- * Integrates UniSat Marketplace and Magic Eden
+ * Integrates UniSat Marketplace and Gamma.io
  * ✅ CLIENT-SAFE: Uses proxy API endpoints instead of direct external calls
  */
 
@@ -53,11 +53,11 @@ export function useMarketplace() {
   // MAGIC EDEN MARKETPLACE
   // ──────────────────────────────────────────────────────────────────────────
 
-  const magicEdenActivities = useQuery({
+  const marketActivities = useQuery({
     queryKey: ['marketplace', 'magic-eden', 'activities'],
     queryFn: async () => {
       const response = await fetch('/api/ordinals/activity/')
-      if (!response.ok) throw new Error('Failed to fetch Magic Eden activities')
+      if (!response.ok) throw new Error('Failed to fetch Gamma.io activities')
       const json = await response.json()
       return Array.isArray(json.data) ? json.data : []
     },
@@ -94,7 +94,7 @@ export function useMarketplace() {
     useQuery({
       queryKey: ['marketplace', 'collection-tokens', collectionSymbol],
       queryFn: async () => {
-        const response = await fetch(`/api/magiceden/collections/${encodeURIComponent(collectionSymbol)}/tokens/?limit=100`)
+        const response = await fetch(`/api/marketplace/collections/${encodeURIComponent(collectionSymbol)}/tokens/?limit=100`)
         if (!response.ok) throw new Error('Failed to fetch collection tokens')
         const data = await response.json()
         return data.data || data || []
@@ -222,7 +222,7 @@ export function useMarketplace() {
     // Raw Data
     unisatListings: unisatListings.data,
     marketActions: marketActions.data,
-    magicEdenActivities: magicEdenActivities.data,
+    marketActivities: marketActivities.data,
     rareSatListings: rareSatListings.data,
 
     // Computed Values
@@ -252,7 +252,7 @@ export function useMarketplace() {
     refetchAll: () => {
       unisatListings.refetch()
       marketActions.refetch()
-      magicEdenActivities.refetch()
+      marketActivities.refetch()
       rareSatListings.refetch()
     },
   }

@@ -6,7 +6,7 @@ interface MarketplaceFees {
 
 export function useMarketplaceFees() {
   const [fees, setFees] = useState<MarketplaceFees>({
-    'Magic Eden': 0.025,      // 2.5%
+    'Gamma.io': 0.025,      // 2.5%
     'OrdSwap': 0.021,        // 2.1%
     'Gamma': 0.015,          // 1.5%
     'Unisat': 0.02,          // 2.0%

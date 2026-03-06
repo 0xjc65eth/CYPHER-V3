@@ -244,7 +244,7 @@ export const cacheKeys: Record<string, any> & {
   NEWS_FEED: string;
   NETWORK_HEALTH: string;
   MEMPOOL_DATA: string;
-  magiceden: (key: string) => string;
+  gamma: (key: string) => string;
   quicknode: (key: string) => string;
   glassnode: (key: string) => string;
   binance: (key: string) => string;
@@ -261,7 +261,7 @@ export const cacheKeys: Record<string, any> & {
   NEWS_FEED: 'news:feed',
   NETWORK_HEALTH: 'network:health',
   MEMPOOL_DATA: 'mempool:data',
-  magiceden: (key: string) => `magiceden:${key}`,
+  gamma: (key: string) => `gamma:${key}`,
   quicknode: (key: string) => `quicknode:${key}`,
   glassnode: (key: string) => `glassnode:${key}`,
   binance: (key: string) => `binance:${key}`,

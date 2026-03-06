@@ -20,7 +20,7 @@ class GlobalErrorSuppressor {
     this.addSuppressedErrors([
       'Cannot set property ethereum',
       'which has only a getter',
-      'Could not assign Magic Eden provider',
+      'Could not assign Gamma.io provider',
       'defineProperty.*trap returned falsish',
       'TypeError.*defineProperty.*proxy',
       'Uncaught TypeError.*defineProperty',

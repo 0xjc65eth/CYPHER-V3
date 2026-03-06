@@ -673,11 +673,10 @@ export class OrdinalsArbitrageService {
         avgLiquidityScore: 0,
         avgConfidence: 0,
         marketplaceDistribution: {
-          magic_eden: 0,
+          gamma: 0,
           unisat: 0,
           okx: 0,
           hiro: 0,
-          gamma: 0,
           bestinslot: 0
         },
         riskDistribution: {
@@ -695,11 +694,10 @@ export class OrdinalsArbitrageService {
     const avgConfidence = opportunities.reduce((sum, opp) => sum + opp.confidence, 0) / opportunities.length;
 
     const marketplaceDistribution: Record<OrdinalsMarketplace, number> = {
-      magic_eden: 0,
+      gamma: 0,
       unisat: 0,
       okx: 0,
       hiro: 0,
-      gamma: 0,
       bestinslot: 0
     };
 

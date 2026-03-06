@@ -1,11 +1,11 @@
 // =============================================================================
 // CYPHER V3 - Runes Types
-// Types for Magic Eden Runes API integration
+// Types for Gamma.io Runes API integration
 // Módulo independente - não depende de Ordinals
 // =============================================================================
 
 // -----------------------------------------------------------------------------
-// API Response Types (Magic Eden)
+// API Response Types (Gamma.io)
 // -----------------------------------------------------------------------------
 
 /**

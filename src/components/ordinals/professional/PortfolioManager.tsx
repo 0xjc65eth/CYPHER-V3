@@ -34,7 +34,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
     performance,
     holdings,
     brc20Holdings,
-    magicEdenTokens,
+    marketTokens,
     isLoading,
     isError,
     refetchAll,
@@ -437,9 +437,9 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
 
       {activeTab === 'inscriptions' && (
         <div>
-          {magicEdenTokens?.tokens?.length > 0 ? (
+          {marketTokens?.tokens?.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {magicEdenTokens.tokens.slice(0, 20).map((token: any, i: number) => (
+              {marketTokens.tokens.slice(0, 20).map((token: any, i: number) => (
                 <Card
                   key={i}
                   variant="bordered"

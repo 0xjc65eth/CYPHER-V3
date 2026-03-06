@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OKXOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
-
-const okxApi = new OKXOrdinalsAPI();
+import { xverseAPI } from '@/lib/api/xverse';
 
 /**
  * Ordinals Whale Tracker API Route
  * GET /api/ordinals/whales?collection={symbol}&limit={number}
  *
- * Returns whale (large holder) data and recent whale activity
- * Data source: OKX (primary) → Magic Eden (fallback)
+ * Data source: Xverse (primary) → Hiro + UniSat (fallback)
  */
 
 export async function GET(request: NextRequest) {
@@ -24,23 +21,26 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get collection stats for context — OKX primary, ME fallback
+    // Get collection stats — Xverse primary, Hiro fallback
     let totalSupply = 0;
     let floorPrice = 0;
     let totalHolders = 0;
 
-    try {
-      const okxStats = await okxApi.getCollectionStats(collection);
-      if (okxStats) {
-        totalSupply = okxStats.itemCount;
-        floorPrice = parseFloat(okxStats.floorPrice || '0');
-        totalHolders = okxStats.ownerCount;
+    // 1. Try Xverse
+    if (xverseAPI.isEnabled()) {
+      try {
+        const xverseDetail = await xverseAPI.getCollectionDetail(collection);
+        if (xverseDetail) {
+          totalSupply = xverseDetail.totalSupply || 0;
+          floorPrice = xverseDetail.floorPrice ? xverseDetail.floorPrice / 1e8 : 0;
+          totalHolders = xverseDetail.ownerCount || 0;
+        }
+      } catch {
+        // Xverse failed, fall through
       }
-    } catch (error) {
-      // OKX failed, will fall through to ME
     }
 
-    // Fallback to Hiro if OKX didn't return data
+    // 2. Fallback to Hiro
     if (totalSupply === 0 && floorPrice === 0) {
       try {
         const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
         if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
 
         const statsResponse = await fetch(
-          `https://api.hiro.so/ordinals/v1/collections/${collection}`,
-          { headers: hiroHeaders, next: { revalidate: 60 } }
+          `https://api.hiro.so/ordinals/v1/collections/${encodeURIComponent(collection)}`,
+          { headers: hiroHeaders, signal: AbortSignal.timeout(8000) }
         );
 
         if (statsResponse.ok) {
@@ -58,36 +58,27 @@ export async function GET(request: NextRequest) {
           floorPrice = statsData.floor_price ? parseInt(String(statsData.floor_price)) / 1e8 : 0;
           totalHolders = statsData.distinct_owner_count || 0;
         }
-      } catch (error) {
-        // Hiro failed, continue with zeros
+      } catch {
+        // Hiro failed
       }
     }
 
-    // Get top holders (whales)
-    let whales: any[] = [];
+    // Get top holders (whales) — Xverse primary, UniSat fallback
+    let whales: Array<{
+      address: string; inscriptionCount: number; percentage: number;
+      rank: number; estimatedValue: number; labels: string[];
+    }> = [];
 
-    try {
-      // Try UniSat for holder data
-      const unisatResponse = await fetch(
-        `https://open-api.unisat.io/v1/indexer/collection/${collection}/holders?limit=${limit}`,
-        {
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${process.env.UNISAT_API_KEY || ''}`
-          },
-          next: { revalidate: 300 }
-        }
-      );
-
-      if (unisatResponse.ok) {
-        const unisatData = await unisatResponse.json();
-
-        if (unisatData.data?.holders) {
-          whales = unisatData.data.holders
-            .filter((h: any) => (h.count || 0) >= 10) // Only holders with 10+ inscriptions
+    // 3. Try Xverse holders
+    if (xverseAPI.isEnabled()) {
+      try {
+        const xverseHolders = await xverseAPI.getCollectionHolders(collection, limit * 2);
+        if (xverseHolders && xverseHolders.length > 0) {
+          whales = xverseHolders
+            .filter(h => (h.tokenCount || 0) >= 10)
             .slice(0, limit)
-            .map((holder: any, index: number) => {
-              const inscriptionCount = holder.count || 0;
+            .map((holder, index) => {
+              const inscriptionCount = holder.tokenCount || 0;
               const percentage = totalSupply > 0 ? (inscriptionCount / totalSupply) * 100 : 0;
               const estimatedValue = inscriptionCount * floorPrice;
 
@@ -101,97 +92,104 @@ export async function GET(request: NextRequest) {
               };
             });
         }
+      } catch {
+        // Xverse holders failed
       }
-    } catch (error) {
     }
 
-    // Get recent whale activity — OKX primary, ME fallback
-    const recentActivity: any[] = [];
+    // 4. Fallback to UniSat
+    if (whales.length === 0) {
+      try {
+        const unisatResponse = await fetch(
+          `https://open-api.unisat.io/v1/indexer/collection/${encodeURIComponent(collection)}/holders?limit=${limit}`,
+          {
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${process.env.UNISAT_API_KEY || ''}`
+            },
+            signal: AbortSignal.timeout(8000)
+          }
+        );
+
+        if (unisatResponse.ok) {
+          const unisatData = await unisatResponse.json();
+
+          if (unisatData.data?.holders) {
+            whales = unisatData.data.holders
+              .filter((h: { count?: number }) => (h.count || 0) >= 10)
+              .slice(0, limit)
+              .map((holder: { address?: string; count?: number }, index: number) => {
+                const inscriptionCount = holder.count || 0;
+                const percentage = totalSupply > 0 ? (inscriptionCount / totalSupply) * 100 : 0;
+                const estimatedValue = inscriptionCount * floorPrice;
+
+                return {
+                  address: holder.address || 'unknown',
+                  inscriptionCount,
+                  percentage,
+                  rank: index + 1,
+                  estimatedValue,
+                  labels: getWhaleLabels(inscriptionCount, percentage)
+                };
+              });
+          }
+        }
+      } catch {
+        // UniSat fallback failed
+      }
+    }
+
+    // Get recent whale activity from Hiro (Xverse doesn't expose individual trades)
+    const recentActivity: Array<{
+      id: string; address: string; type: string; collectionSymbol: string;
+      inscriptionId?: string; inscriptionNumber?: number; price?: number;
+      quantity: number; timestamp: number; txid?: string; impact: string;
+    }> = [];
     const whaleAddresses = new Set(whales.map(w => w.address));
 
     try {
-      // Try OKX first for activities
-      const okxResult = await okxApi.getCollectionActivity(collection, undefined, 100);
+      const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+      const hiroApiKey = process.env.HIRO_API_KEY;
+      if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
 
-      if (okxResult.activities && okxResult.activities.length > 0) {
-        okxResult.activities
-          .filter((activity) => {
-            const address = activity.toAddress || activity.fromAddress;
-            return whaleAddresses.has(address);
+      const hiroRes = await fetch(
+        `https://api.hiro.so/ordinals/v1/inscriptions?limit=100&order=desc&order_by=genesis_block_height`,
+        { headers: hiroHeaders, signal: AbortSignal.timeout(8000) }
+      );
+
+      if (hiroRes.ok) {
+        const hiroData = await hiroRes.json();
+        const inscriptions = hiroData.results || [];
+
+        inscriptions
+          .filter((ins: { address?: string; genesis_address?: string }) => {
+            const address = ins.address || ins.genesis_address;
+            return address ? whaleAddresses.has(address) : false;
           })
           .slice(0, 50)
-          .forEach((activity) => {
-            const address = activity.toAddress || activity.fromAddress;
-            const type = activity.type === 'BUY' ? 'buy' :
-                        activity.type === 'LIST' ? 'sell' :
-                        activity.type === 'TRANSFER' ? 'transfer_in' : 'transfer_out';
-
+          .forEach((ins: { address?: string; genesis_address?: string; tx_id?: string; id?: string; number?: number; genesis_fee?: string | number; genesis_timestamp?: number }) => {
+            const address = (ins.address || ins.genesis_address) as string;
             recentActivity.push({
-              id: activity.txHash || activity.activityId,
+              id: ins.tx_id || ins.id || '',
               address,
-              type,
+              type: 'transfer_in',
               collectionSymbol: collection,
-              inscriptionId: activity.inscriptionId,
-              inscriptionNumber: activity.inscriptionNumber,
-              price: activity.price ? parseFloat(activity.price) : undefined,
+              inscriptionId: ins.id,
+              inscriptionNumber: ins.number,
+              price: ins.genesis_fee ? parseInt(String(ins.genesis_fee)) : undefined,
               quantity: 1,
-              timestamp: activity.timestamp ? new Date(activity.timestamp).getTime() : Date.now(),
-              txid: activity.txHash,
+              timestamp: ins.genesis_timestamp
+                ? (ins.genesis_timestamp < 1e12 ? ins.genesis_timestamp * 1000 : ins.genesis_timestamp)
+                : Date.now(),
+              txid: ins.tx_id,
               impact: getActivityImpact(1, totalSupply)
             });
           });
       }
-    } catch (error) {
-      // OKX activities failed, will fall through to ME
+    } catch {
+      // Hiro activities fallback failed
     }
 
-    // Fallback to Hiro if OKX didn't return activities
-    if (recentActivity.length === 0) {
-      try {
-        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
-        const hiroApiKey = process.env.HIRO_API_KEY;
-        if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
-
-        const hiroRes = await fetch(
-          `https://api.hiro.so/ordinals/v1/inscriptions?limit=100&order=desc&order_by=genesis_block_height`,
-          { headers: hiroHeaders, next: { revalidate: 30 } }
-        );
-
-        if (hiroRes.ok) {
-          const hiroData = await hiroRes.json();
-          const inscriptions = hiroData.results || [];
-
-          inscriptions
-            .filter((ins: any) => {
-              const address = ins.address || ins.genesis_address;
-              return whaleAddresses.has(address);
-            })
-            .slice(0, 50)
-            .forEach((ins: any) => {
-              const address = ins.address || ins.genesis_address;
-              recentActivity.push({
-                id: ins.tx_id || ins.id,
-                address,
-                type: 'transfer_in',
-                collectionSymbol: collection,
-                inscriptionId: ins.id,
-                inscriptionNumber: ins.number,
-                price: ins.genesis_fee ? parseInt(String(ins.genesis_fee)) : undefined,
-                quantity: 1,
-                timestamp: ins.genesis_timestamp
-                  ? (ins.genesis_timestamp < 1e12 ? ins.genesis_timestamp * 1000 : ins.genesis_timestamp)
-                  : Date.now(),
-                txid: ins.tx_id,
-                impact: getActivityImpact(1, totalSupply)
-              });
-            });
-        }
-      } catch (error) {
-        // Hiro activities fallback failed
-      }
-    }
-
-    // Generate whale alerts
     const alerts = generateWhaleAlerts(whales, recentActivity, floorPrice);
 
     return NextResponse.json({
@@ -229,36 +227,31 @@ export async function GET(request: NextRequest) {
 
 function getWhaleLabels(inscriptionCount: number, percentage: number): string[] {
   const labels: string[] = [];
-
   if (inscriptionCount >= 100) labels.push('mega_whale');
   else if (inscriptionCount >= 50) labels.push('whale');
   else if (inscriptionCount >= 10) labels.push('large_holder');
-
   if (percentage >= 10) labels.push('dominant_holder');
   else if (percentage >= 5) labels.push('major_holder');
-
   return labels;
 }
 
 function getActivityImpact(quantity: number, totalSupply: number): 'Low' | 'Medium' | 'High' {
   const percentage = totalSupply > 0 ? (quantity / totalSupply) * 100 : 0;
-
   if (percentage >= 1) return 'High';
   if (percentage >= 0.1) return 'Medium';
   return 'Low';
 }
 
 function generateWhaleAlerts(
-  whales: any[],
-  recentActivity: any[],
+  whales: Array<{ address: string; percentage: number }>,
+  recentActivity: Array<{ address: string; type: string; collectionSymbol: string; price?: number; timestamp: number; txid?: string }>,
   floorPrice: number
-): any[] {
-  const alerts: any[] = [];
+): Array<{ id: string; type: string; address: string; collectionSymbol: string; message: string; quantity: number; totalValue: number; timestamp: number; severity: string }> {
+  const alerts: Array<{ id: string; type: string; address: string; collectionSymbol: string; message: string; quantity: number; totalValue: number; timestamp: number; severity: string }> = [];
   const now = Date.now();
   const last24h = now - 24 * 60 * 60 * 1000;
 
-  // Group activity by address
-  const activityByAddress = new Map<string, any[]>();
+  const activityByAddress = new Map<string, typeof recentActivity>();
   recentActivity
     .filter(a => a.timestamp >= last24h)
     .forEach(activity => {
@@ -267,7 +260,6 @@ function generateWhaleAlerts(
       activityByAddress.set(activity.address, existing);
     });
 
-  // Generate alerts for each whale
   activityByAddress.forEach((activities, address) => {
     const whale = whales.find(w => w.address === address);
     if (!whale) return;
@@ -275,7 +267,6 @@ function generateWhaleAlerts(
     const buys = activities.filter(a => a.type === 'buy');
     const sells = activities.filter(a => a.type === 'sell');
 
-    // Accumulation alert
     if (buys.length >= 3) {
       alerts.push({
         id: `${address}-accumulation-${now}`,
@@ -290,7 +281,6 @@ function generateWhaleAlerts(
       });
     }
 
-    // Distribution alert
     if (sells.length >= 3) {
       alerts.push({
         id: `${address}-distribution-${now}`,
@@ -305,23 +295,20 @@ function generateWhaleAlerts(
       });
     }
 
-    // Large buy alert
     const largeBuys = buys.filter(b => (b.price || 0) >= floorPrice * 1.5);
-    if (largeBuys.length > 0) {
-      largeBuys.forEach(buy => {
-        alerts.push({
-          id: `${address}-large-buy-${buy.txid}`,
-          type: 'large_buy',
-          address,
-          collectionSymbol: buy.collectionSymbol,
-          message: `Whale bought above floor (${((buy.price / floorPrice - 1) * 100).toFixed(0)}% premium)`,
-          quantity: 1,
-          totalValue: buy.price,
-          timestamp: buy.timestamp,
-          severity: 'info'
-        });
+    largeBuys.forEach(buy => {
+      alerts.push({
+        id: `${address}-large-buy-${buy.txid}`,
+        type: 'large_buy',
+        address,
+        collectionSymbol: buy.collectionSymbol,
+        message: `Whale bought above floor (${((((buy.price || 0) / floorPrice) - 1) * 100).toFixed(0)}% premium)`,
+        quantity: 1,
+        totalValue: buy.price || 0,
+        timestamp: buy.timestamp,
+        severity: 'info'
       });
-    }
+    });
   });
 
   return alerts.sort((a, b) => b.timestamp - a.timestamp).slice(0, 20);

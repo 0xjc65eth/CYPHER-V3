@@ -309,7 +309,7 @@ export default function RunesLiveFeed() {
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-32 gap-2">
               <span className="text-sm text-gray-600">
-                {events.length === 0 ? 'Waiting for events from Magic Eden & Hiro APIs...' : 'No events match current filters.'}
+                {events.length === 0 ? 'Waiting for events from Xverse & Hiro APIs...' : 'No events match current filters.'}
               </span>
               {events.length === 0 && (
                 <Button

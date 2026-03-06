@@ -67,7 +67,7 @@ export default function RunesArbitrage() {
   const [minSpread, setMinSpread] = useState(0);
   const [sortKey, setSortKey] = useState<SortKey>('spread');
   const [marketplaceFilter, setMarketplaceFilter] = useState<Record<string, boolean>>({
-    'Magic Eden': true, UniSat: true,
+    'Xverse': true, UniSat: true,
   });
   const [showFilters, setShowFilters] = useState(false);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -274,7 +274,7 @@ export default function RunesArbitrage() {
           <TableHeader>
             <TableRow className="border-gray-700 hover:bg-transparent">
               <TableHead className="text-gray-400 text-[11px] font-semibold">RUNE</TableHead>
-              <TableHead className="text-gray-400 text-[11px] font-semibold text-right">MAGIC EDEN</TableHead>
+              <TableHead className="text-gray-400 text-[11px] font-semibold text-right">XVERSE</TableHead>
               <TableHead className="text-gray-400 text-[11px] font-semibold text-right">UNISAT</TableHead>
               <TableHead className="text-gray-400 text-[11px] font-semibold text-right">SPREAD %</TableHead>
               <TableHead className="text-gray-400 text-[11px] font-semibold">BUY</TableHead>
@@ -318,7 +318,7 @@ export default function RunesArbitrage() {
                         </a>
                       </div>
                     </TableCell>
-                    <TableCell className="py-2 px-3 text-right text-xs text-gray-300 font-mono">{opp.magicEdenPrice.toLocaleString()}</TableCell>
+                    <TableCell className="py-2 px-3 text-right text-xs text-gray-300 font-mono">{opp.xversePrice.toLocaleString()}</TableCell>
                     <TableCell className="py-2 px-3 text-right text-xs text-gray-300 font-mono">{opp.uniSatPrice.toLocaleString()}</TableCell>
                     <TableCell className={`py-2 px-3 text-right text-xs font-bold font-mono ${spreadColor(opp.spread)}`}>{safeFixed(opp.spread)}%</TableCell>
                     <TableCell className="py-2 px-3">
@@ -356,7 +356,7 @@ export default function RunesArbitrage() {
       </div>
 
       <div className="text-[10px] text-gray-600 text-right">
-        Real-time prices from Magic Eden & UniSat APIs. Fees: {FEE_TOTAL}% total. Updated every {REFRESH_INTERVAL}s. Not financial advice.
+        Real-time prices from Xverse & UniSat APIs. Fees: {FEE_TOTAL}% total. Updated every {REFRESH_INTERVAL}s. Not financial advice.
       </div>
     </div>
   );

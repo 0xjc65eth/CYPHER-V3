@@ -13,7 +13,7 @@
  * NO MORE Math.random() or estimates!
  */
 
-import { magicEdenService, type MagicEdenBlockActivity } from '@/services/magicEdenService'
+import { ordinalsMarketService, type OrdinalsBlockActivity } from '@/services/ordinalsMarketService'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -163,7 +163,7 @@ export async function getPriceMetrics(
 
   try {
     // Fetch listings to get best bid (lowest listing)
-    const tokens = await magicEdenService.getTokens({
+    const tokens = await ordinalsMarketService.getTokens({
       collectionSymbol,
       limit: 100, // Get first 100 listings
       sortBy: 'price',
@@ -252,7 +252,7 @@ export async function getVolumeMetrics(collectionSymbol: string): Promise<Volume
   }
 
   try {
-    // Fetch ALL recent activities (Magic Eden supports pagination)
+    // Fetch ALL recent activities (Gamma.io supports pagination)
     // We'll fetch enough to cover 30 days of activity
     const activities = await fetchCollectionActivities(collectionSymbol, 1000)
 
@@ -339,7 +339,7 @@ export async function getLiquidityMetrics(
 
   try {
     // Fetch all listings
-    const tokens = await magicEdenService.getTokens({
+    const tokens = await ordinalsMarketService.getTokens({
       collectionSymbol,
       limit: 100, // Max allowed
     })
@@ -427,7 +427,7 @@ async function fetchCollectionActivities(
 
   try {
     // Check if we're rate limited (cache for 5 minutes)
-    const rateLimitKey = 'magiceden-activities-rate-limit';
+    const rateLimitKey = 'ordinals-activities-rate-limit';
     const rateLimitTime = (globalThis as any)[rateLimitKey] as number | undefined;
 
     if (rateLimitTime && Date.now() - rateLimitTime < 300_000) {
@@ -435,7 +435,7 @@ async function fetchCollectionActivities(
     }
 
     // Use collection-specific activities endpoint (not block activities)
-    const response = await magicEdenService.getCollectionActivities({
+    const response = await ordinalsMarketService.getCollectionActivities({
       collectionSymbol,
       limit: Math.min(limit, 100), // Keep limit reasonable to avoid timeouts
     })
@@ -460,7 +460,7 @@ async function fetchCollectionActivities(
   } catch (error) {
     // Cache rate limit errors for 5 minutes
     if (error instanceof Error && error.message.includes('Rate limited')) {
-      const rateLimitKey = 'magiceden-activities-rate-limit';
+      const rateLimitKey = 'ordinals-activities-rate-limit';
       (globalThis as any)[rateLimitKey] = Date.now();
     } else {
       console.error(`[PriceVolumeService] Error fetching activities for ${collectionSymbol}:`, error);

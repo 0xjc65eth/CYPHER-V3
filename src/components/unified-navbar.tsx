@@ -11,7 +11,7 @@ import {
   useLaserEyes,
   UNISAT,
   XVERSE,
-  MAGIC_EDEN,
+  GAMMA,
   OYL,
   LEATHER,
   WIZZ,
@@ -72,7 +72,7 @@ const navItems = [
 const WALLET_DISPLAY_NAMES: Record<string, string> = {
   'unisat': 'UniSat',
   'xverse': 'Xverse',
-  'magic-eden': 'Magic Eden',
+  'magic-eden': 'Gamma.io',
   'oyl': 'OYL',
   'leather': 'Leather',
   'wizz': 'Wizz',
@@ -212,7 +212,7 @@ export function UnifiedNavbar() {
       switch (walletId) {
         case 'unisat': walletProvider = UNISAT; break;
         case 'xverse': walletProvider = XVERSE; break;
-        case 'magic-eden': walletProvider = MAGIC_EDEN; break;
+        case 'magic-eden': walletProvider = GAMMA; break;
         case 'oyl': walletProvider = OYL; break;
         case 'leather': walletProvider = LEATHER; break;
         case 'wizz': walletProvider = WIZZ; break;
@@ -561,7 +561,7 @@ export function UnifiedNavbar() {
                   </div>
                 </button>
 
-                {/* Magic Eden */}
+                {/* Gamma.io */}
                 <button
                   onClick={() => handleConnect('magic-eden')}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-[#1A1A1A] hover:bg-[#2D2D2D] border border-[#3D3D3D] rounded-lg transition-colors"
@@ -570,7 +570,7 @@ export function UnifiedNavbar() {
                     <RiWalletLine className="h-5 w-5 text-pink-500" />
                   </div>
                   <div className="flex flex-col items-start">
-                    <span className="font-medium text-white">Magic Eden</span>
+                    <span className="font-medium text-white">Gamma.io</span>
                     <span className="text-xs text-gray-400">Marketplace de NFTs</span>
                   </div>
                 </button>

@@ -7,13 +7,13 @@ export class NeuralArbitrageEngine {
     minProfitPercentage: 5,
     maxSlippage: 0.5,
     includeFees: true,
-    exchanges: ['MagicEden', 'OKX', 'UniSat', 'Binance']
+    exchanges: ['Ordinals', 'OKX', 'UniSat', 'Binance']
   }
 
   async findOpportunities(): Promise<ArbitrageOpportunity[]> {
     // Simulated data for now - will integrate real APIs
     const mockPrices: ExchangePrice[] = [
-      { exchange: 'MagicEden', price: 105500, volume: 1000, fee: 0.025, lastUpdate: new Date() },
+      { exchange: 'Ordinals', price: 105500, volume: 1000, fee: 0.025, lastUpdate: new Date() },
       { exchange: 'OKX', price: 106200, volume: 2000, fee: 0.02, lastUpdate: new Date() },
       { exchange: 'UniSat', price: 105800, volume: 500, fee: 0.03, lastUpdate: new Date() },
       { exchange: 'Binance', price: 105900, volume: 5000, fee: 0.01, lastUpdate: new Date() }

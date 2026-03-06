@@ -16,9 +16,9 @@ export function useRunesList() {
       } catch (error) {
       }
 
-      // Strategy 2: Try Magic Eden collection stats
+      // Strategy 2: Try Gamma.io collection stats
       try {
-        const response = await fetch('/api/magiceden/runes/collection-stats/?limit=30')
+        const response = await fetch('/api/marketplace/runes/collection-stats/?limit=30')
         if (response.ok) {
           const data = await response.json()
           const runes = data.runes || (Array.isArray(data) ? data : [])

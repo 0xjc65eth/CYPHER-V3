@@ -218,7 +218,7 @@ interface TradingState {
 const defaultArbitrageSettings = {
   minProfitPercent: 0.3,
   maxPositionSize: 500,
-  enabledExchanges: ['unisat', 'magiceden', 'okx', 'gamma'],
+  enabledExchanges: ['unisat', 'okx', 'gamma'],
   autoExecute: false,
 };
 

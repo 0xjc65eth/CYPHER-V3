@@ -5,7 +5,7 @@
  */
 
 import { RuneMarketData, RunesAnalytics } from '../runes';
-import { magicEdenRunesService } from '../magicEdenRunesService';
+import { runesMarketService } from '../runesMarketService';
 import { unisatRunesService } from '../unisatRunesService';
 
 
@@ -70,14 +70,14 @@ export class RunesRealDataService {
   async getRealRunesMarketData(): Promise<RuneMarketData[]> {
     try {
       // Try multiple data sources in parallel
-      const [hiroData, magicEdenData, unisatData] = await Promise.allSettled([
+      const [hiroData, marketData, unisatData] = await Promise.allSettled([
         this.fetchHiroData(),
-        this.fetchMagicEdenData(),
+        this.fetchMarketData(),
         this.fetchUniSatRealData()
       ]);
 
       // Merge and process data from successful sources
-      const mergedData = this.mergeDataSources(hiroData, magicEdenData, unisatData);
+      const mergedData = this.mergeDataSources(hiroData, marketData, unisatData);
 
       // Return empty array if no real data available - NO FALLBACK TO MOCK
       if (mergedData.length === 0) {
@@ -136,22 +136,22 @@ export class RunesRealDataService {
   }
 
   /**
-   * Fetch from Magic Eden API using the real service
+   * Fetch from Gamma.io API using the real service
    */
-  private async fetchMagicEdenData(): Promise<RuneMarketData[]> {
-    const cached = this.getCached('magiceden');
+  private async fetchMarketData(): Promise<RuneMarketData[]> {
+    const cached = this.getCached('gamma');
     if (cached) return cached;
 
     try {
-      const response = await magicEdenRunesService.getRuneCollectionStats({
+      const response = await runesMarketService.getRuneCollectionStats({
         limit: 50,
         sortBy: 'marketCap',
         sortDirection: 'desc'
       });
 
-      const marketData = response.runes.map(rune => this.transformMagicEdenData(rune));
+      const marketData = response.runes.map(rune => this.transformOrdinalsData(rune));
 
-      this.setCache('magiceden', marketData);
+      this.setCache('gamma', marketData);
       return marketData;
     } catch (error) {
       throw error;
@@ -256,9 +256,9 @@ export class RunesRealDataService {
   }
 
   /**
-   * Transform Magic Eden data to our format - REAL DATA ONLY
+   * Transform Gamma.io data to our format - REAL DATA ONLY
    */
-  private transformMagicEdenData(rune: any): RuneMarketData {
+  private transformOrdinalsData(rune: any): RuneMarketData {
     const floorPrice = rune.floorUnitPrice?.value || 0;
     const marketCap = rune.marketCap || 0;
     const supply = rune.totalSupply ? parseFloat(rune.totalSupply) : 0;
@@ -270,7 +270,7 @@ export class RunesRealDataService {
       price: {
         current: floorPrice,
         change24h: rune.priceChange24h || 0,
-        change7d: 0, // Magic Eden doesn't provide 7d change
+        change7d: 0, // Gamma.io doesn't provide 7d change
         high24h: 0,
         low24h: 0
       },
@@ -307,18 +307,18 @@ export class RunesRealDataService {
 
   /**
    * Merge data from multiple sources - prioritize best data
-   * Magic Eden has price/volume, UniSat has holders, Hiro has supply
+   * Gamma.io has price/volume, UniSat has holders, Hiro has supply
    */
   private mergeDataSources(
     hiroResult: PromiseSettledResult<RuneMarketData[]>,
-    magicEdenResult: PromiseSettledResult<RuneMarketData[]>,
+    gammaResult: PromiseSettledResult<RuneMarketData[]>,
     unisatResult: PromiseSettledResult<RuneMarketData[]>
   ): RuneMarketData[] {
     const dataMap = new Map<string, RuneMarketData>();
 
-    // Start with Magic Eden data (best for price/volume/market data)
-    if (magicEdenResult.status === 'fulfilled') {
-      magicEdenResult.value.forEach(rune => {
+    // Start with Gamma.io data (best for price/volume/market data)
+    if (gammaResult.status === 'fulfilled') {
+      gammaResult.value.forEach(rune => {
         dataMap.set(rune.name.toLowerCase(), { ...rune });
       });
     }
@@ -330,7 +330,7 @@ export class RunesRealDataService {
         const existing = dataMap.get(key);
 
         if (existing) {
-          // Merge: keep Magic Eden prices, add UniSat holders if missing
+          // Merge: keep Gamma.io prices, add UniSat holders if missing
           existing.holders = existing.holders || rune.holders;
           existing.supply = rune.supply.circulating > 0 ? rune.supply : existing.supply;
         } else {

@@ -501,7 +501,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
           let collections: any[] = [];
 
           switch (marketplace) {
-            case OrdinalsMarketplace.MAGIC_EDEN:
+            case OrdinalsMarketplace.GAMMA:
               collections = await client.getCollections(limit);
               break;
             case OrdinalsMarketplace.OKX:
@@ -615,7 +615,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
           );
 
           switch (marketplace) {
-            case OrdinalsMarketplace.MAGIC_EDEN:
+            case OrdinalsMarketplace.GAMMA:
               collection = await Promise.race([
                 client.getCollection(collectionId),
                 timeoutPromise
@@ -757,7 +757,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
         let inscription: any = null;
 
         switch (marketplace) {
-          case OrdinalsMarketplace.MAGIC_EDEN:
+          case OrdinalsMarketplace.GAMMA:
             inscription = await client.getInscription(inscriptionId);
             break;
           case OrdinalsMarketplace.OKX:
@@ -881,7 +881,7 @@ export class OrdinalsDataAggregator extends EventEmitter {
     if (availableData.length === 0) {
       return {
         bestFloorPrice: 0,
-        bestFloorMarketplace: OrdinalsMarketplace.MAGIC_EDEN,
+        bestFloorMarketplace: OrdinalsMarketplace.GAMMA,
         totalVolume24h: 0,
         totalListedCount: 0,
         priceSpread: 0,

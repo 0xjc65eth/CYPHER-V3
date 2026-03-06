@@ -140,7 +140,7 @@ export default function TradingOpportunities() {
           time_sensitivity: timeSensitivity,
           current_price: collection.floor_price,
           target_price: collection.floor_price * 1.15, // 15% target based on support/resistance
-          marketplaces: ['Magic Eden', 'Gamma', 'OKX'],
+          marketplaces: ['Gamma.io', 'Gamma', 'OKX'],
           description: `${collection.name} showing ${volChange > 0 ? 'bullish' : volChange < 0 ? 'bearish' : 'neutral'} momentum with ${volChange > 0 ? 'increasing' : volChange < 0 ? 'decreasing' : 'stable'} volume (${volChange.toFixed(1)}% change)`,
           analysis: {
             support_level: collection.floor_price * 0.9,

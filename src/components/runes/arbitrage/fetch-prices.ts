@@ -14,20 +14,47 @@ function fetchWithTimeout(url: string, ms = FETCH_TIMEOUT): Promise<Response> {
   return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-async function fetchMagicEdenPrice(rune: string): Promise<MarketPrice> {
+async function fetchXversePrice(rune: string): Promise<MarketPrice> {
   try {
-    const res = await fetchWithTimeout(`/api/magiceden/runes/market/${encodeURIComponent(rune)}/`);
-    if (!res.ok) return { price: 0, liquidity: 0, source: 'magiceden' };
+    // Use market-overview which already has Xverse data with prices
+    const res = await fetchWithTimeout(`/api/runes/market-overview/?limit=100`);
+    if (!res.ok) return { price: 0, liquidity: 0, source: 'xverse' };
     const data = await res.json();
 
-    const floorPrice = data.floorUnitPrice?.value || data.floorPrice || 0;
-    const volume = data.volume24h || data.totalVolume || 0;
-    const listed = data.listedCount || 0;
+    const runeData = (data.data || []).find((r: any) =>
+      r.spaced_name === rune || r.name === rune
+    );
+    if (!runeData) return { price: 0, liquidity: 0, source: 'xverse' };
+
+    const floorPrice = runeData.floorPrice || 0;
+    const volume = runeData.volume24h || 0;
+    const listed = runeData.listed || 0;
     const liquidity = Math.min(100, (volume / 1000) + (listed * 2));
 
-    return { price: Number(floorPrice), liquidity: Math.round(liquidity), source: 'magiceden' };
+    return { price: Number(floorPrice), liquidity: Math.round(liquidity), source: 'xverse' };
   } catch {
-    return { price: 0, liquidity: 0, source: 'magiceden' };
+    return { price: 0, liquidity: 0, source: 'xverse' };
+  }
+}
+
+// Cache the Xverse market overview to avoid N+1 fetches
+let xverseCacheData: any[] | null = null;
+let xverseCacheTime = 0;
+const XVERSE_CACHE_TTL = 30_000;
+
+async function getXverseMarketData(): Promise<any[]> {
+  if (xverseCacheData && Date.now() - xverseCacheTime < XVERSE_CACHE_TTL) {
+    return xverseCacheData;
+  }
+  try {
+    const res = await fetchWithTimeout(`/api/runes/market-overview/?limit=100`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    xverseCacheData = data.data || [];
+    xverseCacheTime = Date.now();
+    return xverseCacheData!;
+  } catch {
+    return xverseCacheData || [];
   }
 }
 
@@ -60,20 +87,32 @@ export async function generateOpportunities(
 ): Promise<ArbitrageOpportunity[]> {
   const topRunes = runeNames.slice(0, 20);
 
+  // Fetch Xverse data once for all runes
+  const xverseMarket = await getXverseMarketData();
+
   const opportunities = await Promise.all(
     topRunes.map(async (rune) => {
       try {
+        // Get Xverse price from cached market data
+        const xverseRune = xverseMarket.find((r: any) =>
+          r.spaced_name === rune.spaced_name || r.name === rune.name
+        );
+        const xverseData: MarketPrice = xverseRune
+          ? {
+              price: Number(xverseRune.floorPrice || 0),
+              liquidity: Math.min(100, (Number(xverseRune.volume24h || 0) / 1000) + (Number(xverseRune.listed || 0) * 2)),
+              source: 'xverse'
+            }
+          : { price: 0, liquidity: 0, source: 'xverse' };
+
         // Use id or runeid for UniSat, fallback to spaced_name
         const uniSatKey = rune.runeid || rune.id || rune.spaced_name || rune.name;
-        const [magicEdenData, uniSatData] = await Promise.all([
-          fetchMagicEdenPrice(rune.spaced_name || rune.name),
-          fetchUniSatPrice(uniSatKey),
-        ]);
+        const uniSatData = await fetchUniSatPrice(uniSatKey);
 
-        if (magicEdenData.price === 0 && uniSatData.price === 0) return null;
+        if (xverseData.price === 0 && uniSatData.price === 0) return null;
 
         const prices = [
-          { price: magicEdenData.price || 1, name: 'Magic Eden', liquidity: magicEdenData.liquidity },
+          { price: xverseData.price || 1, name: 'Xverse', liquidity: xverseData.liquidity },
           { price: uniSatData.price || 1, name: 'UniSat', liquidity: uniSatData.liquidity },
         ];
 
@@ -85,7 +124,7 @@ export async function generateOpportunities(
 
         if (netProfit <= 0.1) return null;
 
-        const avgLiquidity = (magicEdenData.liquidity + uniSatData.liquidity) / 2;
+        const avgLiquidity = (xverseData.liquidity + uniSatData.liquidity) / 2;
         const liquidity: 'High' | 'Medium' | 'Low' =
           avgLiquidity > 60 ? 'High' : avgLiquidity > 30 ? 'Medium' : 'Low';
 
@@ -108,7 +147,7 @@ export async function generateOpportunities(
           id: rune.name,
           runeName: rune.name,
           spacedName: rune.spaced_name || rune.name,
-          magicEdenPrice: magicEdenData.price,
+          xversePrice: xverseData.price,
           uniSatPrice: uniSatData.price,
           spread: Math.round(spread * 100) / 100,
           bestBuy: sorted[0].name,

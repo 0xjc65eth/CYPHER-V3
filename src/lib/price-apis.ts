@@ -2,7 +2,7 @@
  * Real-time Price APIs for Bitcoin Ordinals, Runes, and BRC-20
  *
  * Replaces simulated/mock data with actual market data from:
- * - Magic Eden (Ordinals & Inscriptions)
+ * - Gamma.io (Ordinals & Inscriptions)
  * - UniSat (BRC-20 tokens)
  * - OKX Web3 (Runes & cross-reference)
  */
@@ -20,7 +20,7 @@ export interface TokenPrice {
   volumeChange24h: number;
   marketCap?: number;
   holders?: number;
-  source: 'magiceden' | 'unisat' | 'okx' | 'aggregated';
+  source: 'gamma' | 'unisat' | 'okx' | 'aggregated';
   timestamp: number;
 }
 
@@ -34,7 +34,7 @@ export interface OrdinalsCollection {
   totalSupply: number;
   listedSupply: number;
   holders: number;
-  source: 'magiceden' | 'okx' | 'gamma';
+  source: 'gamma' | 'okx';
 }
 
 export interface RuneMarketData {
@@ -53,7 +53,7 @@ export interface RuneMarketData {
 // ============================================================================
 
 const API_CONFIG = {
-  magicEden: {
+  gamma: {
     baseUrl: 'https://api.hiro.so/ordinals/v1',
     headers: {
       'Accept': 'application/json',
@@ -122,14 +122,14 @@ export async function fetchBTCPrice(): Promise<number> {
 // MAGIC EDEN - Ordinals & Collections
 // ============================================================================
 
-export async function fetchMagicEdenCollection(
+export async function fetchMarketCollection(
   collectionSymbol: string
 ): Promise<OrdinalsCollection | null> {
   try {
     const response = await fetch(
-      `${API_CONFIG.magicEden.baseUrl}/collections/${encodeURIComponent(collectionSymbol)}`,
+      `${API_CONFIG.gamma.baseUrl}/collections/${encodeURIComponent(collectionSymbol)}`,
       {
-        headers: API_CONFIG.magicEden.headers,
+        headers: API_CONFIG.gamma.headers,
         next: { revalidate: 300 }, // 5 minutes cache
       }
     );
@@ -153,7 +153,7 @@ export async function fetchMagicEdenCollection(
       totalSupply: data.inscription_count || 0,
       listedSupply: data.listed_count || 0,
       holders: data.owner_count || 0,
-      source: 'magiceden',
+      source: 'gamma',
     };
   } catch (error) {
     console.error(`Failed to fetch collection ${collectionSymbol}:`, error);
@@ -161,15 +161,15 @@ export async function fetchMagicEdenCollection(
   }
 }
 
-export async function fetchMagicEdenListings(
+export async function fetchMarketListings(
   collectionSymbol: string,
   limit = 20
 ): Promise<any[]> {
   try {
     const response = await fetch(
-      `${API_CONFIG.magicEden.baseUrl}/inscriptions?collection=${encodeURIComponent(collectionSymbol)}&limit=${limit}`,
+      `${API_CONFIG.gamma.baseUrl}/inscriptions?collection=${encodeURIComponent(collectionSymbol)}&limit=${limit}`,
       {
-        headers: API_CONFIG.magicEden.headers,
+        headers: API_CONFIG.gamma.headers,
         next: { revalidate: 60 }, // 1 minute cache
       }
     );
@@ -370,7 +370,7 @@ export async function fetchAggregatedPrice(
     }
 
     if (type === 'ordinals') {
-      const meData = await fetchMagicEdenCollection(ticker);
+      const meData = await fetchMarketCollection(ticker);
       if (meData) {
         sources.push({
           ticker,
@@ -381,7 +381,7 @@ export async function fetchAggregatedPrice(
           volumeChange24h: meData.volumeChange24h,
           marketCap: meData.floorPrice * meData.totalSupply,
           holders: meData.holders,
-          source: 'magiceden',
+          source: 'gamma',
           timestamp: Date.now(),
         });
       }
@@ -391,7 +391,7 @@ export async function fetchAggregatedPrice(
       return null;
     }
 
-    // Return most recent data (prefer Magic Eden for Ordinals, UniSat for BRC-20)
+    // Return most recent data (prefer Gamma.io for Ordinals, UniSat for BRC-20)
     return sources[0];
   } catch (error) {
     console.error(`Failed to fetch aggregated price for ${ticker}:`, error);
@@ -413,7 +413,7 @@ export async function fetchMultipleCollections(
   for (let i = 0; i < symbols.length; i += batchSize) {
     const batch = symbols.slice(i, i + batchSize);
     const promises = batch.map(async (symbol) => {
-      const meData = await fetchMagicEdenCollection(symbol);
+      const meData = await fetchMarketCollection(symbol);
       if (meData) {
         results.set(symbol, meData);
         return;

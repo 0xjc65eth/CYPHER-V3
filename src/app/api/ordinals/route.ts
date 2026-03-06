@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { magicEdenService } from '@/services/magicEdenService'
-import type { MagicEdenCollectionStats } from '@/services/magicEdenService'
+import { xverseAPI } from '@/lib/api/xverse'
+import { ordinalsMarketService } from '@/services/ordinalsMarketService'
+import type { OrdinalsCollectionStats } from '@/services/ordinalsMarketService'
 import { priceVolumeService } from '@/services/ordinals/PriceVolumeService'
 import { OrdinalsDataAggregator } from '@/services/ordinals/OrdinalsDataAggregator'
-import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI'
 
-// ─── Circuit Breaker for Magic Eden 429 Rate Limits ─────────────────────────
+// ─── Circuit Breaker for Gamma.io 429 Rate Limits ─────────────────────────
 
 const CIRCUIT_BREAKER_COOLDOWN = 5 * 60 * 1000 // 5 minutes
 let circuitBreakerTrippedAt: number | null = null
@@ -13,7 +13,7 @@ let circuitBreakerTrippedAt: number | null = null
 function isCircuitBreakerOpen(): boolean {
   if (!circuitBreakerTrippedAt) return false
   if (Date.now() - circuitBreakerTrippedAt >= CIRCUIT_BREAKER_COOLDOWN) {
-    circuitBreakerTrippedAt = null // Reset after cooldown
+    circuitBreakerTrippedAt = null
     return false
   }
   return true
@@ -31,9 +31,8 @@ interface CachedResponse {
 }
 
 let responseCache: CachedResponse | null = null
-const CACHE_TTL = 600_000 // 600 seconds (10 minutes - reduces API pressure)
+const CACHE_TTL = 600_000 // 600 seconds
 
-// Dedup: if a fetch is already in progress, other callers wait for it
 let inflightPromise: Promise<unknown> | null = null
 
 function getCachedResponse(): unknown | null {
@@ -48,88 +47,31 @@ function setCachedResponse(data: unknown): void {
   responseCache = { data, timestamp: Date.now() }
 }
 
-// ─── Top 15 Ordinals Collections (stat-only approach) ───────────────────────
+// ─── Top 15 Ordinals Collections (for Gamma fallback only) ─────────────────
 
 const TOP_COLLECTION_SYMBOLS = [
-  'bitcoin-punks',
-  'nodemonkes',
-  'bitcoin-puppets',
-  'quantum-cats',
-  'ordinal-maxi-biz',
-  'runestones',
-  'bitmap',
-  'ink',
-  'pizza-ninjas',
-  'taproot-wizards',
-  'bitcoin-frogs',
-  'natcats',
-  'rsic',
-  'degods-btc',
+  'bitcoin-punks', 'nodemonkes', 'bitcoin-puppets', 'quantum-cats',
+  'ordinal-maxi-biz', 'runestones', 'bitmap', 'ink', 'pizza-ninjas',
+  'taproot-wizards', 'bitcoin-frogs', 'natcats', 'rsic', 'degods-btc',
   'ordinal-punks',
 ]
 
-// Hard-coded collection names and images to avoid needing the details endpoint
 const COLLECTION_INFO: Record<string, { name: string; image: string }> = {
-  'bitcoin-punks': {
-    name: 'Bitcoin Punks',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-punks_pfp',
-  },
-  'nodemonkes': {
-    name: 'NodeMonkes',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_nodemonkes_pfp',
-  },
-  'bitcoin-puppets': {
-    name: 'Bitcoin Puppets',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-puppets_pfp',
-  },
-  'quantum-cats': {
-    name: 'Quantum Cats',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_quantum-cats_pfp',
-  },
-  'ordinal-maxi-biz': {
-    name: 'Ordinal Maxi Biz (OMB)',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ordinal-maxi-biz_pfp',
-  },
-  'runestones': {
-    name: 'Runestone',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_runestones_pfp',
-  },
-  'bitmap': {
-    name: 'Bitmap',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitmap_pfp',
-  },
-  'ink': {
-    name: 'Ink',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ink_pfp',
-  },
-  'pizza-ninjas': {
-    name: 'Pizza Ninjas',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_pizza-ninjas_pfp',
-  },
-  'taproot-wizards': {
-    name: 'Taproot Wizards',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_taproot-wizards_pfp',
-  },
-  'bitcoin-frogs': {
-    name: 'Bitcoin Frogs',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-frogs_pfp',
-  },
-  'natcats': {
-    name: 'Natcats',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_natcats_pfp',
-  },
-  'rsic': {
-    name: 'RSIC',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_rsic_pfp',
-  },
-  'degods-btc': {
-    name: 'DeGods',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_degods-btc_pfp',
-  },
-  'ordinal-punks': {
-    name: 'Ordinal Punks',
-    image: 'https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ordinal-punks_pfp',
-  },
+  'bitcoin-punks': { name: 'Bitcoin Punks', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-punks_pfp' },
+  'nodemonkes': { name: 'NodeMonkes', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_nodemonkes_pfp' },
+  'bitcoin-puppets': { name: 'Bitcoin Puppets', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-puppets_pfp' },
+  'quantum-cats': { name: 'Quantum Cats', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_quantum-cats_pfp' },
+  'ordinal-maxi-biz': { name: 'Ordinal Maxi Biz (OMB)', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ordinal-maxi-biz_pfp' },
+  'runestones': { name: 'Runestone', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_runestones_pfp' },
+  'bitmap': { name: 'Bitmap', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitmap_pfp' },
+  'ink': { name: 'Ink', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ink_pfp' },
+  'pizza-ninjas': { name: 'Pizza Ninjas', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_pizza-ninjas_pfp' },
+  'taproot-wizards': { name: 'Taproot Wizards', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_taproot-wizards_pfp' },
+  'bitcoin-frogs': { name: 'Bitcoin Frogs', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-frogs_pfp' },
+  'natcats': { name: 'Natcats', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_natcats_pfp' },
+  'rsic': { name: 'RSIC', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_rsic_pfp' },
+  'degods-btc': { name: 'DeGods', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_degods-btc_pfp' },
+  'ordinal-punks': { name: 'Ordinal Punks', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ordinal-punks_pfp' },
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -139,83 +81,84 @@ function satsToBTC(sats: number | undefined): number {
   return sats / 1e8
 }
 
-// ─── GET Handler ────────────────────────────────────────────────────────────
+// ─── Collection shape used in the response ──────────────────────────────────
 
-// Core fetching logic - extracted for dedup
-// Priority: OKX (primary) → Magic Eden (fallback) → OrdinalsDataAggregator (last resort)
+interface TrendingCollection {
+  name: string; symbol: string; floor: number; floorUSD: number;
+  volume: number; volume24h: number; volume7d: number; volume30d: number;
+  volumeUSD24h: number; volumeUSD7d: number; volumeUSD30d: number;
+  listed: number; owners: number; supply: number; imageURI: string;
+  change: number; change7d: number; change30d: number;
+  bestBid: number; bidAskSpread: number; vwap24h: number;
+  trades24h: number; trades7d: number; trades30d: number;
+}
+
+// ─── Core fetch logic ───────────────────────────────────────────────────────
+// Priority: Xverse (primary) → Gamma.io (fallback) → OrdinalsDataAggregator (last resort)
+
 async function fetchOrdinalsData(): Promise<unknown> {
-  // Get BTC/USD rate once for all collections (from CoinGecko via PriceVolumeService)
-  let btcUsdRate = 95000 // fallback
+  let btcUsdRate = 95000
   try {
     btcUsdRate = await priceVolumeService.getBTCUSDRate()
-  } catch (e) {
+  } catch {
+    // use fallback rate
   }
 
-  // ─── Try OKX first (primary source, post-ME deprecation) ──────────────────
-  let trendingCollections: Array<{
-    name: string; symbol: string; floor: number; floorUSD: number;
-    volume: number; volume24h: number; volume7d: number; volume30d: number;
-    volumeUSD24h: number; volumeUSD7d: number; volumeUSD30d: number;
-    listed: number; owners: number; supply: number; imageURI: string;
-    change: number; change7d: number; change30d: number;
-    bestBid: number; bidAskSpread: number; vwap24h: number;
-    trades24h: number; trades7d: number; trades30d: number;
-  }> = []
+  let trendingCollections: TrendingCollection[] = []
+  let dataSource = 'xverse'
 
-  let dataSource = 'okx'
+  // ─── 1. Try Xverse (primary source) ────────────────────────────────────────
+  if (xverseAPI.isEnabled()) {
+    try {
+      const xverseCollections = await xverseAPI.getTopCollections({ limit: 20, timePeriod: '24h' })
 
-  try {
-    const { collections: okxCollections } = await okxOrdinalsAPI.getCollections(20, undefined, 'volume24h')
+      if (xverseCollections && xverseCollections.length > 0) {
+        trendingCollections = xverseCollections.map((c) => {
+          const floorBTC = c.floorPrice / 1e8
+          const volumeBTC = c.volume / 1e8
+          const imageURI = c.imageUrl
+            ? `/api/ordinals/image/?url=${encodeURIComponent(c.imageUrl)}`
+            : `/api/ordinals/image/?url=${encodeURIComponent(`https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.collectionId}_pfp`)}`
 
-    if (okxCollections.length > 0) {
-      trendingCollections = okxCollections.map((c) => {
-        const floorBTC = parseFloat(c.floorPrice || '0')
-        const vol24h = parseFloat(c.volume24h || '0')
-        const vol7d = parseFloat(c.volume7d || '0')
-        const vol30d = parseFloat(c.volume30d || '0')
-        const volTotal = parseFloat(c.volumeTotal || '0')
-        const imageURI = c.logoUrl
-          ? `/api/ordinals/image/?url=${encodeURIComponent(c.logoUrl)}`
-          : `/api/ordinals/image/?url=${encodeURIComponent(`https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`)}`
-
-        return {
-          name: c.name || c.symbol,
-          symbol: c.symbol || c.collectionId,
-          floor: floorBTC,
-          floorUSD: floorBTC * btcUsdRate,
-          volume: volTotal,
-          volume24h: vol24h,
-          volume7d: vol7d,
-          volume30d: vol30d,
-          volumeUSD24h: vol24h * btcUsdRate,
-          volumeUSD7d: vol7d * btcUsdRate,
-          volumeUSD30d: vol30d * btcUsdRate,
-          listed: Number(c.listedRate) || 0,
-          owners: c.ownerCount || 0,
-          supply: c.totalSupply || 0,
-          imageURI,
-          change: parseFloat(c.change24h || '0'),
-          change7d: parseFloat(c.change7d || '0'),
-          change30d: parseFloat(c.change30d || '0'),
-          bestBid: floorBTC,
-          bidAskSpread: 0,
-          vwap24h: parseFloat(c.avgPrice24h || '0'),
-          trades24h: c.salesCount24h || 0,
-          trades7d: 0,
-          trades30d: 0,
-        }
-      })
+          return {
+            name: c.name || c.collectionId,
+            symbol: c.collectionId,
+            floor: floorBTC,
+            floorUSD: c.floorPriceUsd || floorBTC * btcUsdRate,
+            volume: volumeBTC,
+            volume24h: volumeBTC,
+            volume7d: 0,
+            volume30d: 0,
+            volumeUSD24h: volumeBTC * btcUsdRate,
+            volumeUSD7d: 0,
+            volumeUSD30d: 0,
+            listed: c.listedCount || 0,
+            owners: c.ownerCount || 0,
+            supply: c.totalSupply || 0,
+            imageURI,
+            change: c.volumePercentChange || 0,
+            change7d: 0,
+            change30d: 0,
+            bestBid: floorBTC,
+            bidAskSpread: 0,
+            vwap24h: 0,
+            trades24h: 0,
+            trades7d: 0,
+            trades30d: 0,
+          }
+        })
+      }
+    } catch (xverseError) {
+      console.error('[Ordinals API] Xverse primary fetch failed:', xverseError)
     }
-  } catch (okxError) {
-    // OKX primary fetch failed, falling back to Magic Eden
   }
 
-  // ─── Fallback to Magic Eden if OKX returned nothing ───────────────────────
+  // ─── 2. Fallback to Gamma.io if Xverse returned nothing ───────────────────
   if (trendingCollections.length === 0) {
-    dataSource = 'magic_eden'
+    dataSource = 'gamma'
 
     if (isCircuitBreakerOpen()) {
-      throw new Error('Circuit breaker open - Magic Eden rate limited and OKX unavailable')
+      throw new Error('Circuit breaker open - Gamma.io rate limited and Xverse unavailable')
     }
 
     const withTimeout = <T>(p: Promise<T>, ms = 20000): Promise<T | null> =>
@@ -230,14 +173,14 @@ async function fetchOrdinalsData(): Promise<unknown> {
       ])
 
     const BATCH_SIZE = 3
-    const allStatResults: { symbol: string; stats: MagicEdenCollectionStats | null }[] = []
+    const allStatResults: { symbol: string; stats: OrdinalsCollectionStats | null }[] = []
 
     for (let i = 0; i < TOP_COLLECTION_SYMBOLS.length; i += BATCH_SIZE) {
       if (isCircuitBreakerOpen()) break
 
       const batch = TOP_COLLECTION_SYMBOLS.slice(i, i + BATCH_SIZE)
       const batchPromises = batch.map(async (symbol) => {
-        const stats = await withTimeout(magicEdenService.getCollectionStats(symbol), 20000)
+        const stats = await withTimeout(ordinalsMarketService.getCollectionStats(symbol), 20000)
         return { symbol, stats }
       })
 
@@ -254,13 +197,13 @@ async function fetchOrdinalsData(): Promise<unknown> {
     }
 
     const validCollections = allStatResults.filter(
-      (c): c is { symbol: string; stats: MagicEdenCollectionStats } => c.stats !== null
+      (c): c is { symbol: string; stats: OrdinalsCollectionStats } => c.stats !== null
     )
 
     trendingCollections = validCollections.map((c) => {
       const info = COLLECTION_INFO[c.symbol] || {
         name: c.symbol,
-        image: `https://img-cdn.magiceden.dev/rs:fill:400:400:0:0/plain/https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`,
+        image: `https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`,
       }
 
       const floorBTC = satsToBTC(Number(c.stats.floorPrice) || 0)
@@ -304,8 +247,7 @@ async function fetchOrdinalsData(): Promise<unknown> {
     })
   }
 
-  // ─── Enrich with volume/price change from collection-stats endpoint ──────
-  // Uses BestInSlot -> OKX -> ME fallback chain (server-side, no CORS issues)
+  // ─── 3. Enrich with volume/price change from collection-stats endpoint ────
   try {
     const enrichBatchSize = 5
     for (let i = 0; i < trendingCollections.length; i += enrichBatchSize) {
@@ -338,19 +280,17 @@ async function fetchOrdinalsData(): Promise<unknown> {
         col.trades24h = stats.sales24h || col.trades24h
         col.trades7d = stats.sales7d || col.trades7d
         col.trades30d = stats.sales30d || col.trades30d
-        // Update floor if collection-stats source has a more recent value
         if (stats.floorPrice && stats.floorPrice > 0) {
           col.floor = stats.floorPrice
           col.floorUSD = stats.floorPrice * btcUsdRate
         }
       }
 
-      // Small delay between batches
       if (i + enrichBatchSize < trendingCollections.length) {
         await new Promise(resolve => setTimeout(resolve, 300))
       }
     }
-  } catch (enrichError) {
+  } catch {
     // Collection stats enrichment failed (non-fatal)
   }
 
@@ -390,17 +330,16 @@ async function fetchOrdinalsData(): Promise<unknown> {
       real_data: true,
       fake_data: false,
       estimated_data: false,
-      source: dataSource === 'okx' ? 'okx_primary+collection_stats_enrichment' : 'magic_eden_fallback+collection_stats_enrichment',
-      note: dataSource === 'okx'
-        ? 'Primary data from OKX Ordinals API, enriched with volume/price changes from BestInSlot/OKX collection-stats'
-        : 'Fallback data from ME stat API (OKX unavailable), enriched with BestInSlot/OKX/ME collection-stats',
+      source: dataSource === 'xverse' ? 'xverse_primary+collection_stats_enrichment' : 'gamma_fallback+collection_stats_enrichment',
+      note: dataSource === 'xverse'
+        ? 'Primary data from Xverse API, enriched with volume/price changes from collection-stats'
+        : 'Fallback data from Gamma stat API (Xverse unavailable), enriched with collection-stats',
     },
   }
 }
 
 export async function GET() {
   try {
-    // Check cache first
     const cached = getCachedResponse()
     if (cached) {
       return NextResponse.json({
@@ -411,14 +350,12 @@ export async function GET() {
       })
     }
 
-    // Dedup: if a fetch is already in flight, wait for it (with 10s timeout)
     if (!inflightPromise) {
       inflightPromise = fetchOrdinalsData().finally(() => {
         inflightPromise = null
       })
     }
 
-    // Race against a 30-second timeout (needs time for batched API calls with 1s delays)
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('Request timeout - falling back to aggregator')), 30000)
     )
@@ -427,30 +364,25 @@ export async function GET() {
     try {
       responseData = await Promise.race([inflightPromise, timeoutPromise])
     } catch (error) {
-      // Detect 429 in error chain and trip circuit breaker
       const errMsg = error instanceof Error ? error.message : String(error)
       if (errMsg.includes('429') || errMsg.includes('rate limit') || errMsg.includes('Circuit breaker')) {
         if (!isCircuitBreakerOpen()) tripCircuitBreaker()
       }
 
-      // Use multi-source aggregator as fallback instead of empty data
-
+      // Use multi-source aggregator as fallback
       try {
-        const fallbackCollections = await OrdinalsDataAggregator.fetchCollections();
+        const fallbackCollections = await OrdinalsDataAggregator.fetchCollections()
 
         if (fallbackCollections.length > 0) {
-
-          // Calculate aggregate metrics from fallback data
-          const totalVolume = fallbackCollections.reduce((sum, c) => sum + (c.volume || 0), 0);
+          const totalVolume = fallbackCollections.reduce((sum, c) => sum + (c.volume || 0), 0)
           const avgFloorPrice = fallbackCollections.length > 0
             ? fallbackCollections.reduce((sum, c) => sum + c.floor, 0) / fallbackCollections.length
-            : 0;
-          const totalListed = fallbackCollections.reduce((sum, c) => sum + c.listed, 0);
-          // Sanitize owners (same logic as primary path)
+            : 0
+          const totalListed = fallbackCollections.reduce((sum, c) => sum + c.listed, 0)
           const totalOwners = fallbackCollections.reduce((sum, c) => {
-            const o = Number(c.owners ?? 0);
-            return sum + (Number.isFinite(o) && o > 0 && o < 1_000_000 ? Math.round(o) : 0);
-          }, 0);
+            const o = Number(c.owners ?? 0)
+            return sum + (Number.isFinite(o) && o > 0 && o < 1_000_000 ? Math.round(o) : 0)
+          }, 0)
 
           responseData = {
             total_inscriptions: totalOwners,
@@ -468,12 +400,11 @@ export async function GET() {
               fake_data: false,
               estimated_data: false,
               source: fallbackCollections[0]?.dataSource || 'fallback_aggregator',
-              reason: 'Using fallback data sources (UniSat, OKX, Hiro)'
+              reason: 'Using fallback data sources (UniSat, Hiro)'
             }
-          };
+          }
         } else {
-          // All sources failed - return empty structure
-          console.error('[Ordinals API] All data sources (Magic Eden, UniSat, OKX) failed');
+          console.error('[Ordinals API] All data sources failed')
           responseData = {
             total_inscriptions: 0,
             volume_24h: 0,
@@ -490,12 +421,12 @@ export async function GET() {
               fake_data: false,
               estimated_data: false,
               source: 'all_sources_unavailable',
-              reason: 'Magic Eden, UniSat, OKX all failed or rate limited'
+              reason: 'Xverse, Gamma, Hiro all failed or rate limited'
             }
-          };
+          }
         }
       } catch (fallbackError) {
-        console.error('[Ordinals API] Fallback aggregator error:', fallbackError);
+        console.error('[Ordinals API] Fallback aggregator error:', fallbackError)
         responseData = {
           total_inscriptions: 0,
           volume_24h: 0,
@@ -514,12 +445,19 @@ export async function GET() {
             source: 'fallback_error',
             reason: fallbackError instanceof Error ? fallbackError.message : 'Fallback aggregator failed'
           }
-        };
+        }
       }
     }
 
-    // Cache the result
-    setCachedResponse(responseData)
+    // Only cache responses that have actual collections data
+    const hasCollections = responseData &&
+      typeof responseData === 'object' &&
+      'trending_collections' in responseData &&
+      Array.isArray((responseData as { trending_collections: unknown[] }).trending_collections) &&
+      (responseData as { trending_collections: unknown[] }).trending_collections.length > 0
+    if (hasCollections) {
+      setCachedResponse(responseData)
+    }
 
     return NextResponse.json({
       success: true,
@@ -528,7 +466,6 @@ export async function GET() {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    // Return error - NO MOCK DATA
     console.error('[Ordinals API] Error fetching ordinals data:', error)
 
     return NextResponse.json({

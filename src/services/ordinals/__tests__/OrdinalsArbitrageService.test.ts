@@ -30,7 +30,7 @@ describe('OrdinalsArbitrageService', () => {
     // Create mock data aggregator
     mockDataAggregator = new OrdinalsDataAggregator({
       updateInterval: 30000,
-      enabledMarketplaces: ['magic_eden', 'unisat', 'okx', 'hiro'] as any,
+      enabledMarketplaces: ['gamma', 'unisat', 'okx', 'hiro'] as any,
       collectionsToTrack: [],
       enableWebSocket: false,
       cacheSettings: { ttl: 30000, maxSize: 100 }
@@ -50,8 +50,8 @@ describe('OrdinalsArbitrageService', () => {
       networkFee: number;
     }> = [
       {
-        name: 'Magic Eden to UniSat',
-        buyMarket: 'magic_eden',
+        name: 'Gamma.io to UniSat',
+        buyMarket: 'gamma',
         sellMarket: 'unisat',
         buyPrice: 0.05,
         sellPrice: 0.062,
@@ -114,11 +114,11 @@ describe('OrdinalsArbitrageService', () => {
     });
 
     test('should verify marketplace fee percentages', () => {
-      expect(MARKETPLACE_FEES.magic_eden).toBe(0.025); // 2.5%
+      expect(MARKETPLACE_FEES.gamma).toBe(0.025); // 2.5%
       expect(MARKETPLACE_FEES.unisat).toBe(0.02); // 2%
       expect(MARKETPLACE_FEES.okx).toBe(0.02); // 2%
       expect(MARKETPLACE_FEES.hiro).toBe(0.015); // 1.5%
-      expect(MARKETPLACE_FEES.gamma).toBe(0.02); // 2%
+      expect(MARKETPLACE_FEES.bestinslot).toBe(0.02); // 2%
     });
 
     test('should verify platform fee percentage', () => {
@@ -126,7 +126,7 @@ describe('OrdinalsArbitrageService', () => {
     });
 
     test('should handle zero prices', () => {
-      const result = service.calculateNetProfit(0, 0, 'magic_eden', 'unisat', 0.0002);
+      const result = service.calculateNetProfit(0, 0, 'gamma', 'unisat', 0.0002);
 
       expect(result.fees.buyMarketplaceFee).toBe(0);
       expect(result.fees.sellMarketplaceFee).toBe(0);
@@ -137,7 +137,7 @@ describe('OrdinalsArbitrageService', () => {
       const result = service.calculateNetProfit(
         0.05, // Buy price
         0.045, // Sell price (lower than buy)
-        'magic_eden',
+        'gamma',
         'unisat',
         0.0002
       );
@@ -156,7 +156,7 @@ describe('OrdinalsArbitrageService', () => {
       const result = service.calculateNetProfit(
         buyPrice,
         sellPrice,
-        'magic_eden',
+        'gamma',
         'unisat',
         networkFee
       );
@@ -186,7 +186,7 @@ describe('OrdinalsArbitrageService', () => {
       const result = service.calculateNetProfit(
         buyPrice,
         sellPrice,
-        'magic_eden',
+        'gamma',
         'unisat',
         networkFee
       );
@@ -233,7 +233,7 @@ describe('OrdinalsArbitrageService', () => {
           totalVolume24h: 12
         },
         marketplaceData: {
-          magic_eden: {
+          gamma: {
             floorPrice: 0.05,
             volume24h: 10,
             listedCount: 50,
@@ -273,7 +273,7 @@ describe('OrdinalsArbitrageService', () => {
           totalVolume24h: 1.5
         },
         marketplaceData: {
-          magic_eden: {
+          gamma: {
             floorPrice: 0.05,
             volume24h: 2,
             listedCount: 15,
@@ -312,7 +312,7 @@ describe('OrdinalsArbitrageService', () => {
           totalVolume24h: 0.1
         },
         marketplaceData: {
-          magic_eden: {
+          gamma: {
             floorPrice: 0.05,
             volume24h: 0.1,
             listedCount: 2,
@@ -343,7 +343,7 @@ describe('OrdinalsArbitrageService', () => {
           totalVolume24h: 15
         },
         marketplaceData: {
-          magic_eden: {
+          gamma: {
             floorPrice: 0.05,
             volume24h: 15,
             listedCount: 100,
@@ -506,7 +506,7 @@ describe('OrdinalsArbitrageService', () => {
         {
           collectionId: 'test-1',
           collectionName: 'Test Collection 1',
-          buyMarketplace: 'magic_eden' as OrdinalsMarketplace,
+          buyMarketplace: 'gamma' as OrdinalsMarketplace,
           sellMarketplace: 'unisat' as OrdinalsMarketplace,
           buyPrice: 0.05,
           sellPrice: 0.062,
@@ -521,7 +521,7 @@ describe('OrdinalsArbitrageService', () => {
       mockDataAggregator.getAggregatedCollection = jest.fn().mockResolvedValue({
         collection: { id: 'test-1', name: 'Test Collection 1' },
         marketplaceData: {
-          magic_eden: {
+          gamma: {
             floorPrice: 0.05,
             volume24h: 5,
             listedCount: 20,
@@ -550,7 +550,7 @@ describe('OrdinalsArbitrageService', () => {
         {
           collectionId: 'test-1',
           collectionName: 'Test Collection 1',
-          buyMarketplace: 'magic_eden' as OrdinalsMarketplace,
+          buyMarketplace: 'gamma' as OrdinalsMarketplace,
           sellMarketplace: 'unisat' as OrdinalsMarketplace,
           buyPrice: 0.05,
           sellPrice: 0.062,
@@ -583,7 +583,7 @@ describe('OrdinalsArbitrageService', () => {
         {
           collectionId: 'invalid',
           collectionName: 'Invalid Collection',
-          buyMarketplace: 'magic_eden' as OrdinalsMarketplace,
+          buyMarketplace: 'gamma' as OrdinalsMarketplace,
           sellMarketplace: 'unisat' as OrdinalsMarketplace,
           buyPrice: 0.05,
           sellPrice: 0.062,

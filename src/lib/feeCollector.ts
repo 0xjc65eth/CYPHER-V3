@@ -4,7 +4,7 @@
  * - THORChain (affiliate fees - collected natively by THORChain)
  * - Jupiter/Solana (platform fees - collected natively by Jupiter)
  * - EVM DEXs via 1inch/Paraswap (referrer fees - collected natively by aggregators)
- * - Magic Eden/Runes (fee output in PSBT - collected via Bitcoin transaction)
+ * - Gamma.io/Runes (fee output in PSBT - collected via Bitcoin transaction)
  *
  * NOW WITH PERSISTENT STORAGE via Supabase (with in-memory fallback)
  */
@@ -16,7 +16,7 @@ import { dbService, DBFeeRecord } from '@/lib/database';
 // Types
 // ============================================================================
 
-export type FeeProtocol = 'thorchain' | 'jupiter' | 'evm_dex' | 'magiceden';
+export type FeeProtocol = 'thorchain' | 'jupiter' | 'evm_dex' | 'bitcoin_nft';
 export type FeeStatus = 'pending' | 'included' | 'confirmed' | 'failed';
 
 export interface FeeRecord {
@@ -121,7 +121,7 @@ export function calculateFee(params: FeeParams): FeeResult {
     thorchain: 'thorchain',
     jupiter: 'jupiter',
     evm_dex: 'evm',
-    magiceden: 'bitcoin',
+    bitcoin_nft: 'bitcoin',
   };
   const feeBps = getFeeBps(protocolMap[protocol] || 'evm', false);
 

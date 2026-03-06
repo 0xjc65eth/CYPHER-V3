@@ -34,9 +34,9 @@ import {
 
 import DEXAggregator from '@/lib/dexAggregator'
 import RouteOptimizer from '@/lib/routeOptimizer'
-import PriceComparator, { 
-  formatPriceImpact, 
-  formatSlippage, 
+import {
+  formatPriceImpact,
+  formatSlippage,
   formatExecutionTime,
   getRiskColor,
   getConfidenceColor
@@ -147,7 +147,6 @@ const QuickTradeInterface: React.FC<QuickTradeInterfaceProps> = ({
     includeStablecoinRoutes: true,
     minLiquidityUSD: 10000
   }), [])
-  const priceComparator = useMemo(() => new PriceComparator(), [])
 
   // Get quotes from aggregator
   const fetchQuotes = useCallback(async () => {
@@ -172,13 +171,31 @@ const QuickTradeInterface: React.FC<QuickTradeInterfaceProps> = ({
         throw new Error('No quotes found for this token pair')
       }
 
-      // Compare prices
-      const comparison = await (priceComparator as any).compareQuotes(
-        quotes,
-        state.tokenIn!,
-        state.tokenOut!,
-        state.settings.includeGasCosts
-      )
+      // Compare prices across DEX quotes
+      const sortedQuotes = [...quotes].sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount))
+      const bestQuote = sortedQuotes[0]
+      const worstQuote = sortedQuotes[sortedQuotes.length - 1]
+      const bestOutput = parseFloat(bestQuote.outputAmount)
+      const worstOutput = parseFloat(worstQuote.outputAmount)
+      const savingsAmount = bestOutput - worstOutput
+      const savingsPercentage = worstOutput > 0 ? (savingsAmount / worstOutput) * 100 : 0
+
+      const comparison: PriceComparison = {
+        bestQuote,
+        allQuotes: sortedQuotes,
+        savings: {
+          amount: savingsAmount.toFixed(6),
+          percentage: savingsPercentage,
+          vsWorstQuote: savingsAmount > 0,
+        },
+        recommendation: {
+          dex: bestQuote.dex,
+          reason: savingsPercentage > 1
+            ? `${bestQuote.dex} offers ${savingsPercentage.toFixed(2)}% better rate`
+            : 'Rates are similar across DEXs',
+          riskLevel: bestQuote.priceImpact > 3 ? 'high' : bestQuote.priceImpact > 1 ? 'medium' : 'low',
+        },
+      }
 
       setState(prev => ({
         ...prev,
@@ -195,7 +212,7 @@ const QuickTradeInterface: React.FC<QuickTradeInterfaceProps> = ({
         isLoading: false
       }))
     }
-  }, [state.tokenIn, state.tokenOut, state.amountIn, slippageTolerance, dexAggregator, priceComparator, state.settings.includeGasCosts])
+  }, [state.tokenIn, state.tokenOut, state.amountIn, slippageTolerance, dexAggregator, state.settings.includeGasCosts])
 
   // Auto-refresh quotes
   useEffect(() => {

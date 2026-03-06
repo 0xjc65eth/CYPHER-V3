@@ -245,7 +245,7 @@ export interface CollectionsResponse {
   data: ProcessedCollection[];
   metrics: MarketMetrics;
   timestamp: string;               // ISO timestamp
-  source: 'hiro' | 'magiceden' | 'ordinals.com' | 'cache';
+  source: 'hiro' | 'gamma' | 'ordinals.com' | 'cache';
   error?: string;
 }
 

@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { bestInSlotAPI } from '@/services/ordinals/integrations/BestInSlotAPI';
-import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
-import { magicEdenService } from '@/services/magicEdenService';
+import { xverseAPI } from '@/lib/api/xverse';
+import { ordinalsMarketService } from '@/services/ordinalsMarketService';
 
 /**
- * Collection Stats API - BestInSlot Primary + OKX + Magic Eden Fallback
+ * Collection Stats API — Xverse Primary + Hiro + Gamma.io Fallback
  * Returns enriched stats for a single collection (volume24h, sales, etc.)
  */
 
@@ -32,67 +31,84 @@ export async function GET(request: Request) {
     }
 
     let stats: Record<string, unknown> | null = null;
+    const lookupId = collectionId || symbol;
 
-    // Try BestInSlot first (real-time, up-to-date)
-    if (bestInSlotAPI.isConfigured && symbol) {
+    // 1. Try Xverse (primary)
+    if (xverseAPI.isEnabled()) {
       try {
-        const bisStats = await bestInSlotAPI.getCollectionStats(symbol);
-        if (bisStats) {
+        const xverseDetail = await xverseAPI.getCollectionDetail(lookupId);
+        if (xverseDetail) {
+          const floorBTC = xverseDetail.floorPrice / 1e8;
+          const vol24hBTC = xverseDetail.volume24h / 1e8;
+          const totalVolBTC = xverseDetail.totalVolume / 1e8;
           stats = {
-            volume24h: (bisStats.volume_24h || 0) / 1e8,
-            volume7d: (bisStats.volume_7d || 0) / 1e8,
-            volume30d: (bisStats.volume_30d || 0) / 1e8,
-            sales24h: bisStats.sales_24h || 0,
-            sales7d: bisStats.sales_7d || 0,
-            sales30d: bisStats.sales_30d || 0,
-            floorPrice: (bisStats.floor_price || 0) / 1e8,
-            avgPrice: (bisStats.avg_price_24h || 0) / 1e8,
-            change24h: bisStats.change_24h || 0,
-            change7d: bisStats.change_7d || 0,
-            change30d: bisStats.change_30d || 0,
-            totalVolume: (bisStats.total_volume || 0) / 1e8,
-            ownerCount: bisStats.owners || 0,
-            listedCount: bisStats.listed || 0,
-            source: 'bestinslot',
+            volume24h: vol24hBTC,
+            volume7d: 0,
+            volume30d: 0,
+            sales24h: 0,
+            sales7d: 0,
+            sales30d: 0,
+            floorPrice: floorBTC,
+            avgPrice: 0,
+            change24h: 0,
+            change7d: 0,
+            change30d: 0,
+            totalVolume: totalVolBTC,
+            ownerCount: xverseDetail.ownerCount || 0,
+            listedCount: xverseDetail.listedCount || 0,
+            supply: xverseDetail.totalSupply || 0,
+            marketCap: xverseDetail.marketCap ? xverseDetail.marketCap / 1e8 : 0,
+            source: 'xverse',
           };
         }
       } catch (error) {
-        console.error('[Collection Stats] BestInSlot error:', error);
+        console.error('[Collection Stats] Xverse error:', error);
       }
     }
 
-    // Try OKX
-    if (!stats && (collectionId || symbol)) {
+    // 2. Fallback to Hiro
+    if (!stats && (symbol || collectionId)) {
       try {
-        const okxStats = await okxOrdinalsAPI.getCollectionStats(collectionId || symbol, '24h');
-        if (okxStats) {
+        const hiroHeaders: Record<string, string> = { 'Accept': 'application/json' };
+        const hiroApiKey = process.env.HIRO_API_KEY;
+        if (hiroApiKey) hiroHeaders['x-hiro-api-key'] = hiroApiKey;
+
+        const hiroRes = await fetch(
+          `https://api.hiro.so/ordinals/v1/collections/${encodeURIComponent(lookupId)}`,
+          { headers: hiroHeaders, signal: AbortSignal.timeout(8000) }
+        );
+        if (hiroRes.ok) {
+          const hiroData = await hiroRes.json();
+          const floorBTC = hiroData.floor_price ? parseInt(String(hiroData.floor_price)) / 1e8 : 0;
+          const totalVolBTC = hiroData.total_volume ? parseInt(String(hiroData.total_volume)) / 1e8 : 0;
           stats = {
-            volume24h: parseFloat(okxStats.volume24h) || 0,
-            volume7d: parseFloat(okxStats.volume7d) || 0,
-            volume30d: parseFloat(okxStats.volume30d) || 0,
-            sales24h: okxStats.sales24h || 0,
-            sales7d: okxStats.sales7d || 0,
-            sales30d: okxStats.sales30d || 0,
-            floorPrice: parseFloat(okxStats.floorPrice) || 0,
-            avgPrice: parseFloat(okxStats.avgPrice) || 0,
-            change24h: parseFloat(okxStats.change24h) || 0,
-            change7d: parseFloat(okxStats.change7d) || 0,
-            change30d: parseFloat(okxStats.change30d) || 0,
-            totalVolume: parseFloat(okxStats.totalVolume) || 0,
-            ownerCount: okxStats.ownerCount || 0,
-            listedCount: okxStats.listedCount || 0,
-            source: 'okx',
+            volume24h: 0,
+            volume7d: 0,
+            volume30d: 0,
+            sales24h: 0,
+            sales7d: 0,
+            sales30d: 0,
+            floorPrice: floorBTC,
+            avgPrice: 0,
+            change24h: 0,
+            change7d: 0,
+            change30d: 0,
+            totalVolume: totalVolBTC,
+            ownerCount: hiroData.distinct_owner_count || 0,
+            listedCount: hiroData.listed_count || 0,
+            supply: hiroData.inscription_count || 0,
+            source: 'hiro',
           };
         }
       } catch (error) {
-        console.error('[Collection Stats] OKX error:', error);
+        console.error('[Collection Stats] Hiro error:', error);
       }
     }
 
-    // Fallback to Magic Eden
+    // 3. Fallback to Gamma.io
     if (!stats && symbol) {
       try {
-        const meStats = await magicEdenService.getCollectionStats(symbol);
+        const meStats = await ordinalsMarketService.getCollectionStats(symbol);
         if (meStats) {
           const floorBTC = (Number(meStats.floorPrice) || 0) / 1e8;
           const totalVolBTC = (Number(meStats.totalVolume) || 0) / 1e8;
@@ -111,11 +127,11 @@ export async function GET(request: Request) {
             totalVolume: totalVolBTC,
             ownerCount: Number(meStats.owners) || 0,
             listedCount: Number(meStats.listedCount ?? meStats.totalListed) || 0,
-            source: 'magic_eden',
+            source: 'gamma',
           };
         }
       } catch (error) {
-        console.error('[Collection Stats] Magic Eden error:', error);
+        console.error('[Collection Stats] Gamma.io error:', error);
       }
     }
 

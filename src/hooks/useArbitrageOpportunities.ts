@@ -79,7 +79,7 @@ const MARKETPLACE_FEES: Record<string, number> = {
 // Estimated average network fee in BTC for a typical runes transaction
 const ESTIMATED_NETWORK_FEE = 0.00005;
 
-interface MagicEdenRune {
+interface GammaRune {
   rune: string;
   spacedRune?: string;
   symbol?: string;
@@ -125,17 +125,17 @@ export function useArbitrageOpportunities(_symbol?: string, _options?: Arbitrage
     setError(null);
 
     try {
-      // Fetch Magic Eden rune collection stats (floor prices)
+      // Fetch Gamma.io rune collection stats (floor prices)
       const meRes = await fetch(
-        '/api/magiceden/runes/collection-stats/?limit=20&sortBy=volume&sortDirection=desc&window=1d'
+        '/api/marketplace/runes/collection-stats/?limit=20&sortBy=volume&sortDirection=desc&window=1d'
       );
 
       if (!meRes.ok) {
-        throw new Error(`Magic Eden API error: ${meRes.status}`);
+        throw new Error(`Gamma.io API error: ${meRes.status}`);
       }
 
       const meData = await meRes.json();
-      const meRunes: MagicEdenRune[] = meData.runes || [];
+      const meRunes: GammaRune[] = meData.runes || [];
 
       if (meRunes.length === 0) {
         setOpportunities([]);
@@ -143,7 +143,7 @@ export function useArbitrageOpportunities(_symbol?: string, _options?: Arbitrage
         return;
       }
 
-      // Build a map of Magic Eden rune names to their floor prices (in BTC)
+      // Build a map of Gamma.io rune names to their floor prices (in BTC)
       const meFloorPrices = new Map<
         string,
         { price: number; volume: number; rune: string; spacedRune: string }
@@ -152,7 +152,7 @@ export function useArbitrageOpportunities(_symbol?: string, _options?: Arbitrage
       for (const r of meRunes) {
         const floorSats = r.floorUnitPrice?.value;
         if (floorSats && floorSats > 0) {
-          // Magic Eden floor is in sats/unit, normalize the rune name for matching
+          // Gamma.io floor is in sats/unit, normalize the rune name for matching
           const normalizedName = (r.rune || '').toUpperCase().replace(/[•·]/g, '');
           meFloorPrices.set(normalizedName, {
             price: floorSats / 1e8, // Convert sats to BTC

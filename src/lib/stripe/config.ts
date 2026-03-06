@@ -1,15 +1,15 @@
 /**
- * Stripe Subscription Configuration
+ * Subscription Configuration
  * Defines tiers, pricing, features, and access control helpers.
+ * Payment: BTCPay Server (Bitcoin-only, self-custodial)
  */
 
-export type SubscriptionTier = 'free' | 'explorer' | 'trader' | 'hacker_yields'
+export type SubscriptionTier = 'free' | 'pro' | 'elite'
 
 export interface TierConfig {
   id: SubscriptionTier
   name: string
   price: number
-  stripePriceId: string
   description: string
   features: string[]
   limits: Record<string, number | boolean>
@@ -20,33 +20,15 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     id: 'free',
     name: 'Free',
     price: 0,
-    stripePriceId: '',
     description: 'Basic dashboard access',
     features: ['Dashboard (view only)'],
     limits: { maxAlerts: 0, paperTrading: false, aiAgent: false },
   },
-  explorer: {
-    id: 'explorer',
-    name: 'Explorer',
+  pro: {
+    id: 'pro',
+    name: 'Pro',
     price: 29,
-    stripePriceId: process.env.STRIPE_PRICE_EXPLORER || '',
-    description: 'Essential tools for crypto tracking',
-    features: [
-      'Dashboard (view only)',
-      'Portfolio tracking',
-      'Market data real-time',
-      'Swap',
-      'Ordinals/Runes viewer',
-      'Basic tax reports',
-    ],
-    limits: { maxAlerts: 5, paperTrading: false, aiAgent: false },
-  },
-  trader: {
-    id: 'trader',
-    name: 'Trader',
-    price: 79,
-    stripePriceId: process.env.STRIPE_PRICE_TRADER || '',
-    description: 'Advanced analytics & trading tools',
+    description: 'Essential tools for Bitcoin traders',
     features: [
       'Dashboard (view only)',
       'Portfolio tracking',
@@ -56,18 +38,15 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       'Basic tax reports',
       'Arbitrage scanner',
       'AI analytics (CYPHER AI)',
-      'Neural predictions',
-      'Smart Money Concepts',
       'Alerts (unlimited)',
       'Paper trading',
     ],
     limits: { maxAlerts: -1, paperTrading: true, aiAgent: false },
   },
-  hacker_yields: {
-    id: 'hacker_yields',
-    name: 'Hacker Yields',
-    price: 149,
-    stripePriceId: process.env.STRIPE_PRICE_HACKER_YIELDS || '',
+  elite: {
+    id: 'elite',
+    name: 'Elite',
+    price: 99,
     description: 'Full autonomous trading suite',
     features: [
       'Dashboard (view only)',
@@ -94,16 +73,15 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
 
 export const TIER_HIERARCHY: Record<SubscriptionTier, number> = {
   free: 0,
-  explorer: 1,
-  trader: 2,
-  hacker_yields: 3,
+  pro: 1,
+  elite: 2,
 }
 
 /**
  * Check if a user's tier grants access to a required tier level.
  */
 export function tierHasAccess(userTier: SubscriptionTier, requiredTier: SubscriptionTier): boolean {
-  return TIER_HIERARCHY[userTier] >= TIER_HIERARCHY[requiredTier]
+  return (TIER_HIERARCHY[userTier] ?? 0) >= (TIER_HIERARCHY[requiredTier] ?? 0)
 }
 
 /**
@@ -111,23 +89,23 @@ export function tierHasAccess(userTier: SubscriptionTier, requiredTier: Subscrip
  */
 export const FEATURE_TIER_MAP: Record<string, SubscriptionTier> = {
   dashboard: 'free',
-  portfolio: 'explorer',
-  market_data: 'explorer',
-  swap: 'explorer',
-  ordinals_runes: 'explorer',
-  tax_reports: 'explorer',
-  arbitrage: 'trader',
-  ai_analytics: 'trader',
-  neural_predictions: 'trader',
-  smart_money: 'trader',
-  alerts_unlimited: 'trader',
-  paper_trading: 'trader',
-  cypher_ai: 'trader',
-  ai_trading_agent: 'hacker_yields',
-  multi_agent: 'hacker_yields',
-  auto_compound: 'hacker_yields',
-  mev_protection: 'hacker_yields',
-  whale_tracking: 'hacker_yields',
+  portfolio: 'pro',
+  market_data: 'pro',
+  swap: 'pro',
+  ordinals_runes: 'pro',
+  tax_reports: 'pro',
+  arbitrage: 'pro',
+  ai_analytics: 'pro',
+  alerts_unlimited: 'pro',
+  paper_trading: 'pro',
+  cypher_ai: 'pro',
+  neural_predictions: 'elite',
+  smart_money: 'elite',
+  ai_trading_agent: 'elite',
+  multi_agent: 'elite',
+  auto_compound: 'elite',
+  mev_protection: 'elite',
+  whale_tracking: 'elite',
 }
 
 /**
@@ -135,6 +113,6 @@ export const FEATURE_TIER_MAP: Record<string, SubscriptionTier> = {
  */
 export function tierHasFeature(userTier: SubscriptionTier, feature: string): boolean {
   const requiredTier = FEATURE_TIER_MAP[feature]
-  if (!requiredTier) return true // Unknown features default to accessible
+  if (!requiredTier) return true
   return tierHasAccess(userTier, requiredTier)
 }

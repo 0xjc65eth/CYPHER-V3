@@ -164,14 +164,14 @@ export const WALLETS: Record<string, WalletType> = {
   
   magiceden: {
     id: 'magiceden',
-    name: 'Magic Eden',
+    name: 'Gamma.io',
     icon: '🪄',
     type: 'bitcoin',
     downloadUrl: 'https://wallet.magiceden.io/',
     isInstalled: () => typeof (window as any).magicEden?.bitcoin !== 'undefined',
     connect: async () => {
       const magicEden = (window as any).magicEden?.bitcoin;
-      if (!magicEden) throw new Error('Magic Eden not installed');
+      if (!magicEden) throw new Error('Gamma.io not installed');
       return await magicEden.connect();
     }
   },

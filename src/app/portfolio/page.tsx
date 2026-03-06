@@ -459,7 +459,7 @@ function PortfolioPageContent() {
       case 'xverse': return 'Xverse';
       case 'unisat': return 'Unisat';
       case 'oyl': return 'OYL Wallet';
-      case 'magiceden': return 'Magic Eden';
+      case 'magiceden': return 'Gamma.io';
       default: return walletType;
     }
   }, []);

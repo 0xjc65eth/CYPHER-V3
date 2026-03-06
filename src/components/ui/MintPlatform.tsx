@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ExternalLink, Zap, Users, DollarSign, Shield } from 'lucide-react';
 
 interface MintPlatformProps {
-  platform: 'unisat' | 'ordswap' | 'magiceden' | 'ordinalsbot' | 'gamma' | 'ordinalswallet';
+  platform: 'unisat' | 'ordswap' | 'ordinalsbot' | 'gamma' | 'ordinalswallet';
   tokenSymbol?: string;
   tokenType: 'rune' | 'brc20' | 'ordinal';
   size?: 'sm' | 'md' | 'lg';
@@ -28,14 +28,6 @@ const MINT_PLATFORMS = {
     description: 'Professional trading platform',
     color: 'blue',
     features: ['Pro tools', 'Advanced charts', 'Low fees']
-  },
-  magiceden: {
-    name: 'Gamma.io',
-    icon: '🟢',
-    baseUrl: 'https://gamma.io/ordinals/collections',
-    description: 'Premier Bitcoin NFT marketplace',
-    color: 'green',
-    features: ['Curated collections', 'Analytics', 'Bitcoin native']
   },
   ordinalsbot: {
     name: 'OrdinalsBot',
@@ -94,12 +86,6 @@ export function MintPlatform({
           return `${baseUrl}/runes/${tokenSymbol}`;
         }
         return `${baseUrl}/marketplace`;
-        
-      case 'magiceden':
-        if (tokenSymbol) {
-          return `${baseUrl}/collections/${tokenSymbol}`;
-        }
-        return baseUrl;
         
       case 'ordinalsbot':
         return `${baseUrl}/inscription`;
@@ -182,9 +168,9 @@ interface MintPlatformGridProps {
 
 export function MintPlatformGrid({ tokenSymbol, tokenType, title = 'Mint/Trade Platforms' }: MintPlatformGridProps) {
   const platformsByType = {
-    rune: ['unisat', 'ordswap', 'magiceden', 'ordinalsbot'] as const,
-    brc20: ['unisat', 'ordswap', 'magiceden', 'gamma'] as const,
-    ordinal: ['unisat', 'magiceden', 'ordinalsbot', 'gamma'] as const
+    rune: ['unisat', 'ordswap', 'gamma', 'ordinalsbot'] as const,
+    brc20: ['unisat', 'ordswap', 'gamma', 'ordinalsbot'] as const,
+    ordinal: ['unisat', 'gamma', 'ordinalsbot'] as const
   };
 
   const platforms = platformsByType[tokenType];

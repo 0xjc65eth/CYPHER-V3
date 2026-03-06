@@ -333,12 +333,12 @@ export class HiroOrdinalsService {
   }
 
   private async getCollectionsFromExternalSources(): Promise<CollectionInfo[]> {
-    // In production, integrate with Magic Eden, Gamma, OKX APIs
+    // In production, integrate with Gamma.io, Gamma, OKX APIs
     return this.getMockCollections();
   }
 
   private async getCollectionFromMarketplaces(collectionId: string): Promise<CollectionInfo | null> {
-    // In production, fetch from Magic Eden, Gamma, OKX APIs
+    // In production, fetch from Gamma.io, Gamma, OKX APIs
     return this.getMockCollectionInfo(collectionId);
   }
 

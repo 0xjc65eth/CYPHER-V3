@@ -10,8 +10,7 @@ export interface RootState {
   mining: MiningState;
 }
 
-// Magic Eden API types
-export * from './magiceden';
+// Ordinals marketplace types (Magic Eden removed — deprecated)
 
 // UniSat API types
 export * from './unisat'; 

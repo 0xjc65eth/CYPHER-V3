@@ -24,9 +24,9 @@ interface PremiumContextType {
   /** Access tier derived from BTC VIP list + YHP NFT verification */
   accessTier: AccessTier
   setAccessTier: (tier: AccessTier) => void
-  /** Stripe subscription tier */
+  /** BTCPay subscription tier */
   subscriptionTier: SubscriptionTier
-  /** Stripe subscription status (active, canceled, past_due, etc.) */
+  /** Subscription status (active, expired, etc.) */
   subscriptionStatus: string
   /** End date of current billing period */
   subscriptionEndDate: string | null
@@ -282,10 +282,10 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
   }, [isClient, fetchSubscriptionStatus])
 
-  // Determine effective tier: VIP/NFT wallets get hacker_yields override
+  // Determine effective tier: VIP/NFT wallets get elite override
   // But only trust accessTier if we are NOT currently re-verifying a stale cache
   const effectiveSubscriptionTier: SubscriptionTier = (() => {
-    if (!isReverifying && hasPremiumAccess(accessTier)) return 'hacker_yields'
+    if (!isReverifying && hasPremiumAccess(accessTier)) return 'elite'
     return subscriptionTier
   })()
 

@@ -48,7 +48,7 @@ export function useRunesTradingActivity(
         ? [runeId]
         : TOP_RUNES;
 
-      // Fetch real activities from Magic Eden API
+      // Fetch real activities from Gamma.io API
       const allActivities: any[] = [];
 
       await Promise.all(
@@ -56,7 +56,7 @@ export function useRunesTradingActivity(
           try {
             const encodedRune = encodeURIComponent(rune);
             const response = await fetch(
-              `/api/magiceden/runes/activities/${encodedRune}?limit=50`
+              `/api/marketplace/runes/activities/${encodedRune}?limit=50`
             );
             if (response.ok) {
               const data = await response.json();

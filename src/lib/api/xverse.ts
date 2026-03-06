@@ -382,10 +382,56 @@ class XverseAPI {
 
   /** Full collection detail */
   async getCollectionDetail(collectionId: string): Promise<XverseCollectionDetail | null> {
-    return this.fetch<XverseCollectionDetail>(
+    interface RawDetail {
+      id?: string;
+      symbol?: string;
+      name?: string;
+      description?: string;
+      supply?: string | number;
+      floorPrice?: { valueInSats?: string; valueInUsd?: string; percentageChange24h?: { valueInSats?: string; valueInUsd?: string } };
+      volume24h?: { valueInSats?: string; valueInUsd?: string; percentageChange?: { valueInSats?: string; valueInUsd?: string } };
+      marketCap?: { valueInSats?: string; valueInUsd?: string };
+      totalVolume?: { valueInSats?: string; valueInUsd?: string };
+      ownerCount?: number;
+      listedCount?: number;
+      links?: Record<string, string>;
+    }
+
+    const raw = await this.fetch<RawDetail>(
       `/v1/ordinals/collections/${encodeURIComponent(collectionId)}`,
       { ttlMs: 60_000 }
     );
+    if (!raw) return null;
+
+    const floorSats = parseFloat(raw.floorPrice?.valueInSats ?? '0') || 0;
+    const floorUsd = parseFloat(raw.floorPrice?.valueInUsd ?? '0') || 0;
+    const vol24hSats = parseFloat(raw.volume24h?.valueInSats ?? '0') || 0;
+    const vol24hUsd = parseFloat(raw.volume24h?.valueInUsd ?? '0') || 0;
+    const mcSats = parseFloat(raw.marketCap?.valueInSats ?? '0') || 0;
+    const mcUsd = parseFloat(raw.marketCap?.valueInUsd ?? '0') || 0;
+    const totalVolSats = parseFloat(
+      (raw.totalVolume as unknown as { valueInSats?: string })?.valueInSats ??
+      raw.volume24h?.valueInSats ?? '0'
+    ) || 0;
+    const supply = typeof raw.supply === 'string' ? parseInt(raw.supply) || 0 : (raw.supply || 0);
+
+    return {
+      collectionId: raw.id || raw.symbol || collectionId,
+      name: raw.name || collectionId,
+      imageUrl: null,
+      description: raw.description || '',
+      floorPrice: floorSats,
+      floorPriceUsd: floorUsd,
+      marketCap: mcSats,
+      marketCapUsd: mcUsd,
+      volume24h: vol24hSats,
+      volume24hUsd: vol24hUsd,
+      totalVolume: totalVolSats,
+      totalSupply: supply,
+      ownerCount: raw.ownerCount || 0,
+      listedCount: raw.listedCount || 0,
+      links: raw.links || {},
+    };
   }
 
   /** Collection holders */

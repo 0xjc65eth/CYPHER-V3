@@ -520,7 +520,7 @@ class RealAnalyticsDataService {
   }
 
   private async fetchTopOrdinalsCollections(): Promise<any[]> {
-    // This would require additional data sources like Magic Eden API
+    // This would require additional data sources like Gamma.io API
     // For now, returning estimated data based on known collections
     return [
       {

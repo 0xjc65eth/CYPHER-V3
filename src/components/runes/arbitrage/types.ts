@@ -2,7 +2,7 @@ export interface ArbitrageOpportunity {
   id: string;
   runeName: string;
   spacedName: string;
-  magicEdenPrice: number;
+  xversePrice: number;
   uniSatPrice: number;
   spread: number;
   bestBuy: string;
@@ -16,7 +16,7 @@ export interface ArbitrageOpportunity {
 
 export type SortKey = 'spread' | 'netProfit' | 'confidence';
 
-export const MARKETPLACES = ['Magic Eden', 'UniSat'] as const;
+export const MARKETPLACES = ['Xverse', 'UniSat'] as const;
 export const REFRESH_INTERVAL = 30;
 export const FEE_BUY = 2.0;
 export const FEE_SELL = 2.0;

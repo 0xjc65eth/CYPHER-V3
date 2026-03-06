@@ -11,10 +11,10 @@ const originalWarn = console.warn;
 const SUPPRESSED_ERROR_PATTERNS = [
   'Cannot redefine property: ethereum',
   'Cannot set property ethereum',
-  'Magic Eden provider',
+  'Gamma.io provider',
   'Pocket Universe',
   'Failed to define property',
-  'Could not assign Magic Eden provider',
+  'Could not assign Gamma.io provider',
   'hostname check',
   'reading \'length\'',
   'extension conflicts',
@@ -29,7 +29,7 @@ const SUPPRESSED_WARN_PATTERNS = [
   'Extension conflict',
   'Provider conflict',
   'Wallet extension',
-  'Magic Eden',
+  'Gamma.io',
   'Pocket Universe'
 ];
 

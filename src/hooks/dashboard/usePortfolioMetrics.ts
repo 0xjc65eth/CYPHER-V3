@@ -104,20 +104,21 @@ export function usePortfolioMetrics() {
       const data = json.data;
 
       // Map API assets to the Asset interface
+      // Cost basis not available from on-chain data alone — show 0 instead of fake multiplier
       const assets: Asset[] = (data.assets || []).map((a: any) => ({
         symbol: a.symbol || '',
         name: a.name || a.symbol || '',
         amount: a.balance || 0,
         value: a.value || 0,
-        cost: a.value * 0.85, // API doesn't provide cost basis yet
-        pnl: a.value * 0.15,
+        cost: a.costBasis || 0,
+        pnl: a.costBasis ? (a.value || 0) - a.costBasis : 0,
         pnlPercent: a.change24h || 0,
         allocation: a.allocation || 0,
       }));
 
       const totalValue = data.totalValue || 0;
-      const totalCost = data.totalCost || totalValue * 0.85;
-      const totalPnL = data.totalPnL || totalValue - totalCost;
+      const totalCost = data.totalCost || 0;
+      const totalPnL = data.totalPnL || (totalCost > 0 ? totalValue - totalCost : 0);
       const totalPnLPercent = data.totalPnLPercent || (totalCost > 0 ? (totalPnL / totalCost) * 100 : 0);
 
       // Map performance from API format

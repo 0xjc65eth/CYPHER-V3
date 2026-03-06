@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Image Proxy for Ordinals Collection Images
- * Proxies images from Magic Eden CDN and other external sources
+ * Proxies images from Gamma.io CDN and other external sources
  * to avoid CORS issues in the browser.
  *
  * Usage: /api/ordinals/image/?url=<encoded_url>
@@ -15,16 +15,19 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Allowed hostnames to prevent SSRF
 const ALLOWED_HOSTS = [
-  'img-cdn.magiceden.dev',
   'creator-hub-prod.s3.us-east-2.amazonaws.com',
-  'api-mainnet.magiceden.dev',
-  'ord.cdn.magiceden.dev',
+  'img-cdn.magiceden.dev',
   'ordinals.com',
   'ordinals.hiro.so',
   'api.hiro.so',
   'www.okx.com',
   'static.okx.com',
   'static.coinall.ltd',
+  'bestinslot.xyz',
+  'ordinalswallet.com',
+  'turbo.ordinalswallet.com',
+  'bis-ord-content.fra1.cdn.digitaloceanspaces.com',
+  'render.ordinalswallet.com',
 ];
 
 /**

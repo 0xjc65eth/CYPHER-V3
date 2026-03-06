@@ -62,31 +62,22 @@ const TIERS = [
     href: '/dashboard',
   },
   {
-    name: 'Explorer',
+    name: 'Pro',
     price: 29,
     accent: '#3B82F6',
-    desc: 'Essential trading tools',
-    features: ['Everything in Free', 'Portfolio tracking & P&L', 'Cross-chain swaps', 'Ordinals & Runes viewer', 'Tax reports', '5 price alerts'],
-    cta: 'Start 7-Day Trial',
+    desc: 'Essential tools for Bitcoin traders',
+    features: ['Everything in Free', 'Portfolio tracking', 'Cross-chain swaps', 'Ordinals & Runes viewer', 'Arbitrage scanner', 'AI analytics (CYPHER AI)', 'Unlimited alerts', 'Paper trading'],
+    cta: 'Pay with Bitcoin',
     href: '/pricing',
   },
   {
-    name: 'Trader',
-    price: 79,
-    accent: '#8B5CF6',
-    desc: 'Advanced analytics & AI',
-    popular: true,
-    features: ['Everything in Explorer', 'CYPHER AI analytics', 'Arbitrage scanner', 'Smart Money Concepts', 'Neural predictions', 'Unlimited alerts', 'Paper trading'],
-    cta: 'Start 7-Day Trial',
-    href: '/pricing',
-  },
-  {
-    name: 'Hacker Yields',
-    price: 149,
+    name: 'Elite',
+    price: 99,
     accent: '#F7931A',
-    desc: 'Full autonomous trading',
-    features: ['Everything in Trader', 'AI Trading Agent (auto-trade)', 'Multi-agent consensus', 'MEV protection', 'Auto-compound yields', 'Whale tracking', 'Priority support'],
-    cta: 'Start 7-Day Trial',
+    desc: 'Full autonomous trading suite',
+    popular: true,
+    features: ['Everything in Pro', 'AI Trading Agent (auto-trade)', 'Multi-agent consensus', 'Neural predictions', 'Smart Money Concepts', 'MEV protection', 'Auto-compound yields', 'Whale tracking'],
+    cta: 'Pay with Bitcoin',
     href: '/pricing',
   },
 ]
@@ -94,7 +85,7 @@ const TIERS = [
 const FAQS = [
   {
     q: 'What wallets do you support?',
-    a: 'We support Bitcoin wallets (Xverse, UniSat, OYL, Magic Eden) and Ethereum wallets (MetaMask). Connect either to access the platform.',
+    a: 'We support Bitcoin wallets (Xverse, UniSat, OYL, Gamma.io) and Ethereum wallets (MetaMask). Connect either to access the platform.',
   },
   {
     q: 'Is the AI Trading Agent safe?',
@@ -102,7 +93,7 @@ const FAQS = [
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Yes. All plans are month-to-month with no long-term commitment. Cancel from Settings at any time. No questions asked.',
+    a: 'Plans are 30-day periods paid with Bitcoin. There are no recurring charges — you simply purchase another period when you want to continue.',
   },
   {
     q: 'What exchanges does the agent trade on?',
@@ -114,7 +105,7 @@ const FAQS = [
   },
   {
     q: 'What is the YHP (Yield Hacker Pass)?',
-    a: 'An NFT that grants lifetime Hacker Yields access. Holders get 0% platform fees and full access to all features without a subscription.',
+    a: 'An NFT that grants lifetime Elite access. Holders get 0% platform fees and full access to all features without a subscription.',
   },
 ]
 

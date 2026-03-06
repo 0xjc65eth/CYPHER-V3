@@ -29,7 +29,7 @@ export class ExtensionConflictGuard {
         'defineProperty.*proxy.*trap returned falsish',
         'Cannot redefine property: ethereum',
         'Cannot set property ethereum',
-        'Magic Eden provider',
+        'Gamma.io provider',
         'Pocket Universe',
         'chrome-extension://',
         'inject.chrome',
@@ -53,7 +53,7 @@ export class ExtensionConflictGuard {
 
     const extensionChecks = [
       { name: 'Pocket Universe', check: () => document.querySelector('script[src*="inject.chrome"]') },
-      { name: 'Magic Eden', check: () => (window as any).magicEden },
+      { name: 'Gamma.io', check: () => (window as any).magicEden },
       { name: 'MetaMask', check: () => (window as any).ethereum?.isMetaMask },
       { name: 'Phantom', check: () => (window as any).phantom },
       { name: 'LaserEyes', check: () => (window as any).LaserEyes }

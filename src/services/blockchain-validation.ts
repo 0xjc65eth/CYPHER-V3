@@ -13,7 +13,7 @@
  */
 
 import { getRedisClient, CACHE_CONFIG } from '@/lib/cache/redis.config'
-import { magicEdenRunesService, type RuneMarketInfo } from './magicEdenRunesService'
+import { runesMarketService, type RuneMarketInfo } from './runesMarketService'
 import { unisatRunesService, type RuneInfo } from './unisatRunesService'
 
 // ============================================================================
@@ -67,7 +67,7 @@ export interface RuneSupplyValidation {
   runeName: string
   status: ValidationStatus
   sources: {
-    magicEden?: string
+    gamma?: string
     unisat?: string
     hiro?: string
   }
@@ -83,7 +83,7 @@ export interface RuneHoldersValidation {
   runeName: string
   status: ValidationStatus
   sources: {
-    magicEden?: number
+    gamma?: number
     unisat?: number
     hiro?: number
   }
@@ -99,7 +99,7 @@ export interface RunePriceValidation {
   runeName: string
   status: ValidationStatus
   sources: {
-    magicEden?: { price: number; volume24h?: number }
+    gamma?: { price: number; volume24h?: number }
     unisat?: { price: number; volume24h?: number }
     okx?: { price: number; volume24h?: number }
   }
@@ -413,9 +413,9 @@ export class BlockchainValidationService {
 
     try {
       // Fetch from multiple sources
-      const [unisatData, magicEdenData] = await Promise.allSettled([
+      const [unisatData, marketData] = await Promise.allSettled([
         unisatRunesService.getRuneInfo(runeid),
-        magicEdenRunesService.getRuneMarketInfo(runeName),
+        runesMarketService.getRuneMarketInfo(runeName),
       ])
 
       // Extract supply values
@@ -423,8 +423,8 @@ export class BlockchainValidationService {
         validation.sources.unisat = unisatData.value.supply
       }
 
-      if (magicEdenData.status === 'fulfilled' && magicEdenData.value) {
-        validation.sources.magicEden = magicEdenData.value.totalSupply
+      if (marketData.status === 'fulfilled' && marketData.value) {
+        validation.sources.gamma = marketData.value.totalSupply
       }
 
       // Calculate consistency
@@ -497,9 +497,9 @@ export class BlockchainValidationService {
 
     try {
       // Fetch from multiple sources
-      const [unisatData, magicEdenData] = await Promise.allSettled([
+      const [unisatData, marketData] = await Promise.allSettled([
         unisatRunesService.getRuneInfo(runeid),
-        magicEdenRunesService.getRuneMarketInfo(runeName),
+        runesMarketService.getRuneMarketInfo(runeName),
       ])
 
       // Extract holder counts
@@ -507,8 +507,8 @@ export class BlockchainValidationService {
         validation.sources.unisat = unisatData.value.holders
       }
 
-      if (magicEdenData.status === 'fulfilled' && magicEdenData.value) {
-        validation.sources.magicEden = magicEdenData.value.holders
+      if (marketData.status === 'fulfilled' && marketData.value) {
+        validation.sources.gamma = marketData.value.holders
       }
 
       // Calculate consistency
@@ -580,16 +580,16 @@ export class BlockchainValidationService {
 
     try {
       // Fetch from multiple sources
-      const [magicEdenData] = await Promise.allSettled([
-        magicEdenRunesService.getRuneMarketInfo(runeName),
+      const [marketData] = await Promise.allSettled([
+        runesMarketService.getRuneMarketInfo(runeName),
       ])
 
       // Extract prices
-      if (magicEdenData.status === 'fulfilled' && magicEdenData.value) {
-        const price = magicEdenData.value.floorUnitPrice?.value
-        const volume = magicEdenData.value.volume24h
+      if (marketData.status === 'fulfilled' && marketData.value) {
+        const price = marketData.value.floorUnitPrice?.value
+        const volume = marketData.value.volume24h
         if (price !== undefined) {
-          validation.sources.magicEden = { price, volume24h: volume }
+          validation.sources.gamma = { price, volume24h: volume }
         }
       }
 

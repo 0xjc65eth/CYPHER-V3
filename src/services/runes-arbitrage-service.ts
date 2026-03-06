@@ -1,5 +1,5 @@
 import { neuralLearningService } from './neural-learning-service';
-import { magicEdenRunesService, type RuneMarketInfo, type RuneCollectionStat } from './magicEdenRunesService';
+import { runesMarketService, type RuneMarketInfo, type RuneCollectionStat } from './runesMarketService';
 import { xverseAPI } from '@/lib/api/xverse';
 
 // Runas populares para monitorar arbitragem (nomes reais do protocolo)
@@ -26,7 +26,7 @@ const RUNE_EXCHANGES = [
     name: 'Gamma.io',
     url: 'https://gamma.io/ordinals/collections/runes',
     fee: 2.0,
-    source: 'magiceden' as const,
+    source: 'gamma' as const,
   },
   {
     name: 'UniSat',
@@ -112,13 +112,13 @@ export class RunesArbitrageService {
   /**
    * Busca preços reais de uma runa no Gamma.io
    */
-  private async fetchMagicEdenPrice(runeName: string): Promise<ExchangePrice | null> {
+  private async fetchGammaPrice(runeName: string): Promise<ExchangePrice | null> {
     try {
-      const info: RuneMarketInfo = await magicEdenRunesService.getRuneMarketInfo(runeName);
+      const info: RuneMarketInfo = await runesMarketService.getRuneMarketInfo(runeName);
       if (!info || !info.floorUnitPrice?.value) return null;
 
       return {
-        exchange: RUNE_EXCHANGES.find(e => e.source === 'magiceden')!,
+        exchange: RUNE_EXCHANGES.find(e => e.source === 'gamma')!,
         floorPriceSats: info.floorUnitPrice.value,
         volume24h: info.volume24h || 0,
         listedCount: info.listedCount || 0,
@@ -236,9 +236,9 @@ export class RunesArbitrageService {
       }
     } catch { /* fallback below */ }
 
-    // Fallback: Gamma.io / Magic Eden
+    // Fallback: Gamma.io / Gamma.io
     try {
-      const stats = await magicEdenRunesService.getRuneCollectionStats({
+      const stats = await runesMarketService.getRuneCollectionStats({
         sortBy: 'volume',
         sortDirection: 'desc',
         limit: 20,
@@ -273,7 +273,7 @@ export class RunesArbitrageService {
         // Buscar preços reais de todas as exchanges em paralelo
         const [xversePriceData, mePriceData, altPrices] = await Promise.all([
           this.fetchXversePrice(runeName),
-          this.fetchMagicEdenPrice(runeName),
+          this.fetchGammaPrice(runeName),
           this.fetchAlternativePrices(runeName),
         ]);
 

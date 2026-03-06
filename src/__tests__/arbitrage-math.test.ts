@@ -162,7 +162,7 @@ describe('Arbitrage Math', () => {
   // Marketplace fee lookup
   describe('Marketplace Fees', () => {
     const fees: Record<string, number> = {
-      'magic_eden': 0.025,
+      'gamma': 0.025,
       'unisat': 0.02,
       'okx': 0.02,
       'ordiscan': 0.015,
@@ -174,8 +174,8 @@ describe('Arbitrage Math', () => {
       return fees[marketplace] || 0.02;
     }
 
-    it('should return 2.5% for magic_eden', () => {
-      expect(getMarketplaceFee('magic_eden')).toBe(0.025);
+    it('should return 2.5% for gamma', () => {
+      expect(getMarketplaceFee('gamma')).toBe(0.025);
     });
 
     it('should return 0.5% for binance', () => {

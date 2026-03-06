@@ -8,7 +8,7 @@
  * - Jupiter: platformFeeBps deducted from output, sent to feeAccount
  * - 1inch: referrer fee deducted from output, sent to referrerAddress
  * - Paraswap: partner fee deducted from output, sent to partnerAddress
- * - Magic Eden: fee output added to PSBT, paid by buyer
+ * - Gamma.io: fee output added to PSBT, paid by buyer
  */
 
 import { FEE_RECIPIENTS } from './feeRecipients';
@@ -47,7 +47,7 @@ export const PARASWAP_PARTNER_ADDRESS = FEE_RECIPIENTS.EVM;
 export const PARASWAP_PARTNER_FEE_BPS = 30; // 0.3%
 
 // ============================================================================
-// Bitcoin/Magic Eden Configuration
+// Bitcoin/Gamma.io Configuration
 // ============================================================================
 
 export const BITCOIN_FEE_ADDRESS = FEE_RECIPIENTS.BITCOIN;

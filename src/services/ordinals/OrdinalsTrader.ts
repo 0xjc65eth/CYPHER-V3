@@ -809,7 +809,7 @@ export class OrdinalsTrader {
       const client = this.clients[marketplace];
       
       switch (marketplace) {
-        case OrdinalsMarketplace.MAGIC_EDEN:
+        case OrdinalsMarketplace.GAMMA:
           const meInscription = await client.getInscription(inscriptionId);
           return meInscription?.listedPrice || 0;
         case OrdinalsMarketplace.OKX:

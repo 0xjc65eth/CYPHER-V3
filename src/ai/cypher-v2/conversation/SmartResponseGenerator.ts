@@ -161,7 +161,7 @@ export class SmartResponseGenerator {
                 `• Cada satoshi pode carregar uma inscrição única\n` +
                 `• Floor price atual: ~0.001 BTC\n` +
                 `• Coleções populares: Bitcoin Punks, Ordinal Maxi Biz\n` +
-                `• Use marketplaces como Magic Eden ou OKX para negociar`,
+                `• Use marketplaces como Gamma.io ou OKX para negociar`,
                 
       runes: `ᚱ Runes Protocol é o padrão de tokens fungíveis no Bitcoin:\n` +
              `• Mais eficiente que BRC-20\n` +

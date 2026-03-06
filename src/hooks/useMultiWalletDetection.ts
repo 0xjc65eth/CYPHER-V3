@@ -121,11 +121,11 @@ export const useMultiWalletDetection = () => {
               });
             }
             
-            // Magic Eden
+            // Gamma.io
             if (win.magicEden?.bitcoin) {
               detectedProviders.magicEden = win.magicEden;
               detectedWallets.push({ 
-                name: 'Magic Eden', 
+                name: 'Gamma.io', 
                 type: 'bitcoin',
                 icon: '🟣',
                 provider: win.magicEden.bitcoin
@@ -218,7 +218,7 @@ export const useMultiWalletDetection = () => {
           };
           
         case 'magiceden':
-          if (!providers.magicEden?.bitcoin) throw new Error('Magic Eden not detected');
+          if (!providers.magicEden?.bitcoin) throw new Error('Gamma.io not detected');
           const meAccounts = await providers.magicEden.bitcoin.requestAccounts();
           return {
             address: meAccounts[0]

@@ -1,0 +1,50 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { ordinalsMarketService } from '@/services/ordinalsMarketService';
+import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const collectionSymbol = searchParams.get('collectionSymbol');
+
+    if (!collectionSymbol) {
+      return NextResponse.json(
+        { error: 'Missing required query parameter: collectionSymbol' },
+        { status: 400 }
+      );
+    }
+
+    // Try OKX first (primary post-ME deprecation)
+    try {
+      const okxStats = await okxOrdinalsAPI.getCollectionStats(collectionSymbol);
+      if (okxStats) {
+        return NextResponse.json({
+          ...okxStats,
+          _source: 'okx',
+        });
+      }
+    } catch (okxError) {
+      // OKX failed, continue to ME fallback
+    }
+
+    // Fallback to Gamma.io
+    const data = await ordinalsMarketService.getCollectionStats(collectionSymbol);
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Collection stats not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      ...data,
+      _source: 'gamma',
+    });
+  } catch (error) {
+    console.error('[API] GET /api/marketplace/collections/stats error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch collection stats' },
+      { status: 500 }
+    );
+  }
+}
