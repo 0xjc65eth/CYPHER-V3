@@ -6,13 +6,13 @@
   "env": {
     "NODE_ENV": "production",
     "NEXT_TELEMETRY_DISABLED": "1",
-    "NODE_OPTIONS": "--max-old-space-size=4096"
+    "NODE_OPTIONS": "--max-old-space-size=8192"
   },
   "build": {
     "env": {
-      "NODE_ENV": "production", 
+      "NODE_ENV": "production",
       "NEXT_TELEMETRY_DISABLED": "1",
-      "NODE_OPTIONS": "--max-old-space-size=4096"
+      "NODE_OPTIONS": "--max-old-space-size=8192"
     }
   },
   "functions": {
