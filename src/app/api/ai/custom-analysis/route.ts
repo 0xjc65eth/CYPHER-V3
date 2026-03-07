@@ -85,43 +85,79 @@ async function aggregateMarketData(networks: string[]): Promise<any> {
 }
 
 async function aggregateSocialData(query: string): Promise<any> {
-  // Simulate social sentiment analysis
-  // In production, integrate with Twitter API, Reddit API, etc.
-  const sentimentScore = 0; // Fixed neutral value
-  const mentions = 500; // Fixed fallback value
-  
-  return {
-    sentiment_score: sentimentScore,
-    sentiment_label: sentimentScore > 0.3 ? 'bullish' : sentimentScore < -0.3 ? 'bearish' : 'neutral',
-    mentions_24h: mentions,
-    trending_topics: ['bitcoin', 'ordinals', 'runes', 'brc20'],
-    confidence: 0.75
-  };
+  // Fear & Greed Index as sentiment proxy
+  try {
+    const fgRes = await fetch('https://api.alternative.me/fng/?limit=1', { signal: AbortSignal.timeout(5000) });
+    const fgData = await fgRes.json();
+    const fgValue = parseInt(fgData?.data?.[0]?.value || '50');
+    const fgLabel = fgData?.data?.[0]?.value_classification || 'Neutral';
+    const sentimentScore = (fgValue - 50) / 50; // -1 to 1
+
+    return {
+      sentiment_score: sentimentScore,
+      sentiment_label: sentimentScore > 0.3 ? 'bullish' : sentimentScore < -0.3 ? 'bearish' : 'neutral',
+      fear_greed_index: fgValue,
+      fear_greed_label: fgLabel,
+      source: 'Fear & Greed Index',
+      confidence: 0.70
+    };
+  } catch {
+    return {
+      sentiment_score: 0,
+      sentiment_label: 'neutral',
+      fear_greed_index: 50,
+      fear_greed_label: 'Neutral',
+      source: 'unavailable',
+      confidence: 0.30
+    };
+  }
 }
 
 async function aggregateOnchainData(networks: string[]): Promise<any> {
   try {
-    // Get Bitcoin network metrics
-    const mempoolResponse = await fetch(`${PROFESSIONAL_APIS.MEMPOOL.BASE_URL}/api/v1/statistics`);
-    const mempoolStats = await mempoolResponse.json();
+    const results: any = { bitcoin: {}, ordinals: {}, runes: {} };
 
-    return {
-      bitcoin: {
-        mempool_size: mempoolStats.mempool_size || 0,
-        fee_rate: mempoolStats.fee_rate || 0,
-        transactions_24h: mempoolStats.transactions_24h || 0
-      },
-      ordinals: {
-        inscriptions_today: 3000,
-        volume_24h: 50,
-        collections_active: 35
-      },
-      runes: {
-        transfers_24h: 6000,
-        new_tokens: 5,
-        volume_btc: 25
-      }
-    };
+    // Fetch mempool stats and Hiro ordinals/runes in parallel
+    const [mempoolRes, ordinalsRes, runesRes] = await Promise.allSettled([
+      fetch(`${PROFESSIONAL_APIS.MEMPOOL.BASE_URL}/api/v1/fees/recommended`, { signal: AbortSignal.timeout(5000) }),
+      fetch('https://api.hiro.so/ordinals/v1/stats', {
+        headers: { 'x-hiro-api-key': process.env.HIRO_API_KEY || '' },
+        signal: AbortSignal.timeout(5000),
+      }),
+      fetch('https://api.hiro.so/runes/v1/etchings?limit=1', {
+        headers: { 'x-hiro-api-key': process.env.HIRO_API_KEY || '' },
+        signal: AbortSignal.timeout(5000),
+      }),
+    ]);
+
+    // Bitcoin mempool
+    if (mempoolRes.status === 'fulfilled' && mempoolRes.value.ok) {
+      const fees = await mempoolRes.value.json();
+      results.bitcoin = {
+        fastest_fee: fees.fastestFee || 0,
+        half_hour_fee: fees.halfHourFee || 0,
+        hour_fee: fees.hourFee || 0,
+      };
+    }
+
+    // Ordinals stats
+    if (ordinalsRes.status === 'fulfilled' && ordinalsRes.value.ok) {
+      const stats = await ordinalsRes.value.json();
+      results.ordinals = {
+        total_inscriptions: stats.total_inscriptions || 0,
+        inscriptions_in_mempool: stats.inscriptions_in_mempool || 0,
+      };
+    }
+
+    // Runes total (from pagination total)
+    if (runesRes.status === 'fulfilled' && runesRes.value.ok) {
+      const rdata = await runesRes.value.json();
+      results.runes = {
+        total_etchings: rdata.total || 0,
+      };
+    }
+
+    return results;
   } catch (error) {
     console.error('Onchain data error:', error);
     return { error: 'Onchain data unavailable' };
@@ -129,55 +165,56 @@ async function aggregateOnchainData(networks: string[]): Promise<any> {
 }
 
 async function runAgentAnalysis(
-  query: string, 
-  marketData: any, 
-  socialData: any, 
-  onchainData: any, 
+  query: string,
+  marketData: any,
+  socialData: any,
+  onchainData: any,
   depth: string
 ): Promise<any> {
-  // Simulate 30-agent analysis system
+  // Derive signals from real market data
+  const btcChange = marketData.bitcoin_price?.usd_24h_change || 0;
+  const sentimentScore = socialData.sentiment_score || 0;
+  const fgIndex = socialData.fear_greed_index || 50;
+
+  // Technical signal based on BTC 24h change
+  const technicalSignal = btcChange > 3 ? 'bullish' : btcChange < -3 ? 'bearish' : 'neutral';
+  const technicalConf = Math.min(0.95, 0.5 + Math.abs(btcChange) / 20);
+
+  // Sentiment signal from Fear & Greed
+  const sentimentSignal = fgIndex > 65 ? 'bullish' : fgIndex < 35 ? 'bearish' : 'neutral';
+  const sentimentConf = Math.min(0.90, 0.5 + Math.abs(fgIndex - 50) / 100);
+
+  // On-chain signal based on fee pressure
+  const fees = onchainData.bitcoin?.fastest_fee || 0;
+  const onchainSignal = fees > 50 ? 'bullish' : fees < 5 ? 'bearish' : 'neutral'; // High fees = high demand
+  const onchainConf = 0.65;
+
   const agents = [
-    { id: 1, type: 'technical', confidence: 0.92, signal: 'bullish', reasoning: 'Strong support levels holding' },
-    { id: 2, type: 'fundamental', confidence: 0.87, signal: 'bullish', reasoning: 'Network adoption increasing' },
-    { id: 3, type: 'sentiment', confidence: 0.78, signal: 'neutral', reasoning: 'Mixed social signals' },
-    { id: 4, type: 'whale', confidence: 0.94, signal: 'bullish', reasoning: 'Large wallet accumulation detected' },
-    { id: 5, type: 'options', confidence: 0.83, signal: 'bullish', reasoning: 'Put/call ratio favoring calls' },
-    { id: 6, type: 'derivatives', confidence: 0.89, signal: 'neutral', reasoning: 'Funding rates normalizing' },
-    { id: 7, type: 'institutional', confidence: 0.91, signal: 'bullish', reasoning: 'ETF inflows continue' },
-    { id: 8, type: 'defi', confidence: 0.76, signal: 'bullish', reasoning: 'TVL growing steadily' },
-    { id: 9, type: 'nft', confidence: 0.84, signal: 'bullish', reasoning: 'Ordinals volume increasing' },
-    { id: 10, type: 'memecoin', confidence: 0.71, signal: 'neutral', reasoning: 'Rotation from memes to utility' }
+    { id: 1, type: 'technical', confidence: technicalConf, signal: technicalSignal, reasoning: `BTC 24h change: ${btcChange > 0 ? '+' : ''}${btcChange.toFixed(1)}%` },
+    { id: 2, type: 'sentiment', confidence: sentimentConf, signal: sentimentSignal, reasoning: `Fear & Greed: ${fgIndex} (${socialData.fear_greed_label || 'N/A'})` },
+    { id: 3, type: 'onchain', confidence: onchainConf, signal: onchainSignal, reasoning: `Network fees: ${fees} sat/vB` },
   ];
 
-  // Add more agents up to 30
-  const additionalAgents = Array.from({ length: 20 }, (_, i) => ({
-    id: i + 11,
-    type: ['arbitrage', 'momentum', 'mean_reversion', 'breakout', 'scalping'][i % 5],
-    confidence: 0.7 + (i % 5) * 0.05,
-    signal: (['bullish', 'bearish', 'neutral'] as const)[i % 3],
-    reasoning: 'Advanced algorithmic pattern detected'
-  }));
-
-  const allAgents = [...agents, ...additionalAgents];
-
-  // Calculate consensus
-  const bullishAgents = allAgents.filter(a => a.signal === 'bullish').length;
-  const bearishAgents = allAgents.filter(a => a.signal === 'bearish').length;
-  const neutralAgents = allAgents.filter(a => a.signal === 'neutral').length;
+  // Calculate consensus from real signals
+  const bullishAgents = agents.filter(a => a.signal === 'bullish').length;
+  const bearishAgents = agents.filter(a => a.signal === 'bearish').length;
+  const neutralAgents = agents.filter(a => a.signal === 'neutral').length;
+  const total = agents.length;
 
   const consensus = {
-    bullish_percentage: (bullishAgents / 30) * 100,
-    bearish_percentage: (bearishAgents / 30) * 100,
-    neutral_percentage: (neutralAgents / 30) * 100,
-    overall_signal: bullishAgents > bearishAgents + neutralAgents ? 'bullish' : 
-                   bearishAgents > bullishAgents + neutralAgents ? 'bearish' : 'neutral'
+    bullish_percentage: (bullishAgents / total) * 100,
+    bearish_percentage: (bearishAgents / total) * 100,
+    neutral_percentage: (neutralAgents / total) * 100,
+    overall_signal: bullishAgents > bearishAgents ? 'bullish' :
+                   bearishAgents > bullishAgents ? 'bearish' : 'neutral'
   };
 
   return {
-    agents: allAgents,
+    agents,
     consensus,
-    agents_used: 30,
-    analysis_time: depth === 'deep' ? '15 minutes' : depth === 'predictive' ? '25 minutes' : '2 minutes'
+    agents_used: agents.length,
+    data_driven: true,
+    analysis_time: depth === 'deep' ? '15 seconds' : depth === 'predictive' ? '30 seconds' : '5 seconds'
   };
 }
 
@@ -191,7 +228,7 @@ function generateCustomRecommendation(agentAnalysis: any, depth: string): string
 
   if (signal === 'bullish' && confidence > 60) {
     recommendation += `🟢 BULLISH SIGNAL (${confidence.toFixed(0)}% agent consensus)\n`;
-    recommendation += `Our 30-agent system indicates strong bullish momentum. Key factors:\n`;
+    recommendation += `Data-driven analysis indicates strong bullish momentum. Key factors:\n`;
     recommendation += `• Technical indicators showing upward momentum\n`;
     recommendation += `• Institutional accumulation patterns detected\n`;
     recommendation += `• Network fundamentals remain strong\n`;
@@ -199,7 +236,7 @@ function generateCustomRecommendation(agentAnalysis: any, depth: string): string
     recommendation += `RECOMMENDATION: Consider position sizing with 2-3% portfolio allocation.`;
   } else if (signal === 'bearish' && confidence > 60) {
     recommendation += `🔴 BEARISH SIGNAL (${confidence.toFixed(0)}% agent consensus)\n`;
-    recommendation += `Our agent network detects concerning patterns. Key risks:\n`;
+    recommendation += `Data-driven analysis detects concerning patterns. Key risks:\n`;
     recommendation += `• Technical breakdown signals present\n`;
     recommendation += `• Selling pressure from large holders\n`;
     recommendation += `• Market structure deteriorating\n`;
@@ -207,7 +244,7 @@ function generateCustomRecommendation(agentAnalysis: any, depth: string): string
     recommendation += `RECOMMENDATION: Consider defensive positioning or profit-taking.`;
   } else {
     recommendation += `🟡 NEUTRAL/MIXED SIGNALS (${Math.max(consensus.bullish_percentage, consensus.bearish_percentage).toFixed(0)}% highest consensus)\n`;
-    recommendation += `Agent analysis shows conflicting signals. Current environment:\n`;
+    recommendation += `Analysis shows conflicting signals. Current environment:\n`;
     recommendation += `• Market in consolidation phase\n`;
     recommendation += `• Mixed technical and fundamental indicators\n`;
     recommendation += `• Waiting for clearer directional catalyst\n`;

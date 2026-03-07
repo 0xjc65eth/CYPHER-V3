@@ -49,14 +49,14 @@ const YAHOO_TREASURY_TICKERS: Record<string, string> = {
   '30Y': '^TYX',  // 30-Year Treasury Bond
 };
 
-// Fallback static data (updated periodically)
+// Fallback static data (updated 2026-03 — used only when all APIs are down)
 const FALLBACK_SNAPSHOT: EconomicSnapshot = {
-  gdp: { value: 28781.0, date: '2024-10-01', previousValue: 28631.0 },
-  cpi: { value: 315.6, date: '2024-12-01', previousValue: 314.9 },
-  unemployment: { value: 4.1, date: '2024-12-01', previousValue: 4.2 },
-  fedFundsRate: { value: 4.33, date: '2024-12-01', previousValue: 4.58 },
-  m2MoneySupply: { value: 21533.0, date: '2024-11-01', previousValue: 21311.0 },
-  consumerConfidence: { value: 74.0, date: '2024-12-01', previousValue: 71.8 },
+  gdp: { value: 29500.0, date: '2025-10-01', previousValue: 29200.0 },
+  cpi: { value: 320.0, date: '2026-01-01', previousValue: 318.5 },
+  unemployment: { value: 4.0, date: '2026-01-01', previousValue: 4.1 },
+  fedFundsRate: { value: 4.50, date: '2026-01-01', previousValue: 4.50 },
+  m2MoneySupply: { value: 22000.0, date: '2025-12-01', previousValue: 21800.0 },
+  consumerConfidence: { value: 76.0, date: '2026-01-01', previousValue: 74.0 },
   lastUpdated: new Date().toISOString(),
   available: false,
 };

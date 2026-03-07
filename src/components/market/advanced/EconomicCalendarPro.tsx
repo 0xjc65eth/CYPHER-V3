@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, AlertCircle, Bell, Clock, TrendingUp } from 'lucide-react';
 
 interface EconomicEvent {
@@ -19,79 +19,105 @@ interface EconomicCalendarProProps {
   refreshTrigger?: number;
 }
 
-export function EconomicCalendarPro({ refreshTrigger = 0 }: EconomicCalendarProProps) {
-  const [selectedImpact, setSelectedImpact] = useState<'all' | 'high' | 'medium' | 'low'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<'all' | 'fed' | 'employment' | 'inflation' | 'gdp'>('all');
+/** Generate upcoming events dynamically based on current date */
+function generateDynamicEvents(): EconomicEvent[] {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const events: EconomicEvent[] = [];
 
-  // Mock data - In production, this would come from an API
-  const events: EconomicEvent[] = [
-    {
-      date: '2026-02-13',
-      time: '08:30',
-      event: 'CPI m/m',
-      country: 'USD',
-      forecast: '0.3%',
-      previous: '0.2%',
-      impact: 'high',
-      category: 'inflation',
-    },
-    {
-      date: '2026-02-13',
-      time: '14:00',
-      event: 'FOMC Meeting Minutes',
-      country: 'USD',
-      impact: 'high',
-      category: 'fed',
-    },
-    {
-      date: '2026-02-14',
+  // FOMC schedule 2026
+  const fomcDates = [
+    '2026-01-28', '2026-03-18', '2026-05-06', '2026-06-17',
+    '2026-07-29', '2026-09-16', '2026-11-04', '2026-12-16',
+  ];
+  for (const dateStr of fomcDates) {
+    const d = new Date(dateStr);
+    if (d >= now && d.getTime() - now.getTime() < 30 * 24 * 60 * 60 * 1000) {
+      events.push({
+        date: dateStr,
+        time: '14:00',
+        event: 'FOMC Rate Decision',
+        country: 'USD',
+        impact: 'high',
+        category: 'fed',
+      });
+    }
+  }
+
+  // Generate recurring events for the next 2 weeks
+  for (let m = month; m <= month + 1; m++) {
+    const actualMonth = m % 12;
+    const actualYear = year + Math.floor(m / 12);
+
+    // CPI (~13th of each month)
+    const cpiDate = new Date(actualYear, actualMonth, 13);
+    if (cpiDate >= now && cpiDate.getTime() - now.getTime() < 21 * 24 * 60 * 60 * 1000) {
+      events.push({
+        date: cpiDate.toISOString().split('T')[0],
+        time: '08:30',
+        event: 'CPI m/m',
+        country: 'USD',
+        impact: 'high',
+        category: 'inflation',
+      });
+    }
+
+    // PPI (~11th)
+    const ppiDate = new Date(actualYear, actualMonth, 11);
+    if (ppiDate >= now && ppiDate.getTime() - now.getTime() < 21 * 24 * 60 * 60 * 1000) {
+      events.push({
+        date: ppiDate.toISOString().split('T')[0],
+        time: '08:30',
+        event: 'PPI m/m',
+        country: 'USD',
+        impact: 'medium',
+        category: 'inflation',
+      });
+    }
+
+    // Retail Sales (~15th)
+    const retailDate = new Date(actualYear, actualMonth, 15);
+    if (retailDate >= now && retailDate.getTime() - now.getTime() < 21 * 24 * 60 * 60 * 1000) {
+      events.push({
+        date: retailDate.toISOString().split('T')[0],
+        time: '08:30',
+        event: 'Core Retail Sales m/m',
+        country: 'USD',
+        impact: 'medium',
+        category: 'gdp',
+      });
+    }
+  }
+
+  // Jobless claims - every Thursday for next 2 weeks
+  for (let i = 0; i < 2; i++) {
+    const d = new Date(now);
+    const daysUntilThursday = (4 - d.getDay() + 7) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilThursday + (i * 7));
+    events.push({
+      date: d.toISOString().split('T')[0],
       time: '08:30',
       event: 'Unemployment Claims',
       country: 'USD',
-      forecast: '220K',
-      previous: '215K',
       impact: 'medium',
       category: 'employment',
-    },
-    {
-      date: '2026-02-14',
-      time: '10:00',
-      event: 'Core Retail Sales m/m',
-      country: 'USD',
-      forecast: '0.2%',
-      previous: '0.4%',
-      impact: 'medium',
-      category: 'gdp',
-    },
-    {
-      date: '2026-02-15',
-      time: '09:15',
-      event: 'Industrial Production m/m',
-      country: 'USD',
-      forecast: '0.1%',
-      previous: '0.3%',
-      impact: 'low',
-      category: 'gdp',
-    },
-    {
-      date: '2026-02-17',
-      time: '08:30',
-      event: 'PPI m/m',
-      country: 'USD',
-      forecast: '0.2%',
-      previous: '0.1%',
-      impact: 'medium',
-      category: 'inflation',
-    },
-    {
-      date: '2026-02-20',
-      time: '14:00',
-      event: 'Fed Chair Powell Testimony',
-      country: 'USD',
-      impact: 'high',
-      category: 'fed',
-    },
-  ];
+    });
+  }
+
+  // Sort by date
+  events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return events;
+}
+
+export function EconomicCalendarPro({ refreshTrigger = 0 }: EconomicCalendarProProps) {
+  const [selectedImpact, setSelectedImpact] = useState<'all' | 'high' | 'medium' | 'low'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'fed' | 'employment' | 'inflation' | 'gdp'>('all');
+  const [events, setEvents] = useState<EconomicEvent[]>([]);
+
+  useEffect(() => {
+    setEvents(generateDynamicEvents());
+  }, [refreshTrigger]);
 
   const filteredEvents = events.filter(event => {
     if (selectedImpact !== 'all' && event.impact !== selectedImpact) return false;
@@ -196,7 +222,7 @@ export function EconomicCalendarPro({ refreshTrigger = 0 }: EconomicCalendarProP
           <div className="text-sm text-[#e4e4e7]/60">No events match your filters</div>
         </div>
       ) : (
-        Object.entries(groupedByDate).map(([date, events]) => (
+        Object.entries(groupedByDate).map(([date, dateEvents]) => (
           <div key={date} className="bg-[#0a0a0f] border border-[#1a1a2e] rounded-lg overflow-hidden">
             {/* Date Header */}
             <div className="bg-[#1a1a2e]/30 px-4 py-2 border-b border-[#1a1a2e]">
@@ -206,14 +232,14 @@ export function EconomicCalendarPro({ refreshTrigger = 0 }: EconomicCalendarProP
                   {formatDate(date)}
                 </span>
                 <span className="text-[10px] text-[#e4e4e7]/40">
-                  ({events.length} event{events.length !== 1 ? 's' : ''})
+                  ({dateEvents.length} event{dateEvents.length !== 1 ? 's' : ''})
                 </span>
               </div>
             </div>
 
             {/* Events */}
             <div className="divide-y divide-[#1a1a2e]/30">
-              {events.map((event, i) => (
+              {dateEvents.map((event, i) => (
                 <div key={i} className={`p-4 border-l-2 ${getImpactBg(event.impact)}`}>
                   <div className="flex items-start justify-between gap-4">
                     {/* Event Info */}

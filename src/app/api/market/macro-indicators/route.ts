@@ -18,8 +18,25 @@ interface MacroIndicators {
   fedRate: { value: number; nextMeeting: string };
 }
 
-// Fallback data (atualizado 2026-02-24) - usado quando APIs estão indisponíveis
-// Fontes: FRED, Yahoo Finance - valores aproximados
+// 2026 FOMC meeting schedule
+const FOMC_2026 = [
+  '2026-01-28', '2026-03-18', '2026-05-06', '2026-06-17',
+  '2026-07-29', '2026-09-16', '2026-11-04', '2026-12-16',
+];
+
+function getNextFOMCDate(): string {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  for (const dateStr of FOMC_2026) {
+    const d = new Date(dateStr);
+    if (d >= now) {
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  }
+  return 'TBD';
+}
+
+// Fallback data - usado quando APIs estão indisponíveis
 const FALLBACK_DATA: MacroIndicators = {
   dxy: { value: 106.50, change: 0 },
   treasury10y: { value: 4.50, change: 0 },
@@ -29,7 +46,7 @@ const FALLBACK_DATA: MacroIndicators = {
   gold: { value: 2950, change: 0 },
   oil: { value: 72, change: 0 },
   cpi: { value: 2.9, date: 'Jan 2026' },
-  fedRate: { value: 4.50, nextMeeting: 'Mar 18, 2026' },
+  fedRate: { value: 4.50, nextMeeting: getNextFOMCDate() },
 };
 
 export async function GET(request: NextRequest) {
@@ -88,7 +105,7 @@ export async function GET(request: NextRequest) {
       if (snapshot.available && snapshot.fedFundsRate) {
         data.fedRate = {
           value: snapshot.fedFundsRate.value,
-          nextMeeting: 'Mar 18, 2026',
+          nextMeeting: getNextFOMCDate(),
         };
         usedRealData = true;
       }

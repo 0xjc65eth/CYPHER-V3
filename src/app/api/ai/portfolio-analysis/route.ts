@@ -240,12 +240,10 @@ function generateAIAnalysis(data: PortfolioAnalysisRequest) {
       confidence: Math.round(60 + (Math.abs(pnlPercentage) / 100) * 20),
       expectedReturn: Math.round(10 + (riskScore / 10))
     },
-    neuralPredictions: {
-      portfolioGrowthPotential: Math.round(15 + (riskScore / 5)),
-      btcPrice7d: Math.round(currentBtcPrice * 0.97),
-      btcPrice30d: Math.round(currentBtcPrice * 0.92),
+    riskAnalysis: {
       riskScore: riskScore / 10,
-      confidenceLevel: 87.3
+      portfolioConcentration: Math.round(btcDominance * 100),
+      diversificationLevel: btcDominance > 0.9 ? 'low' : btcDominance > 0.6 ? 'moderate' : 'high',
     },
     satoshiAccumulationPlan: {
       strategy: 'Optimize Bitcoin accumulation through strategic DCA and market timing for maximum satoshi growth',
@@ -272,11 +270,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Generate AI analysis
+    // Generate portfolio analysis based on actual wallet data
     const analysis = generateAIAnalysis(body);
-
-    // Simulate processing time for AI feel
-    await new Promise(resolve => setTimeout(resolve, 1500));
 
     return NextResponse.json({
       success: true,
@@ -284,7 +279,7 @@ export async function POST(request: NextRequest) {
         analysis,
         timestamp: new Date().toISOString(),
         riskProfile: body.riskProfile,
-        processingTime: '1.5s'
+        source: 'portfolio-heuristics',
       }
     });
 

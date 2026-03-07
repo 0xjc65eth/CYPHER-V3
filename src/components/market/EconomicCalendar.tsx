@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, AlertCircle, TrendingUp, Clock } from 'lucide-react';
 
 interface EconomicEvent {
@@ -19,7 +19,113 @@ interface EconomicCalendarProps {
   loading?: boolean;
 }
 
+/** Generate upcoming economic events dynamically from FOMC schedule */
+function generateUpcomingEvents(fomcSchedule?: { date: string; type: string }[]): EconomicEvent[] {
+  const now = new Date();
+  const events: EconomicEvent[] = [];
+
+  // FOMC meetings from API or fallback
+  const schedule = fomcSchedule || [
+    { date: '2026-01-28', type: 'Meeting' },
+    { date: '2026-03-18', type: 'Meeting + SEP' },
+    { date: '2026-05-06', type: 'Meeting' },
+    { date: '2026-06-17', type: 'Meeting + SEP' },
+    { date: '2026-07-29', type: 'Meeting' },
+    { date: '2026-09-16', type: 'Meeting + SEP' },
+    { date: '2026-11-04', type: 'Meeting' },
+    { date: '2026-12-16', type: 'Meeting + SEP' },
+  ];
+
+  // Add upcoming FOMC meetings
+  for (const meeting of schedule) {
+    const meetingDate = new Date(meeting.date);
+    if (meetingDate >= now) {
+      const daysUntil = Math.ceil((meetingDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const hoursUntil = Math.ceil((meetingDate.getTime() - now.getTime()) / (1000 * 60 * 60));
+      events.push({
+        date: meeting.date,
+        time: '14:00 EST',
+        event: meeting.type.includes('SEP') ? 'FOMC Rate Decision + Summary of Economic Projections' : 'FOMC Rate Decision',
+        importance: 'high',
+        forecast: '-',
+        previous: '-',
+        impact: 'Critical for crypto - rate cuts bullish, hikes bearish',
+        countdown: daysUntil > 1 ? `${daysUntil}d` : `${hoursUntil}h`,
+      });
+    }
+  }
+
+  // Generate recurring economic events relative to current month
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
+
+  // CPI - typically released around 12th-14th of each month
+  for (let m = month; m <= month + 2; m++) {
+    const cpiDate = new Date(year, m, 13);
+    if (cpiDate >= now) {
+      const daysUntil = Math.ceil((cpiDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      events.push({
+        date: cpiDate.toISOString().split('T')[0],
+        time: '08:30 EST',
+        event: 'U.S. CPI (Consumer Price Index)',
+        importance: 'high',
+        impact: 'High impact on Fed rate expectations and crypto volatility',
+        countdown: `${daysUntil}d`,
+      });
+    }
+  }
+
+  // PPI - typically 1-2 days before CPI
+  for (let m = month; m <= month + 2; m++) {
+    const ppiDate = new Date(year, m, 11);
+    if (ppiDate >= now) {
+      const daysUntil = Math.ceil((ppiDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      events.push({
+        date: ppiDate.toISOString().split('T')[0],
+        time: '08:30 EST',
+        event: 'U.S. PPI (Producer Price Index)',
+        importance: 'medium',
+        impact: 'Wholesale inflation - leading CPI indicator',
+        countdown: `${daysUntil}d`,
+      });
+    }
+  }
+
+  // Jobless claims - every Thursday
+  for (let i = 0; i < 4; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7) + (i * 7)); // next Thursday + i weeks
+    if (d > now) {
+      const daysUntil = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      events.push({
+        date: d.toISOString().split('T')[0],
+        time: '08:30 EST',
+        event: 'Initial Jobless Claims',
+        importance: 'medium',
+        impact: 'Labor market strength indicator',
+        countdown: `${daysUntil}d`,
+      });
+      break; // Only show next one
+    }
+  }
+
+  // Sort by date and take first 6
+  events.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  return events.slice(0, 6);
+}
+
 export function EconomicCalendar({ events, loading }: EconomicCalendarProps) {
+  const [fomcSchedule, setFomcSchedule] = useState<{ date: string; type: string }[] | undefined>();
+
+  useEffect(() => {
+    fetch('/api/market/fed-indicators')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.fomcSchedule) setFomcSchedule(data.fomcSchedule);
+      })
+      .catch(() => {});
+  }, []);
+
   if (loading) {
     return (
       <div className="space-y-2">
@@ -30,68 +136,7 @@ export function EconomicCalendar({ events, loading }: EconomicCalendarProps) {
     );
   }
 
-  const upcomingEvents: EconomicEvent[] = events || [
-    {
-      date: '2026-02-14',
-      time: '08:30 EST',
-      event: 'U.S. CPI (Consumer Price Index)',
-      importance: 'high',
-      forecast: '3.1%',
-      previous: '3.2%',
-      impact: 'High impact on Fed rate expectations and crypto volatility',
-      countdown: '18h 45m'
-    },
-    {
-      date: '2026-02-19',
-      time: '14:00 EST',
-      event: 'FOMC Meeting Minutes',
-      importance: 'high',
-      forecast: '-',
-      previous: '-',
-      impact: 'Reveals Fed members\' economic outlook and rate path',
-      countdown: '5d 22h'
-    },
-    {
-      date: '2026-02-21',
-      time: '08:30 EST',
-      event: 'Initial Jobless Claims',
-      importance: 'medium',
-      forecast: '215K',
-      previous: '220K',
-      impact: 'Labor market strength indicator',
-      countdown: '7d 18h'
-    },
-    {
-      date: '2026-02-26',
-      time: '10:00 EST',
-      event: 'U.S. GDP (Q4 Preliminary)',
-      importance: 'high',
-      forecast: '2.8%',
-      previous: '2.6%',
-      impact: 'Economic growth measurement affects risk appetite',
-      countdown: '12d 20h'
-    },
-    {
-      date: '2026-03-12',
-      time: '08:30 EST',
-      event: 'U.S. PPI (Producer Price Index)',
-      importance: 'medium',
-      forecast: '2.4%',
-      previous: '2.5%',
-      impact: 'Wholesale inflation - leading CPI indicator',
-      countdown: '26d 18h'
-    },
-    {
-      date: '2026-03-19-20',
-      time: '14:00 EST',
-      event: 'FOMC Rate Decision',
-      importance: 'high',
-      forecast: '5.25-5.50%',
-      previous: '5.25-5.50%',
-      impact: 'Critical for crypto - rate cuts bullish, hikes bearish',
-      countdown: '33d 22h'
-    }
-  ];
+  const upcomingEvents: EconomicEvent[] = events || generateUpcomingEvents(fomcSchedule);
 
   const getImportanceColor = (importance: string) => {
     switch (importance) {
@@ -150,11 +195,15 @@ export function EconomicCalendar({ events, loading }: EconomicCalendarProps) {
                       <span>{event.date}</span>
                       <span>•</span>
                       <span>{event.time}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5" />
-                        {event.countdown}
-                      </span>
+                      {event.countdown && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" />
+                            {event.countdown}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -170,7 +219,7 @@ export function EconomicCalendar({ events, loading }: EconomicCalendarProps) {
               </div>
 
               {/* Forecast vs Previous */}
-              {event.forecast && event.previous && (
+              {event.forecast && event.previous && event.forecast !== '-' && (
                 <div className="grid grid-cols-2 gap-2 mb-2 pl-3">
                   <div>
                     <div className="text-[8px] text-[#e4e4e7]/40">Forecast</div>
