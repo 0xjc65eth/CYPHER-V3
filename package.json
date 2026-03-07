@@ -10,7 +10,7 @@
     "url": "https://github.com/0xjc65eth/CYPHER-V3"
   },
   "engines": {
-    "node": "22.x",
+    "node": ">=18",
     "npm": ">=9.0.0"
   },
   "scripts": {
