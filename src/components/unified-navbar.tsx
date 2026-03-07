@@ -268,10 +268,10 @@ export function UnifiedNavbar() {
         <div className="text-xl font-bold font-montserrat bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#8B5CF6] text-transparent bg-clip-text">CYPHER ORDI FUTURE</div>
       </div>
 
-      {/* Desktop nav: focused subset of most important items (including Pricing for conversions) */}
-      <div className="hidden lg:flex space-x-1">
+      {/* Desktop nav: focused subset of most important items */}
+      <div className="hidden lg:flex items-center space-x-1">
         {navItems
-          .filter(item => ['/', '/trading', '/market', '/ordinals', '/runes', '/portfolio', '/pricing', '/settings'].includes(item.href))
+          .filter(item => ['/', '/trading', '/market', '/ordinals', '/runes', '/pricing', '/settings'].includes(item.href))
           .map((item) => {
             const Icon = item.icon
             return (
@@ -288,6 +288,21 @@ export function UnifiedNavbar() {
               </Link>
             )
           })}
+
+        {/* Portfolio — aba destacada */}
+        <div className="mx-1 w-px h-6 bg-[#3D3D3D]" />
+        <Link
+          href="/portfolio"
+          className={cn(
+            "flex items-center space-x-1.5 px-4 py-2 rounded-lg text-sm font-bold font-mono transition-all duration-200",
+            pathname === '/portfolio'
+              ? "bg-[#FF6B00]/20 text-[#FF6B00] border border-[#FF6B00]/40"
+              : "text-[#FF6B00]/80 border border-[#FF6B00]/20 hover:bg-[#FF6B00]/10 hover:text-[#FF6B00]"
+          )}
+        >
+          <RiWalletLine className="w-4 h-4" />
+          <span>Portfolio</span>
+        </Link>
       </div>
 
 

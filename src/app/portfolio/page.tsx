@@ -18,9 +18,9 @@ import { ExportButton } from '@/components/common/ExportButton';
 import { ErrorBoundary } from '@/components/error-boundaries/ErrorBoundary';
 import {
   Wallet,
-  TrendingUp, 
-  TrendingDown, 
-  Bitcoin, 
+  TrendingUp,
+  TrendingDown,
+  Bitcoin,
   Coins,
   Activity,
   RefreshCw,
@@ -42,8 +42,10 @@ import {
   Award,
   FileText,
   Settings,
-  Download
+  Download,
+  Lock
 } from 'lucide-react';
+import { usePremium } from '@/contexts/PremiumContext';
 
 interface AdvancedPortfolioMetrics {
   totalValue: number;
@@ -1430,10 +1432,77 @@ function PortfolioPageContent() {
   );
 }
 
+function PortfolioAccessGate() {
+  const { isPremium, isVerifying, accessTier } = usePremium();
+
+  if (isVerifying) {
+    return (
+      <TopNavLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center space-y-4">
+            <div className="w-8 h-8 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-[#666] text-sm font-mono">VERIFYING ACCESS...</p>
+          </div>
+        </div>
+      </TopNavLayout>
+    );
+  }
+
+  if (!isPremium) {
+    return (
+      <TopNavLayout>
+        <div className="flex items-center justify-center min-h-[60vh] px-4">
+          <div className="max-w-md w-full bg-[#0a0a0a] border border-[#333] rounded-lg p-8 text-center space-y-6">
+            <div className="w-16 h-16 rounded-full bg-[#FF6B00]/10 border border-[#FF6B00]/30 flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8 text-[#FF6B00]" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white font-mono mb-2">PREMIUM ACCESS REQUIRED</h2>
+              <p className="text-[#666] text-sm font-mono leading-relaxed">
+                Portfolio analytics is available to YHP holders, VIP wallets, and premium subscribers.
+              </p>
+            </div>
+            <div className="space-y-3 text-left">
+              <div className="flex items-center gap-3 text-sm font-mono">
+                <Gem className="w-4 h-4 text-[#8B5CF6] shrink-0" />
+                <span className="text-[#999]">Hold a Yield Hacker Pass (YHP) NFT</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm font-mono">
+                <Wallet className="w-4 h-4 text-[#FF6B00] shrink-0" />
+                <span className="text-[#999]">Connect a VIP wallet</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm font-mono">
+                <Zap className="w-4 h-4 text-[#00FF41] shrink-0" />
+                <span className="text-[#999]">Purchase a Pro or Elite plan</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 pt-2">
+              <a
+                href="/pricing"
+                className="w-full py-3 bg-[#FF6B00] hover:bg-[#FF8C00] text-black font-bold font-mono text-sm rounded transition-colors text-center"
+              >
+                VIEW PLANS
+              </a>
+              <a
+                href="/dashboard"
+                className="w-full py-3 border border-[#333] hover:border-[#FF6B00]/40 text-[#999] hover:text-white font-mono text-sm rounded transition-colors text-center"
+              >
+                BACK TO DASHBOARD
+              </a>
+            </div>
+          </div>
+        </div>
+      </TopNavLayout>
+    );
+  }
+
+  return <PortfolioPageContent />;
+}
+
 export default function PortfolioPage() {
   return (
     <ErrorBoundary level="page" name="Portfolio">
-      <PortfolioPageContent />
+      <PortfolioAccessGate />
     </ErrorBoundary>
   );
 }

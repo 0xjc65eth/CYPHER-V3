@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     const event = JSON.parse(body)
-    console.log(`[Webhook] Evento: ${event.type} | Invoice: ${event.invoiceId}`)
+    // Event type logged implicitly via response
 
     if (event.type !== 'InvoiceSettled') {
       return NextResponse.json({ received: true, skipped: event.type })
@@ -81,7 +81,6 @@ export async function POST(req: NextRequest) {
       .update({ status: 'settled', paid_at: new Date().toISOString() })
       .eq('invoice_id', invoiceId)
 
-    console.log(`[Webhook] ✅ user=${invoice.user_id} plano=${invoice.plan}`)
     return NextResponse.json({ success: true })
 
   } catch (err) {
