@@ -395,20 +395,26 @@ function SetupWizard({
     || btcWallet.walletState.address
     || null;
 
-  // Fetch real wallet balances when entering Step 3
+  // Fetch real wallet balances when entering Step 3 — retry with backoff
   useEffect(() => {
     if (currentStep === 3 && !walletBalances.loaded && !walletBalances.loading && connectedAddress && testKeyResult?.success) {
-      setWalletBalances(prev => ({ ...prev, loading: true }));
-      fetch('/api/agent/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'balances',
-          walletAddress: connectedAddress,
-        }),
-      })
-        .then(res => res.json())
-        .then(data => {
+      let cancelled = false;
+      const maxRetries = 3;
+
+      const fetchBalances = async (attempt: number) => {
+        if (cancelled) return;
+        setWalletBalances(prev => ({ ...prev, loading: true }));
+        try {
+          const res = await fetch('/api/agent/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'balances',
+              walletAddress: connectedAddress,
+            }),
+          });
+          const data = await res.json();
+          if (cancelled) return;
           if (data.success) {
             setWalletBalances({
               hyperliquid: data.allocation?.hyperliquid?.available ?? 0,
@@ -417,13 +423,25 @@ function SetupWizard({
               loaded: true,
               loading: false,
             });
+          } else if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            if (!cancelled) await fetchBalances(attempt + 1);
           } else {
             setWalletBalances(prev => ({ ...prev, loaded: true, loading: false }));
           }
-        })
-        .catch(() => {
-          setWalletBalances(prev => ({ ...prev, loaded: true, loading: false }));
-        });
+        } catch {
+          if (cancelled) return;
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            if (!cancelled) await fetchBalances(attempt + 1);
+          } else {
+            setWalletBalances(prev => ({ ...prev, loaded: true, loading: false }));
+          }
+        }
+      };
+
+      fetchBalances(0);
+      return () => { cancelled = true; };
     }
   }, [currentStep, walletBalances.loaded, walletBalances.loading, connectedAddress, testKeyResult]);
 
@@ -973,7 +991,7 @@ function SetupWizard({
                       type="number"
                       min="1" max="20"
                       value={config.riskLimits.maxLeverage}
-                      onChange={e => setConfig({ ...config, riskLimits: { ...config.riskLimits, maxLeverage: Number(e.target.value) } })}
+                      onChange={e => setConfig({ ...config, riskLimits: { ...config.riskLimits, maxLeverage: Math.max(1, Math.min(20, Number(e.target.value) || 1)) } })}
                       className="w-full bg-black border border-white/10 rounded px-3 py-2 text-sm font-mono text-white focus:border-orange-500/50 focus:outline-none"
                     />
                     <p className="text-[10px] text-white/20 font-mono mt-1">
@@ -981,6 +999,11 @@ function SetupWizard({
                        config.riskLimits.maxLeverage <= 7 ? 'Moderate — balanced risk/reward' :
                        'Aggressive — higher risk of liquidation'}
                     </p>
+                    {((config.capitalAllocation.lpSolana ?? 0) > 0 || (config.capitalAllocation.lpEvm ?? 0) > 0) && config.riskLimits.maxLeverage > 1 && (
+                      <p className="text-[10px] text-yellow-400/60 font-mono mt-1">
+                        Note: Leverage only applies to Hyperliquid perps. LP positions (Solana/EVM) always run at 1x.
+                      </p>
+                    )}
                   </div>
                   <div className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
                     <div className="flex justify-between mb-1">
@@ -1237,6 +1260,16 @@ function SetupWizard({
             {currentStep === 2 && !hlApiKey && (
               <span className="text-[10px] text-yellow-400/60 font-mono">Hyperliquid key recommended</span>
             )}
+            {currentStep === 3 && (() => {
+              const anyOverAllocated = walletBalances.loaded && [
+                { key: 'hyperliquid' as const, bal: walletBalances.hyperliquid },
+                { key: 'lpSolana' as const, bal: walletBalances.solana },
+                { key: 'lpEvm' as const, bal: walletBalances.evm },
+              ].some(c => c.bal > 0 && (config.capitalAllocation[c.key] ?? 0) > c.bal);
+              return anyOverAllocated ? (
+                <span className="text-[10px] text-red-400 font-mono">Reduce allocation to continue</span>
+              ) : null;
+            })()}
             {currentStep < 5 ? (
               <button
                 onClick={() => {
@@ -1250,7 +1283,15 @@ function SetupWizard({
                   }
                   setCurrentStep(currentStep + 1);
                 }}
-                disabled={currentStep === 1 && !walletConnected}
+                disabled={
+                  (currentStep === 1 && !walletConnected) ||
+                  (currentStep === 3 && config.capitalAllocation.total <= 0) ||
+                  (currentStep === 3 && walletBalances.loaded && [
+                    { key: 'hyperliquid' as const, bal: walletBalances.hyperliquid },
+                    { key: 'lpSolana' as const, bal: walletBalances.solana },
+                    { key: 'lpEvm' as const, bal: walletBalances.evm },
+                  ].some(c => c.bal > 0 && (config.capitalAllocation[c.key] ?? 0) > c.bal))
+                }
                 className="px-6 py-2 text-xs font-mono font-bold bg-orange-500/20 border border-orange-500/50 rounded text-orange-400 hover:bg-orange-500/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 NEXT
@@ -1327,6 +1368,8 @@ function AgentDashboard({
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const [syncInProgress, setSyncInProgress] = useState(false);
   const reconnectAttemptedRef = useRef(false);
+  const agentStatusRef = useRef<AgentStatus>(agentStatus);
+  agentStatusRef.current = agentStatus;
 
   // Persist/restore session token in sessionStorage (survives page refresh)
   useEffect(() => {
@@ -1343,11 +1386,15 @@ function AgentDashboard({
   // Map API status string to local AgentStatus
   const mapApiStatus = useCallback((apiStatus: string): AgentStatus => {
     switch (apiStatus) {
-      case 'running': return 'active';
+      case 'running':
+      case 'active': return 'active';
       case 'paused': return 'paused';
-      case 'stopped': return 'off';
-      case 'emergency_stopped': return 'emergency_stop';
+      case 'stopped':
+      case 'off': return 'off';
+      case 'emergency_stopped':
+      case 'emergency_stop': return 'emergency_stop';
       case 'error': return 'error';
+      case 'configuring': return 'configuring';
       default: return 'off';
     }
   }, []);
@@ -1360,7 +1407,7 @@ function AgentDashboard({
 
       const walletParam = encodeURIComponent(addr);
       const tokenParam = sessionTokenRef.current ? `&sessionToken=${encodeURIComponent(sessionTokenRef.current)}` : '';
-      const url = agentStatus === 'active'
+      const url = agentStatusRef.current === 'active'
         ? `/api/agent/?walletAddress=${walletParam}&include=trades${tokenParam}`
         : `/api/agent/?walletAddress=${walletParam}${tokenParam}`;
 
@@ -1397,7 +1444,7 @@ function AgentDashboard({
 
       // Update agent status from API
       const apiStatus = mapApiStatus(data.state.status);
-      if (apiStatus !== agentStatus && actionInProgressRef.current === null) {
+      if (apiStatus !== agentStatusRef.current && actionInProgressRef.current === null) {
         setAgentStatus(apiStatus);
       }
 
@@ -1498,7 +1545,7 @@ function AgentDashboard({
       setFetchError(err.message || 'Failed to fetch agent data');
       setLoading(false);
     }
-  }, [agentStatus, mapApiStatus, setAgentStatus, credentials]);
+  }, [mapApiStatus, setAgentStatus, credentials]);
 
   // Polling: 3s when running, 15s when stopped/paused
   useEffect(() => {
@@ -2231,6 +2278,10 @@ export default function TradingAgentPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || `API returned ${res.status}`);
+      }
+      // Store session token so dashboard polling can authenticate
+      if (data.sessionToken && credentials.walletAddress) {
+        sessionStorage.setItem(`cypher_agent_session_${credentials.walletAddress}`, data.sessionToken);
       }
       setAgentStatus('active');
     } catch (err) {

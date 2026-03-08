@@ -6,6 +6,27 @@
 
 export type SubscriptionTier = 'free' | 'explorer' | 'trader' | 'hacker_yields'
 
+/**
+ * Map legacy tier names (pro, elite) to current tiers.
+ * Needed because database/localStorage may still contain old values.
+ */
+const LEGACY_TIER_MAP: Record<string, SubscriptionTier> = {
+  pro: 'explorer',
+  elite: 'hacker_yields',
+}
+
+/**
+ * Normalize a tier string, mapping legacy names to current ones.
+ */
+export function normalizeTier(tier: string | null | undefined): SubscriptionTier {
+  if (!tier) return 'free'
+  if (tier in LEGACY_TIER_MAP) return LEGACY_TIER_MAP[tier]
+  if (tier === 'free' || tier === 'explorer' || tier === 'trader' || tier === 'hacker_yields') {
+    return tier
+  }
+  return 'free'
+}
+
 export interface TierConfig {
   id: SubscriptionTier
   name: string

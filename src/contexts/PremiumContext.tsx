@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { getWalletAccessTier, hasPremiumAccess, isSuperAdmin, isVIPEthWallet, type AccessTier } from '@/config/vip-wallets'
 import { YHP_CONTRACT_ADDRESS } from '@/config/premium-collections'
 import { useClientOnly } from '@/hooks/useClientOnly'
-import { type SubscriptionTier, tierHasFeature } from '@/lib/stripe/config'
+import { type SubscriptionTier, tierHasFeature, normalizeTier } from '@/lib/stripe/config'
 
 interface SubscriptionData {
   subscriptionTier: SubscriptionTier
@@ -54,7 +54,7 @@ function getCachedSubscription(): SubscriptionData | null {
       return null
     }
     return {
-      subscriptionTier: cached.subscriptionTier,
+      subscriptionTier: normalizeTier(cached.subscriptionTier),
       subscriptionStatus: cached.subscriptionStatus,
       subscriptionEndDate: cached.subscriptionEndDate,
       isSubscriptionActive: cached.isSubscriptionActive,
@@ -233,7 +233,7 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json()
         const subData: SubscriptionData = {
-          subscriptionTier: data.tier || 'free',
+          subscriptionTier: normalizeTier(data.tier),
           subscriptionStatus: data.status || 'none',
           subscriptionEndDate: data.currentPeriodEnd || null,
           isSubscriptionActive: data.status === 'active' || data.status === 'trialing',
@@ -282,10 +282,10 @@ export function PremiumProvider({ children }: { children: ReactNode }) {
     }
   }, [isClient, fetchSubscriptionStatus])
 
-  // Determine effective tier: VIP/NFT wallets get elite override
+  // Determine effective tier: VIP/NFT wallets get hacker_yields override
   // But only trust accessTier if we are NOT currently re-verifying a stale cache
   const effectiveSubscriptionTier: SubscriptionTier = (() => {
-    if (!isReverifying && hasPremiumAccess(accessTier)) return 'elite'
+    if (!isReverifying && hasPremiumAccess(accessTier)) return 'hacker_yields'
     return subscriptionTier
   })()
 

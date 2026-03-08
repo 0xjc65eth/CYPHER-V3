@@ -235,6 +235,7 @@ export async function POST(request: NextRequest) {
           userCredentials.hyperliquid = {
             agentKey: credentials.hyperliquid.agentKey,
             agentSecret: credentials.hyperliquid.agentSecret,
+            testnet: credentials.hyperliquid.testnet === true,
           };
         }
         if (credentials?.solanaPrivateKey) userCredentials.solanaPrivateKey = credentials.solanaPrivateKey;
@@ -423,11 +424,13 @@ export async function POST(request: NextRequest) {
           }
 
           // Import HyperliquidConnector dynamically
+          const isTestnet = credentials?.hyperliquid?.testnet === true;
           const { HyperliquidConnector } = await import('@/agent/connectors/HyperliquidConnector');
           const testConnector = new HyperliquidConnector({
-            apiUrl: 'https://api.hyperliquid.xyz',
+            apiUrl: isTestnet ? 'https://api.hyperliquid-testnet.xyz' : 'https://api.hyperliquid.xyz',
             agentKey: userCredentials.hyperliquid.agentKey,
             agentSecret: userCredentials.hyperliquid.agentSecret,
+            testnet: isTestnet,
           });
           const connectResult = await testConnector.connect();
           const connected = connectResult !== false && testConnector.isConnected();

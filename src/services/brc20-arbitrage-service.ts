@@ -286,10 +286,10 @@ export class BRC20ArbitrageService {
     }
   }
 
-  getInsights(): BRC20ArbitrageInsight[] {
+  async getInsights(): Promise<BRC20ArbitrageInsight[]> {
     const now = Date.now();
     if (now - this.lastUpdate.getTime() > this.updateInterval) {
-      this.generateInsights();
+      await this.generateInsights();
     }
     return this.cachedInsights;
   }

@@ -1,5 +1,6 @@
 'use client'
 
+import { useLaserEyes } from '@omnisat/lasereyes'
 import { useBilling } from '@/hooks/useBilling'
 
 const PLANS = [
@@ -27,13 +28,14 @@ const PLANS = [
 ]
 
 export function PricingPlans() {
+  const { address } = useLaserEyes()
   const { subscribe, loading, error } = useBilling()
 
   return (
     <div className="flex flex-col items-center gap-8 py-12">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-white mb-2">CYPHER Plans</h2>
-        <p className="text-gray-400">Pay with Bitcoin or Card. No KYC.</p>
+        <p className="text-gray-400">Pay with Bitcoin on-chain or Lightning ⚡ — No KYC.</p>
       </div>
 
       {error && (
@@ -62,25 +64,15 @@ export function PricingPlans() {
                 </li>
               ))}
             </ul>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => subscribe(plan.id, 'bitcoin')}
-                disabled={loading}
-                className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  plan.highlight ? 'bg-orange-500 hover:bg-orange-400 text-black' : 'bg-gray-700 hover:bg-gray-600 text-white'
-                }`}
-              >
-                {loading ? 'Processing...' : '₿ Pay with Bitcoin'}
-              </button>
-              <button
-                onClick={() => subscribe(plan.id, 'stripe')}
-                disabled={loading}
-                className="w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1a1a2e] hover:bg-[#252540] text-white border border-white/10"
-              >
-                {loading ? 'Processing...' : '💳 Pay with Card'}
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 text-center">Bitcoin accepts Lightning ⚡</p>
+            <button
+              onClick={() => subscribe(plan.id, address || undefined)}
+              disabled={loading || !address}
+              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                plan.highlight ? 'bg-orange-500 hover:bg-orange-400 text-black' : 'bg-gray-700 hover:bg-gray-600 text-white'
+              }`}
+            >
+              {loading ? 'Processing...' : !address ? 'Connect Wallet to Subscribe' : '₿ Pay with Bitcoin (+ Lightning ⚡)'}
+            </button>
           </div>
         ))}
       </div>

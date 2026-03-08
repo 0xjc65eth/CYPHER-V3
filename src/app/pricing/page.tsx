@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Check, Crown, Rocket, Loader2, AlertCircle } from 'lucide-react'
+import { Check, Crown, Rocket, Zap, Loader2 } from 'lucide-react'
+import { useLaserEyes } from '@omnisat/lasereyes'
 import { useSubscription } from '@/hooks/useSubscription'
 import { TierBadge } from '@/components/subscription/TierBadge'
 import { useBilling } from '@/hooks/useBilling'
@@ -12,23 +13,25 @@ import {
   tierHasAccess,
 } from '@/lib/stripe/config'
 
-const PAID_TIERS: Exclude<SubscriptionTier, 'free'>[] = ['pro', 'elite']
+const PAID_TIERS: Exclude<SubscriptionTier, 'free'>[] = ['explorer', 'trader', 'hacker_yields']
 
 const TIER_ICONS: Record<string, React.ReactNode> = {
-  pro: <Crown className="w-6 h-6" />,
-  elite: <Rocket className="w-6 h-6" />,
+  explorer: <Crown className="w-6 h-6" />,
+  trader: <Rocket className="w-6 h-6" />,
+  hacker_yields: <Zap className="w-6 h-6" />,
 }
 
 const TIER_ACCENT: Record<string, string> = {
-  pro: '#3B82F6',
-  elite: '#F7931A',
+  explorer: '#3B82F6',
+  trader: '#FF6B00',
+  hacker_yields: '#F7931A',
 }
 
 function PricingPageContent() {
   const searchParams = useSearchParams()
+  const { address } = useLaserEyes()
   const { tier: currentTier, isActive } = useSubscription()
   const { subscribe, loading, error, clearError } = useBilling()
-  const [checkoutCanceled, setCheckoutCanceled] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
 
   useEffect(() => {
@@ -38,17 +41,11 @@ function PricingPageContent() {
       url.searchParams.delete('payment')
       window.history.replaceState({}, '', url.toString())
     }
-    if (searchParams.get('checkout') === 'canceled') {
-      setCheckoutCanceled(true)
-      const url = new URL(window.location.href)
-      url.searchParams.delete('checkout')
-      window.history.replaceState({}, '', url.toString())
-    }
   }, [searchParams])
 
   return (
     <main className="min-h-screen bg-[#0d0d1a] text-white">
-      <div className="max-w-5xl mx-auto px-4 py-12">
+      <div className="max-w-6xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-3xl font-bold font-mono mb-3">
@@ -57,7 +54,7 @@ function PricingPageContent() {
           </h1>
           <p className="text-sm text-white/40 font-mono max-w-lg mx-auto">
             Unlock advanced trading tools, AI analytics, and autonomous strategies.
-            Pay with Bitcoin — self-custodial, no KYC.
+            Pay with Bitcoin on-chain or Lightning Network ⚡
           </p>
           {isActive && currentTier !== 'free' && (
             <div className="mt-4 flex items-center justify-center gap-2">
@@ -98,11 +95,11 @@ function PricingPageContent() {
         )}
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
           {PAID_TIERS.map((tierId) => {
             const tier = SUBSCRIPTION_TIERS[tierId]
             const accent = TIER_ACCENT[tierId]
-            const isPopular = tierId === 'elite'
+            const isPopular = tierId === 'hacker_yields'
             const isCurrent = isActive && currentTier === tierId
             const isDowngrade = isActive && !tierHasAccess(tierId, currentTier)
 
@@ -159,18 +156,20 @@ function PricingPageContent() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => subscribe(tierId)}
-                      disabled={loading || isDowngrade}
+                      onClick={() => subscribe(tierId, address || undefined)}
+                      disabled={loading || isDowngrade || !address}
                       className="w-full py-2.5 text-sm font-mono font-bold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ backgroundColor: accent, color: '#000' }}
                     >
                       {loading ? (
                         <span className="flex items-center justify-center gap-2">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Creating Invoice...
+                          Processing...
                         </span>
+                      ) : !address ? (
+                        <span>Connect Wallet to Subscribe</span>
                       ) : (
-                        <span>&#8383; Pay with Bitcoin</span>
+                        <span>₿ Pay with Bitcoin (+ Lightning ⚡)</span>
                       )}
                     </button>
                   )}
@@ -180,29 +179,12 @@ function PricingPageContent() {
           })}
         </div>
 
-        {/* Checkout canceled banner */}
-        {checkoutCanceled && (
-          <div className="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-center">
-            <div className="flex items-center justify-center gap-2 mb-1">
-              <AlertCircle className="w-4 h-4 text-yellow-400" />
-              <p className="text-sm text-yellow-400 font-mono">Checkout was canceled</p>
-            </div>
-            <p className="text-xs text-yellow-400/60 font-mono">No payment was made. You can try again anytime.</p>
-            <button
-              onClick={() => setCheckoutCanceled(false)}
-              className="mt-2 text-xs text-yellow-400/60 hover:text-yellow-400 font-mono underline"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-white/30 font-mono">
-            All plans billed monthly. Payments via BTCPay Server — self-custodial Bitcoin, no KYC.
+            All plans billed monthly. Pay with Bitcoin on-chain or Lightning Network ⚡
             <br />
-            BTC goes directly to our wallet. BTCPay never touches your funds.
+            Payments via BTCPay Server — self-custodial, no KYC, instant Lightning confirmations.
           </p>
         </div>
       </div>

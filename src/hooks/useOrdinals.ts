@@ -126,7 +126,7 @@ export function useCollections(filters?: Partial<FilterOptions>, watchlist: stri
           listed,
           owners,
           supply,
-          image: c.imageURI || '',
+          image: c.imageURI ? `/api/ordinals/image/?url=${encodeURIComponent(c.imageURI)}` : '',
           priceChange24h: c.change ?? 0,
           priceChange7d: c.change7d ?? 0,
           priceChange30d: c.change30d ?? 0,

@@ -64,11 +64,11 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
   })
 
   // ──────────────────────────────────────────────────────────────────────────
-  // MAGIC EDEN DATA (via proxy)
+  // MARKETPLACE DATA (via proxy)
   // ──────────────────────────────────────────────────────────────────────────
 
   const marketTokens = useQuery({
-    queryKey: ['portfolio', 'magic-eden-tokens', ordAddr],
+    queryKey: ['portfolio', 'ordinals-tokens', ordAddr],
     queryFn: async () => {
       const response = await fetch(`/api/marketplace/tokens/?ownerAddress=${ordAddr}`)
       if (!response.ok) throw new Error('Failed to fetch Gamma.io tokens')
@@ -130,6 +130,21 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
     queryFn: async () => {
       const response = await fetch(`/api/hiro-ordinals/?address=${ordAddr}&limit=50&order=desc`)
       if (!response.ok) throw new Error('Failed to fetch Hiro inscriptions')
+      return response.json()
+    },
+    enabled: ordEnabled,
+    staleTime: 60000,
+  })
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // RUNES DATA (via proxy)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const runesBalances = useQuery({
+    queryKey: ['portfolio', 'runes-balances', ordAddr],
+    queryFn: async () => {
+      const response = await fetch(`/api/runes/balances/${ordAddr}/`)
+      if (!response.ok) throw new Error('Failed to fetch runes balances')
       return response.json()
     },
     enabled: ordEnabled,
@@ -221,7 +236,7 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
     // Calculate total portfolio value
     const collectionsList = Array.isArray(collections.data) ? collections.data : (collections.data?.data?.assets || collections.data?.collections || [])
     const collectionValue = collectionsList.reduce(
-      (sum: number, col: any) => sum + (col.floorValue || col.value || 0),
+      (sum: number, col: { floorValue?: number; value?: number }) => sum + (col.floorValue || col.value || 0),
       0
     )
 
@@ -266,26 +281,31 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
 
   const holdings = useMemo(() => {
     // Handle different response shapes from /api/portfolio
-    // Shape 1: { data: { assets: [...] } } (from portfolio route)
-    // Shape 2: { collections: [...] }
-    // Shape 3: direct array
     const raw = collections.data
     const collectionsList =
       Array.isArray(raw) ? raw :
-      (raw?.data?.assets?.filter((a: any) => a.type === 'ordinal' || a.type === 'rune') || []).length > 0
+      (raw?.data?.assets?.filter((a: { type?: string }) => a.type === 'ordinal' || a.type === 'rune') || []).length > 0
         ? raw.data.assets
         : (raw?.collections || [])
     if (!collectionsList.length) return []
 
-    return collectionsList.map((collection: any) => ({
-      id: collection.collectionId || collection.id,
-      name: collection.name || 'Unknown Collection',
-      symbol: collection.symbol || collection.collectionSymbol || '',
-      itemCount: collection.count || collection.balance || 0,
-      floorPrice: collection.floorPrice || collection.price || 0,
-      totalValue: (collection.count || collection.balance || 0) * (collection.floorPrice || collection.price || 0),
-    }))
-  }, [collections.data])
+    const currentBtcPrice = btcPrice.data || 0
+
+    return collectionsList.map((collection: { collectionId?: string; id?: string; name?: string; symbol?: string; collectionSymbol?: string; count?: number; balance?: number; floorPrice?: number; price?: number }) => {
+      const floorBtc = collection.floorPrice || collection.price || 0
+      const items = collection.count || collection.balance || 0
+      const valueBtc = items * floorBtc
+      return {
+        id: collection.collectionId || collection.id,
+        name: collection.name || 'Unknown Collection',
+        symbol: collection.symbol || collection.collectionSymbol || '',
+        itemCount: items,
+        floorPrice: floorBtc,
+        totalValue: valueBtc,
+        totalValueUsd: valueBtc * currentBtcPrice,
+      }
+    })
+  }, [collections.data, btcPrice.data])
 
   const brc20Holdings = useMemo(() => {
     const raw = brc20Summary.data
@@ -299,19 +319,50 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
       (Array.isArray(raw) ? raw : [])
     if (!detail.length) return []
 
-    return detail.map((token: any) => ({
-      ticker: token.ticker,
+    return detail.map((token: { ticker?: string; overallBalance?: string; balance?: string; availableBalance?: string; available?: string; transferableBalance?: string; transferrable?: string }) => ({
+      ticker: token.ticker || '',
       balance: token.overallBalance || token.balance || '0',
       availableBalance: token.availableBalance || token.available || '0',
       transferableBalance: token.transferableBalance || token.transferrable || '0',
     }))
   }, [brc20Summary.data])
 
+  const runesHoldings = useMemo(() => {
+    const raw = runesBalances.data
+    // Shape: { balances: [...] } or { data: [...] } or direct array
+    const list = raw?.balances || raw?.data || (Array.isArray(raw) ? raw : [])
+    if (!list.length) return []
+
+    return list.map((rune: { rune?: string; symbol?: string; balance?: string; decimal_balance?: number; decimals?: number; market_data?: { floor_price?: number; volume_24h?: number } }) => ({
+      name: rune.rune || 'Unknown',
+      symbol: rune.symbol || '',
+      balance: rune.decimal_balance ?? (rune.balance ? Number(rune.balance) / Math.pow(10, rune.decimals || 0) : 0),
+      rawBalance: rune.balance || '0',
+      floorPrice: rune.market_data?.floor_price || 0,
+      volume24h: rune.market_data?.volume_24h || 0,
+    }))
+  }, [runesBalances.data])
+
+  const rareSatsSummary = useMemo(() => {
+    const raw = rareSats.data
+    if (!raw) return null
+    // Shape: { rareSats: [...], totalCount: N } or { data: { categories: {...} } } or array
+    const satsList = raw?.rareSats || raw?.data?.rareSats || (Array.isArray(raw) ? raw : [])
+    const totalCount = raw?.totalCount ?? raw?.data?.totalCount ?? satsList.length
+    // Group by satribute type
+    const categories: Record<string, number> = {}
+    for (const sat of satsList) {
+      const type = sat.satribute || sat.type || sat.category || 'Unknown'
+      categories[type] = (categories[type] || 0) + 1
+    }
+    return { totalCount, categories, raw: satsList }
+  }, [rareSats.data])
+
   // Use Hiro inscriptions for the inscriptions tab (has content URIs)
   const inscriptionItems = useMemo(() => {
     if (hiroInscriptions.data?.results) {
       return {
-        tokens: hiroInscriptions.data.results.map((insc: any) => ({
+        tokens: hiroInscriptions.data.results.map((insc: { number?: number; id?: string; content_type?: string }) => ({
           inscriptionNumber: insc.number,
           contentURI: `https://ordinals.hiro.so/inscription/${insc.id}/content`,
           meta: { name: `Inscription #${insc.number}` },
@@ -353,6 +404,8 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
     performance,
     holdings,
     brc20Holdings,
+    runesHoldings,
+    rareSatsSummary,
 
     // Loading States
     isLoading,
@@ -362,6 +415,7 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
     balanceLoading: balance.isLoading,
     collectionsLoading: collections.isLoading,
     brc20Loading: brc20Summary.isLoading,
+    runesLoading: runesBalances.isLoading,
 
     // Refetch Functions
     refetchAll: () => {
@@ -373,6 +427,7 @@ export function usePortfolio(address: string | null, ordinalsAddress?: string | 
       brc20Summary.refetch()
       marketTokens.refetch()
       rareSats.refetch()
+      runesBalances.refetch()
       addressInfo.refetch()
       utxos.refetch()
       transactions.refetch()

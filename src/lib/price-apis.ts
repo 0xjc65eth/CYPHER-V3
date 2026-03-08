@@ -7,6 +7,8 @@
  * - OKX Web3 (Runes & cross-reference)
  */
 
+import { EnhancedLogger } from '@/lib/enhanced-logger';
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -192,44 +194,69 @@ export async function fetchMarketListings(
 
 export async function fetchUnisatBRC20Info(ticker: string): Promise<TokenPrice | null> {
   try {
-    const response = await fetch(
-      `${API_CONFIG.unisat.baseUrl}/indexer/brc20/${ticker}/info`,
-      {
-        headers: API_CONFIG.unisat.headers,
-        next: { revalidate: 300 }, // 5 minutes cache
+    // Fetch token info and market price in parallel
+    const [infoResponse, marketResponse] = await Promise.allSettled([
+      fetch(
+        `${API_CONFIG.unisat.baseUrl}/indexer/brc20/${ticker}/info`,
+        {
+          headers: API_CONFIG.unisat.headers,
+          signal: AbortSignal.timeout(8000),
+        }
+      ),
+      fetch(
+        `https://open-api.unisat.io/v3/market/brc20/auction/brc20_summary`,
+        {
+          method: 'POST',
+          headers: {
+            ...API_CONFIG.unisat.headers,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tick: ticker, sort: 'unitPriceAsc', start: 0, limit: 1 }),
+          signal: AbortSignal.timeout(8000),
+        }
+      ),
+    ]);
+
+    let holders = 0;
+    if (infoResponse.status === 'fulfilled' && infoResponse.value.ok) {
+      const infoResult = await infoResponse.value.json();
+      if (infoResult.code === 0 && infoResult.data) {
+        holders = infoResult.data.holdersCount || 0;
       }
-    );
+    }
 
-    if (!response.ok || response.status === 404) {
-      console.error(`UniSat API error for ${ticker}: ${response.status}`);
+    let priceSats = 0;
+    let volume24h = 0;
+    if (marketResponse.status === 'fulfilled' && marketResponse.value.ok) {
+      const marketResult = await marketResponse.value.json();
+      if (marketResult.code === 0 && marketResult.data) {
+        const summary = marketResult.data;
+        priceSats = parseFloat(summary.floorPrice || summary.avgPrice || '0');
+        volume24h = parseFloat(summary.volume24h || '0');
+      }
+    }
+
+    if (priceSats <= 0 && holders <= 0) {
       return null;
     }
 
-    const result = await response.json();
-
-    if (result.code !== 0 || !result.data) {
-      return null;
-    }
-
-    const data = result.data;
     const btcPrice = await fetchBTCPrice();
+    const priceUSD = priceSats > 0 ? (priceSats / 1e8) * btcPrice : 0;
 
-    // UniSat doesn't provide direct price, so we need to estimate from market data
-    // For now, return holder count and supply info
     return {
       ticker: ticker.toUpperCase(),
-      price: 0, // Will be updated with marketplace data
-      priceUSD: 0,
+      price: priceSats,
+      priceUSD,
       priceChange24h: 0,
-      volume24h: 0,
+      volume24h,
       volumeChange24h: 0,
       marketCap: 0,
-      holders: data.holdersCount || 0,
+      holders,
       source: 'unisat',
       timestamp: Date.now(),
     };
   } catch (error) {
-    console.error(`Failed to fetch UniSat BRC-20 info for ${ticker}:`, error);
+    EnhancedLogger.warn(`[PriceAPIs] UniSat BRC-20 info failed for ${ticker}: ${error instanceof Error ? error.message : String(error)}`);
     return null;
   }
 }

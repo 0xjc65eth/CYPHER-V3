@@ -218,7 +218,19 @@ Siempre proporciona insights accionables y explica tu razonamiento claramente.`,
     marketData?: any
   ): Promise<CypherAIMessage> {
     if (!this.isInitialized || !this.openai) {
-      throw new Error('Cypher AI not initialized');
+      // Client-side singleton cannot call OpenAI directly.
+      // Return a message directing to the API route.
+      const errorMsg: CypherAIMessage = {
+        id: `fallback_${Date.now()}`,
+        role: 'assistant',
+        content: language === 'pt' ? 'Use a interface principal do chat para conversar com o Cypher AI.' :
+                language === 'fr' ? 'Utilisez l\'interface de chat principale pour parler avec Cypher AI.' :
+                language === 'es' ? 'Use la interfaz de chat principal para hablar con Cypher AI.' :
+                'Please use the main chat interface to talk with Cypher AI.',
+        timestamp: new Date(),
+        language
+      };
+      return errorMsg;
     }
 
     const context = this.getConversationContext(userId, language);

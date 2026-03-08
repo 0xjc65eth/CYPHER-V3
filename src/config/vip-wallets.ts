@@ -23,6 +23,7 @@ const HARDCODED_VIP_WALLETS = [
 export const VIP_ETH_WALLETS = [
   '0xAE3642A03a1e4bd7AB7D919d14C54ECf1BFdddd3',
   '0xBaD5B3cc59D5c57dB99DF07fB86C6f1475F0Dae0',
+  '0x8a5F6BF86C111Edaabe3ADE2FAe7Cd7D2Ddb2055',
 ].map(a => a.toLowerCase())
 
 /** Check if an ETH address is a VIP wallet (case-insensitive). */

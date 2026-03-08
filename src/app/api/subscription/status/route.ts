@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimit } from '@/lib/middleware/rate-limiter'
-import { SUBSCRIPTION_TIERS, type SubscriptionTier } from '@/lib/stripe/config'
+import { SUBSCRIPTION_TIERS, normalizeTier, type SubscriptionTier } from '@/lib/stripe/config'
 import { getSupabaseServiceClient } from '@/lib/database/supabase-client'
 
 const FREE_RESPONSE = {
@@ -70,8 +70,8 @@ export async function GET(request: NextRequest) {
     const effectiveStatus = isExpired ? 'expired' : subscription.status
     const isActive = effectiveStatus === 'active'
 
-    const tier = (subscription.plan || 'free') as SubscriptionTier
-    const tierConfig = SUBSCRIPTION_TIERS[tier] || SUBSCRIPTION_TIERS.free
+    const tier = normalizeTier(subscription.plan)
+    const tierConfig = SUBSCRIPTION_TIERS[tier]
 
     return NextResponse.json(
       {

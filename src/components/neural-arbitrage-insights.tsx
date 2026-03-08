@@ -41,7 +41,7 @@ export function NeuralArbitrageInsights() {
       setIsLoading(true);
 
       // Obter insights de arbitragem de runas reais
-      const runesInsights = runesArbitrageService.getRunesArbitrageInsights();
+      const runesInsights = await runesArbitrageService.getRunesArbitrageInsights();
 
       // Obter insights gerais de arbitragem do serviço neural
       const neuralInsights = neuralLearningService.getRecentInsights(3, 'arbitrage');

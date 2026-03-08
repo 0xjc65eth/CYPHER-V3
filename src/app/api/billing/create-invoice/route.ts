@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+import { getSupabaseServiceClient } from '@/lib/database/supabase-client'
 
 const PLANS = {
   explorer:      { amount: '29',  label: 'CYPHER Explorer' },
@@ -18,52 +11,51 @@ type PlanId = keyof typeof PLANS
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
-        },
-      }
-    )
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await req.json()
     const planId = body?.planId as PlanId
+    const walletAddress = body?.walletAddress as string | undefined
 
     if (!planId || !PLANS[planId]) {
       return NextResponse.json({ error: 'Invalid plan. Use: explorer, trader, hacker_yields' }, { status: 400 })
     }
 
+    if (!walletAddress) {
+      return NextResponse.json({ error: 'Wallet address required. Connect your wallet first.' }, { status: 400 })
+    }
+
     const plan = PLANS[planId]
 
+    const btcpayHost = process.env.BTCPAY_HOST
+    const btcpayStoreId = process.env.BTCPAY_STORE_ID
+    const btcpayApiKey = process.env.BTCPAY_API_KEY
+
+    if (!btcpayHost || !btcpayStoreId || !btcpayApiKey) {
+      console.error('[CreateInvoice] BTCPay not configured')
+      return NextResponse.json({ error: 'Payment system not configured' }, { status: 503 })
+    }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:4444'
+
     const btcpayRes = await fetch(
-      `${process.env.BTCPAY_HOST}/api/v1/stores/${process.env.BTCPAY_STORE_ID}/invoices`,
+      `${btcpayHost}/api/v1/stores/${btcpayStoreId}/invoices`,
       {
         method: 'POST',
         headers: {
-          Authorization: `token ${process.env.BTCPAY_API_KEY}`,
+          Authorization: `token ${btcpayApiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           amount: plan.amount,
           currency: 'USD',
           metadata: {
-            orderId: `${user.id}-${Date.now()}`,
-            userId: user.id,
+            orderId: `${walletAddress}-${Date.now()}`,
+            walletAddress,
             planId,
-            buyerEmail: user.email,
             itemDesc: plan.label,
           },
           checkout: {
             expirationMinutes: 30,
-            redirectURL: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+            redirectURL: `${appUrl}/dashboard?payment=success`,
             speedPolicy: 'HighSpeed',
             paymentMethods: ['BTC', 'BTC_LightningLike'],
           },
@@ -79,19 +71,24 @@ export async function POST(req: NextRequest) {
 
     const invoice = await btcpayRes.json()
 
-    await supabaseAdmin
-      .from('btcpay_invoices')
-      .insert({
-        invoice_id: invoice.id,
-        user_id: user.id,
-        plan: planId,
-        amount: plan.amount,
-        currency: 'USD',
-        status: 'pending',
-        checkout_link: invoice.checkoutLink,
-        created_at: new Date().toISOString(),
-      })
-
+    // Store invoice in DB (best-effort, don't block the response)
+    try {
+      const supabase = getSupabaseServiceClient()
+      await supabase
+        .from('btcpay_invoices')
+        .insert({
+          invoice_id: invoice.id,
+          wallet_address: walletAddress,
+          plan: planId,
+          amount: plan.amount,
+          currency: 'USD',
+          status: 'pending',
+          checkout_link: invoice.checkoutLink,
+          created_at: new Date().toISOString(),
+        })
+    } catch (dbErr) {
+      console.error('[CreateInvoice] DB insert failed (non-blocking):', dbErr)
+    }
 
     return NextResponse.json({
       invoiceId: invoice.id,

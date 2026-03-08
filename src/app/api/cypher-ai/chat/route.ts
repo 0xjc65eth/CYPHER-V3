@@ -43,11 +43,11 @@ async function callGemini(userMessage: string, systemPrompt: string, signal?: Ab
     },
   };
 
-  const res = await fetch(GEMINI_ENDPOINT, {
+  const url = `${GEMINI_ENDPOINT}?key=${GEMINI_API_KEY}`;
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-goog-api-key': GEMINI_API_KEY,
     },
     body: JSON.stringify(body),
     signal,

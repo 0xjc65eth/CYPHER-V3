@@ -115,22 +115,40 @@ class EnhancedErrorBoundary extends Component<EnhancedErrorBoundaryProps, ErrorB
   }
 
   private shouldAutoRetry(error: Error): boolean {
-    // Auto-retry for network errors, chunk loading errors, etc.
+    // ChunkLoadError = stale deployment cache — re-rendering won't help,
+    // need a full page reload to fetch new chunks
+    const isChunkError =
+      error.name === 'ChunkLoadError' ||
+      error.message.includes('Loading chunk') ||
+      error.message.includes('Failed to fetch dynamically imported module');
+
+    if (isChunkError) {
+      // Do a hard page reload instead of component retry (stale chunks won't resolve via re-render)
+      const key = 'cypher_chunk_reload';
+      const reloads = parseInt(sessionStorage.getItem(key) || '0', 10);
+      if (reloads < 2) {
+        sessionStorage.setItem(key, String(reloads + 1));
+        window.location.reload();
+      } else {
+        sessionStorage.removeItem(key);
+      }
+      return false; // Don't do component-level retry
+    }
+
+    // Auto-retry for network errors (these can resolve on re-render)
     const retryableErrors = [
-      'ChunkLoadError',
       'NetworkError',
       'TypeError: Failed to fetch',
-      'Loading chunk'
     ];
 
-    return retryableErrors.some(pattern => 
+    return retryableErrors.some(pattern =>
       error.name.includes(pattern) || error.message.includes(pattern)
     );
   }
 
   private scheduleAutoRetry(): void {
     const { maxRetries = 3 } = this.props;
-    
+
     if (this.state.retryCount < maxRetries) {
       this.resetTimeoutId = window.setTimeout(() => {
         this.handleRetry();

@@ -56,6 +56,25 @@ const COLLECTION_NAMES: Record<string, string> = {
   'ordinal-punks': 'Ordinal Punks',
 };
 
+// Fallback image URLs for well-known collections (verified working URLs)
+const COLLECTION_IMAGES: Record<string, string> = {
+  'bitcoin-punks': 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-punks.avif',
+  'nodemonkes': 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-nodemonkes_pfp_1753658525948.png',
+  'bitcoin-puppets': 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-puppets.avif',
+  'quantum-cats': 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-taproot_wizards_presents_pfp_1706542390359.png',
+  'ordinal-maxi-biz': 'https://media.cdn.magiceden.dev/ordinals-collection-img/omb.avif',
+  'runestones': 'https://media.cdn.magiceden.dev/ordinals-collection-img/runestone.avif',
+  'bitmap': 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitmap.avif',
+  'ink': 'https://media.cdn.magiceden.dev/ordinals-collection-img/ink.avif',
+  'pizza-ninjas': 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-pizza-ninjas_pfp_1711912845018.gif',
+  'taproot-wizards': 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-taproot_wizards_pfp_1740791107942.jpeg',
+  'bitcoin-frogs': 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-frogs.avif',
+  'natcats': '',
+  'rsic': 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-rsic_pfp_1705896366275.png',
+  'degods-btc': '',
+  'ordinal-punks': '',
+};
+
 export class OrdinalsDataAggregator {
   private static readonly POPULAR_COLLECTIONS = [
     'bitcoin-punks',
@@ -164,7 +183,7 @@ export class OrdinalsDataAggregator {
             listed: stats.listedCount ?? stats.totalListed ?? 0,
             owners,
             supply: stats.supply ?? 0,
-            imageURI: '',
+            imageURI: COLLECTION_IMAGES[symbol] || '',
             change: 0,
             change7d: 0,
             change30d: 0,

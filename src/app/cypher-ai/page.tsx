@@ -1,15 +1,25 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { CypherAIInterface } from '@/components/ai/CypherAIInterface';
-import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
-import { TradingSignalsPanel } from '@/components/ai/TradingSignalsPanel';
-import { SentimentAnalysisPanel } from '@/components/ai/SentimentAnalysisPanel';
-import { NeuralPricePredictor } from '@/components/ai/NeuralPricePredictor';
-import BacktestingPanel from '@/components/ai/BacktestingPanel';
-import { PerformanceMetrics } from '@/components/ai/PerformanceMetrics';
-import { AIStatusCard } from '@/components/ai/AIStatusCard';
 import { Zap, Radio, Brain, BarChart3 } from 'lucide-react';
+
+const PanelSkeleton = () => (
+  <div className="animate-pulse space-y-2 p-3">
+    <div className="h-4 bg-[#1a1a2e] rounded w-3/4" />
+    <div className="h-8 bg-[#1a1a2e] rounded" />
+    <div className="h-4 bg-[#1a1a2e] rounded w-1/2" />
+  </div>
+);
+
+const AIInsightsPanel = dynamic(() => import('@/components/ai/AIInsightsPanel').then(m => ({ default: m.AIInsightsPanel })), { ssr: false, loading: PanelSkeleton });
+const TradingSignalsPanel = dynamic(() => import('@/components/ai/TradingSignalsPanel').then(m => ({ default: m.TradingSignalsPanel })), { ssr: false, loading: PanelSkeleton });
+const SentimentAnalysisPanel = dynamic(() => import('@/components/ai/SentimentAnalysisPanel').then(m => ({ default: m.SentimentAnalysisPanel })), { ssr: false, loading: PanelSkeleton });
+const NeuralPricePredictor = dynamic(() => import('@/components/ai/NeuralPricePredictor').then(m => ({ default: m.NeuralPricePredictor })), { ssr: false, loading: PanelSkeleton });
+const BacktestingPanel = dynamic(() => import('@/components/ai/BacktestingPanel'), { ssr: false, loading: PanelSkeleton });
+const PerformanceMetrics = dynamic(() => import('@/components/ai/PerformanceMetrics').then(m => ({ default: m.PerformanceMetrics })), { ssr: false, loading: PanelSkeleton });
+const AIStatusCard = dynamic(() => import('@/components/ai/AIStatusCard').then(m => ({ default: m.AIStatusCard })), { ssr: false, loading: PanelSkeleton });
 import { PremiumContent } from '@/components/premium-content';
 
 const AGENT_ROSTER = [
@@ -135,14 +145,23 @@ function useAgentStatus() {
   }, []);
 
   useEffect(() => {
-    fetchAgentData();
+    let timeoutId: NodeJS.Timeout | null = null;
+    let cancelled = false;
 
-    // Poll: 3s when active, 15s when idle
-    const id = setInterval(() => {
-      fetchAgentData();
-    }, isActiveRef.current ? 3000 : 15000);
+    const poll = async () => {
+      await fetchAgentData();
+      if (!cancelled) {
+        const delay = isActiveRef.current ? 3000 : 15000;
+        timeoutId = setTimeout(poll, delay);
+      }
+    };
 
-    return () => clearInterval(id);
+    poll();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [fetchAgentData]);
 
   return { status, performance };

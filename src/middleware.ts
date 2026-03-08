@@ -147,33 +147,46 @@ export async function middleware(request: NextRequest) {
   // CORS headers for API routes only
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const origin = request.headers.get('origin');
+
+    // Same-origin detection: compare origin with the Host header.
+    // request.nextUrl.origin can differ from the actual host (e.g. port mismatch
+    // in dev), so we build the expected origin from the Host header instead.
+    const hostHeader = request.headers.get('host') || request.nextUrl.host;
+    const protocol = request.nextUrl.protocol || 'http:';
+    const expectedOrigin = `${protocol}//${hostHeader}`;
+    const isSameOrigin = !origin || origin === expectedOrigin
+      || origin === `http://${hostHeader}` || origin === `https://${hostHeader}`;
+
     const allowedOrigins = [
       'https://cypherordifuture.xyz',
-      // Localhost origins only in development (NODE_ENV !== 'production')
-      ...(process.env.NODE_ENV !== 'production'
-        ? ['http://localhost:4444', 'https://localhost:4444', 'http://127.0.0.1:4444']
-        : []),
+      'https://www.cypherordifuture.xyz',
+      'http://localhost:4444',
+      'https://localhost:4444',
+      'http://127.0.0.1:4444',
       process.env.NEXTAUTH_URL,
       process.env.NEXT_PUBLIC_SITE_URL,
       process.env.NEXT_PUBLIC_APP_URL,
       process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-    ].filter(Boolean);
+    ].filter(Boolean) as string[];
 
-    if (origin && allowedOrigins.includes(origin)) {
-      response.headers.set('Access-Control-Allow-Origin', origin);
-      response.headers.set('Access-Control-Allow-Credentials', 'true');
-    } else if (!origin) {
-      // No Origin header — allow same-origin navigations and server-to-server
-      const fetchSite = request.headers.get('sec-fetch-site');
-      if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') {
-        // Cross-origin request without Origin header — deny
-        return new Response('Forbidden', { status: 403 });
+    // Normalize origin — strip www. and trailing slashes for matching
+    const normalizeUrl = (u: string) => u.replace(/^(https?:\/\/)www\./, '$1').replace(/\/+$/, '');
+
+    const isAllowedOrigin = origin && (
+      allowedOrigins.includes(origin) ||
+      allowedOrigins.map(normalizeUrl).includes(normalizeUrl(origin))
+    );
+
+    if (isSameOrigin || isAllowedOrigin) {
+      if (origin) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
       }
     } else {
-      // Origin present but not in allowed list — deny for mutating methods
+      // Cross-origin request from unknown origin — deny mutating methods
       const method = request.method.toUpperCase();
       if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-        return new Response('Forbidden', { status: 403 });
+        return NextResponse.json({ error: 'Forbidden', origin }, { status: 403 });
       }
     }
     response.headers.set(

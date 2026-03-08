@@ -1,6 +1,6 @@
 'use client'
 
-import { type SubscriptionTier, SUBSCRIPTION_TIERS } from '@/lib/stripe/config'
+import { type SubscriptionTier, SUBSCRIPTION_TIERS, normalizeTier } from '@/lib/stripe/config'
 
 interface TierBadgeProps {
   tier: SubscriptionTier
@@ -15,8 +15,9 @@ const TIER_STYLES: Record<SubscriptionTier, string> = {
 }
 
 export function TierBadge({ tier, size = 'sm' }: TierBadgeProps) {
-  const tierConfig = SUBSCRIPTION_TIERS[tier]
-  const style = TIER_STYLES[tier]
+  const normalizedTier = normalizeTier(tier)
+  const tierConfig = SUBSCRIPTION_TIERS[normalizedTier]
+  const style = TIER_STYLES[normalizedTier] || TIER_STYLES.free
 
   const sizeClasses = size === 'sm'
     ? 'px-2 py-0.5 text-[10px]'

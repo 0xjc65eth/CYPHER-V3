@@ -18,6 +18,7 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_HOSTS = [
   'creator-hub-prod.s3.us-east-2.amazonaws.com',
   'img-cdn.magiceden.dev',
+  'media.cdn.magiceden.dev',
   'ordinals.com',
   'ordinals.hiro.so',
   'api.hiro.so',
@@ -29,6 +30,8 @@ const ALLOWED_HOSTS = [
   'turbo.ordinalswallet.com',
   'bis-ord-content.fra1.cdn.digitaloceanspaces.com',
   'render.ordinalswallet.com',
+  'cdn.unisat.io',
+  'open-api.unisat.io',
 ];
 
 /**
@@ -56,7 +59,7 @@ function isHostnameAllowed(hostname: string): boolean {
 
 export async function GET(request: NextRequest) {
   try {
-    const rateLimitRes = await rateLimit(request, 30, 60);
+    const rateLimitRes = await rateLimit(request, 60, 60);
     if (rateLimitRes) return rateLimitRes;
     const { searchParams } = new URL(request.url);
     const imageUrl = searchParams.get('url');

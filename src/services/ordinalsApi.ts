@@ -245,7 +245,8 @@ class OrdinalsAPIService {
           const supply = collection.supply || 0;
           const owners = collection.owners || collection.ownersCount || 0;
           const listed = collection.listedCount || 0;
-          const image = collection.image || collection.imageURI || collection.inscriptionIcon || '';
+          const rawImage = collection.image || collection.imageURI || collection.inscriptionIcon || '';
+          const image = rawImage ? `/api/ordinals/image/?url=${encodeURIComponent(rawImage)}` : '';
 
           // Skip collections with invalid data
           if (floorPrice <= 0) {
@@ -447,7 +448,8 @@ class OrdinalsAPIService {
         totalVol: 5000,
         supply: 10000,
         owners: 3500,
-        listedCount: 250
+        listedCount: 250,
+        imageURI: 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-puppets.avif',
       },
       {
         collectionSymbol: 'nodemonkeys',
@@ -456,7 +458,8 @@ class OrdinalsAPIService {
         totalVol: 3200,
         supply: 10000,
         owners: 4200,
-        listedCount: 180
+        listedCount: 180,
+        imageURI: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-nodemonkes_pfp_1753658525948.png',
       },
       {
         collectionSymbol: 'quantum-cats',
@@ -465,7 +468,8 @@ class OrdinalsAPIService {
         totalVol: 4500,
         supply: 3333,
         owners: 2100,
-        listedCount: 120
+        listedCount: 120,
+        imageURI: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-taproot_wizards_presents_pfp_1706542390359.png',
       },
       {
         collectionSymbol: 'bitcoin-frogs',
@@ -474,7 +478,8 @@ class OrdinalsAPIService {
         totalVol: 2800,
         supply: 10000,
         owners: 5600,
-        listedCount: 320
+        listedCount: 320,
+        imageURI: 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-frogs.avif',
       }
     ];
   }

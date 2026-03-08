@@ -5,8 +5,7 @@
  */
 
 import { ethers } from 'ethers';
-// @ts-ignore - no type declarations
-import * as msgpack from 'msgpack-lite';
+import { encode as msgpackEncode } from '@msgpack/msgpack';
 import { Candle, Order, Position } from '../core/types';
 import {
   BaseConnector,
@@ -23,6 +22,7 @@ export interface HyperliquidConfig {
   apiUrl: string;
   agentKey: string;
   agentSecret: string;
+  testnet?: boolean;
 }
 
 export class HyperliquidConnector {
@@ -30,11 +30,14 @@ export class HyperliquidConnector {
   private connected: boolean = false;
   private circuitBreaker: CircuitBreaker;
   private marketDiscovery: HyperliquidMarketDiscovery | null = null;
+  private nonceCounter: number = 0; // Monotonic nonce counter to prevent collisions
 
   constructor(config: HyperliquidConfig) {
     this.config = {
       ...config,
-      apiUrl: 'https://api.hyperliquid.xyz',
+      apiUrl: config.testnet
+        ? 'https://api.hyperliquid-testnet.xyz'
+        : 'https://api.hyperliquid.xyz',
     };
     this.circuitBreaker = createAPICircuitBreaker('hyperliquid', {
       failureThreshold: 3,
@@ -114,23 +117,36 @@ export class HyperliquidConnector {
     if (!this.connected) return { success: false, error: 'Not connected' };
 
     try {
-      // For market orders, use IOC limit with aggressive slippage (0.5%)
+      // For market orders, use IOC limit with 5% slippage (matches official SDK)
       const slippageMultiplier = params.type === 'market'
-        ? (params.side === 'buy' ? 1.005 : 0.995)
+        ? (params.side === 'buy' ? 1.05 : 0.95)
         : 1;
       const orderPrice = params.price * slippageMultiplier;
 
-      const order = {
+      // Use floatToWire for both price and size (matches official SDK)
+      // Key insertion order MUST match Python SDK: a, b, p, s, r, t, [c]
+      const szDecimals = this.getSzDecimals(params.pair);
+      const order: Record<string, any> = {
         a: this.getAssetIndex(params.pair),
         b: params.side === 'buy',
-        p: orderPrice.toFixed(1),
-        s: params.size.toFixed(4),
+        p: HyperliquidConnector.floatToWire(orderPrice, szDecimals, true),
+        s: HyperliquidConnector.floatToWire(params.size, szDecimals, false),
         r: params.reduceOnly || false,
         t: params.type === 'limit'
           ? { limit: { tif: params.postOnly ? 'Alo' : 'Gtc' } }
           : { limit: { tif: 'Ioc' } },
-        c: params.clientId || `cypher_${Date.now()}`,
       };
+      // cloid is optional — must be hex format (0x + up to 40 hex chars)
+      // If clientId is provided but not hex, convert it to a hex hash
+      if (params.clientId) {
+        if (/^0x[0-9a-fA-F]+$/.test(params.clientId)) {
+          order.c = params.clientId;
+        } else {
+          // Convert arbitrary string to hex cloid via simple hash
+          const hash = ethers.id(params.clientId); // keccak256 → 0x + 64 hex
+          order.c = '0x' + hash.slice(2, 34); // take first 16 bytes (32 hex chars)
+        }
+      }
 
       const result = await this.exchange({
         action: { type: 'order', orders: [order], grouping: 'na' },
@@ -165,12 +181,45 @@ export class HyperliquidConnector {
 
   async cancelAllOrders(): Promise<boolean> {
     try {
+      // Fetch open orders first, then cancel each one
+      const openOrders = await this.request('/info', {
+        type: 'openOrders',
+        user: this.config.agentKey,
+      });
+      if (!Array.isArray(openOrders) || openOrders.length === 0) return true;
+
+      const cancels = openOrders.map((o: any) => ({
+        a: this.getAssetIndex(`${o.coin}-PERP`),
+        o: parseInt(o.oid),
+      }));
       const result = await this.exchange({
-        action: { type: 'cancelByClid', cancels: [] }, // Cancel all
+        action: { type: 'cancel', cancels },
       });
       return result?.status === 'ok';
     } catch {
       return false;
+    }
+  }
+
+  async getOpenOrders(): Promise<Array<{ id: string; pair: string; side: string; price: number; size: number; type: string; clientId?: string }>> {
+    try {
+      const openOrders = await this.request('/info', {
+        type: 'openOrders',
+        user: this.config.agentKey,
+      });
+      if (!Array.isArray(openOrders)) return [];
+
+      return openOrders.map((o: any) => ({
+        id: String(o.oid),
+        pair: `${o.coin}-PERP`,
+        side: o.side === 'B' ? 'buy' : 'sell',
+        price: parseFloat(o.limitPx || '0'),
+        size: parseFloat(o.sz || '0'),
+        type: o.orderType || 'limit',
+        clientId: o.cloid || undefined,
+      }));
+    } catch {
+      return [];
     }
   }
 
@@ -256,8 +305,8 @@ export class HyperliquidConnector {
     const midPrice = await this.getMidPrice(pair.replace('-PERP', ''));
     if (midPrice <= 0) return { success: false, error: 'Could not fetch mid price' };
 
-    // Use a market-like limit order with generous slippage
-    const slippage = direction === 'long' ? 0.995 : 1.005;
+    // Use a market-like limit order with 5% slippage (matches SDK)
+    const slippage = direction === 'long' ? 0.95 : 1.05;
     return this.placeOrder({
       pair,
       side,
@@ -307,10 +356,69 @@ export class HyperliquidConnector {
   }
 
   /**
+   * Normalize trailing zeros in string values within an action object.
+   * Hyperliquid msgpack encoding requires that float-like strings (price "p" and size "s")
+   * have trailing zeros removed so the hash matches the exchange's expectation.
+   * e.g. "30000.0" → "30000", "1234.50" → "1234.5", "100" → "100"
+   */
+  private static normalizeTrailingZeros(action: any): any {
+    if (typeof action === 'string') {
+      // Only normalize strings that look like numbers
+      if (/^-?\d+\.\d+$/.test(action)) {
+        // Remove trailing zeros after decimal point, then remove trailing dot
+        return action.replace(/\.?0+$/, '') || '0';
+      }
+      return action;
+    }
+    if (Array.isArray(action)) {
+      return action.map(item => HyperliquidConnector.normalizeTrailingZeros(item));
+    }
+    if (action !== null && typeof action === 'object') {
+      const result: any = {};
+      for (const [key, value] of Object.entries(action)) {
+        result[key] = HyperliquidConnector.normalizeTrailingZeros(value);
+      }
+      return result;
+    }
+    return action;
+  }
+
+  /**
+   * Convert a number to Hyperliquid's wire format.
+   * Matches the official Python SDK's float_to_wire():
+   *   1. Round to 8 decimal places
+   *   2. Normalize trailing zeros
+   * For prices: max 5 significant figures, max (6 - szDecimals) decimal places
+   * For sizes: szDecimals decimal places
+   */
+  static floatToWire(value: number, szDecimals: number, isPrice: boolean): string {
+    if (isPrice) {
+      // Price formatting: max 5 sig figs, max (6 - szDecimals) decimals
+      const maxDecimals = Math.max(0, 6 - szDecimals);
+      // First round to 8 decimals (float_to_wire base)
+      let rounded = parseFloat(value.toFixed(8));
+      // Then constrain to maxDecimals
+      rounded = parseFloat(rounded.toFixed(maxDecimals));
+      // Also constrain to 5 significant figures
+      const sigFig = parseFloat(rounded.toPrecision(5));
+      // Use whichever produces a valid result (fewer decimals)
+      const result = sigFig.toFixed(maxDecimals);
+      // Normalize: remove trailing zeros
+      return result.includes('.') ? result.replace(/\.?0+$/, '') : result;
+    } else {
+      // Size formatting: use szDecimals
+      const result = value.toFixed(szDecimals);
+      return result.includes('.') ? result.replace(/\.?0+$/, '') : result;
+    }
+  }
+
+  /**
    * Sign an L1 action using EIP-712 typed data (Hyperliquid phantom agent protocol).
-   * @param action The action object (order, cancel, etc.)
-   * @param nonce Timestamp nonce
-   * @param vaultAddress Optional vault address (null for agent wallet)
+   * Matches the official Python SDK's sign_l1_action exactly:
+   *   1. Normalize trailing zeros in action
+   *   2. msgpack encode the normalized action
+   *   3. Build connectionId = keccak256(actionBytes + nonce(8B BE) + vault_tag)
+   *   4. EIP-712 sign with domain {Exchange, 1, 1337, 0x000...000}
    */
   private async signL1Action(
     action: any,
@@ -319,26 +427,34 @@ export class HyperliquidConnector {
   ): Promise<{ r: string; s: string; v: number }> {
     const wallet = new ethers.Wallet(this.config.agentSecret);
 
-    // Encode action with msgpack
-    const actionBytes = msgpack.encode(action);
+    // CRITICAL: Normalize trailing zeros before msgpack encoding
+    // Without this, "30000.0" and "30000" produce different hashes
+    const normalizedAction = HyperliquidConnector.normalizeTrailingZeros(action);
 
-    // Build connectionId: keccak256(actionBytes || nonce(8 bytes BE) || vaultAddress(20 bytes or zeros))
+    // Encode action with msgpack — do NOT use sortKeys!
+    // Hyperliquid's Python SDK uses msgpack.packb() which preserves insertion order.
+    // Using sortKeys would produce different bytes → different hash → rejected signature.
+    const actionBytes = Buffer.from(msgpackEncode(normalizedAction));
+
+    // Build connectionId: keccak256(actionBytes + nonce(8 bytes BE) + vault_tag)
     const nonceBytes = Buffer.alloc(8);
     nonceBytes.writeBigUInt64BE(BigInt(nonce));
 
+    // Vault encoding per Hyperliquid SDK: \x00 if null, \x01 + 20-byte address if present
     const vaultBytes = vaultAddress
-      ? Buffer.from(vaultAddress.replace('0x', ''), 'hex')
-      : Buffer.alloc(20);
+      ? Buffer.concat([Buffer.from([0x01]), Buffer.from(vaultAddress.replace('0x', ''), 'hex')])
+      : Buffer.from([0x00]);
 
     const connectionId = ethers.keccak256(
       Buffer.concat([actionBytes, nonceBytes, vaultBytes])
     );
 
-    // EIP-712 domain and types for Hyperliquid mainnet (Arbitrum chain ID)
+    // EIP-712 domain — MUST include verifyingContract per official SDK
     const domain = {
       name: 'Exchange',
       version: '1',
-      chainId: 42161,
+      chainId: 1337,
+      verifyingContract: '0x0000000000000000000000000000000000000000' as `0x${string}`,
     };
 
     const types = {
@@ -348,8 +464,9 @@ export class HyperliquidConnector {
       ],
     };
 
+    const isTestnet = this.config.testnet === true;
     const values = {
-      source: 'a', // 'a' = mainnet
+      source: isTestnet ? 'b' : 'a', // 'b' = testnet, 'a' = mainnet
       connectionId,
     };
 
@@ -359,9 +476,19 @@ export class HyperliquidConnector {
     return { r, s, v };
   }
 
+  /**
+   * Generate a monotonically increasing nonce to prevent collisions.
+   * Uses Date.now() as base but ensures strictly increasing values.
+   */
+  private getNextNonce(): number {
+    const now = Date.now();
+    this.nonceCounter = Math.max(this.nonceCounter + 1, now);
+    return this.nonceCounter;
+  }
+
   private async exchange(body: any): Promise<any> {
     try {
-      const nonce = Date.now();
+      const nonce = this.getNextNonce();
 
       const signature = await this.signL1Action(body.action, nonce, null);
 
@@ -381,10 +508,10 @@ export class HyperliquidConnector {
 
   /**
    * Resolve asset index from pair name.
-   * For known crypto perps, uses hardcoded indices.
    * For synth assets (stocks, forex, commodities), fetches from exchange metadata dynamically.
    */
   private assetMetaCache: Record<string, number> | null = null;
+  private szDecimalsCache: Record<string, number> = {};
 
   private async fetchAssetMeta(): Promise<Record<string, number>> {
     if (this.assetMetaCache) return this.assetMetaCache;
@@ -392,8 +519,12 @@ export class HyperliquidConnector {
       const meta = await this.request('/info', { type: 'meta' });
       const universe = meta?.universe || [];
       const mapping: Record<string, number> = {};
-      universe.forEach((asset: { name: string }, idx: number) => {
-        mapping[`${asset.name}-PERP`] = idx;
+      universe.forEach((asset: { name: string; szDecimals?: number }, idx: number) => {
+        const pair = `${asset.name}-PERP`;
+        mapping[pair] = idx;
+        if (asset.szDecimals !== undefined) {
+          this.szDecimalsCache[pair] = asset.szDecimals;
+        }
       });
       this.assetMetaCache = mapping;
       // Invalidate cache after 5 minutes
@@ -402,6 +533,13 @@ export class HyperliquidConnector {
     } catch {
       return {};
     }
+  }
+
+  /**
+   * Get szDecimals for a pair from cached metadata.
+   */
+  private getSzDecimals(pair: string): number {
+    return this.szDecimalsCache[pair] ?? 4; // default 4 if unknown
   }
 
   private getAssetIndex(pair: string): number {

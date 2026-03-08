@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown, Activity, DollarSign, BarChart3, PieChart } from 'lucide-react';
 import { useMempool } from '@/hooks/ordinals/useMempool';
 
@@ -16,8 +16,18 @@ interface MarketMetrics {
   marketCap: number;
 }
 
+interface CollectionItem {
+  volume24h?: number;
+  volume7d?: number;
+  totalVolume?: number;
+  listed?: number;
+  owners?: number;
+  supply?: number;
+  floorPrice?: number;
+}
+
 interface ProfessionalDashboardProps {
-  collections: any[];
+  collections: CollectionItem[];
   loading?: boolean;
 }
 
@@ -57,7 +67,7 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
     // Total supply across all collections (used for liquidity ratio)
     const totalSupply = collections.reduce((sum, c) => sum + (c.supply || 0), 0);
 
-    const validFloorPrices = collections.filter(c => c.floorPrice).map(c => c.floorPrice);
+    const validFloorPrices = collections.map(c => c.floorPrice ?? 0).filter(p => p > 0);
     const avgFloorPrice = validFloorPrices.length > 0
       ? validFloorPrices.reduce((sum, p) => sum + p, 0) / validFloorPrices.length
       : 0;
@@ -91,16 +101,17 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
     return btcValue.toFixed(4);
   };
 
-  // Get real BTC price from mempool hook, fallback to 50000
+  // Get real BTC price from mempool hook — show 0 if unavailable (never fake a price)
   const btcPriceUSD = useMemo(() => {
     if (mempool.bitcoinPrices.data) {
       const priceData = mempool.bitcoinPrices.data as Record<string, number>;
-      return priceData.USD || 50000;
+      return priceData.USD || 0;
     }
-    return 50000;
+    return 0;
   }, [mempool.bitcoinPrices.data]);
 
   const formatUSD = (btcValue: number): string => {
+    if (btcPriceUSD === 0) return '—';
     const usd = btcValue * btcPriceUSD;
     if (usd >= 1_000_000) return `$${(usd / 1_000_000).toFixed(2)}M`;
     if (usd >= 1_000) return `$${(usd / 1_000).toFixed(1)}K`;
@@ -137,7 +148,7 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
     value: string;
     subValue?: string;
     change?: number;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     trend?: 'up' | 'down' | 'neutral';
   }) => (
     <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-4 hover:border-[#f59e0b]/50 transition-all">
@@ -284,37 +295,58 @@ export default function ProfessionalDashboard({ collections, loading }: Professi
         />
       </div>
 
-      {/* Market Insights */}
+      {/* Market Insights — data-driven */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-[#1a1a2e] border border-green-500/20 rounded-lg p-4">
+        <div className={`bg-[#1a1a2e] border rounded-lg p-4 ${
+          volume24hChange > 10 ? 'border-green-500/20' : volume24hChange < -10 ? 'border-red-500/20' : 'border-yellow-500/20'
+        }`}>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-            <span className="text-xs font-semibold text-green-400 uppercase">Market Strength</span>
+            <div className={`w-2 h-2 rounded-full ${
+              volume24hChange > 10 ? 'bg-green-500' : volume24hChange < -10 ? 'bg-red-500' : 'bg-yellow-500'
+            }`}></div>
+            <span className={`text-xs font-semibold uppercase ${
+              volume24hChange > 10 ? 'text-green-400' : volume24hChange < -10 ? 'text-red-400' : 'text-yellow-400'
+            }`}>Market Strength</span>
           </div>
           <p className="text-sm text-gray-300">
-            Strong 24h volume indicates healthy market activity. Institutional interest remains high.
+            {metrics.totalVolume24h > 0
+              ? `24h volume ${volume24hChange >= 0 ? 'up' : 'down'} ${Math.abs(volume24hChange).toFixed(1)}% vs 7d average. ${volume24hChange > 10 ? 'Strong momentum.' : volume24hChange < -10 ? 'Activity cooling.' : 'Steady activity.'}`
+              : 'No 24h volume data available. Using cumulative volume metrics.'
+            }
           </p>
         </div>
 
-        <div className="bg-[#1a1a2e] border border-blue-500/20 rounded-lg p-4">
+        <div className={`bg-[#1a1a2e] border rounded-lg p-4 ${
+          metrics.totalListed > 5000 ? 'border-green-500/20' : metrics.totalListed > 1000 ? 'border-blue-500/20' : 'border-yellow-500/20'
+        }`}>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-xs font-semibold text-blue-400 uppercase">Liquidity Analysis</span>
+            <div className={`w-2 h-2 rounded-full ${
+              metrics.totalListed > 5000 ? 'bg-green-500' : metrics.totalListed > 1000 ? 'bg-blue-500' : 'bg-yellow-500'
+            }`}></div>
+            <span className={`text-xs font-semibold uppercase ${
+              metrics.totalListed > 5000 ? 'text-green-400' : metrics.totalListed > 1000 ? 'text-blue-400' : 'text-yellow-400'
+            }`}>Liquidity Analysis</span>
           </div>
           <p className="text-sm text-gray-300">
-            {metrics.totalListed > 5000 ? 'High' : 'Moderate'} liquidity with {formatNumber(metrics.totalListed)} listings.
-            Excellent entry/exit opportunities.
+            {metrics.totalListed > 5000 ? 'High' : metrics.totalListed > 1000 ? 'Moderate' : 'Low'} liquidity with {formatNumber(metrics.totalListed)} listings across {metrics.totalCollections} collections.
+            {metrics.totalSupply > 0 ? ` ${((metrics.totalListed / metrics.totalSupply) * 100).toFixed(1)}% of supply listed.` : ''}
           </p>
         </div>
 
-        <div className="bg-[#1a1a2e] border border-orange-500/20 rounded-lg p-4">
+        <div className={`bg-[#1a1a2e] border rounded-lg p-4 ${
+          metrics.totalOwners > 50000 ? 'border-green-500/20' : 'border-orange-500/20'
+        }`}>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-            <span className="text-xs font-semibold text-orange-400 uppercase">Risk Assessment</span>
+            <div className={`w-2 h-2 rounded-full ${
+              metrics.totalOwners > 50000 ? 'bg-green-500' : 'bg-orange-500'
+            }`}></div>
+            <span className={`text-xs font-semibold uppercase ${
+              metrics.totalOwners > 50000 ? 'text-green-400' : 'text-orange-400'
+            }`}>Risk Assessment</span>
           </div>
           <p className="text-sm text-gray-300">
-            Diversified collection base with {metrics.totalOwners > 50000 ? 'strong' : 'growing'} holder distribution.
-            Low concentration risk.
+            {formatNumber(metrics.totalOwners)} unique owners across {metrics.totalCollections} collections.
+            {metrics.totalOwners > 50000 ? ' Strong holder distribution — low concentration risk.' : ' Growing holder base — monitor for concentration risk.'}
           </p>
         </div>
       </div>

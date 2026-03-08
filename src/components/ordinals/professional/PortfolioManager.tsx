@@ -19,7 +19,43 @@ import {
   Coins,
   Gem,
   Loader2,
+  Zap,
+  Sparkles,
 } from 'lucide-react'
+
+interface PortfolioHolding {
+  id: string
+  name: string
+  symbol: string
+  itemCount: number
+  floorPrice: number
+  totalValue: number
+  totalValueUsd: number
+}
+
+interface BRC20Holding {
+  ticker: string
+  balance: string
+  availableBalance: string
+  transferableBalance: string
+}
+
+interface RuneHolding {
+  name: string
+  symbol: string
+  balance: number
+  rawBalance: string
+  floorPrice: number
+  volume24h: number
+}
+
+interface InscriptionToken {
+  inscriptionNumber: number
+  contentURI: string
+  meta?: { name?: string }
+  id: string
+  contentType?: string
+}
 
 interface PortfolioManagerProps {
   address: string | null
@@ -27,13 +63,15 @@ interface PortfolioManagerProps {
 
 export default function PortfolioManager({ address }: PortfolioManagerProps) {
   const { connect, connecting, ordinalsAddress } = useLaserEyes()
-  const [activeTab, setActiveTab] = useState<'overview' | 'collections' | 'brc20' | 'inscriptions'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'collections' | 'brc20' | 'runes' | 'inscriptions'>('overview')
 
   const {
     portfolioSummary,
     performance,
     holdings,
     brc20Holdings,
+    runesHoldings,
+    rareSatsSummary,
     marketTokens,
     isLoading,
     isError,
@@ -46,10 +84,11 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
     setConnectError(null)
     try {
       await connect('xverse')
-    } catch (err: any) {
-      console.error('Wallet connection failed:', err)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      console.error('Wallet connection failed')
       setConnectError(
-        err?.message?.includes('not found')
+        message.includes('not found')
           ? 'Xverse wallet extension not detected. Please install Xverse to continue.'
           : 'Failed to connect wallet. Please try again.'
       )
@@ -97,7 +136,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
           <Loader2 className="w-5 h-5 animate-spin text-[#f59e0b]" />
           <span className="text-sm text-gray-400">Loading portfolio data for {address?.slice(0, 8)}...{address?.slice(-4)}</span>
         </div>
-        {[...Array(3)].map((_: any, i: number) => (
+        {[...Array(3)].map((_: unknown, i: number) => (
           <Card key={i} variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">
             <div className="h-48 bg-[#2a2a3e] rounded animate-pulse"></div>
           </Card>
@@ -146,7 +185,25 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </Button>
-          <Button variant="primary" size="md" className="gap-2">
+          <Button
+            variant="primary"
+            size="md"
+            className="gap-2"
+            onClick={() => {
+              const rows = [
+                ['Name', 'Symbol', 'Items', 'Floor (BTC)', 'Value (BTC)'],
+                ...holdings.map((h: PortfolioHolding) => [h.name, h.symbol, h.itemCount, h.floorPrice.toFixed(8), h.totalValue.toFixed(8)]),
+              ]
+              const csv = rows.map(r => r.join(',')).join('\n')
+              const blob = new Blob([csv], { type: 'text/csv' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `portfolio_${new Date().toISOString().slice(0, 10)}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+          >
             <Download className="w-4 h-4" />
             Export
           </Button>
@@ -254,14 +311,15 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
         {[
           { id: 'overview', label: 'Overview', icon: Wallet },
           { id: 'collections', label: 'Collections', icon: ImageIcon },
+          { id: 'runes', label: 'Runes', icon: Zap },
           { id: 'brc20', label: 'BRC-20', icon: Coins },
           { id: 'inscriptions', label: 'Inscriptions', icon: Gem },
-        ].map((tab: any) => {
+        ].map((tab) => {
           const Icon = tab.icon
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as typeof activeTab)}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors ${
                 activeTab === tab.id
                   ? 'text-[#f59e0b] border-b-2 border-[#f59e0b]'
@@ -283,7 +341,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
             <h3 className="text-lg font-bold text-white mb-4">Top Holdings</h3>
             {holdings.length > 0 ? (
               <div className="space-y-3">
-                {holdings.slice(0, 5).map((holding: any, i: number) => (
+                {holdings.slice(0, 5).map((holding: PortfolioHolding, i: number) => (
                   <div
                     key={i}
                     className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]"
@@ -296,7 +354,9 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
                       <div className="font-semibold text-[#f59e0b]">
                         {holding.floorPrice?.toFixed(4) || '0.0000'} BTC
                       </div>
-                      <div className="text-xs text-gray-500">Floor</div>
+                      <div className="text-xs text-gray-500">
+                        {holding.totalValueUsd > 0 ? `≈ $${holding.totalValueUsd.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : 'Floor'}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -308,12 +368,50 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
             )}
           </Card>
 
+          {/* Runes + Rare Sats Overview */}
+          <Card variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">
+            <h3 className="text-lg font-bold text-white mb-4">Runes & Rare Sats</h3>
+            {runesHoldings.length > 0 ? (
+              <div className="space-y-3 mb-4">
+                {runesHoldings.slice(0, 3).map((rune: RuneHolding, i: number) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]">
+                    <div>
+                      <div className="font-semibold text-white">{rune.name}</div>
+                      <div className="text-xs text-gray-400">{rune.balance.toLocaleString()} tokens</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-purple-400">
+                        <Zap className="w-3 h-3 inline mr-1" />Rune
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 mb-4">No Runes found.</div>
+            )}
+            {rareSatsSummary && rareSatsSummary.totalCount > 0 ? (
+              <div className="p-3 bg-[#0a0a0f] rounded border border-purple-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <span className="font-semibold text-purple-300">Rare Sats</span>
+                </div>
+                <div className="text-sm text-white">{rareSatsSummary.totalCount} rare sats found</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {Object.entries(rareSatsSummary.categories).slice(0, 3).map(([type, count]) => `${type}: ${count}`).join(' · ')}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">No rare sats detected.</div>
+            )}
+          </Card>
+
           {/* BRC-20 Holdings */}
           <Card variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">
             <h3 className="text-lg font-bold text-white mb-4">BRC-20 Tokens</h3>
             {brc20Holdings.length > 0 ? (
               <div className="space-y-3">
-                {brc20Holdings.slice(0, 5).map((token: any, i: number) => (
+                {brc20Holdings.slice(0, 5).map((token: BRC20Holding, i: number) => (
                   <div
                     key={i}
                     className="flex items-center justify-between p-3 bg-[#0a0a0f] rounded border border-[#2a2a3e]"
@@ -345,7 +443,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
       {activeTab === 'collections' && (
         holdings.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {holdings.map((holding: any, i: number) => (
+            {holdings.map((holding: PortfolioHolding, i: number) => (
               <Card
                 key={i}
                 variant="bordered"
@@ -404,7 +502,7 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2a2a3e]">
-                {brc20Holdings.map((token: any, i: number) => (
+                {brc20Holdings.map((token: BRC20Holding, i: number) => (
                   <tr key={i} className="hover:bg-[#1a1a2e] transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-semibold text-white">{token.ticker}</span>
@@ -435,11 +533,60 @@ export default function PortfolioManager({ address }: PortfolioManagerProps) {
         )
       )}
 
+      {activeTab === 'runes' && (
+        runesHoldings.length > 0 ? (
+          <Card variant="bordered" padding="none" className="bg-[#0a0a0f] border-[#2a2a3e] overflow-hidden">
+            <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#1a1a2e] border-b border-[#2a2a3e]">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Rune</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Balance</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">Floor Price</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">24h Vol</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#2a2a3e]">
+                {runesHoldings.map((rune: RuneHolding, i: number) => (
+                  <tr key={i} className="hover:bg-[#1a1a2e] transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-purple-400" />
+                        <span className="font-semibold text-white">{rune.name}</span>
+                        {rune.symbol && <span className="text-xs text-gray-500">{rune.symbol}</span>}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-white font-mono">
+                      {rune.balance.toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-[#f59e0b] font-mono">
+                      {rune.floorPrice > 0 ? `${rune.floorPrice.toFixed(8)} BTC` : '—'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-gray-400 font-mono">
+                      {rune.volume24h > 0 ? `${rune.volume24h.toFixed(4)} BTC` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </div>
+          </Card>
+        ) : (
+          <Card variant="bordered" padding="lg" className="bg-[#1a1a2e] border-[#2a2a3e]">
+            <div className="text-center py-8">
+              <Zap className="w-12 h-12 mx-auto mb-3 text-gray-600" />
+              <h4 className="text-white font-semibold mb-1">No Runes Found</h4>
+              <p className="text-sm text-gray-400">This wallet does not hold any Bitcoin Runes.</p>
+            </div>
+          </Card>
+        )
+      )}
+
       {activeTab === 'inscriptions' && (
         <div>
           {marketTokens?.tokens?.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {marketTokens.tokens.slice(0, 20).map((token: any, i: number) => (
+              {marketTokens.tokens.slice(0, 20).map((token: InscriptionToken, i: number) => (
                 <Card
                   key={i}
                   variant="bordered"

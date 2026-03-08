@@ -26,7 +26,7 @@ import {
   Copy,
   Zap
 } from 'lucide-react';
-import { enhancedCypherAI, CypherAIResponse, CypherAIContext } from '@/services/enhanced-cypher-ai';
+import { enhancedCypherAI } from '@/services/enhanced-cypher-ai';
 import { EnhancedLogger } from '@/lib/enhanced-logger';
 import { ErrorReporter } from '@/lib/ErrorReporter';
 import { AgentBadge } from '@/components/cypher-ai/AgentBadge';
@@ -111,7 +111,7 @@ export function CypherAIInterface() {
     setIsProcessing(true);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       // Call the multi-agent API directly to get agent metadata
@@ -173,40 +173,13 @@ export function CypherAIInterface() {
         message: messageText
       });
 
-      // Fallback to enhancedCypherAI service with a hard timeout
-      try {
-        const context: CypherAIContext = {
-          conversationHistory: messages.map(m => `${m.type}: ${m.content}`),
-          timestamp: Date.now()
-        };
-        const fallbackPromise = enhancedCypherAI.processTextInput(messageText, context);
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Fallback timeout')), 10000)
-        );
-        const response = await Promise.race([fallbackPromise, timeoutPromise]);
-        const aiMessage: Message = {
-          id: crypto.randomUUID(),
-          type: 'ai',
-          content: response.text,
-          audioUrl: response.audioUrl,
-          timestamp: new Date(),
-          mood: response.mood,
-          emojis: response.emojis,
-          action: response.action
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        if (audioEnabled && response.audioUrl) {
-          playAudio(response.audioUrl);
-        }
-      } catch {
-        const errorMessage: Message = {
-          id: crypto.randomUUID(),
-          type: 'ai',
-          content: 'Connection error. Please try again.',
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, errorMessage]);
-      }
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'ai',
+        content: 'Connection error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       clearTimeout(timeoutId);
       setIsProcessing(false);

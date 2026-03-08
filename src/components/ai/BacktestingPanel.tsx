@@ -39,10 +39,11 @@ export default function BacktestingPanel() {
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const fetchData = async () => {
       try {
         setLoadingData(true);
-        const res = await fetch('/api/cypher-ai/dashboard-data');
+        const res = await fetch('/api/cypher-ai/dashboard-data', { signal: controller.signal });
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         if (cancelled || !data.klines) return;
@@ -109,7 +110,7 @@ export default function BacktestingPanel() {
     };
 
     fetchData();
-    return () => { cancelled = true; };
+    return () => { cancelled = true; controller.abort(); };
   }, []);
 
   const handleRunBacktest = async () => {

@@ -6,6 +6,7 @@ import {
   type SubscriptionTier,
   SUBSCRIPTION_TIERS,
   FEATURE_TIER_MAP,
+  normalizeTier,
 } from '@/lib/stripe/config'
 
 interface UpgradePromptProps {
@@ -17,8 +18,9 @@ export function UpgradePrompt({ requiredTier, requiredFeature }: UpgradePromptPr
   const router = useRouter()
 
   // Determine the target tier
-  const targetTier: SubscriptionTier = requiredTier
-    || (requiredFeature ? FEATURE_TIER_MAP[requiredFeature] || 'explorer' : 'explorer')
+  const targetTier: SubscriptionTier = normalizeTier(
+    requiredTier || (requiredFeature ? FEATURE_TIER_MAP[requiredFeature] : undefined) || 'explorer'
+  )
 
   const tierConfig = SUBSCRIPTION_TIERS[targetTier]
 

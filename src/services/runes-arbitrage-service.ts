@@ -1,6 +1,7 @@
 import { neuralLearningService } from './neural-learning-service';
 import { runesMarketService, type RuneMarketInfo, type RuneCollectionStat } from './runesMarketService';
 import { xverseAPI } from '@/lib/api/xverse';
+import { EnhancedLogger } from '@/lib/enhanced-logger';
 
 // Runas populares para monitorar arbitragem (nomes reais do protocolo)
 const TRACKED_RUNES = [
@@ -165,7 +166,7 @@ export class RunesArbitrageService {
         }
       }
     } catch (err) {
-      console.warn(`[RunesArbitrage] UniSat API failed for ${runeName}:`, err instanceof Error ? err.message : err);
+      EnhancedLogger.warn(`[RunesArbitrage] UniSat API failed for ${runeName}: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     // OKX Web3 Marketplace API
@@ -187,7 +188,7 @@ export class RunesArbitrageService {
         }
       }
     } catch (err) {
-      console.warn(`[RunesArbitrage] OKX API failed for ${runeName}:`, err instanceof Error ? err.message : err);
+      EnhancedLogger.warn(`[RunesArbitrage] OKX API failed for ${runeName}: ${err instanceof Error ? err.message : String(err)}`);
     }
 
     clearTimeout(timeout);
@@ -213,7 +214,7 @@ export class RunesArbitrageService {
         }
       }
     } catch (err) {
-      console.warn(`[RunesArbitrage] Xverse API failed for ${runeName}:`, err instanceof Error ? err.message : err);
+      EnhancedLogger.warn(`[RunesArbitrage] Xverse API failed for ${runeName}: ${err instanceof Error ? err.message : String(err)}`);
     }
     return null;
   }
@@ -285,7 +286,7 @@ export class RunesArbitrageService {
 
         // Precisamos de pelo menos 2 exchanges com preços válidos
         if (allPrices.length < 2) {
-          console.warn(`[RunesArbitrage] ${runeName}: only ${allPrices.length} exchange(s) returned prices, need ≥2`);
+          EnhancedLogger.warn(`[RunesArbitrage] ${runeName}: only ${allPrices.length} exchange(s) returned prices, need ≥2`);
           continue;
         }
 
@@ -368,16 +369,16 @@ Volume 24h combinado: ${totalVolume.toLocaleString()} sats. Listagens disponíve
       this.lastUpdate = new Date();
 
     } catch (error) {
-      console.error('[Arbitrage] Error generating runes arbitrage insights:', error);
+      EnhancedLogger.error('[RunesArbitrage] Error generating insights', error instanceof Error ? error : new Error(String(error)));
     } finally {
       this.isUpdating = false;
     }
   }
 
-  public getRunesArbitrageInsights(): RuneArbitrageInsight[] {
+  public async getRunesArbitrageInsights(): Promise<RuneArbitrageInsight[]> {
     const now = new Date();
     if (now.getTime() - this.lastUpdate.getTime() > this.updateInterval) {
-      this.generateRunesArbitrageInsights();
+      await this.generateRunesArbitrageInsights();
     }
     return this.cachedInsights;
   }

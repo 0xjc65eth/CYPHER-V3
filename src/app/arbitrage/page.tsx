@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,48 +9,41 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Brain,
   TrendingUp,
-  TrendingDown,
   Activity,
   AlertTriangle,
-  Volume2,
   Eye,
-  ExternalLink,
-  Filter,
   RefreshCw,
   Zap,
   Target,
   Bell,
   BellOff,
-  Maximize2,
   BarChart3,
-  Home,
-  ArrowLeft,
-  Info
+  Info,
+  ArrowRightLeft,
+  Triangle,
 } from 'lucide-react';
-import Link from 'next/link';
 import { PremiumContent } from '@/components/premium-content';
 import { RunesTerminalProvider } from '@/contexts/RunesTerminalContext';
+import { useUnifiedArbitrage, useSpotPerpArbitrage, type UnifiedOpportunity } from '@/hooks/useArbitrage';
 import { useArbitrage } from '@/hooks/useArbitrage';
-import ArbitrageHeatmap from '@/components/arbitrage/ArbitrageHeatmap';
 import OpportunityDetails from '@/components/arbitrage/OpportunityDetails';
+import type { ArbitrageOpportunity as OpportunityType } from '@/hooks/useArbitrage';
 import ArbitrageHistory from '@/components/arbitrage/ArbitrageHistory';
 import SpreadChart from '@/components/arbitrage/SpreadChart';
 import ExchangePriceTable from '@/components/arbitrage/ExchangePriceTable';
 import ProfitCalculator from '@/components/arbitrage/ProfitCalculator';
 import { triangularArbitrage, ArbitrageOpportunity as TriangularOpportunity } from '@/services/arbitrage/TriangularArbitrage';
-import { OpportunityScanner } from '@/components/arbitrage/OpportunityScanner';
 import { ExchangePriceGrid } from '@/components/arbitrage/ExchangePriceGrid';
-import { OrderBlocksPanel } from '@/components/arbitrage/OrderBlocksPanel';
-import { FairValueGapsPanel } from '@/components/arbitrage/FairValueGapsPanel';
-import { MarketMakerMetrics } from '@/components/arbitrage/MarketMakerMetrics';
 import { TriangularPathVisualizer } from '@/components/arbitrage/TriangularPathVisualizer';
 import { PerformanceAnalytics } from '@/components/arbitrage/PerformanceAnalytics';
-import { RiskManagementPanel } from '@/components/arbitrage/RiskManagementPanel';
 import { ProfessionalCharts } from '@/components/arbitrage/ProfessionalCharts';
 import { LiquidityHeatmap } from '@/components/arbitrage/LiquidityHeatmap';
 import { PaperTradingPanel } from '@/components/arbitrage/PaperTradingPanel';
 import { BacktestPanel } from '@/components/arbitrage/BacktestPanel';
 import { AlertSystemPanel } from '@/components/arbitrage/AlertSystemPanel';
+import { OrderBlocksPanel } from '@/components/arbitrage/OrderBlocksPanel';
+import { FairValueGapsPanel } from '@/components/arbitrage/FairValueGapsPanel';
+import { MarketMakerMetrics } from '@/components/arbitrage/MarketMakerMetrics';
 
 interface ArbitrageApiData {
   exchanges: Array<{
@@ -85,15 +78,44 @@ interface ArbitrageApiData {
   timestamp: number;
 }
 
+interface SelectedOpportunityInfo {
+  symbol: string;
+  buySource?: string;
+  sellSource?: string;
+  buyPrice?: number;
+  sellPrice?: number;
+  spread?: number;
+  type?: string;
+  riskScore?: string;
+  confidence?: number;
+}
+
 const SUPPORTED_PAIRS = ['ALL', 'BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'XRP/USDT', 'DOGE/USDT'] as const;
 
+const ARB_TYPE_COLORS: Record<string, string> = {
+  'cex-cex': 'bg-blue-500/20 border-blue-500 text-blue-400',
+  'spot-perp': 'bg-cyan-500/20 border-cyan-500 text-cyan-400',
+  'triangular': 'bg-green-500/20 border-green-500 text-green-400',
+  'ordinals': 'bg-orange-500/20 border-orange-500 text-orange-400',
+  'runes': 'bg-purple-500/20 border-purple-500 text-purple-400',
+  'brc20': 'bg-yellow-500/20 border-yellow-500 text-yellow-400',
+};
+
+const ARB_TYPE_LABELS: Record<string, string> = {
+  'cex-cex': 'CEX↔CEX',
+  'spot-perp': 'Spot↔Perp',
+  'triangular': 'Triangular',
+  'ordinals': 'Ordinals',
+  'runes': 'Runes',
+  'brc20': 'BRC-20',
+};
+
 export default function ArbitragePage() {
-  const [minSpread, setMinSpread] = useState(0);
-  const [selectedAssetType, setSelectedAssetType] = useState<'all' | 'ordinals' | 'runes' | 'tokens'>('all');
   const [selectedPair, setSelectedPair] = useState<string>('ALL');
-  const [selectedOpportunity, setSelectedOpportunity] = useState<any>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<SelectedOpportunityInfo | null>(null);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
-  const [newOpportunityCount, setNewOpportunityCount] = useState(0);
+  const [arbTypeFilter, setArbTypeFilter] = useState<string>('all');
+  const [countdown, setCountdown] = useState(15);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Real exchange data from /api/arbitrage/prices
@@ -101,20 +123,30 @@ export default function ArbitragePage() {
   const [arbLoading, setArbLoading] = useState(true);
   const [arbError, setArbError] = useState<string | null>(null);
   const [arbLastUpdate, setArbLastUpdate] = useState<Date | null>(null);
-  const [countdown, setCountdown] = useState(15);
 
-  // Triangular arbitrage opportunities from real engine
+  // Unified arbitrage data
+  const {
+    opportunities: unifiedOpps,
+    typeCounts,
+    totalCount: unifiedTotal,
+    bestNetProfit,
+    loading: unifiedLoading,
+    error: unifiedError,
+    refresh: refreshUnified,
+  } = useUnifiedArbitrage(arbTypeFilter);
+
+  // Spot-Perp summary for card
+  const { summary: spotPerpSummary, loading: spotPerpLoading } = useSpotPerpArbitrage();
+
+  // Triangular arbitrage for dedicated tab
   const [triangularOpps, setTriangularOpps] = useState<TriangularOpportunity[]>([]);
   const [triangularLoading, setTriangularLoading] = useState(false);
 
+  // Cross-exchange hook (for paper trading tab)
   const {
-    opportunities,
-    loading,
-    error,
-    lastUpdate,
-    totalSpread,
-    avgSpread
-  } = useArbitrage(minSpread, selectedAssetType, selectedPair);
+    opportunities: crossExchangeOpps,
+    loading: crossExchangeLoading,
+  } = useArbitrage(0, 'all', selectedPair);
 
   const fetchArbPrices = useCallback(async () => {
     try {
@@ -140,11 +172,10 @@ export default function ArbitragePage() {
   const fetchTriangularOpportunities = useCallback(async () => {
     try {
       setTriangularLoading(true);
-      // Get active opportunities from the triangular arbitrage engine
-      const opportunities = await triangularArbitrage.scanTriangularArbitrage('USDT');
-      setTriangularOpps(opportunities);
-    } catch (error) {
-      console.error('Error fetching triangular opportunities:', error);
+      const opps = await triangularArbitrage.scanTriangularArbitrage('USDT');
+      setTriangularOpps(opps);
+    } catch {
+      // Triangular scan failed silently
     } finally {
       setTriangularLoading(false);
     }
@@ -152,13 +183,15 @@ export default function ArbitragePage() {
 
   useEffect(() => {
     fetchArbPrices();
-    fetchTriangularOpportunities();
-    const interval = setInterval(() => {
-      fetchArbPrices();
-      fetchTriangularOpportunities();
-    }, 30000); // 30 seconds for triangular (matches engine's update cycle)
+    const interval = setInterval(fetchArbPrices, 15000);
     return () => clearInterval(interval);
-  }, [fetchArbPrices, fetchTriangularOpportunities]);
+  }, [fetchArbPrices]);
+
+  useEffect(() => {
+    fetchTriangularOpportunities();
+    const interval = setInterval(fetchTriangularOpportunities, 60000);
+    return () => clearInterval(interval);
+  }, [fetchTriangularOpportunities]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -166,32 +199,6 @@ export default function ArbitragePage() {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Alert system for new opportunities
-  useEffect(() => {
-    if (opportunities.length > newOpportunityCount && newOpportunityCount > 0 && alertsEnabled) {
-      if (audioRef.current) {
-        audioRef.current.play().catch(console.error);
-      }
-      setNewOpportunityCount(opportunities.length);
-    } else {
-      setNewOpportunityCount(opportunities.length);
-    }
-  }, [opportunities.length, newOpportunityCount, alertsEnabled]);
-
-  const formatCurrency = (value: number, currency: string = 'BTC') => {
-    if (currency === 'BTC') {
-      return `₿${value.toFixed(8)}`;
-    } else if (currency === 'USD') {
-      return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    return `${value.toFixed(6)} ${currency}`;
-  };
-
-  const formatSpread = (spread: number) => {
-    const color = spread >= 15 ? 'text-red-400' : spread >= 10 ? 'text-orange-400' : 'text-green-400';
-    return <span className={`font-bold ${color}`}>{spread.toFixed(2)}%</span>;
-  };
 
   const getRiskBadgeColor = (riskScore: string) => {
     switch (riskScore) {
@@ -201,128 +208,6 @@ export default function ArbitragePage() {
       default: return 'bg-gray-500/20 border-gray-500 text-gray-400';
     }
   };
-
-  const formatExecutionTime = (seconds: number) => {
-    if (seconds < 60) return `${seconds}s`;
-    if (seconds < 3600) return `${Math.round(seconds / 60)}min`;
-    return `${Math.round(seconds / 3600)}h`;
-  };
-
-  const OpportunityRow = ({ opportunity, index }: { opportunity: any; index: number }) => {
-    return (
-      <motion.tr
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: index * 0.1, duration: 0.3 }}
-        className="border-b border-[#2a2a3e] hover:bg-white/[0.02] cursor-pointer transition-all duration-200"
-        onClick={() => setSelectedOpportunity(opportunity)}
-      >
-        <td className="p-4">
-          <div className="flex items-center gap-2">
-            <Badge className={`${
-              opportunity.type === 'ordinals' ? 'bg-orange-500/20 border-orange-500 text-orange-400' :
-              opportunity.type === 'runes' ? 'bg-purple-500/20 border-purple-500 text-purple-400' :
-              'bg-blue-500/20 border-blue-500 text-blue-400'
-            } border`}>
-              {opportunity.type.toUpperCase()}
-            </Badge>
-            <div>
-              <div className="font-bold text-white">{opportunity.symbol}</div>
-              <div className="text-xs text-gray-400">{opportunity.name}</div>
-            </div>
-          </div>
-        </td>
-        <td className="p-4">
-          <div className="text-center">
-            <div className="text-green-400 font-mono font-bold">
-              {formatCurrency(opportunity.buyPrice, opportunity.baseCurrency)}
-            </div>
-            <div className="text-xs text-gray-400">{opportunity.buySource}</div>
-          </div>
-        </td>
-        <td className="p-4">
-          <div className="text-center">
-            <div className="text-red-400 font-mono font-bold">
-              {formatCurrency(opportunity.sellPrice, opportunity.baseCurrency)}
-            </div>
-            <div className="text-xs text-gray-400">{opportunity.sellSource}</div>
-          </div>
-        </td>
-        <td className="p-4 text-center">
-          {formatSpread(opportunity.spread)}
-        </td>
-        <td className="p-4">
-          <div className="text-center">
-            <div className="text-white font-mono">
-              {formatCurrency(opportunity.potentialProfit, opportunity.baseCurrency)}
-            </div>
-            <div className="text-xs text-gray-400">
-              Taxa: {opportunity.estimatedFees ? formatCurrency(opportunity.estimatedFees.total, opportunity.baseCurrency) : 'N/A'}
-            </div>
-          </div>
-        </td>
-        <td className="p-4">
-          <div className="text-center space-y-1">
-            <Badge className={`${getRiskBadgeColor(opportunity.riskScore)} border text-xs`}>
-              {opportunity.riskScore.toUpperCase()}
-            </Badge>
-            <div className="text-xs text-gray-400">
-              Trust: {opportunity.trustScore || 0}%
-            </div>
-          </div>
-        </td>
-        <td className="p-4">
-          <div className="text-center">
-            <div className="text-cyan-400 font-mono font-bold">
-              {formatExecutionTime(opportunity.executionTime || 300)}
-            </div>
-            <div className="text-xs text-gray-400">
-              {opportunity.historicalSuccess ? `${opportunity.historicalSuccess}% success` : 'New'}
-            </div>
-          </div>
-        </td>
-        <td className="p-4">
-          <div className="flex items-center justify-center gap-1">
-            {opportunity.liquidity >= 80 ? (
-              <Badge className="bg-green-500/20 border-green-500 text-green-400 border">High</Badge>
-            ) : opportunity.liquidity >= 50 ? (
-              <Badge className="bg-yellow-500/20 border-yellow-500 text-yellow-400 border">Med</Badge>
-            ) : (
-              <Badge className="bg-red-500/20 border-red-500 text-red-400 border">Low</Badge>
-            )}
-          </div>
-        </td>
-        <td className="p-4">
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedOpportunity(opportunity);
-              }}
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Details
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-gray-600 hover:border-green-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                window.open(opportunity.buyLink, '_blank');
-              }}
-            >
-              <ExternalLink className="h-3 w-3" />
-            </Button>
-          </div>
-        </td>
-      </motion.tr>
-    );
-  };
-
-  const bestOpp = arbData?.opportunities?.[0];
 
   const arbYhpFallback = (tabName: string) => (
     <div className="flex flex-col items-center justify-center py-20 px-4">
@@ -337,6 +222,13 @@ export default function ArbitragePage() {
     </div>
   );
 
+  // Filter unified opportunities by pair if selected
+  const filteredUnifiedOpps = selectedPair === 'ALL'
+    ? unifiedOpps
+    : unifiedOpps.filter(o => o.asset === selectedPair.split('/')[0]);
+
+  const bestOpp = arbData?.opportunities?.[0];
+
   return (
     <RunesTerminalProvider>
       <div className="min-h-screen bg-[#0a0a0f] text-white font-mono">
@@ -347,7 +239,7 @@ export default function ArbitragePage() {
               <Brain className="h-8 w-8 text-orange-500 shrink-0" />
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-orange-400">CYPHER ARBITRAGE</h1>
-                <p className="text-gray-400 text-sm">8-Exchange Real-Time Spread Detection</p>
+                <p className="text-gray-400 text-sm">Unified Multi-Type Arbitrage Intelligence</p>
               </div>
             </div>
 
@@ -356,7 +248,6 @@ export default function ArbitragePage() {
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                 <span>LIVE</span>
               </div>
-              {/* Pair Selector */}
               <select
                 value={selectedPair}
                 onChange={(e) => setSelectedPair(e.target.value)}
@@ -389,16 +280,13 @@ export default function ArbitragePage() {
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content — 6 consolidated tabs */}
         <div className="p-6">
           <Tabs defaultValue="scanner" className="w-full">
             <div className="border-b border-[#1a1a2e] mb-6">
-              <TabsList className="bg-transparent border-0 p-0 h-auto">
+              <TabsList className="bg-transparent border-0 p-0 h-auto flex flex-wrap gap-0">
                 <TabsTrigger value="scanner" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Live Scanner
-                </TabsTrigger>
-                <TabsTrigger value="cross-exchange" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Cross-Exchange <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
+                  Scanner
                 </TabsTrigger>
                 <TabsTrigger value="triangular" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
                   Triangular <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
@@ -406,134 +294,250 @@ export default function ArbitragePage() {
                 <TabsTrigger value="analytics" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
                   Analytics <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
-                <TabsTrigger value="smc" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  SMC Analysis <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
+                <TabsTrigger value="charts-smc" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Charts & SMC <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
-                <TabsTrigger value="performance" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Performance <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
-                </TabsTrigger>
-                <TabsTrigger value="risk" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Risk <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
-                </TabsTrigger>
-                <TabsTrigger value="charts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Charts <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
-                </TabsTrigger>
-                <TabsTrigger value="paper-trading" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                <TabsTrigger value="paper-backtest" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
                   Paper Trading <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
                 </TabsTrigger>
-                <TabsTrigger value="backtest" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Backtest <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
-                </TabsTrigger>
-                <TabsTrigger value="alerts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  Alerts <span className="ml-1 px-1 py-0.5 text-[9px] bg-purple-500/20 text-purple-400 rounded font-bold">YHP</span>
-                </TabsTrigger>
-                <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
-                  History
+                <TabsTrigger value="alerts-history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#00ff88] data-[state=active]:bg-transparent data-[state=active]:text-[#00ff88] text-gray-500 px-4 py-2 text-sm font-mono">
+                  Alerts & History
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            {/* Live Scanner Tab */}
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 1: UNIFIED SCANNER — All arb types in one view
+            ═══════════════════════════════════════════════════════════ */}
             <TabsContent value="scanner">
               <div className="space-y-6">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Summary Cards — 5 cards including Spot vs Perp */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total Opportunities</div>
+                    <div className="text-2xl font-bold text-orange-400">
+                      {unifiedLoading ? '--' : unifiedTotal}
+                    </div>
+                    <div className="text-xs text-gray-400">across all types</div>
+                  </div>
+                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Best Net Profit</div>
+                    <div className={`text-2xl font-bold ${bestNetProfit > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {unifiedLoading ? '--' : `${bestNetProfit.toFixed(4)}%`}
+                    </div>
+                    <div className="text-xs text-gray-400">after fees</div>
+                  </div>
                   <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
                     <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Exchanges</div>
-                    <div className="text-2xl font-bold text-orange-400">
+                    <div className="text-2xl font-bold text-blue-400">
                       {arbData?.exchangeCount || '--'}
                     </div>
                     <div className="text-xs text-gray-400">with live data</div>
                   </div>
                   <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Max Spread</div>
-                    <div className="text-2xl font-bold text-green-400">
-                      {arbData?.maxSpreadPercent != null ? `${arbData.maxSpreadPercent.toFixed(4)}%` : '--'}
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Live Arb Types</div>
+                    <div className="text-2xl font-bold text-purple-400">
+                      {Object.keys(typeCounts).length || '--'}
                     </div>
                     <div className="text-xs text-gray-400">
-                      ${arbData?.maxSpread != null ? arbData.maxSpread.toFixed(2) : '--'}
+                      {Object.entries(typeCounts).map(([k, v]) => `${ARB_TYPE_LABELS[k] || k}: ${v}`).join(', ') || 'scanning...'}
                     </div>
                   </div>
-                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Best Opportunity</div>
-                    <div className="text-sm font-bold text-cyan-400 truncate">
-                      {bestOpp ? `${bestOpp.buyFrom} → ${bestOpp.sellTo}` : '--'}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {bestOpp ? `Net: ${bestOpp.netProfitPercent.toFixed(4)}%` : 'No opportunities'}
-                    </div>
-                  </div>
-                  <div className="bg-[#1a1a2e] rounded-lg border border-[#2a2a3e] p-4">
-                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Est. Profit / 1 BTC</div>
-                    <div className={`text-2xl font-bold ${bestOpp?.estimatedProfitPer1BTC && bestOpp.estimatedProfitPer1BTC > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                      {bestOpp?.estimatedProfitPer1BTC != null ? `$${bestOpp.estimatedProfitPer1BTC.toFixed(2)}` : '--'}
-                    </div>
-                    <div className="text-xs text-gray-400">after fees</div>
+                  {/* Spot vs Perp Card */}
+                  <div className={`bg-[#1a1a2e] rounded-lg border p-4 ${
+                    spotPerpSummary && spotPerpSummary.btcBasis > 0
+                      ? 'border-green-500/40'
+                      : spotPerpSummary && spotPerpSummary.btcBasis < 0
+                        ? 'border-red-500/40'
+                        : 'border-[#2a2a3e]'
+                  }`}>
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Spot vs Perp</div>
+                    {spotPerpLoading ? (
+                      <div className="text-2xl font-bold text-gray-500">--</div>
+                    ) : spotPerpSummary ? (
+                      <>
+                        <div className={`text-2xl font-bold ${spotPerpSummary.btcBasis > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                          {spotPerpSummary.btcBasis > 0 ? '+' : ''}{spotPerpSummary.btcBasis.toFixed(4)}%
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          Funding: {(spotPerpSummary.btcFundingRate * 100).toFixed(4)}% / 8h
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          Ann: {spotPerpSummary.btcAnnualizedFunding.toFixed(1)}%
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-500">No data</div>
+                    )}
                   </div>
                 </div>
 
-                {/* Educational Banner - Why Negative Profits */}
+                {/* Type Filter Chips */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500 uppercase tracking-wider">Filter:</span>
+                  {[
+                    { key: 'all', label: 'All Types', icon: Target },
+                    { key: 'cex-cex', label: 'CEX↔CEX', icon: ArrowRightLeft },
+                    { key: 'spot-perp', label: 'Spot↔Perp', icon: TrendingUp },
+                    { key: 'triangular', label: 'Triangular', icon: Triangle },
+                    { key: 'ordinals', label: 'Ordinals', icon: Eye },
+                    { key: 'runes', label: 'Runes', icon: Zap },
+                    { key: 'brc20', label: 'BRC-20', icon: Activity },
+                  ].map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => setArbTypeFilter(key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors ${
+                        arbTypeFilter === key
+                          ? 'bg-[#00ff88]/10 border-[#00ff88]/50 text-[#00ff88]'
+                          : 'bg-[#1a1a2e] border-[#2a2a3e] text-gray-400 hover:border-gray-500'
+                      }`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {label}
+                      {key !== 'all' && typeCounts[key] != null && (
+                        <span className="ml-1 text-[10px] opacity-70">({typeCounts[key]})</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Educational Banner */}
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <Info className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h3 className="text-blue-400 font-semibold mb-2 flex items-center gap-2">
-                        Real-Time 8-Exchange Arbitrage Scanner
-                      </h3>
+                      <h3 className="text-blue-400 font-semibold mb-1">Unified Arbitrage Scanner</h3>
                       <p className="text-sm text-gray-300 leading-relaxed">
-                        Live {selectedPair === 'ALL' ? 'multi-pair' : selectedPair} prices from Binance, Coinbase, Kraken, Bybit, OKX, Bitfinex, KuCoin, and Gate.io.
-                        Spreads are typically 0.01-0.10% — smaller than combined fees (0.2-1%). Green rows indicate
-                        net-profitable opportunities after fees. Most spreads are captured within seconds by HFT bots.
+                        Real-time scanning across CEX↔CEX (8 exchanges), Spot↔Perp (Hyperliquid), and Triangular paths.
+                        Net profit accounts for trading fees, network costs, and slippage. Refreshes every 15 seconds.
                       </p>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-blue-300">
-                        <span className="font-mono">Net Profit = Spread% - BuyFee% - SellFee% - NetworkFee%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Unified Opportunities Table */}
+                <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-orange-400 flex items-center gap-2 text-base">
+                        <Zap className="h-5 w-5" />
+                        Live Opportunities
+                        {!unifiedLoading && <span className="text-xs text-gray-500 font-normal ml-2">{filteredUnifiedOpps.length} found</span>}
+                      </CardTitle>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-[#2a2a3e] hover:border-orange-500"
+                        disabled={unifiedLoading}
+                        onClick={() => refreshUnified()}
+                      >
+                        <RefreshCw className={`h-3 w-3 mr-1 ${unifiedLoading ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {unifiedLoading && filteredUnifiedOpps.length === 0 ? (
+                      <div className="space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="h-12 bg-gray-800/50 rounded animate-pulse" />
+                        ))}
                       </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Controls */}
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-400">
-                    Live {selectedPair === 'ALL' ? 'BTC/USDT' : selectedPair} prices from {arbData?.exchangeCount || 0} exchanges
-                    {arbData?.errors && arbData.errors.length > 0 && (
-                      <span className="ml-2 text-yellow-400 text-xs">
-                        ({arbData.errors.length} exchange{arbData.errors.length > 1 ? 's' : ''} failed)
-                      </span>
+                    ) : unifiedError ? (
+                      <div className="text-center py-8">
+                        <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                        <p className="text-red-400 text-sm">{unifiedError}</p>
+                      </div>
+                    ) : filteredUnifiedOpps.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Target className="h-8 w-8 text-gray-500 mx-auto mb-2" />
+                        <p className="text-gray-400 text-sm">No opportunities detected for this filter</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full min-w-[900px]">
+                          <thead>
+                            <tr className="border-b border-[#2a2a3e]">
+                              <th className="text-left p-3 text-gray-400 text-xs">Type</th>
+                              <th className="text-left p-3 text-gray-400 text-xs">Asset</th>
+                              <th className="text-left p-3 text-gray-400 text-xs">Buy Market</th>
+                              <th className="text-left p-3 text-gray-400 text-xs">Sell Market</th>
+                              <th className="text-right p-3 text-gray-400 text-xs">Buy Price</th>
+                              <th className="text-right p-3 text-gray-400 text-xs">Sell Price</th>
+                              <th className="text-right p-3 text-gray-400 text-xs">Spread %</th>
+                              <th className="text-right p-3 text-gray-400 text-xs">Net Profit</th>
+                              <th className="text-center p-3 text-gray-400 text-xs">Confidence</th>
+                              <th className="text-center p-3 text-gray-400 text-xs">Risk</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredUnifiedOpps.slice(0, 30).map((opp, i) => (
+                              <motion.tr
+                                key={opp.id}
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: i * 0.02 }}
+                                className={`border-b border-[#1a1a2e] hover:bg-white/[0.02] cursor-pointer transition-colors ${
+                                  opp.netProfitPercent > 0 ? 'bg-green-500/[0.02]' : ''
+                                }`}
+                                onClick={() => setSelectedOpportunity({
+                                  symbol: opp.asset,
+                                  buySource: opp.buyExchange,
+                                  sellSource: opp.sellExchange,
+                                  buyPrice: opp.buyPrice,
+                                  sellPrice: opp.sellPrice,
+                                  spread: opp.spreadPercent,
+                                  type: opp.arbType,
+                                  riskScore: opp.riskLevel,
+                                  confidence: opp.confidence,
+                                })}
+                              >
+                                <td className="p-3">
+                                  <Badge className={`${ARB_TYPE_COLORS[opp.arbType] || 'bg-gray-500/20 border-gray-500 text-gray-400'} border text-[10px]`}>
+                                    {ARB_TYPE_LABELS[opp.arbType] || opp.arbType}
+                                  </Badge>
+                                </td>
+                                <td className="p-3">
+                                  <span className="font-bold text-white text-sm">{opp.asset}</span>
+                                </td>
+                                <td className="p-3 text-sm text-gray-300">{opp.buyExchange}</td>
+                                <td className="p-3 text-sm text-gray-300">{opp.sellExchange}</td>
+                                <td className="p-3 text-right font-mono text-sm text-green-400">
+                                  ${opp.buyPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-3 text-right font-mono text-sm text-red-400">
+                                  ${opp.sellPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="p-3 text-right font-mono text-sm">
+                                  <span className={opp.spreadPercent > 0.05 ? 'text-green-400' : 'text-gray-300'}>
+                                    {opp.spreadPercent.toFixed(4)}%
+                                  </span>
+                                </td>
+                                <td className="p-3 text-right font-mono text-sm">
+                                  <span className={`font-bold ${opp.netProfitPercent > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {opp.netProfitPercent > 0 ? '+' : ''}{opp.netProfitPercent.toFixed(4)}%
+                                  </span>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <span className="text-xs text-gray-300">{opp.confidence}%</span>
+                                </td>
+                                <td className="p-3 text-center">
+                                  <Badge className={`${getRiskBadgeColor(opp.riskLevel)} border text-[10px]`}>
+                                    {opp.riskLevel.toUpperCase()}
+                                  </Badge>
+                                </td>
+                              </motion.tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-[#2a2a3e] hover:border-orange-500"
-                    disabled={arbLoading}
-                    onClick={fetchArbPrices}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${arbLoading ? 'animate-spin' : ''}`} />
-                    {arbLoading ? 'Updating...' : 'Refresh'}
-                  </Button>
-                </div>
+                  </CardContent>
+                </Card>
 
-                {arbError && (
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center justify-between">
-                    <span>
-                      <AlertTriangle className="h-4 w-4 inline mr-2" />
-                      {arbError}
-                    </span>
-                    <button onClick={fetchArbPrices} className="text-xs underline hover:text-red-300">Retry</button>
-                  </div>
-                )}
-
-                {/* Exchange Price Table */}
-                {arbLoading && !arbData ? (
-                  <div className="bg-[#1a1a2e] rounded-xl border border-[#2a2a3e] p-6">
-                    <div className="space-y-3">
-                      {[...Array(8)].map((_, i) => (
-                        <div key={i} className="h-10 bg-gray-800/50 rounded animate-pulse" />
-                      ))}
-                    </div>
-                  </div>
-                ) : arbData ? (
+                {/* Exchange Price Table + Profit Calculator (existing) */}
+                {arbData && (
                   <>
                     <ExchangePriceTable
                       exchanges={arbData.exchanges}
@@ -541,38 +545,19 @@ export default function ArbitragePage() {
                       bestBid={arbData.bestBid}
                       bestAsk={arbData.bestAsk}
                     />
-
                     <ProfitCalculator
                       arbOpportunities={arbData.opportunities}
                       fees={arbData.fees}
                     />
-
-                    {/* New Professional Components */}
-                    <div className="space-y-6 mt-6">
-                      {/* Exchange Price Grid */}
-                      <div>
-                        <h3 className="text-[#00ff88] font-bold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
-                          <BarChart3 className="h-4 w-4" />
-                          Live Exchange Prices
-                        </h3>
-                        <ExchangePriceGrid />
-                      </div>
-
-                      {/* Opportunity Scanner - Professional Table */}
-                      {arbData.opportunities && arbData.opportunities.length > 0 && (
-                        <div>
-                          <h3 className="text-[#00ff88] font-bold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <Zap className="h-4 w-4" />
-                            Detected Opportunities (CCXT Real-Time)
-                          </h3>
-                          <OpportunityScanner
-                            onSelectOpportunity={(opp) => setSelectedOpportunity(opp)}
-                          />
-                        </div>
-                      )}
+                    <div className="mt-6">
+                      <h3 className="text-[#00ff88] font-bold text-sm uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4" />
+                        Live Exchange Prices
+                      </h3>
+                      <ExchangePriceGrid />
                     </div>
                   </>
-                ) : null}
+                )}
 
                 {arbLastUpdate && (
                   <div className="text-[10px] text-gray-500 text-right">
@@ -582,201 +567,9 @@ export default function ArbitragePage() {
               </div>
             </TabsContent>
 
-            {/* Cross-Exchange Tab (YHP Premium) */}
-            <TabsContent value="cross-exchange">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('CROSS-EXCHANGE')}>
-              {/* Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-orange-400">{opportunities.length}</div>
-                        <div className="text-sm text-gray-400">Active Opportunities</div>
-                      </div>
-                      <Target className="h-8 w-8 text-orange-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-green-400">{totalSpread ? totalSpread.toFixed(1) : '0.0'}%</div>
-                        <div className="text-sm text-gray-400">Total Spread</div>
-                      </div>
-                      <TrendingUp className="h-8 w-8 text-green-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-blue-400">{avgSpread ? avgSpread.toFixed(1) : '0.0'}%</div>
-                        <div className="text-sm text-gray-400">Avg Spread</div>
-                      </div>
-                      <Activity className="h-8 w-8 text-blue-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="text-2xl font-bold text-purple-400">
-                          {opportunities.filter(o => o.spread >= 0.05).length}
-                        </div>
-                        <div className="text-sm text-gray-400">Spreads &gt; 0.05%</div>
-                      </div>
-                      <Zap className="h-8 w-8 text-purple-400" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Filters */}
-              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-6 gap-4">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Filter className="h-4 w-4 text-gray-400" />
-                    <span className="text-sm text-gray-400">Min spread:</span>
-                    <div className="flex gap-1">
-                      {[0, 0.01, 0.05, 0.1].map(value => (
-                        <Button
-                          key={value}
-                          size="sm"
-                          variant={minSpread === value ? 'default' : 'outline'}
-                          className={minSpread === value ? 'bg-orange-600' : 'border-[#2a2a3e] hover:border-orange-500'}
-                          onClick={() => setMinSpread(value)}
-                        >
-                          {value === 0 ? 'All' : `${value}%`}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">Type:</span>
-                    <div className="flex gap-1">
-                      {[
-                        { key: 'all', label: 'All' },
-                        { key: 'ordinals', label: 'Ordinals' },
-                        { key: 'runes', label: 'Runes' },
-                        { key: 'tokens', label: 'Tokens' }
-                      ].map(type => (
-                        <Button
-                          key={type.key}
-                          size="sm"
-                          variant={selectedAssetType === type.key ? 'default' : 'outline'}
-                          className={selectedAssetType === type.key ? 'bg-blue-600' : 'border-[#2a2a3e] hover:border-blue-500'}
-                          onClick={() => setSelectedAssetType(type.key as any)}
-                        >
-                          {type.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-[#2a2a3e] hover:border-green-500"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                  {loading ? 'Updating...' : 'Refresh'}
-                </Button>
-              </div>
-
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-                <div className="xl:col-span-3">
-                  <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                    <CardHeader>
-                      <CardTitle className="text-orange-400 flex items-center gap-2">
-                        <Brain className="h-5 w-5" />
-                        Arbitrage Opportunities {minSpread > 0 ? `- Spread ≥ ${minSpread}%` : '- All Spreads'}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {loading ? (
-                        <div className="flex items-center justify-center h-64">
-                          <div className="text-center">
-                            <RefreshCw className="h-8 w-8 text-orange-400 animate-spin mx-auto mb-4" />
-                            <p className="text-gray-400">Scanning markets...</p>
-                          </div>
-                        </div>
-                      ) : error ? (
-                        <div className="flex items-center justify-center h-64">
-                          <div className="text-center">
-                            <AlertTriangle className="h-8 w-8 text-red-400 mx-auto mb-4" />
-                            <p className="text-red-400">Error loading data</p>
-                            <p className="text-gray-400 text-sm">{error}</p>
-                          </div>
-                        </div>
-                      ) : opportunities.length === 0 ? (
-                        <div className="flex items-center justify-center h-64">
-                          <div className="text-center">
-                            <Target className="h-8 w-8 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-400">No opportunities found</p>
-                            <p className="text-gray-500 text-sm">Lower the minimum spread to see more</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="overflow-x-auto">
-                          <table className="w-full min-w-[900px]">
-                            <thead>
-                              <tr className="border-b border-[#2a2a3e]">
-                                <th className="text-left p-4 text-gray-400 font-mono">Asset</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Buy</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Sell</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Spread</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Profit/Fees</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Risk/Trust</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Exec. Time</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Liquidity</th>
-                                <th className="text-center p-4 text-gray-400 font-mono">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {opportunities.map((opportunity, index) => (
-                                <OpportunityRow
-                                  key={`${opportunity.symbol}-${opportunity.buySource}-${opportunity.sellSource}`}
-                                  opportunity={opportunity}
-                                  index={index}
-                                />
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="xl:col-span-1">
-                  <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
-                    <CardHeader>
-                      <CardTitle className="text-cyan-400 flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" />
-                        Market Activity
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ArbitrageHeatmap opportunities={opportunities} />
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-              </PremiumContent>
-            </TabsContent>
-
-            {/* Triangular Tab (YHP Premium) */}
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 2: TRIANGULAR (YHP)
+            ═══════════════════════════════════════════════════════════ */}
             <TabsContent value="triangular">
               <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('TRIANGULAR ARBITRAGE')}>
               <div className="space-y-6">
@@ -793,7 +586,6 @@ export default function ArbitragePage() {
                   </div>
                 </div>
 
-                {/* Loading State */}
                 {triangularLoading && triangularOpps.length === 0 ? (
                   <div className="flex items-center justify-center py-12">
                     <div className="text-center">
@@ -802,60 +594,66 @@ export default function ArbitragePage() {
                     </div>
                   </div>
                 ) : triangularOpps.length === 0 ? (
-                  <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-8">
-                    <div className="text-center">
-                      <Target className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                      <h3 className="text-gray-300 font-semibold mb-2">No Opportunities Found</h3>
-                      <p className="text-gray-500 text-sm">
-                        No profitable triangular arbitrage paths detected. The engine scans continuously for opportunities.
-                      </p>
-                    </div>
+                  <div className="bg-[#1a1a2e] border border-[#2a2a3e] rounded-lg p-8 text-center">
+                    <Target className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-gray-300 font-semibold mb-2">No Opportunities Found</h3>
+                    <p className="text-gray-500 text-sm">
+                      No profitable triangular arbitrage paths detected. The engine uses real exchange data and scans continuously.
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {triangularOpps.slice(0, 12).map((opp, i) => {
-
-                      return (
-                        <motion.div
-                          key={opp.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.05 }}
-                        >
-                          <TriangularPathVisualizer
-                            path={{
-                              ...opp,
-                              status: new Date(opp.expiresAt) < new Date() ? 'expired' : 'active',
-                              createdAt: new Date((opp as any).createdAt || Date.now()),
-                              expiresAt: new Date(opp.expiresAt)
-                            } as any}
-                            onExecute={(path) => {
-                              // TODO: Implement paper trade execution
-                              alert(`Paper trade execution for path ${path.id} - Coming soon!`);
-                            }}
-                          />
-                        </motion.div>
-                      );
-                    })}
+                    {triangularOpps.slice(0, 12).map((opp, i) => (
+                      <motion.div
+                        key={opp.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <TriangularPathVisualizer
+                          path={{
+                            id: opp.id,
+                            baseCurrency: opp.baseCurrency,
+                            tradingPath: opp.tradingPath.map(step => ({
+                              fromCurrency: step.fromCurrency,
+                              toCurrency: step.toCurrency,
+                              exchange: step.exchange,
+                              price: step.price,
+                              fee: 0,
+                            })),
+                            exchanges: opp.exchanges,
+                            expectedProfit: opp.expectedProfit,
+                            profitAmount: opp.profitAmount,
+                            fees: opp.fees,
+                            riskLevel: opp.riskLevel,
+                            confidence: opp.confidence,
+                            executionTime: opp.executionTime,
+                            status: new Date(opp.expiresAt) < new Date() ? 'expired' : 'active',
+                            createdAt: new Date(opp.timestamp),
+                            expiresAt: new Date(opp.expiresAt),
+                          }}
+                          onExecute={(path) => {
+                            setSelectedOpportunity({
+                              symbol: `TRI-${path.id}`,
+                              type: 'triangular',
+                            });
+                          }}
+                        />
+                      </motion.div>
+                    ))}
                   </div>
                 )}
 
-                {/* Real-Time Engine Notice */}
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <Info className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="text-blue-400 font-semibold mb-1">Real-Time Triangular Arbitrage Engine</h4>
+                      <h4 className="text-blue-400 font-semibold mb-1">Real Exchange Data Engine</h4>
                       <p className="text-sm text-gray-300">
-                        This view uses the live <code className="text-xs bg-black/30 px-1 py-0.5 rounded">TriangularArbitrage.ts</code> engine
-                        which continuously scans for profitable 3-step trading paths across multiple exchanges.
-                        Data refreshes every 30 seconds. The engine calculates net profit after accounting for trading fees,
-                        network costs, and slippage. Opportunities are ranked by profitability and risk level.
+                        Triangular paths now use real bid/ask data from Binance, Coinbase, Kraken, and OKX.
+                        CoinGecko is used only as fallback for cross-pairs not available on exchanges.
+                        Opportunities refresh every 30 seconds.
                       </p>
-                      <div className="mt-2 flex items-center gap-2 text-xs text-blue-300">
-                        <RefreshCw className="h-3 w-3" />
-                        <span>Next update in {30 - (countdown % 30)}s</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -863,11 +661,12 @@ export default function ArbitragePage() {
               </PremiumContent>
             </TabsContent>
 
-            {/* Analytics Tab (YHP Premium) */}
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 3: ANALYTICS (YHP)
+            ═══════════════════════════════════════════════════════════ */}
             <TabsContent value="analytics">
               <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('ANALYTICS')}>
               {(() => {
-                // Compute real analytics from arbData
                 const allOpps = arbData?.opportunities || [];
                 const profitableOpps = allOpps.filter(o => o.netProfitPercent > 0);
                 const totalProfit = profitableOpps.reduce((sum, o) => sum + o.estimatedProfitPer1BTC, 0);
@@ -879,7 +678,6 @@ export default function ArbitragePage() {
                   ? allOpps.reduce((best, o) => o.estimatedProfitPer1BTC > best.estimatedProfitPer1BTC ? o : best, allOpps[0])
                   : null;
 
-                // Compute spread distribution from exchange data
                 const exchangeSpreads = (arbData?.exchanges || []).map(e => e.spreadPercent).filter(s => s > 0);
                 const spreadBuckets = [
                   { range: '0.01% - 0.05%', min: 0.01, max: 0.05 },
@@ -924,7 +722,6 @@ export default function ArbitragePage() {
                       </div>
                     </div>
 
-                    {/* Spread Distribution */}
                     <Card className="bg-[#1a1a2e] border-[#2a2a3e]">
                       <CardHeader>
                         <CardTitle className="text-[#00ff88] flex items-center gap-2 text-base">
@@ -950,128 +747,20 @@ export default function ArbitragePage() {
                       </CardContent>
                     </Card>
 
-                    {/* Spread Chart */}
-                    <SpreadChart opportunities={opportunities} />
+                    <SpreadChart opportunities={crossExchangeOpps} />
 
-                    <div className="text-center py-2">
-                      <p className="text-xs text-gray-500">Analytics computed from live exchange data. Refreshes every 15s.</p>
-                    </div>
+                    <PerformanceAnalytics strategy="all" defaultPeriod="24h" />
                   </div>
                 );
               })()}
               </PremiumContent>
             </TabsContent>
 
-            {/* SMC Analysis Tab (YHP Premium) */}
-            <TabsContent value="smc">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('SMC ANALYSIS')}>
-              <div className="space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-[#00ff88] mb-1">Smart Money Concepts Analysis</h2>
-                    <p className="text-gray-400 text-sm">
-                      Institutional trading patterns and price action analysis
-                    </p>
-                  </div>
-                  <Badge className="bg-blue-500/20 border-blue-500 text-blue-400 border">
-                    <Activity className="h-3 w-3 mr-1 animate-pulse" />
-                    LIVE DATA
-                  </Badge>
-                </div>
-
-                {/* Info Banner */}
-                <div className="bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-cyan-500/10 border border-purple-500/30 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <Info className="h-5 w-5 text-purple-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h3 className="text-purple-400 font-semibold mb-2">What is Smart Money Concepts (SMC)?</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed mb-2">
-                        SMC reveals institutional trading activity by identifying zones where large players
-                        (banks, hedge funds, market makers) accumulate or distribute positions. These patterns
-                        repeat because institutions must move billions without causing massive slippage.
-                      </p>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-                        <div className="bg-black/20 rounded p-2">
-                          <div className="text-green-400 font-semibold text-xs mb-1">Order Blocks</div>
-                          <div className="text-xs text-gray-400">
-                            Price zones where institutions accumulated large positions. Price often returns here.
-                          </div>
-                        </div>
-                        <div className="bg-black/20 rounded p-2">
-                          <div className="text-cyan-400 font-semibold text-xs mb-1">Fair Value Gaps</div>
-                          <div className="text-xs text-gray-400">
-                            Inefficient price zones left by rapid moves. ~75% historical fill rate.
-                          </div>
-                        </div>
-                        <div className="bg-black/20 rounded p-2">
-                          <div className="text-orange-400 font-semibold text-xs mb-1">Market Maker Metrics</div>
-                          <div className="text-xs text-gray-400">
-                            Volume Profile, POC, and inventory management insights.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Left Column - Order Blocks */}
-                  <div className="lg:col-span-1">
-                    <OrderBlocksPanel asset="BTC/USDT" timeframe="1h" maxBlocks={8} />
-                  </div>
-
-                  {/* Center Column - Fair Value Gaps */}
-                  <div className="lg:col-span-1">
-                    <FairValueGapsPanel asset="BTC/USDT" timeframe="1h" maxGaps={8} />
-                  </div>
-
-                  {/* Right Column - Market Maker Metrics */}
-                  <div className="lg:col-span-1">
-                    <MarketMakerMetrics symbol="BTC/USDT" />
-                  </div>
-                </div>
-
-                {/* Additional Info */}
-                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="text-yellow-400 font-semibold mb-1">Note on SMC Detection</h4>
-                      <p className="text-sm text-yellow-200/80">
-                        SMC signals are detected from candlestick patterns and require historical price data.
-                        In this demo, signals will appear once we integrate with a price data source (e.g., Binance API).
-                        The detection algorithms are ready and will automatically populate when connected to live data.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              </PremiumContent>
-            </TabsContent>
-
-            {/* Performance Tab (YHP Premium) */}
-            <TabsContent value="performance">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PERFORMANCE')}>
-                <PerformanceAnalytics strategy="all" defaultPeriod="24h" />
-              </PremiumContent>
-            </TabsContent>
-
-            {/* Risk Management Tab (YHP Premium) */}
-            <TabsContent value="risk">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('RISK MANAGEMENT')}>
-                <RiskManagementPanel
-                  capital={10000}
-                  currentExposure={0}
-                  currentDrawdown={0}
-                />
-              </PremiumContent>
-            </TabsContent>
-
-            {/* Charts Tab (YHP Premium) */}
-            <TabsContent value="charts">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PROFESSIONAL CHARTS')}>
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 4: CHARTS & SMC (merged) (YHP)
+            ═══════════════════════════════════════════════════════════ */}
+            <TabsContent value="charts-smc">
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('CHARTS & SMC')}>
                 <div className="space-y-6">
                   <ProfessionalCharts
                     symbol="BTC/USDT"
@@ -1083,59 +772,60 @@ export default function ArbitragePage() {
                     symbol="BTC/USDT"
                     levels={30}
                   />
+
+                  {/* SMC Panels */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <OrderBlocksPanel asset="BTC/USDT" timeframe="1h" maxBlocks={8} />
+                    <FairValueGapsPanel asset="BTC/USDT" timeframe="1h" maxGaps={8} />
+                    <MarketMakerMetrics symbol="BTC/USDT" />
+                  </div>
                 </div>
               </PremiumContent>
             </TabsContent>
 
-            {/* Paper Trading Tab (YHP Premium) */}
-            <TabsContent value="paper-trading">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PAPER TRADING')}>
-                <PaperTradingPanel
-                  initialBalance={10000}
-                  onTradeExecuted={() => {}}
-                  opportunities={opportunities.map(o => ({
-                    id: o.id,
-                    symbol: o.symbol,
-                    buySource: o.buySource,
-                    sellSource: o.sellSource,
-                    buyPrice: o.buyPrice,
-                    sellPrice: o.sellPrice,
-                    spread: o.spread,
-                    netProfitPercent: o.netProfitPercent,
-                    estimatedProfitPer1BTC: o.estimatedProfitPer1BTC,
-                  }))}
-                />
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 5: PAPER TRADING & BACKTEST (merged) (YHP)
+            ═══════════════════════════════════════════════════════════ */}
+            <TabsContent value="paper-backtest">
+              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('PAPER TRADING & BACKTEST')}>
+                <div className="space-y-8">
+                  <PaperTradingPanel
+                    initialBalance={10000}
+                    onTradeExecuted={() => {}}
+                    opportunities={crossExchangeOpps.map(o => ({
+                      id: o.id,
+                      symbol: o.symbol,
+                      buySource: o.buySource,
+                      sellSource: o.sellSource,
+                      buyPrice: o.buyPrice,
+                      sellPrice: o.sellPrice,
+                      spread: o.spread,
+                      netProfitPercent: o.netProfitPercent,
+                      estimatedProfitPer1BTC: o.estimatedProfitPer1BTC,
+                    }))}
+                  />
+                  <BacktestPanel onBacktestComplete={() => {}} />
+                </div>
               </PremiumContent>
             </TabsContent>
 
-            {/* Backtest Tab (YHP Premium) */}
-            <TabsContent value="backtest">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('BACKTEST')}>
-                <BacktestPanel
-                  onBacktestComplete={() => {}}
-                />
-              </PremiumContent>
-            </TabsContent>
-
-            {/* Alerts Tab (YHP Premium) */}
-            <TabsContent value="alerts">
-              <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('ALERT SYSTEM')}>
-                <AlertSystemPanel
-                  onAlertTriggered={() => {}}
-                />
-              </PremiumContent>
-            </TabsContent>
-
-            {/* History Tab */}
-            <TabsContent value="history">
-              <ArbitrageHistory />
+            {/* ═══════════════════════════════════════════════════════════
+                TAB 6: ALERTS & HISTORY (merged)
+            ═══════════════════════════════════════════════════════════ */}
+            <TabsContent value="alerts-history">
+              <div className="space-y-8">
+                <PremiumContent requiredFeature="arbitrage" fallback={arbYhpFallback('ALERT SYSTEM')}>
+                  <AlertSystemPanel onAlertTriggered={() => {}} />
+                </PremiumContent>
+                <ArbitrageHistory />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
 
         {/* Opportunity Details Modal */}
         <OpportunityDetails
-          opportunity={selectedOpportunity}
+          opportunity={selectedOpportunity as OpportunityType | null}
           onClose={() => setSelectedOpportunity(null)}
         />
 

@@ -73,8 +73,7 @@ export function EnhancedCypherAIChat({
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  
-  const userId = 'user-' + Date.now(); // In production, use actual user ID
+  const userIdRef = useRef('user-' + Date.now()); // Stable across renders
 
   useEffect(() => {
     // Initialize with greeting message
@@ -151,7 +150,7 @@ export function EnhancedCypherAIChat({
     setIsLoading(true);
 
     try {
-      const response = await cypherAI.chat(messageToSend, userId, currentLanguage, marketData);
+      const response = await cypherAI.chat(messageToSend, userIdRef.current, currentLanguage, marketData);
       
       setMessages(prev => [...prev, response]);
 

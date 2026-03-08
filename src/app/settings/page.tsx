@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useLaserEyes } from '@/providers/SimpleLaserEyesProvider';
 import { TierBadge } from '@/components/subscription/TierBadge';
-import { SUBSCRIPTION_TIERS } from '@/lib/stripe/config';
+import { SUBSCRIPTION_TIERS, normalizeTier } from '@/lib/stripe/config';
 
 function ToggleSwitch({ enabled, onToggle }: { enabled: boolean; onToggle: () => void }) {
   return (
@@ -54,7 +54,7 @@ function SettingsPageContent() {
   const { address } = useLaserEyes();
   const [checkoutSuccess, setCheckoutSuccess] = useState(false);
 
-  const tierConfig = SUBSCRIPTION_TIERS[tier];
+  const tierConfig = SUBSCRIPTION_TIERS[normalizeTier(tier)];
 
   const defaultTab = searchParams.get('tab') || 'general';
   const checkoutParam = searchParams.get('checkout');

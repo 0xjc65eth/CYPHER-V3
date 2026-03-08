@@ -58,21 +58,21 @@ const TOP_COLLECTION_SYMBOLS = [
 ]
 
 const COLLECTION_INFO: Record<string, { name: string; image: string }> = {
-  'bitcoin-punks': { name: 'Bitcoin Punks', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-punks_pfp' },
-  'nodemonkes': { name: 'NodeMonkes', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_nodemonkes_pfp' },
-  'bitcoin-puppets': { name: 'Bitcoin Puppets', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-puppets_pfp' },
-  'quantum-cats': { name: 'Quantum Cats', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_quantum-cats_pfp' },
-  'ordinal-maxi-biz': { name: 'Ordinal Maxi Biz (OMB)', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ordinal-maxi-biz_pfp' },
-  'runestones': { name: 'Runestone', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_runestones_pfp' },
-  'bitmap': { name: 'Bitmap', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitmap_pfp' },
-  'ink': { name: 'Ink', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ink_pfp' },
-  'pizza-ninjas': { name: 'Pizza Ninjas', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_pizza-ninjas_pfp' },
-  'taproot-wizards': { name: 'Taproot Wizards', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_taproot-wizards_pfp' },
-  'bitcoin-frogs': { name: 'Bitcoin Frogs', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_bitcoin-frogs_pfp' },
-  'natcats': { name: 'Natcats', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_natcats_pfp' },
-  'rsic': { name: 'RSIC', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_rsic_pfp' },
-  'degods-btc': { name: 'DeGods', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_degods-btc_pfp' },
-  'ordinal-punks': { name: 'Ordinal Punks', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_ordinal-punks_pfp' },
+  'bitcoin-punks': { name: 'Bitcoin Punks', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-punks.avif' },
+  'nodemonkes': { name: 'NodeMonkes', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-nodemonkes_pfp_1753658525948.png' },
+  'bitcoin-puppets': { name: 'Bitcoin Puppets', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-puppets.avif' },
+  'quantum-cats': { name: 'Quantum Cats', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-taproot_wizards_presents_pfp_1706542390359.png' },
+  'ordinal-maxi-biz': { name: 'Ordinal Maxi Biz (OMB)', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/omb.avif' },
+  'runestones': { name: 'Runestone', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/runestone.avif' },
+  'bitmap': { name: 'Bitmap', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitmap.avif' },
+  'ink': { name: 'Ink', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/ink.avif' },
+  'pizza-ninjas': { name: 'Pizza Ninjas', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-pizza-ninjas_pfp_1711912845018.gif' },
+  'taproot-wizards': { name: 'Taproot Wizards', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-taproot_wizards_pfp_1740791107942.jpeg' },
+  'bitcoin-frogs': { name: 'Bitcoin Frogs', image: 'https://media.cdn.magiceden.dev/ordinals-collection-img/bitcoin-frogs.avif' },
+  'natcats': { name: 'Natcats', image: '' },
+  'rsic': { name: 'RSIC', image: 'https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord-rsic_pfp_1705896366275.png' },
+  'degods-btc': { name: 'DeGods', image: '' },
+  'ordinal-punks': { name: 'Ordinal Punks', image: '' },
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -117,9 +117,12 @@ async function fetchOrdinalsData(): Promise<unknown> {
         trendingCollections = xverseCollections.map((c) => {
           const floorBTC = c.floorPrice / 1e8
           const volumeBTC = c.volume / 1e8
+          const fallbackImage = COLLECTION_INFO[c.collectionId]?.image
           const imageURI = c.imageUrl
             ? `/api/ordinals/image/?url=${encodeURIComponent(c.imageUrl)}`
-            : `/api/ordinals/image/?url=${encodeURIComponent(`https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.collectionId}_pfp`)}`
+            : fallbackImage
+              ? `/api/ordinals/image/?url=${encodeURIComponent(fallbackImage)}`
+              : ''
 
           return {
             name: c.name || c.collectionId,
@@ -137,10 +140,10 @@ async function fetchOrdinalsData(): Promise<unknown> {
             owners: c.ownerCount || 0,
             supply: c.totalSupply || 0,
             imageURI,
-            change: c.volumePercentChange || 0,
+            change: 0, // populated by collection-stats enrichment (floor price change)
             change7d: 0,
             change30d: 0,
-            bestBid: floorBTC,
+            bestBid: 0, // no real bid data from Xverse — enriched later if available
             bidAskSpread: 0,
             vwap24h: 0,
             trades24h: 0,
@@ -204,7 +207,7 @@ async function fetchOrdinalsData(): Promise<unknown> {
     trendingCollections = validCollections.map((c) => {
       const info = COLLECTION_INFO[c.symbol] || {
         name: c.symbol,
-        image: `https://creator-hub-prod.s3.us-east-2.amazonaws.com/ord_${c.symbol}_pfp`,
+        image: '',
       }
 
       const floorBTC = satsToBTC(Number(c.stats.floorPrice) || 0)
@@ -217,7 +220,9 @@ async function fetchOrdinalsData(): Promise<unknown> {
         ? Math.round(rawOwners)
         : 0
 
-      const imageURI = `/api/ordinals/image/?url=${encodeURIComponent(info.image)}`
+      const imageURI = info.image
+        ? `/api/ordinals/image/?url=${encodeURIComponent(info.image)}`
+        : ''
 
       return {
         name: info.name,
@@ -238,7 +243,7 @@ async function fetchOrdinalsData(): Promise<unknown> {
         change: 0,
         change7d: 0,
         change30d: 0,
-        bestBid: floorBTC,
+        bestBid: 0, // no real bid data from Gamma stat endpoint
         bidAskSpread: 0,
         vwap24h: 0,
         trades24h: 0,

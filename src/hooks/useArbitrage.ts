@@ -63,9 +63,9 @@ export function useArbitrage(minSpread: number = 0, assetType: string = 'all', p
   const { data, error, refetch } = useQuery({
     queryKey: ['arbitrage-opportunities', minSpread, assetType, pair],
     queryFn: () => fetcher(`/api/arbitrage/opportunities/?minSpread=0&type=${assetType}${pairParam}`),
-    refetchInterval: 5000,
+    refetchInterval: 15000,
     refetchOnWindowFocus: true,
-    staleTime: 2000,
+    staleTime: 10000,
   });
 
   const processedOpportunities = useMemo(() => {
@@ -119,6 +119,75 @@ export function useArbitrage(minSpread: number = 0, assetType: string = 'all', p
     totalSpread: stats?.totalSpread,
     avgSpread: stats?.avgSpread,
     refresh: refetch,
+  };
+}
+
+// Unified arbitrage hook — aggregates all arb types from /api/arbitrage/unified
+export interface UnifiedOpportunity {
+  id: string;
+  arbType: 'cex-cex' | 'spot-perp' | 'triangular' | 'ordinals' | 'runes' | 'brc20';
+  asset: string;
+  buyExchange: string;
+  sellExchange: string;
+  buyPrice: number;
+  sellPrice: number;
+  spreadPercent: number;
+  netProfitPercent: number;
+  estimatedProfitUSD: number;
+  fees: { trading: number; network: number; total: number };
+  liquidity: number;
+  confidence: number;
+  riskLevel: 'low' | 'medium' | 'high';
+  timestamp: number;
+  metadata?: Record<string, unknown>;
+}
+
+export function useUnifiedArbitrage(typeFilter: string = 'all') {
+  const { data, error, refetch } = useQuery({
+    queryKey: ['unified-arbitrage', typeFilter],
+    queryFn: () => fetcher(`/api/arbitrage/unified/?type=${typeFilter}`),
+    refetchInterval: 15000,
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+  });
+
+  const opportunities: UnifiedOpportunity[] = data?.opportunities || [];
+  const typeCounts: Record<string, number> = data?.typeCounts || {};
+
+  return {
+    opportunities,
+    typeCounts,
+    totalCount: data?.totalCount || 0,
+    bestNetProfit: data?.bestNetProfit || 0,
+    loading: !data && !error,
+    error: error instanceof Error ? error.message : data?.error || null,
+    timestamp: data?.timestamp,
+    refresh: refetch,
+  };
+}
+
+// Spot-Perp arbitrage hook
+export interface SpotPerpData {
+  btcBasis: number;
+  btcFundingRate: number;
+  btcAnnualizedFunding: number;
+  btcDirection: string;
+}
+
+export function useSpotPerpArbitrage() {
+  const { data, error } = useQuery({
+    queryKey: ['spot-perp-arbitrage'],
+    queryFn: () => fetcher('/api/arbitrage/spot-perp/'),
+    refetchInterval: 15000,
+    staleTime: 10000,
+  });
+
+  return {
+    opportunities: data?.opportunities || [],
+    summary: data?.summary as SpotPerpData | null,
+    count: data?.count || 0,
+    loading: !data && !error,
+    error: error instanceof Error ? error.message : null,
   };
 }
 

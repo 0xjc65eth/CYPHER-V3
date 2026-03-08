@@ -11,6 +11,7 @@
 import { AutoCompoundConfig, CompoundResult, LPPosition } from './types';
 import { BaseConnector } from '../connectors/BaseConnector';
 import { HyperliquidConnector } from '../connectors/HyperliquidConnector';
+import { LPExecutionEngine } from '../strategies/liquidity-pool/LPExecutionEngine';
 import { getAgentPersistence } from '../persistence';
 
 export class AutoCompoundEngine {
@@ -23,9 +24,17 @@ export class AutoCompoundEngine {
   private lpPositions: LPPosition[] = [];
   private realizedPnlSinceLastCompound: number = 0;
   private mmPnlSinceLastCompound: number = 0;
+  private lpExecutor: LPExecutionEngine | null = null;
 
   constructor(config: AutoCompoundConfig) {
     this.config = config;
+  }
+
+  /**
+   * Set the LP execution engine for reinvestment.
+   */
+  setLPExecutor(executor: LPExecutionEngine): void {
+    this.lpExecutor = executor;
   }
 
   /**
@@ -184,7 +193,7 @@ export class AutoCompoundEngine {
   }
 
   /**
-   * Add profits to LP by increasing liquidity on the largest position.
+   * Add profits to LP by reinvesting via LPExecutionEngine or direct connector.
    */
   private async addToLP(amount: number): Promise<void> {
     if (amount <= 1) return;
@@ -196,14 +205,21 @@ export class AutoCompoundEngine {
     }
 
     const targetLP = sortedLP[0];
-    const connector = this.connectors.get(targetLP.protocol) || this.connectors.get('jupiter');
 
+    // Prefer LPExecutionEngine (handles fee collection + increaseLiquidity atomically)
+    if (this.lpExecutor) {
+      try {
+        const success = await this.lpExecutor.reinvestFees(targetLP);
+        if (success) return;
+      } catch { /* fall through to direct connector */ }
+    }
+
+    // Fallback: try connector directly
+    const connector = this.connectors.get(targetLP.protocol) || this.connectors.get('jupiter');
     if (connector && 'increaseLiquidity' in connector) {
       try {
         const result = await (connector as any).increaseLiquidity(targetLP.id || targetLP.pair, amount / 2, amount / 2);
-        if (result?.success) {
-          return;
-        }
+        if (result) return;
       } catch { /* fall through */ }
     }
 

@@ -34,10 +34,11 @@ import { CCXTConnector } from '../connectors/CCXTConnector';
 import { ScalpingEngine } from '../strategies/scalping/ScalpingEngine';
 import { MMStrategyEngine } from '../strategies/market-maker/MMStrategyEngine';
 import { LPStrategyEngine } from '../strategies/liquidity-pool/LPStrategyEngine';
+import { LPExecutionEngine } from '../strategies/liquidity-pool/LPExecutionEngine';
 import { MaxDrawdownProtection } from '../risk/MaxDrawdownProtection';
 import { LiquidationGuard } from '../risk/LiquidationGuard';
 import { MEVProtection } from '../risk/MEVProtection';
-import { ConsensusEngine, getConsensusEngine } from '../consensus/ConsensusEngine';
+import { ConsensusEngine } from '../consensus/ConsensusEngine';
 import { TradeProposal } from '../consensus/RiskManagerAgent';
 import { getAgentPersistence, AgentPersistenceService } from '../persistence';
 import { getSessionKeyManager, SessionKeyManager } from '../wallet';
@@ -61,7 +62,7 @@ import { PortfolioManager, getPortfolioManager } from '../portfolio/PortfolioMan
 import { OrderExecutionService, getOrderExecutionService } from '../execution/OrderExecutionService';
 
 export interface UserCredentials {
-  hyperliquid?: { agentKey: string; agentSecret: string };
+  hyperliquid?: { agentKey: string; agentSecret: string; testnet?: boolean };
   solanaPrivateKey?: string;
   evmPrivateKey?: string;
   solanaRpcUrl?: string;
@@ -95,6 +96,9 @@ export class AgentOrchestrator {
   private credentials: UserCredentials;
   private configId: string | null = null;
 
+  // LP execution
+  private lpExecutor: LPExecutionEngine | null = null;
+
   // Dynamic pair discovery
   private discovery: HyperliquidMarketDiscovery | null = null;
   private wsBridge: HyperliquidWSBridge | null = null;
@@ -122,6 +126,7 @@ export class AgentOrchestrator {
 
   // Order dedup cache: prevents double-execution (signalId -> timestamp)
   private orderDedupCache: Map<string, number> = new Map();
+  private mmActiveOrders: Map<string, string[]> = new Map();
   private readonly DEDUP_WINDOW_MS = 30000; // 30 seconds dedup window
 
   // SECURITY FIX: Execution mutex prevents race conditions.
@@ -136,10 +141,12 @@ export class AgentOrchestrator {
     this.state = this.createInitialState();
 
     // Initialize Hyperliquid connector (default perp connector)
+    const isTestnet = this.credentials.hyperliquid?.testnet === true;
     const hlConfig: HyperliquidConfig = {
-      apiUrl: 'https://api.hyperliquid.xyz',
+      apiUrl: isTestnet ? 'https://api.hyperliquid-testnet.xyz' : 'https://api.hyperliquid.xyz',
       agentKey: this.credentials.hyperliquid?.agentKey || process.env.HYPERLIQUID_AGENT_KEY || '',
       agentSecret: this.credentials.hyperliquid?.agentSecret || process.env.HYPERLIQUID_AGENT_SECRET || '',
+      testnet: isTestnet,
     };
     this.connector = new HyperliquidConnector(hlConfig);
     this.connectors.set('hyperliquid', this.connector);
@@ -155,9 +162,9 @@ export class AgentOrchestrator {
     // Initialize auto-compound engine
     this.compounder = new AutoCompoundEngine(this.config.autoCompound);
 
-    // Initialize consensus engine (multi-agent AI voting)
-    // Pass enableTrading from agent config so wizard can control auto-trade
-    this.consensus = getConsensusEngine({
+    // Initialize consensus engine (per-orchestrator instance, not singleton)
+    // Each user gets their own consensus engine to prevent config bleed
+    this.consensus = new ConsensusEngine({
       enableTrading: this.config.enableTrading,
     });
 
@@ -299,6 +306,14 @@ export class AgentOrchestrator {
       // Validate configuration
       this.validateConfig();
 
+      // P1: Scale maxPositionSize to 5% of total capital (instead of fixed $250)
+      if (this.config.capitalAllocation.total > 0) {
+        const scaledMaxPosition = this.config.capitalAllocation.total * 0.05;
+        if (scaledMaxPosition > this.config.riskLimits.maxPositionSize) {
+          this.config.riskLimits.maxPositionSize = scaledMaxPosition;
+        }
+      }
+
       // Connect all configured exchange connectors
       // Validate at least the primary connector (Hyperliquid) connects successfully
       const connectionResults: Array<{ name: string; success: boolean }> = [];
@@ -317,6 +332,17 @@ export class AgentOrchestrator {
         this.updateStatus('error');
         throw new Error('Failed to connect to Hyperliquid. Check your API credentials (Agent Key / Agent Secret).');
       }
+
+      // Initialize LP execution engine
+      this.lpExecutor = new LPExecutionEngine(
+        this.connectors as Map<string, BaseConnector>,
+        this.lpEngine,
+        this.eventBus,
+        { maxPositionPct: 0.25, maxILPct: 0.05, maxOutOfRangeMinutes: 120 },
+      );
+
+      // Wire LP executor into auto-compound engine
+      this.compounder.setLPExecutor(this.lpExecutor);
 
       // Validate wallet balances against capital allocation
       await this.validateWalletBalances();
@@ -353,6 +379,9 @@ export class AgentOrchestrator {
 
       // Reconcile positions: check exchange for orphaned positions from previous session
       await this.reconcilePositions();
+
+      // Initialize LP positions for configured LP markets with no existing positions
+      await this.initializeLPPositions();
 
       this.updateStatus('active');
       this.isRunning = true;
@@ -399,6 +428,14 @@ export class AgentOrchestrator {
     if (this.wsBridge) {
       this.wsBridge.disconnect();
       this.wsBridge = null;
+    }
+
+    // Close all open positions and cancel pending orders on stop
+    try {
+      await this.closeAllPositions('agent_stopped');
+      await this.cancelAllOrders();
+    } catch (error) {
+      this.addError(`Failed to close positions on stop: ${error instanceof Error ? error.message : 'Unknown'}`, 'orchestrator');
     }
 
     // Cleanup quant engines: cancel active TWAP/VWAP orders
@@ -730,6 +767,17 @@ export class AgentOrchestrator {
       : true; // BaseConnector subclasses are connected after connect()
 
     if (isConnected) {
+      // Cancel previous MM orders before placing new ones to prevent order leak
+      const prevOrders = this.mmActiveOrders.get(market.pair);
+      if (prevOrders && prevOrders.length > 0 && 'cancelOrder' in connector) {
+        for (const oid of prevOrders) {
+          try {
+            await (connector as any).cancelOrder(market.pair, oid);
+          } catch { /* best effort cancel */ }
+        }
+      }
+      const newOrderIds: string[] = [];
+
       // Place bid
       const bidResult = await (connector as any).placeOrder({
         pair: market.pair,
@@ -741,7 +789,7 @@ export class AgentOrchestrator {
         clientId: `cypher_mm_bid_${market.pair}_${Date.now()}`,
       });
       if (bidResult.success) {
-        engine.recordFill('buy', quote.bidSize);
+        if (bidResult.orderId) newOrderIds.push(bidResult.orderId);
       }
 
       // Place ask
@@ -755,8 +803,11 @@ export class AgentOrchestrator {
         clientId: `cypher_mm_ask_${market.pair}_${Date.now()}`,
       });
       if (askResult.success) {
-        engine.recordFill('sell', quote.askSize);
+        if (askResult.orderId) newOrderIds.push(askResult.orderId);
       }
+
+      // Track active MM orders for next cycle cancellation
+      this.mmActiveOrders.set(market.pair, newOrderIds);
     }
   }
 
@@ -838,7 +889,7 @@ export class AgentOrchestrator {
   }
 
   /**
-   * LP Strategy: Monitor existing LP positions, recommend rebalance if needed.
+   * LP Strategy: Monitor existing LP positions and execute rebalance/withdraw/compound.
    */
   private async runLPStrategy(market: MarketConfig): Promise<void> {
     const connector = this.connectors.get(market.exchange) || this.connector;
@@ -848,7 +899,9 @@ export class AgentOrchestrator {
     const midPrice = await (connector as any).getMidPrice(coin);
     if (midPrice <= 0) return;
 
-    // Monitor each LP position
+    // Monitor each LP position and execute actions
+    const positionsToRemove: string[] = [];
+
     for (const lpPos of this.state.lpPositions) {
       if (lpPos.pair !== market.pair) continue;
 
@@ -866,41 +919,52 @@ export class AgentOrchestrator {
       // Update in-range status
       lpPos.inRange = midPrice >= lpPos.tickLower && midPrice <= lpPos.tickUpper;
 
-      if (result.action === 'rebalance') {
+      // Check risk-based closure
+      if (this.lpExecutor) {
+        const riskCheck = this.lpExecutor.shouldClosePosition(lpPos, midPrice);
+        if (riskCheck.close) {
+          const closed = await this.lpExecutor.closePosition(lpPos, riskCheck.reason);
+          if (closed) positionsToRemove.push(lpPos.id);
+          continue;
+        }
+      }
+
+      if (result.action === 'rebalance' && this.lpExecutor) {
         const candles = await (connector as any).getCandles(market.pair, '1h', 50);
         const vol = this.estimateVolatility(candles);
-        const newRange = this.lpEngine.analyzeOptimalRange(midPrice, vol);
 
-        // Persist LP rebalance suggestion
-        if (this.configId) {
-          this.eventBus.publish({
-            type: 'market_update' as const,
-            source: 'AgentOrchestrator',
-            data: { pair: market.pair, exchange: market.exchange, suggestedRange: newRange },
-            timestamp: Date.now(),
-            priority: 'medium',
-          });
+        const newPosition = await this.lpExecutor.rebalancePosition(
+          lpPos,
+          { pair: market.pair, exchange: market.exchange },
+          midPrice,
+          vol,
+        );
+
+        if (newPosition) {
+          positionsToRemove.push(lpPos.id);
+          this.state.lpPositions.push(newPosition);
         }
-
-        this.emit('lp_rebalance_suggestion', {
-          pair: market.pair,
-          exchange: market.exchange,
-          currentRange: { lower: lpPos.tickLower, upper: lpPos.tickUpper },
-          suggestedRange: newRange,
-          timestamp: Date.now(),
-        });
+      } else if (result.action === 'withdraw' && this.lpExecutor) {
+        const closed = await this.lpExecutor.closePosition(lpPos, result.reason);
+        if (closed) positionsToRemove.push(lpPos.id);
+      } else if (result.action === 'compound' && this.lpExecutor) {
+        await this.lpExecutor.reinvestFees(lpPos);
       }
     }
 
-    // Check for new LP creation opportunities via connector (if supported)
+    // Remove closed/rebalanced positions from state
+    if (positionsToRemove.length > 0) {
+      this.state.lpPositions = this.state.lpPositions.filter(
+        lp => !positionsToRemove.includes(lp.id)
+      );
+    }
+
+    // Sync on-chain LP positions with state
     if ('getLPPositions' in connector) {
       try {
         const onChainPositions = await (connector as any).getLPPositions();
-        // Sync on-chain LP positions with state
         for (const onChainPos of onChainPositions || []) {
-          const exists = this.state.lpPositions.find(
-            lp => lp.pair === market.pair && lp.protocol === market.exchange
-          );
+          const exists = this.state.lpPositions.find(lp => lp.id === onChainPos.id);
           if (!exists) {
             this.state.lpPositions.push(onChainPos);
           }
@@ -950,11 +1014,6 @@ export class AgentOrchestrator {
           this.executionLock.delete(key);
         }
       }
-    }
-    } finally {
-      // ALWAYS release the execution lock
-      releaseLock!();
-      this.executionLock.delete(dedupKey);
     }
 
     const activeConnector = connector || this.connectors.get(signal.exchange) || this.connector;
@@ -1188,6 +1247,11 @@ export class AgentOrchestrator {
         'execution'
       );
     }
+    } finally {
+      // ALWAYS release the execution lock — AFTER all execution is complete
+      releaseLock!();
+      this.executionLock.delete(dedupKey);
+    }
   }
 
   // ========================================================================
@@ -1291,6 +1355,9 @@ export class AgentOrchestrator {
           const exchangePositions = await (conn as any).getPositions();
           if (!Array.isArray(exchangePositions) || exchangePositions.length === 0) continue;
 
+          // Fetch open orders ONCE per connector (not per position)
+          const openOrders = await (conn as any).getOpenOrders?.() || [];
+
           for (const pos of exchangePositions) {
             // Check if we already track this position
             const tracked = this.state.positions.find(
@@ -1307,9 +1374,12 @@ export class AgentOrchestrator {
             }
 
             // Check if position has stop-loss protection
-            const openOrders = await (conn as any).getOpenOrders?.() || [];
+            // Detect SL by: clientId pattern (cypher_sl_ or cypher_recovery_sl_) OR stop/stop_limit order type on same pair
             const hasSL = openOrders.some(
-              (o: any) => o.pair === pos.pair && o.reduceOnly === true
+              (o: any) => o.pair === pos.pair && (
+                (o.clientId && (o.clientId.startsWith('cypher_sl_') || o.clientId.startsWith('cypher_recovery_sl_'))) ||
+                (o.type === 'stop' || o.type === 'stop_limit' || o.type === 'stop-market')
+              )
             );
 
             if (!hasSL && pos.size > 0) {
@@ -1370,6 +1440,64 @@ export class AgentOrchestrator {
     }
   }
 
+  /**
+   * Initialize LP positions for configured LP markets that have no existing positions.
+   * Called once at agent start.
+   */
+  private async initializeLPPositions(): Promise<void> {
+    if (!this.lpExecutor) return;
+
+    const lpMarkets = this.config.markets.filter(m => m.type === 'lp' && m.enabled);
+    if (lpMarkets.length === 0) return;
+
+    const { capitalAllocation } = this.config;
+    const totalLPCapital = capitalAllocation.total * capitalAllocation.lp;
+    if (totalLPCapital <= 0) return;
+
+    for (const market of lpMarkets) {
+      try {
+        // Skip if we already have a position for this pair
+        const existingPos = this.state.lpPositions.find(lp => lp.pair === market.pair);
+        if (existingPos) continue;
+
+        const connector = this.connectors.get(market.exchange);
+        if (!connector) continue;
+
+        const coin = market.pair.split('/')[0];
+        const midPrice = await (connector as any).getMidPrice(coin);
+        if (midPrice <= 0) continue;
+
+        const candles = await (connector as any).getCandles(market.pair, '1h', 50);
+        const volatility = this.estimateVolatility(candles);
+
+        const positionSize = this.lpExecutor.calculatePositionSize(
+          totalLPCapital,
+          this.state.lpPositions,
+        );
+        if (positionSize < 10) continue; // min $10
+
+        const newPosition = await this.lpExecutor.openPosition(
+          { pair: market.pair, exchange: market.exchange },
+          positionSize,
+          midPrice,
+          volatility,
+        );
+
+        if (newPosition) {
+          this.state.lpPositions.push(newPosition);
+          this.emit('lp_position_initialized', {
+            pair: market.pair,
+            positionId: newPosition.id,
+            capitalUSD: positionSize,
+            timestamp: Date.now(),
+          });
+        }
+      } catch (error) {
+        console.error(`[AgentOrchestrator] Failed to initialize LP for ${market.pair}:`, error);
+      }
+    }
+  }
+
   private async closePosition(position: Position, reason: string): Promise<void> {
     try {
       const connector = this.connectors.get(position.exchange) || this.connector;
@@ -1407,7 +1535,7 @@ export class AgentOrchestrator {
   }
 
   private async closeAllPositions(reason: string): Promise<void> {
-    // Close each position via its exchange's connector
+    // Close each perp/spot position via its exchange's connector
     for (const pos of this.state.positions) {
       try {
         const connector = this.connectors.get(pos.exchange) || this.connector;
@@ -1415,6 +1543,18 @@ export class AgentOrchestrator {
       } catch (error) {
         console.error(`[AgentOrchestrator] Failed to close position ${pos.pair} on ${pos.exchange}:`, error);
       }
+    }
+
+    // Close all LP positions
+    if (this.lpExecutor) {
+      for (const lpPos of this.state.lpPositions) {
+        try {
+          await this.lpExecutor.closePosition(lpPos, reason);
+        } catch (error) {
+          console.error(`[AgentOrchestrator] Failed to close LP ${lpPos.pair}:`, error);
+        }
+      }
+      this.state.lpPositions = [];
     }
 
     // Cancel all orders on all exchanges
@@ -1434,6 +1574,7 @@ export class AgentOrchestrator {
       }
     }
     this.state.openOrders = [];
+    this.mmActiveOrders.clear();
   }
 
   // ========================================================================
@@ -1446,8 +1587,11 @@ export class AgentOrchestrator {
    */
   private async initializeDiscovery(): Promise<void> {
     try {
+      const discoveryApiUrl = this.credentials.hyperliquid?.testnet
+        ? 'https://api.hyperliquid-testnet.xyz'
+        : 'https://api.hyperliquid.xyz';
       this.discovery = new HyperliquidMarketDiscovery({
-        apiUrl: 'https://api.hyperliquid.xyz',
+        apiUrl: discoveryApiUrl,
         pollIntervalMs: 60_000,
         contextPollIntervalMs: 30_000,
       });
@@ -1852,18 +1996,29 @@ export class AgentOrchestrator {
       }
     }
 
-    // Emit warnings (non-blocking)
-    for (const warning of warnings) {
+    // Separate hard errors (balance confirmed insufficient) from soft warnings (fetch failed)
+    const hardErrors = warnings.filter(w => w.includes('but wallet has $'));
+    const softWarnings = warnings.filter(w => !w.includes('but wallet has $'));
+
+    // Hard errors: block startup — wallet definitely doesn't have enough
+    if (hardErrors.length > 0) {
+      const msg = `Insufficient balance: ${hardErrors.join(' | ')}`;
+      this.addError(msg, 'wallet_validation');
+      throw new Error(msg);
+    }
+
+    // Soft warnings (fetch failed, no connector): emit but don't block
+    for (const warning of softWarnings) {
       this.addError(`BALANCE WARNING: ${warning}`, 'wallet_validation');
       this.emit('balance_warning', { message: warning, timestamp: Date.now() });
     }
 
     // Publish summary to event bus
-    if (warnings.length > 0) {
+    if (softWarnings.length > 0) {
       this.eventBus.publish({
         type: 'risk_alert' as any,
         source: 'AgentOrchestrator',
-        data: { type: 'insufficient_balance', warnings, count: warnings.length },
+        data: { type: 'insufficient_balance', warnings: softWarnings, count: softWarnings.length },
         timestamp: Date.now(),
         priority: 'high',
       });

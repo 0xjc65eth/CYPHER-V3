@@ -97,6 +97,7 @@ export class TriangularArbitrageEngine {
   private cachedPrices: CachedPrices | null = null;
   private realExchangeData: ExchangeDataCache = new Map();
   private realDataTimestamp = 0;
+  private monitoringInterval: NodeJS.Timeout | null = null;
   private executedCount = 0;
   private successCount = 0;
   private totalProfitTracked = 0;
@@ -592,8 +593,8 @@ export class TriangularArbitrageEngine {
    * Start real-time market monitoring
    */
   private startMarketMonitoring(): void {
-    // Update market data every 30 seconds
-    setInterval(async () => {
+    // Update market data every 2 minutes
+    this.monitoringInterval = setInterval(async () => {
       try {
         await this.updateMarketData();
         
@@ -669,6 +670,16 @@ export class TriangularArbitrageEngine {
         this.alertCallbacks.splice(index, 1);
       }
     };
+  }
+
+  /**
+   * Stop market monitoring and clean up intervals
+   */
+  stop(): void {
+    if (this.monitoringInterval) {
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
+    }
   }
 
   /**

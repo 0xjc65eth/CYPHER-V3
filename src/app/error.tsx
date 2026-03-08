@@ -13,13 +13,22 @@ export default function ErrorPage({
   useEffect(() => {
     console.error('[CYPHER] Unhandled error:', error)
 
-    // Auto-retry on chunk loading failures (code splitting errors)
+    // Auto-reload on chunk loading failures (stale deployment cache)
+    // Guard against infinite reload loop with sessionStorage counter
     if (
       error?.message?.includes('Loading chunk') ||
       error?.message?.includes('ChunkLoadError') ||
       error?.message?.includes('Failed to fetch dynamically imported module')
     ) {
-      window.location.reload()
+      const key = 'cypher_chunk_reload'
+      const reloads = parseInt(sessionStorage.getItem(key) || '0', 10)
+      if (reloads < 2) {
+        sessionStorage.setItem(key, String(reloads + 1))
+        window.location.reload()
+      } else {
+        // After 2 failed reloads, reset counter so next session works
+        sessionStorage.removeItem(key)
+      }
     }
   }, [error])
 

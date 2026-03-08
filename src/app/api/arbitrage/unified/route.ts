@@ -5,6 +5,8 @@ import { triangularArbitrage } from '@/services/arbitrage/TriangularArbitrage';
 import { ordinalsArbitrageService } from '@/services/ordinals/OrdinalsArbitrageService';
 import { runesArbitrageService } from '@/services/runes-arbitrage-service';
 import { brc20ArbitrageService } from '@/services/brc20-arbitrage-service';
+import { fetchBTCPrice } from '@/lib/price-apis';
+import { EnhancedLogger } from '@/lib/enhanced-logger';
 import { cache } from '@/lib/cache/redis.config';
 
 const CACHE_KEY = 'arb:unified';
@@ -46,9 +48,18 @@ export async function GET(request: NextRequest) {
     } catch { /* cache miss */ }
 
     const allOpportunities: UnifiedOpportunity[] = [];
+    const errors: string[] = [];
     const arbTypes = typeFilter === 'all'
       ? ['cex-cex', 'spot-perp', 'triangular', 'ordinals', 'runes', 'brc20']
       : [typeFilter];
+
+    // Fetch BTC price once for USD conversions
+    let btcPriceUSD = 0;
+    try {
+      btcPriceUSD = await fetchBTCPrice();
+    } catch {
+      EnhancedLogger.warn('[UnifiedArb] Failed to fetch BTC price for USD conversion');
+    }
 
     // Fetch all types in parallel
     const promises: Promise<void>[] = [];
@@ -106,7 +117,8 @@ export async function GET(request: NextRequest) {
             }
           }
         } catch (error) {
-          // CEX-CEX scan failed, continue with other types
+          EnhancedLogger.warn(`[UnifiedArb] CEX-CEX scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          errors.push('cex-cex');
         }
       })());
     }
@@ -141,7 +153,8 @@ export async function GET(request: NextRequest) {
             });
           }
         } catch (error) {
-          // Spot-perp scan failed
+          EnhancedLogger.warn(`[UnifiedArb] Spot-perp scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          errors.push('spot-perp');
         }
       })());
     }
@@ -180,7 +193,8 @@ export async function GET(request: NextRequest) {
             });
           }
         } catch (error) {
-          // Triangular scan failed
+          EnhancedLogger.warn(`[UnifiedArb] Triangular scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          errors.push('triangular');
         }
       })());
     }
@@ -204,7 +218,7 @@ export async function GET(request: NextRequest) {
               sellPrice: opp.sellPrice,
               spreadPercent: parseFloat(opp.grossProfitPercentage.toFixed(4)),
               netProfitPercent: parseFloat(opp.netProfitPercentage.toFixed(4)),
-              estimatedProfitUSD: 0, // Ordinals priced in BTC
+              estimatedProfitUSD: btcPriceUSD > 0 ? parseFloat((opp.netProfit * btcPriceUSD).toFixed(2)) : 0,
               fees: {
                 trading: opp.fees.buyMarketplaceFee + opp.fees.sellMarketplaceFee,
                 network: opp.fees.networkFee,
@@ -225,8 +239,9 @@ export async function GET(request: NextRequest) {
               },
             });
           }
-        } catch {
-          // Ordinals scan failed, continue with other types
+        } catch (error) {
+          EnhancedLogger.warn(`[UnifiedArb] Ordinals scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          errors.push('ordinals');
         }
       })());
     }
@@ -235,7 +250,7 @@ export async function GET(request: NextRequest) {
     if (arbTypes.includes('runes')) {
       promises.push((async () => {
         try {
-          const runeInsights = runesArbitrageService.getRunesArbitrageInsights();
+          const runeInsights = await runesArbitrageService.getRunesArbitrageInsights();
           for (const insight of runeInsights) {
             const pred = insight.prediction;
             const netProfitPct = parseFloat(pred.profitPercent);
@@ -251,10 +266,10 @@ export async function GET(request: NextRequest) {
               spreadPercent: parseFloat((((pred.targetSellPrice - pred.sourceBuyPrice) / pred.sourceBuyPrice) * 100).toFixed(4)),
               netProfitPercent: parseFloat(netProfitPct.toFixed(4)),
               estimatedProfitUSD: pred.estimatedProfit,
-              fees: { trading: 0, network: 0, total: 0 }, // fees already accounted in net profit
+              fees: { trading: 0, network: 0, total: 0 },
               liquidity: Math.min(100, Math.round(insight.dataPoints / 10)),
               confidence: insight.confidence,
-              riskLevel: netProfitPct > 10 ? 'medium' : netProfitPct > 5 ? 'low' : 'low',
+              riskLevel: netProfitPct > 20 ? 'high' : netProfitPct > 5 ? 'medium' : 'low',
               timestamp: new Date(insight.timestamp).getTime(),
               metadata: {
                 explanation: insight.explanation,
@@ -263,8 +278,9 @@ export async function GET(request: NextRequest) {
               },
             });
           }
-        } catch {
-          // Runes scan failed, continue with other types
+        } catch (error) {
+          EnhancedLogger.warn(`[UnifiedArb] Runes scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          errors.push('runes');
         }
       })());
     }
@@ -273,7 +289,7 @@ export async function GET(request: NextRequest) {
     if (arbTypes.includes('brc20')) {
       promises.push((async () => {
         try {
-          const brcInsights = brc20ArbitrageService.getInsights();
+          const brcInsights = await brc20ArbitrageService.getInsights();
           for (const insight of brcInsights) {
             const pred = insight.prediction;
             const netProfitPct = parseFloat(pred.profitPercent);
@@ -292,7 +308,7 @@ export async function GET(request: NextRequest) {
               fees: { trading: 0, network: 0, total: 0 },
               liquidity: Math.min(100, Math.round(insight.dataPoints / 10)),
               confidence: insight.confidence,
-              riskLevel: netProfitPct > 10 ? 'medium' : 'low',
+              riskLevel: netProfitPct > 20 ? 'high' : netProfitPct > 5 ? 'medium' : 'low',
               timestamp: new Date(insight.timestamp).getTime(),
               metadata: {
                 explanation: insight.explanation,
@@ -300,8 +316,9 @@ export async function GET(request: NextRequest) {
               },
             });
           }
-        } catch {
-          // BRC-20 scan failed, continue with other types
+        } catch (error) {
+          EnhancedLogger.warn(`[UnifiedArb] BRC-20 scan failed: ${error instanceof Error ? error.message : String(error)}`);
+          errors.push('brc20');
         }
       })());
     }
@@ -323,6 +340,7 @@ export async function GET(request: NextRequest) {
       totalCount: allOpportunities.length,
       bestNetProfit: allOpportunities[0]?.netProfitPercent || 0,
       timestamp: Date.now(),
+      ...(errors.length > 0 ? { errors } : {}),
     };
 
     // Cache
