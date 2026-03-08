@@ -42,6 +42,12 @@ const nextConfig = {
     },
   },
   webpack: (config, { isServer }) => {
+    // Explicit @ alias for Vercel Linux builds
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': path.resolve(__dirname, 'src'),
+    };
+
     // Fix for SSR issues
     if (!isServer) {
       config.resolve.fallback = {
