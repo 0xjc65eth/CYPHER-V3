@@ -4,17 +4,24 @@ import { useBilling } from '@/hooks/useBilling'
 
 const PLANS = [
   {
-    id: 'pro' as const,
-    name: 'CYPHER Pro',
+    id: 'explorer' as const,
+    name: 'CYPHER Explorer',
     price: '$29',
-    features: ['Ordinals Analytics', 'Runes Tracking', 'BRC-20 Data', 'API Access', 'Real-time alerts'],
+    features: ['Portfolio tracking', 'Cross-chain swaps', 'Ordinals & Runes viewer', 'AI analytics', 'Unlimited alerts', 'Paper trading'],
     highlight: false,
   },
   {
-    id: 'elite' as const,
-    name: 'CYPHER Elite',
-    price: '$99',
-    features: ['Tudo do Pro', 'Rare Sats Scanner', 'Portfolio Tracker', 'Priority Support', 'Bloomberg Terminal UI'],
+    id: 'trader' as const,
+    name: 'CYPHER Trader',
+    price: '$79',
+    features: ['Everything in Explorer', 'Neural predictions', 'Smart Money Concepts', 'Whale tracking'],
+    highlight: false,
+  },
+  {
+    id: 'hacker_yields' as const,
+    name: 'CYPHER Hacker Yields',
+    price: '$149',
+    features: ['Everything in Trader', 'AI Trading Agent', 'Multi-agent consensus', 'Auto-compound', 'MEV protection'],
     highlight: true,
   },
 ]
@@ -26,7 +33,7 @@ export function PricingPlans() {
     <div className="flex flex-col items-center gap-8 py-12">
       <div className="text-center">
         <h2 className="text-3xl font-bold text-white mb-2">CYPHER Plans</h2>
-        <p className="text-gray-400">Paga com Bitcoin. Sem KYC. Sem intermediários.</p>
+        <p className="text-gray-400">Pay with Bitcoin or Card. No KYC.</p>
       </div>
 
       {error && (
@@ -35,13 +42,13 @@ export function PricingPlans() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
         {PLANS.map((plan) => (
           <div key={plan.id} className={`rounded-2xl p-6 flex flex-col gap-4 border ${
             plan.highlight ? 'bg-orange-950/30 border-orange-500/50' : 'bg-gray-900/50 border-gray-700/50'
           }`}>
             {plan.highlight && (
-              <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Most Popular</span>
+              <span className="text-xs font-semibold text-orange-400 uppercase tracking-wider">Best Value</span>
             )}
             <div>
               <h3 className="text-xl font-bold text-white">{plan.name}</h3>
@@ -55,16 +62,25 @@ export function PricingPlans() {
                 </li>
               ))}
             </ul>
-            <button
-              onClick={() => subscribe(plan.id)}
-              disabled={loading}
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                plan.highlight ? 'bg-orange-500 hover:bg-orange-400 text-black' : 'bg-gray-700 hover:bg-gray-600 text-white'
-              }`}
-            >
-              {loading ? 'Processing...' : 'Subscribe with Bitcoin'}
-            </button>
-            <p className="text-xs text-gray-500 text-center">Direct wallet payment. 0% fees.</p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => subscribe(plan.id, 'bitcoin')}
+                disabled={loading}
+                className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  plan.highlight ? 'bg-orange-500 hover:bg-orange-400 text-black' : 'bg-gray-700 hover:bg-gray-600 text-white'
+                }`}
+              >
+                {loading ? 'Processing...' : '₿ Pay with Bitcoin'}
+              </button>
+              <button
+                onClick={() => subscribe(plan.id, 'stripe')}
+                disabled={loading}
+                className="w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-[#1a1a2e] hover:bg-[#252540] text-white border border-white/10"
+              >
+                {loading ? 'Processing...' : '💳 Pay with Card'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 text-center">Bitcoin accepts Lightning ⚡</p>
           </div>
         ))}
       </div>
