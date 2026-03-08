@@ -44,11 +44,46 @@ const EMPTY_PERFORMANCE: AgentPerformance = {
 // ============================================================================
 
 const MARKET_CATEGORIES = [
-  { name: 'Crypto Perpetuals (Hyperliquid)', markets: ['BTC-PERP', 'ETH-PERP', 'SOL-PERP', 'ARB-PERP'] },
-  { name: 'DeFi LP (No KYC)', markets: ['SOL/USDC', 'ETH/USDC'] },
-  { name: 'Synth Stock Perps (Hyperliquid - No KYC)', markets: ['AAPL-PERP', 'TSLA-PERP', 'NVDA-PERP', 'SPY-PERP'] },
-  { name: 'Synth Forex Perps (Hyperliquid - No KYC)', markets: ['EUR/USD-PERP', 'GBP/USD-PERP', 'USD/JPY-PERP'] },
-  { name: 'Synth Commodity Perps (Hyperliquid - No KYC)', markets: ['GOLD-PERP', 'SILVER-PERP', 'OIL-PERP'] },
+  {
+    name: 'Top Crypto Perpetuals (Hyperliquid)',
+    desc: 'Major crypto perps — highest liquidity, tightest spreads',
+    markets: ['BTC-PERP', 'ETH-PERP', 'SOL-PERP', 'ARB-PERP', 'DOGE-PERP', 'AVAX-PERP', 'LINK-PERP', 'SUI-PERP', 'OP-PERP', 'APT-PERP', 'INJ-PERP', 'TIA-PERP', 'SEI-PERP', 'ONDO-PERP', 'WIF-PERP', 'JUP-PERP'],
+  },
+  {
+    name: 'Memecoins & High-Vol (Hyperliquid)',
+    desc: 'High volatility memecoin perps — higher risk, higher reward',
+    markets: ['PEPE-PERP', 'WIF-PERP', 'BONK-PERP', 'FLOKI-PERP', 'MEME-PERP', 'MYRO-PERP', 'WEN-PERP', 'POPCAT-PERP', 'BRETT-PERP', 'MEW-PERP', 'NEIRO-PERP', 'GOAT-PERP'],
+  },
+  {
+    name: 'Solana Memecoins (Jupiter / Raydium)',
+    desc: 'Spot trading on Solana DEX — PumpFun launches, Raydium pools',
+    markets: ['BONK/SOL', 'WIF/SOL', 'POPCAT/SOL', 'MEW/SOL', 'GOAT/SOL', 'FARTCOIN/SOL', 'AI16Z/SOL', 'GRIFFAIN/SOL'],
+  },
+  {
+    name: 'New Listings / IPO (Auto-Detected)',
+    desc: 'Agent auto-detects new Hyperliquid listings and trades the first 24h momentum',
+    markets: ['IPO-AUTO'],
+  },
+  {
+    name: 'DeFi LP (No KYC)',
+    desc: 'Concentrated liquidity positions — earn fees from trading volume',
+    markets: ['SOL/USDC', 'ETH/USDC', 'ARB/USDC', 'BTC/USDC'],
+  },
+  {
+    name: 'Synth Stock Perps (Hyperliquid)',
+    desc: 'Trade US stocks 24/7 as perpetual contracts — no KYC',
+    markets: ['AAPL-PERP', 'TSLA-PERP', 'NVDA-PERP', 'SPY-PERP', 'AMZN-PERP', 'GOOGL-PERP', 'META-PERP', 'MSFT-PERP', 'COIN-PERP', 'MSTR-PERP'],
+  },
+  {
+    name: 'Synth Forex Perps (Hyperliquid)',
+    desc: 'Major forex pairs as perps — 24/7, no KYC',
+    markets: ['EUR/USD-PERP', 'GBP/USD-PERP', 'USD/JPY-PERP', 'AUD/USD-PERP', 'USD/CHF-PERP'],
+  },
+  {
+    name: 'Synth Commodity Perps (Hyperliquid)',
+    desc: 'Commodities as perps — gold, silver, oil',
+    markets: ['GOLD-PERP', 'SILVER-PERP', 'OIL-PERP'],
+  },
 ];
 
 // ============================================================================
@@ -395,7 +430,7 @@ function SetupWizard({
   const steps = [
     { num: 1, title: 'Connect Wallet' },
     { num: 2, title: 'Exchange Keys' },
-    { num: 3, title: 'Risk Limits' },
+    { num: 3, title: 'Capital & Risk' },
     { num: 4, title: 'Markets' },
     { num: 5, title: 'Review' },
   ];
@@ -535,7 +570,7 @@ function SetupWizard({
               <h2 className="text-lg font-bold text-orange-400 font-mono mb-2">EXCHANGE API KEYS</h2>
               <p className="text-sm text-white/50 mb-6">
                 Enter your API credentials. All exchanges are <span className="text-emerald-400 font-bold">NO KYC</span>.
-                Keys are sent to the server securely and encrypted at rest.
+                Keys are encrypted and stored in memory only — never saved to disk.
               </p>
 
               {/* Hyperliquid - REQUIRED */}
@@ -551,16 +586,71 @@ function SetupWizard({
                   )}
                 </div>
                 <p className="text-xs text-white/40 mb-3">
-                  All perps: Crypto, Synth Stocks, Forex, Commodities — 24/7 trading on Hyperliquid L1.
+                  Trade 200+ perps: Crypto, Memecoins, Synth Stocks, Forex, Commodities — 24/7 on Hyperliquid L1.
                 </p>
-                <div className="border border-orange-500/10 rounded p-3 mb-4 bg-black/50 space-y-1.5">
-                  <div className="text-[10px] text-orange-400/80 font-mono font-bold mb-1">HOW TO GET YOUR AGENT WALLET:</div>
-                  <div className="text-[10px] text-white/50 font-mono">1. Go to <span className="text-orange-400">app.hyperliquid.xyz</span> and connect your main wallet</div>
-                  <div className="text-[10px] text-white/50 font-mono">2. Click the <span className="text-white/80">hamburger menu (≡)</span> → <span className="text-white/80">API</span></div>
-                  <div className="text-[10px] text-white/50 font-mono">3. Click <span className="text-white/80">"Create Agent Wallet"</span> (generates a separate wallet for trading)</div>
-                  <div className="text-[10px] text-white/50 font-mono">4. Copy the <span className="text-emerald-400">Agent Address (0x...)</span> → paste below as AGENT WALLET KEY</div>
-                  <div className="text-[10px] text-white/50 font-mono">5. Copy the <span className="text-emerald-400">Private Key</span> → paste below as AGENT WALLET SECRET</div>
-                  <div className="text-[10px] text-red-400/80 font-mono mt-2 font-bold">WARNING: Do NOT use your main wallet private key. Always create a dedicated Agent Wallet.</div>
+
+                {/* Step-by-step tutorial */}
+                <div className="border border-orange-500/10 rounded-lg p-4 mb-4 bg-black/50 space-y-3">
+                  <div className="text-xs text-orange-400 font-mono font-bold flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-orange-500/20 flex items-center justify-center text-[10px]">?</span>
+                    HOW TO GET YOUR HYPERLIQUID API KEYS
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex gap-3 items-start">
+                      <span className="text-xs font-mono text-orange-400 font-bold min-w-[24px]">1.</span>
+                      <div>
+                        <p className="text-xs text-white/70 font-mono">
+                          Open <a href="https://app.hyperliquid.xyz" target="_blank" rel="noopener noreferrer" className="text-orange-400 underline hover:text-orange-300">app.hyperliquid.xyz</a> and connect the <span className="text-white">same MetaMask wallet</span> you connected in Step 1.
+                        </p>
+                        <p className="text-[10px] text-white/30 font-mono mt-0.5">Make sure you have deposited USDC to your Hyperliquid account first.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      <span className="text-xs font-mono text-orange-400 font-bold min-w-[24px]">2.</span>
+                      <div>
+                        <p className="text-xs text-white/70 font-mono">
+                          Click the <span className="text-white bg-white/10 px-1.5 py-0.5 rounded">☰ Menu</span> icon (top-left corner) → then click <span className="text-white bg-white/10 px-1.5 py-0.5 rounded">API</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      <span className="text-xs font-mono text-orange-400 font-bold min-w-[24px]">3.</span>
+                      <div>
+                        <p className="text-xs text-white/70 font-mono">
+                          Click <span className="text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold">Generate API Key</span>
+                        </p>
+                        <p className="text-[10px] text-white/30 font-mono mt-0.5">This creates an API wallet that can ONLY trade — it cannot withdraw funds.</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      <span className="text-xs font-mono text-orange-400 font-bold min-w-[24px]">4.</span>
+                      <div>
+                        <p className="text-xs text-white/70 font-mono">
+                          Copy the <span className="text-emerald-400">API Wallet Address</span> (starts with 0x...) → paste below as <span className="text-white font-bold">AGENT WALLET KEY</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3 items-start">
+                      <span className="text-xs font-mono text-orange-400 font-bold min-w-[24px]">5.</span>
+                      <div>
+                        <p className="text-xs text-white/70 font-mono">
+                          Copy the <span className="text-emerald-400">API Private Key</span> → paste below as <span className="text-white font-bold">AGENT WALLET SECRET</span>
+                        </p>
+                        <p className="text-[10px] text-white/30 font-mono mt-0.5">Save this key somewhere safe — Hyperliquid only shows it once!</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-orange-500/10 pt-2 mt-2 space-y-1">
+                    <div className="text-[10px] text-emerald-400/80 font-mono">✓ The API wallet can only TRADE — it CANNOT withdraw your funds</div>
+                    <div className="text-[10px] text-emerald-400/80 font-mono">✓ You can revoke the API key at any time from Hyperliquid</div>
+                    <div className="text-[10px] text-red-400/80 font-mono font-bold">✕ Do NOT paste your main MetaMask private key — only the API key from Hyperliquid</div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <div>
@@ -717,62 +807,134 @@ function SetupWizard({
           {/* Step 3: Risk Limits */}
           {currentStep === 3 && (
             <div>
-              <h2 className="text-lg font-bold text-orange-400 font-mono mb-2">RISK MANAGEMENT</h2>
-              <p className="text-sm text-white/50 mb-6">
-                Configure capital allocation and risk parameters. These limits protect your portfolio.
+              <h2 className="text-lg font-bold text-orange-400 font-mono mb-2">CAPITAL & RISK MANAGEMENT</h2>
+              <p className="text-sm text-white/50 mb-2">
+                Decide how much of your funds the agent can use on each chain. You control every dollar.
               </p>
+              <p className="text-[10px] text-white/30 font-mono mb-6">
+                The agent will NEVER use more than what you allocate below. You can change these limits at any time.
+              </p>
+
+              {/* Wallet Balance Summary */}
+              <div className="border border-emerald-500/20 rounded-lg p-4 bg-emerald-500/5 mb-6">
+                <div className="text-[10px] text-emerald-400 font-mono font-bold mb-3">YOUR WALLET BALANCES</div>
+                {walletBalances.loading ? (
+                  <div className="text-xs text-white/30 font-mono animate-pulse">Fetching balances from connected wallets...</div>
+                ) : walletBalances.loaded ? (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-[10px] text-white/30 font-mono mb-1">HYPERLIQUID (USDC)</div>
+                      <div className="text-lg font-mono text-white font-bold">${walletBalances.hyperliquid.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                      <div className="text-[10px] text-white/20 font-mono">Available for perp trading</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-white/30 font-mono mb-1">SOLANA (SOL/USDC)</div>
+                      <div className="text-lg font-mono text-white font-bold">${walletBalances.solana.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                      <div className="text-[10px] text-white/20 font-mono">Available for LP & memecoins</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-white/30 font-mono mb-1">EVM (ETH/USDC)</div>
+                      <div className="text-lg font-mono text-white font-bold">${walletBalances.evm.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                      <div className="text-[10px] text-white/20 font-mono">Available for Uniswap LP</div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-xs text-white/30 font-mono">
+                    {testKeyResult?.success
+                      ? 'Could not fetch balances. Enter amounts manually below.'
+                      : 'Complete Step 2 (API Keys) first to auto-detect your balances.'}
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Capital Allocation by Chain */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-mono text-orange-400/80 font-bold">CAPITAL ALLOCATION BY CHAIN</h3>
-                  <p className="text-[10px] text-white/30 font-mono">Allocate your capital per chain. Total is computed automatically.</p>
+                  <h3 className="text-xs font-mono text-orange-400/80 font-bold">ALLOCATE CAPITAL PER CHAIN</h3>
+                  <p className="text-[10px] text-white/30 font-mono">
+                    How much should the agent use on each chain? Set each one independently.
+                  </p>
                   {[
-                    { key: 'hyperliquid' as const, label: 'Hyperliquid Perps (Scalp + MM)', placeholder: '3000', color: 'orange', balanceKey: 'hyperliquid' as const },
-                    { key: 'lpSolana' as const, label: 'Solana LP (Jupiter / Raydium)', placeholder: '1000', color: 'purple', balanceKey: 'solana' as const },
-                    { key: 'lpEvm' as const, label: 'EVM LP (Uniswap V3)', placeholder: '1000', color: 'blue', balanceKey: 'evm' as const },
+                    { key: 'hyperliquid' as const, label: 'Hyperliquid Perps', desc: 'Scalping + Market Making on 200+ pairs', placeholder: '3000', icon: '⚡', balanceKey: 'hyperliquid' as const },
+                    { key: 'lpSolana' as const, label: 'Solana (Jupiter / Raydium)', desc: 'Memecoins + LP positions', placeholder: '1000', icon: '🟣', balanceKey: 'solana' as const },
+                    { key: 'lpEvm' as const, label: 'EVM (Uniswap V3)', desc: 'Concentrated LP on Ethereum/Arbitrum', placeholder: '1000', icon: '🔵', balanceKey: 'evm' as const },
                   ].map(item => {
                     const available = walletBalances[item.balanceKey];
                     const configured = config.capitalAllocation[item.key] ?? 0;
-                    const isOverAllocated = walletBalances.loaded && configured > 0 && configured > available;
+                    const isOverAllocated = walletBalances.loaded && available > 0 && configured > available;
+                    const pctUsed = walletBalances.loaded && available > 0 ? Math.round((configured / available) * 100) : 0;
                     return (
-                      <div key={item.key}>
-                        <div className="flex justify-between items-center mb-1">
-                          <label className="text-[10px] text-white/30 font-mono">{item.label} (USD)</label>
-                          {walletBalances.loading && (
-                            <span className="text-[10px] text-white/20 font-mono animate-pulse">Loading balance...</span>
-                          )}
+                      <div key={item.key} className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm">{item.icon}</span>
+                              <label className="text-xs text-white/70 font-mono font-bold">{item.label}</label>
+                            </div>
+                            <div className="text-[10px] text-white/25 font-mono mt-0.5">{item.desc}</div>
+                          </div>
                           {walletBalances.loaded && available > 0 && (
-                            <span className={`text-[10px] font-mono ${isOverAllocated ? 'text-red-400' : 'text-emerald-400/60'}`}>
-                              Available: ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                            </span>
+                            <div className="text-right">
+                              <span className={`text-[10px] font-mono ${isOverAllocated ? 'text-red-400' : 'text-emerald-400/60'}`}>
+                                Wallet: ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              </span>
+                              {configured > 0 && (
+                                <div className={`text-[10px] font-mono ${isOverAllocated ? 'text-red-400' : 'text-white/20'}`}>
+                                  Using {pctUsed}%
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <input
-                          type="number"
-                          min="0"
-                          max={walletBalances.loaded && available > 0 ? available : undefined}
-                          value={configured}
-                          onChange={e => {
-                            let val = Number(e.target.value) || 0;
-                            if (walletBalances.loaded && available > 0 && val > available) {
-                              val = Math.floor(available);
-                            }
-                            const newAlloc = { ...config.capitalAllocation, [item.key]: val };
-                            const hl = newAlloc.hyperliquid ?? 0;
-                            const lpSol = newAlloc.lpSolana ?? 0;
-                            const lpEvm = newAlloc.lpEvm ?? 0;
-                            const total = hl + lpSol + lpEvm;
-                            newAlloc.total = total;
-                            newAlloc.lp = total > 0 ? (lpSol + lpEvm) / total : 0.5;
-                            newAlloc.mm = total > 0 ? (hl * 0.5) / total : 0.25;
-                            newAlloc.scalp = total > 0 ? (hl * 0.5) / total : 0.25;
-                            setConfig({ ...config, capitalAllocation: newAlloc });
-                          }}
-                          className={`w-full bg-black border rounded px-3 py-2 text-sm font-mono text-white focus:outline-none ${
-                            isOverAllocated ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-orange-500/50'
-                          }`}
-                          placeholder={item.placeholder}
-                        />
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-white/30 font-mono">$</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max={walletBalances.loaded && available > 0 ? available : undefined}
+                            value={configured || ''}
+                            onChange={e => {
+                              let val = Number(e.target.value) || 0;
+                              if (walletBalances.loaded && available > 0 && val > available) {
+                                val = Math.floor(available);
+                              }
+                              const newAlloc = { ...config.capitalAllocation, [item.key]: val };
+                              const hl = newAlloc.hyperliquid ?? 0;
+                              const lpSol = newAlloc.lpSolana ?? 0;
+                              const lpEvm = newAlloc.lpEvm ?? 0;
+                              const total = hl + lpSol + lpEvm;
+                              newAlloc.total = total;
+                              newAlloc.lp = total > 0 ? (lpSol + lpEvm) / total : 0.5;
+                              newAlloc.mm = total > 0 ? (hl * 0.5) / total : 0.25;
+                              newAlloc.scalp = total > 0 ? (hl * 0.5) / total : 0.25;
+                              setConfig({ ...config, capitalAllocation: newAlloc });
+                            }}
+                            className={`flex-1 bg-black border rounded px-3 py-2 text-sm font-mono text-white focus:outline-none ${
+                              isOverAllocated ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-orange-500/50'
+                            }`}
+                            placeholder={item.placeholder}
+                          />
+                          {walletBalances.loaded && available > 0 && (
+                            <button
+                              onClick={() => {
+                                const val = Math.floor(available);
+                                const newAlloc = { ...config.capitalAllocation, [item.key]: val };
+                                const hl = newAlloc.hyperliquid ?? 0;
+                                const lpSol = newAlloc.lpSolana ?? 0;
+                                const lpEvm = newAlloc.lpEvm ?? 0;
+                                const total = hl + lpSol + lpEvm;
+                                newAlloc.total = total;
+                                newAlloc.lp = total > 0 ? (lpSol + lpEvm) / total : 0.5;
+                                newAlloc.mm = total > 0 ? (hl * 0.5) / total : 0.25;
+                                newAlloc.scalp = total > 0 ? (hl * 0.5) / total : 0.25;
+                                setConfig({ ...config, capitalAllocation: newAlloc });
+                              }}
+                              className="text-[10px] font-mono text-orange-400 border border-orange-500/30 px-2 py-2 rounded hover:bg-orange-500/10 transition-colors whitespace-nowrap"
+                            >
+                              MAX
+                            </button>
+                          )}
+                        </div>
                         {isOverAllocated && (
                           <p className="text-[10px] text-red-400 font-mono mt-1">
                             Exceeds wallet balance by ${(configured - available).toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -781,13 +943,20 @@ function SetupWizard({
                       </div>
                     );
                   })}
-                  <div className="border-t border-white/10 pt-3">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-white/40">TOTAL CAPITAL</span>
-                      <span className="text-orange-400 font-bold">${config.capitalAllocation.total.toLocaleString()}</span>
+
+                  {/* Total Summary */}
+                  <div className="border border-orange-500/20 rounded-lg p-3 bg-orange-500/5">
+                    <div className="flex justify-between text-xs font-mono mb-1">
+                      <span className="text-white/60">TOTAL ALLOCATED</span>
+                      <span className="text-orange-400 font-bold text-sm">${config.capitalAllocation.total.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between text-[10px] font-mono mt-1">
-                      <span className="text-white/20">LP {Math.round(config.capitalAllocation.lp * 100)}% / MM {Math.round(config.capitalAllocation.mm * 100)}% / Scalp {Math.round(config.capitalAllocation.scalp * 100)}%</span>
+                    <div className="flex gap-3 text-[10px] font-mono text-white/30">
+                      <span>⚡ HL: ${(config.capitalAllocation.hyperliquid ?? 0).toLocaleString()}</span>
+                      <span>🟣 SOL: ${(config.capitalAllocation.lpSolana ?? 0).toLocaleString()}</span>
+                      <span>🔵 EVM: ${(config.capitalAllocation.lpEvm ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex gap-2 text-[10px] font-mono text-white/20 mt-1">
+                      <span>Strategy split: LP {Math.round(config.capitalAllocation.lp * 100)}% / MM {Math.round(config.capitalAllocation.mm * 100)}% / Scalp {Math.round(config.capitalAllocation.scalp * 100)}%</span>
                     </div>
                   </div>
                 </div>
@@ -795,8 +964,11 @@ function SetupWizard({
                 {/* Risk Limits */}
                 <div className="space-y-4">
                   <h3 className="text-xs font-mono text-orange-400/80 font-bold">RISK LIMITS</h3>
-                  <div>
-                    <label className="text-[10px] text-white/30 font-mono block mb-1">Max Leverage</label>
+                  <p className="text-[10px] text-white/30 font-mono">
+                    Safety guardrails. The agent pauses or stops trading when these limits are hit.
+                  </p>
+                  <div className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
+                    <label className="text-[10px] text-white/30 font-mono block mb-1">Max Leverage (1x = no leverage)</label>
                     <input
                       type="number"
                       min="1" max="20"
@@ -804,11 +976,16 @@ function SetupWizard({
                       onChange={e => setConfig({ ...config, riskLimits: { ...config.riskLimits, maxLeverage: Number(e.target.value) } })}
                       className="w-full bg-black border border-white/10 rounded px-3 py-2 text-sm font-mono text-white focus:border-orange-500/50 focus:outline-none"
                     />
+                    <p className="text-[10px] text-white/20 font-mono mt-1">
+                      {config.riskLimits.maxLeverage <= 3 ? 'Conservative — lower risk, lower reward' :
+                       config.riskLimits.maxLeverage <= 7 ? 'Moderate — balanced risk/reward' :
+                       'Aggressive — higher risk of liquidation'}
+                    </p>
                   </div>
-                  <div>
+                  <div className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
                     <div className="flex justify-between mb-1">
-                      <label className="text-[10px] text-white/30 font-mono">Max Daily Drawdown</label>
-                      <span className="text-[10px] text-red-400 font-mono">{Math.round(config.riskLimits.maxDailyDrawdown * 100)}%</span>
+                      <label className="text-[10px] text-white/30 font-mono">Max Daily Loss (agent pauses for 24h)</label>
+                      <span className="text-xs text-red-400 font-mono font-bold">{Math.round(config.riskLimits.maxDailyDrawdown * 100)}%</span>
                     </div>
                     <input
                       type="range"
@@ -817,11 +994,14 @@ function SetupWizard({
                       onChange={e => setConfig({ ...config, riskLimits: { ...config.riskLimits, maxDailyDrawdown: Number(e.target.value) / 100 } })}
                       className="w-full accent-red-500"
                     />
+                    <p className="text-[10px] text-white/20 font-mono mt-1">
+                      If the agent loses {Math.round(config.riskLimits.maxDailyDrawdown * 100)}% of your capital in a day = ${Math.round((config.capitalAllocation.total || 5000) * config.riskLimits.maxDailyDrawdown).toLocaleString()} → trading pauses
+                    </p>
                   </div>
-                  <div>
+                  <div className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
                     <div className="flex justify-between mb-1">
-                      <label className="text-[10px] text-white/30 font-mono">Max Total Drawdown</label>
-                      <span className="text-[10px] text-red-400 font-mono">{Math.round(config.riskLimits.maxTotalDrawdown * 100)}%</span>
+                      <label className="text-[10px] text-white/30 font-mono">Max Total Loss (agent shuts down)</label>
+                      <span className="text-xs text-red-400 font-mono font-bold">{Math.round(config.riskLimits.maxTotalDrawdown * 100)}%</span>
                     </div>
                     <input
                       type="range"
@@ -830,15 +1010,23 @@ function SetupWizard({
                       onChange={e => setConfig({ ...config, riskLimits: { ...config.riskLimits, maxTotalDrawdown: Number(e.target.value) / 100 } })}
                       className="w-full accent-red-500"
                     />
+                    <p className="text-[10px] text-white/20 font-mono mt-1">
+                      If total losses reach {Math.round(config.riskLimits.maxTotalDrawdown * 100)}% = ${Math.round((config.capitalAllocation.total || 5000) * config.riskLimits.maxTotalDrawdown).toLocaleString()} → agent shuts down and closes all positions
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 pt-2">
-                    <input
-                      type="checkbox"
-                      checked={config.autoCompound.enabled}
-                      onChange={e => setConfig({ ...config, autoCompound: { ...config.autoCompound, enabled: e.target.checked } })}
-                      className="accent-orange-500"
-                    />
-                    <label className="text-xs text-white/60 font-mono">Auto-compound profits</label>
+                  <div className="border border-white/10 rounded-lg p-3 bg-white/[0.02]">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={config.autoCompound.enabled}
+                        onChange={e => setConfig({ ...config, autoCompound: { ...config.autoCompound, enabled: e.target.checked } })}
+                        className="accent-orange-500"
+                      />
+                      <label className="text-xs text-white/60 font-mono">Auto-compound profits</label>
+                    </div>
+                    <p className="text-[10px] text-white/20 font-mono mt-1">
+                      Every 4 hours, profits are reinvested: 50% Scalping / 25% Market Making / 25% LP
+                    </p>
                   </div>
                 </div>
               </div>
@@ -849,33 +1037,87 @@ function SetupWizard({
           {currentStep === 4 && (
             <div>
               <h2 className="text-lg font-bold text-orange-400 font-mono mb-2">SELECT MARKETS</h2>
-              <p className="text-sm text-white/50 mb-6">
-                Choose which markets and pairs your agent will trade. You can change this later.
+              <p className="text-sm text-white/50 mb-2">
+                Choose which markets and pairs your agent will trade. Click to toggle.
               </p>
-              <div className="space-y-6">
-                {MARKET_CATEGORIES.map(cat => (
-                  <div key={cat.name}>
-                    <h3 className="text-xs font-mono text-orange-400/80 font-bold mb-3">{cat.name.toUpperCase()}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {cat.markets.map(pair => (
+              <p className="text-[10px] text-white/30 font-mono mb-6">
+                The agent discovers 200+ Hyperliquid pairs automatically. Select categories below, or pick individual pairs.
+              </p>
+
+              {/* Quick Select */}
+              <div className="flex flex-wrap gap-2 mb-6">
+                <button
+                  onClick={() => {
+                    const all = MARKET_CATEGORIES.flatMap(c => c.markets);
+                    setSelectedMarkets(all);
+                  }}
+                  className="px-3 py-1.5 text-[10px] font-mono border border-orange-500/30 text-orange-400 rounded hover:bg-orange-500/10 transition-colors"
+                >
+                  SELECT ALL
+                </button>
+                <button
+                  onClick={() => setSelectedMarkets([])}
+                  className="px-3 py-1.5 text-[10px] font-mono border border-white/10 text-white/30 rounded hover:bg-white/5 transition-colors"
+                >
+                  CLEAR ALL
+                </button>
+                <button
+                  onClick={() => {
+                    const topPairs = ['BTC-PERP', 'ETH-PERP', 'SOL-PERP', 'DOGE-PERP', 'PEPE-PERP', 'WIF-PERP', 'SOL/USDC', 'IPO-AUTO'];
+                    setSelectedMarkets(topPairs);
+                  }}
+                  className="px-3 py-1.5 text-[10px] font-mono border border-emerald-500/30 text-emerald-400 rounded hover:bg-emerald-500/10 transition-colors"
+                >
+                  RECOMMENDED
+                </button>
+                <span className="text-[10px] text-white/20 font-mono flex items-center">{selectedMarkets.length} selected</span>
+              </div>
+
+              <div className="space-y-5">
+                {MARKET_CATEGORIES.map(cat => {
+                  const allSelected = cat.markets.every(m => selectedMarkets.includes(m));
+                  const someSelected = cat.markets.some(m => selectedMarkets.includes(m));
+                  return (
+                    <div key={cat.name} className="border border-white/5 rounded-lg p-4 bg-white/[0.01]">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-xs font-mono text-orange-400/80 font-bold">{cat.name.toUpperCase()}</h3>
                         <button
-                          key={pair}
-                          onClick={() => toggleMarket(pair)}
-                          className={`px-3 py-2 rounded text-xs font-mono border transition-colors text-left ${
-                            selectedMarkets.includes(pair)
-                              ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
-                              : 'border-white/10 bg-white/[0.02] text-white/50 hover:border-white/20'
+                          onClick={() => {
+                            if (allSelected) {
+                              setSelectedMarkets(prev => prev.filter(m => !cat.markets.includes(m)));
+                            } else {
+                              setSelectedMarkets(prev => [...new Set([...prev, ...cat.markets])]);
+                            }
+                          }}
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors ${
+                            allSelected
+                              ? 'border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                              : 'border-white/10 text-white/30 hover:text-white/50'
                           }`}
                         >
-                          {selectedMarkets.includes(pair) ? '> ' : '  '}{pair}
+                          {allSelected ? '✓ ALL' : someSelected ? 'SELECT ALL' : 'SELECT ALL'}
                         </button>
-                      ))}
+                      </div>
+                      {cat.desc && <p className="text-[10px] text-white/25 font-mono mb-3">{cat.desc}</p>}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                        {cat.markets.map(pair => (
+                          <button
+                            key={pair}
+                            onClick={() => toggleMarket(pair)}
+                            className={`px-2.5 py-1.5 rounded text-[11px] font-mono border transition-colors text-left ${
+                              selectedMarkets.includes(pair)
+                                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                                : 'border-white/10 bg-white/[0.02] text-white/40 hover:border-white/20 hover:text-white/60'
+                            }`}
+                          >
+                            {selectedMarkets.includes(pair) ? '> ' : '  '}
+                            {pair === 'IPO-AUTO' ? '🆕 Auto-Detect IPOs' : pair}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <div className="text-xs text-white/30 font-mono">
-                  {selectedMarkets.length} markets selected
-                </div>
+                  );
+                })}
               </div>
             </div>
           )}
