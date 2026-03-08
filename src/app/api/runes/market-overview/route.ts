@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { xverseAPI, type XverseRune } from '@/lib/api/xverse';
 
 /**
@@ -61,8 +62,10 @@ function formatRuneEntry(r: XverseRune, idx: number) {
   };
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 100);
     const cacheKey = `market-overview:${limit}`;
@@ -301,7 +304,7 @@ export async function GET(request: Request) {
         total: 0,
         timestamp: Date.now(),
         source: 'error',
-        error: message
+        error: 'Internal server error'
       },
       {
         status: 200,

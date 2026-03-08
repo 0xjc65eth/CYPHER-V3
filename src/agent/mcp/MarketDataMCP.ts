@@ -51,6 +51,39 @@ const API_KEY = process.env.COINGECKO_API_KEY ?? "";
 
 const TOOLS: ToolDefinition[] = [
   {
+    name: "hyperliquid_get_all_pairs",
+    description: "Get all available Hyperliquid trading pairs with metadata (volume, OI, funding, classification). Supports filtering by classification and minimum volume.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        classification: { type: "string", description: "Filter by pair classification: crypto_perp, synth_stock, synth_forex, synth_commodity, spot" },
+        min_volume: { type: "number", description: "Minimum 24h volume in USD (default: 0)" },
+        limit: { type: "number", description: "Max pairs to return (default: 50)" },
+      },
+    },
+  },
+  {
+    name: "hyperliquid_detect_new_pairs",
+    description: "Detect newly listed pairs on Hyperliquid discovered in the last N hours.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        hours: { type: "number", description: "Look back N hours for new pairs (default: 24)" },
+      },
+    },
+  },
+  {
+    name: "hyperliquid_get_pair_analytics",
+    description: "Get detailed analytics for a specific Hyperliquid pair: volume, OI, funding rate, liquidity score, classification.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        pair: { type: "string", description: "Pair name (e.g. BTC, ETH, AAPL, or BTC-PERP)" },
+      },
+      required: ["pair"],
+    },
+  },
+  {
     name: "get_price",
     description: "Fetch current price for one or more coins from CoinGecko",
     inputSchema: {
@@ -275,7 +308,146 @@ function textResult(data: unknown): ToolResult {
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 }
 
+// ---------------------------------------------------------------------------
+// Hyperliquid pair discovery handlers
+// ---------------------------------------------------------------------------
+
+async function handleHyperliquidGetAllPairs(args: Record<string, unknown>): Promise<ToolResult> {
+  const classification = args.classification as string | undefined;
+  const minVolume = Number(args.min_volume ?? 0);
+  const limit = Number(args.limit ?? 50);
+
+  try {
+    const { getOrchestrator } = await import("../core/AgentOrchestrator");
+    const orchestrator = getOrchestrator('system');
+    const discovery = orchestrator.getMarketDiscovery();
+
+    if (!discovery) {
+      return textResult({ status: "unavailable", message: "Market discovery not initialized. Start the agent first." });
+    }
+
+    let pairs = classification
+      ? discovery.getPairsByClass(classification as any)
+      : discovery.getAllPairs();
+
+    // Filter by volume
+    if (minVolume > 0) {
+      pairs = pairs.filter(p => (p.volume24h || 0) >= minVolume);
+    }
+
+    // Sort by volume descending
+    pairs.sort((a, b) => (b.volume24h || 0) - (a.volume24h || 0));
+
+    // Limit results
+    pairs = pairs.slice(0, limit);
+
+    return textResult({
+      total: discovery.getPairCount(),
+      returned: pairs.length,
+      filter: { classification: classification || 'all', minVolume },
+      pairs: pairs.map(p => ({
+        name: p.name,
+        pair: p.pair,
+        classification: p.classification,
+        volume24h: p.volume24h,
+        openInterest: p.openInterest,
+        funding: p.funding,
+        midPrice: p.midPrice,
+        maxLeverage: p.maxLeverage,
+        isSpot: p.isSpot,
+      })),
+    });
+  } catch (err) {
+    return textResult({ status: "error", message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+async function handleHyperliquidDetectNewPairs(args: Record<string, unknown>): Promise<ToolResult> {
+  const hours = Number(args.hours ?? 24);
+  const since = Date.now() - hours * 3_600_000;
+
+  try {
+    const { getOrchestrator } = await import("../core/AgentOrchestrator");
+    const orchestrator = getOrchestrator('system');
+    const discovery = orchestrator.getMarketDiscovery();
+
+    if (!discovery) {
+      return textResult({ status: "unavailable", message: "Market discovery not initialized." });
+    }
+
+    const newPairs = discovery.getNewPairsSince(since);
+
+    return textResult({
+      lookbackHours: hours,
+      since: new Date(since).toISOString(),
+      count: newPairs.length,
+      pairs: newPairs.map(p => ({
+        name: p.name,
+        pair: p.pair,
+        classification: p.classification,
+        discoveredAt: new Date(p.discoveredAt).toISOString(),
+        ageMinutes: Math.round((Date.now() - p.discoveredAt) / 60_000),
+        volume24h: p.volume24h,
+        midPrice: p.midPrice,
+      })),
+    });
+  } catch (err) {
+    return textResult({ status: "error", message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+async function handleHyperliquidGetPairAnalytics(args: Record<string, unknown>): Promise<ToolResult> {
+  const pairName = String(args.pair ?? "BTC");
+
+  try {
+    const { getOrchestrator } = await import("../core/AgentOrchestrator");
+    const orchestrator = getOrchestrator('system');
+    const discovery = orchestrator.getMarketDiscovery();
+
+    if (!discovery) {
+      return textResult({ status: "unavailable", message: "Market discovery not initialized." });
+    }
+
+    const meta = discovery.getPairMeta(pairName);
+    if (!meta) {
+      return textResult({ status: "not_found", message: `Pair ${pairName} not found. Available pairs: ${discovery.getPairCount()}` });
+    }
+
+    // Import PairRegistrationService for liquidity score
+    const { PairRegistrationService } = await import("../core/PairRegistrationService");
+    const reg = new PairRegistrationService({});
+    const liquidityScore = reg.calculateLiquidityScore(meta);
+    const strategies = reg.suggestStrategy(meta);
+    const riskLimits = reg.calculateRiskLimits(meta);
+
+    return textResult({
+      pair: meta.pair,
+      name: meta.name,
+      classification: meta.classification,
+      assetIndex: meta.assetIndex,
+      isSpot: meta.isSpot,
+      maxLeverage: meta.maxLeverage,
+      szDecimals: meta.szDecimals,
+      midPrice: meta.midPrice,
+      volume24h: meta.volume24h,
+      openInterest: meta.openInterest,
+      funding: meta.funding,
+      fundingAnnualized: meta.funding ? `${(meta.funding * 3 * 365 * 100).toFixed(2)}%` : null,
+      discoveredAt: new Date(meta.discoveredAt).toISOString(),
+      ageHours: ((Date.now() - meta.discoveredAt) / 3_600_000).toFixed(1),
+      liquidityScore,
+      suggestedStrategies: strategies.strategies,
+      riskLimits,
+    });
+  } catch (err) {
+    return textResult({ status: "error", message: err instanceof Error ? err.message : String(err) });
+  }
+}
+
 const TOOL_HANDLERS: Record<string, (args: Record<string, unknown>) => Promise<ToolResult>> = {
+  hyperliquid_get_all_pairs: handleHyperliquidGetAllPairs,
+  hyperliquid_detect_new_pairs: handleHyperliquidDetectNewPairs,
+  hyperliquid_get_pair_analytics: handleHyperliquidGetPairAnalytics,
   get_price: handleGetPrice,
   get_orderbook: handleGetOrderbook,
   get_candles: handleGetCandles,

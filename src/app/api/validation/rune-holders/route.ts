@@ -5,8 +5,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { blockchainValidationService } from '@/services/blockchain-validation'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60)
+  if (rateLimitRes) return rateLimitRes
+
   try {
     const { searchParams } = new URL(request.url)
     const runeid = searchParams.get('runeid')
@@ -30,8 +34,7 @@ export async function GET(request: NextRequest) {
     console.error('[API] Rune holders validation error:', error)
     return NextResponse.json(
       {
-        error: 'Rune holders validation failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
       },
       { status: 500 }
     )

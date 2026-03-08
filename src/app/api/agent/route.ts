@@ -92,14 +92,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // SEC-02: Validate session token (if one exists for this wallet)
+    // SEC-02: Validate session token — allow read-only access if agent is running but token expired
     const token = extractSessionToken(request);
     const hasActiveSession = sessionTokens.has(walletAddress);
+    let sessionExpired = false;
     if (hasActiveSession && !validateSessionToken(walletAddress, token)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid or expired session token' },
-        { status: 401 }
-      );
+      // Instead of blocking GET with 401, flag it so frontend can auto-reconnect
+      sessionExpired = true;
     }
 
     const { getOrchestrator } = await getOrchestratorModule();
@@ -113,6 +112,7 @@ export async function GET(request: NextRequest) {
 
     const response: Record<string, any> = {
       success: true,
+      sessionExpired,
       state: {
         status: state.status,
         uptime: state.uptime,
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
     const { action, config, credentials } = body;
 
     // Validate action is a known string
-    const VALID_ACTIONS = ['start', 'stop', 'pause', 'resume', 'emergency_stop', 'config', 'reset', 'status', 'sync_positions'];
+    const VALID_ACTIONS = ['start', 'stop', 'pause', 'resume', 'emergency_stop', 'config', 'reset', 'status', 'sync_positions', 'reconnect', 'test_keys', 'balances'];
     if (typeof action !== 'string' || !VALID_ACTIONS.includes(action)) {
       return NextResponse.json(
         { success: false, error: 'Invalid action. Use: start, stop, pause, resume, emergency_stop, config, reset, status' },
@@ -215,7 +215,8 @@ export async function POST(request: NextRequest) {
     }
 
     // SEC-02: For non-start actions, require a valid session token
-    if (action !== 'start') {
+    // Allow reconnect and test_keys without token (reconnect re-issues, test_keys is stateless)
+    if (action !== 'start' && action !== 'reconnect' && action !== 'test_keys') {
       const token = extractSessionToken(request, body);
       const hasActiveSession = sessionTokens.has(walletAddress);
       if (hasActiveSession && !validateSessionToken(walletAddress, token)) {
@@ -352,6 +353,97 @@ export async function POST(request: NextRequest) {
           openOrders: state.openOrders,
           syncedAt: Date.now(),
         });
+      }
+
+      case 'reconnect': {
+        // Re-issue session token if agent is running for this wallet
+        try {
+          const orchestrator = getOrchestrator(walletAddress);
+          const state = orchestrator.getState();
+          if (state.status === 'off' || state.status === 'emergency_stop') {
+            return NextResponse.json({
+              success: false,
+              error: 'Agent is not running. Start the agent first.',
+            }, { status: 400 });
+          }
+          // Re-issue a fresh session token
+          const sessionToken = issueSessionToken(walletAddress);
+          return NextResponse.json({
+            success: true,
+            message: 'Session reconnected',
+            sessionToken,
+            state: {
+              status: state.status,
+              uptime: state.uptime,
+              startedAt: state.startedAt,
+              positions: state.positions,
+              lpPositions: state.lpPositions,
+              openOrders: state.openOrders,
+              recentTrades: state.recentTrades.slice(0, 20),
+              errors: state.errors.slice(-10),
+              lastCompound: state.lastCompound,
+            },
+          });
+        } catch {
+          return NextResponse.json({
+            success: false,
+            error: 'Agent not found for this wallet.',
+          }, { status: 404 });
+        }
+      }
+
+      case 'balances': {
+        try {
+          const orchestrator = getOrchestrator(walletAddress);
+          const balances = await orchestrator.getWalletBalances();
+          return NextResponse.json({ success: true, ...balances });
+        } catch (err) {
+          return NextResponse.json({
+            success: false,
+            error: `Failed to fetch balances: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          }, { status: 500 });
+        }
+      }
+
+      case 'test_keys': {
+        // Stateless key validation: attempt to connect with provided credentials
+        try {
+          const userCredentials: UserCredentials = {};
+          if (credentials?.hyperliquid) {
+            userCredentials.hyperliquid = {
+              agentKey: credentials.hyperliquid.agentKey,
+              agentSecret: credentials.hyperliquid.agentSecret,
+            };
+          }
+          if (!userCredentials.hyperliquid?.agentKey || !userCredentials.hyperliquid?.agentSecret) {
+            return NextResponse.json({
+              success: false,
+              error: 'Hyperliquid Agent Key and Agent Secret are required.',
+            }, { status: 400 });
+          }
+
+          // Import HyperliquidConnector dynamically
+          const { HyperliquidConnector } = await import('@/agent/connectors/HyperliquidConnector');
+          const testConnector = new HyperliquidConnector({
+            apiUrl: 'https://api.hyperliquid.xyz',
+            agentKey: userCredentials.hyperliquid.agentKey,
+            agentSecret: userCredentials.hyperliquid.agentSecret,
+          });
+          const connectResult = await testConnector.connect();
+          const connected = connectResult !== false && testConnector.isConnected();
+
+          return NextResponse.json({
+            success: connected,
+            message: connected
+              ? 'Hyperliquid connection successful. Keys are valid.'
+              : 'Failed to connect to Hyperliquid. Check your Agent Key and Agent Secret.',
+          });
+        } catch (err) {
+          return NextResponse.json({
+            success: false,
+            error: `Connection test failed: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          });
+        }
       }
 
       default:

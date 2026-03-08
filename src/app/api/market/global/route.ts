@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { coinGeckoService } from '@/lib/api/coingecko-service';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -8,7 +9,10 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const json = await withTimeout(coinGeckoService.getGlobal(), 12000);
     const d = json.data;

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 interface OrderBookLevel {
   price: number;
@@ -86,7 +87,10 @@ async function fetchOrderBook(symbol: string, limit: string): Promise<{ bids: Or
   return null;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { searchParams } = new URL(request.url);
     const symbol = searchParams.get('symbol') || 'BTCUSDT';
@@ -125,7 +129,6 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch orderbook data' }, { status: 500 });
   }
 }

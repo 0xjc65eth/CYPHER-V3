@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { fredService } from '@/services/fred/FREDService';
 import { twelveDataService } from '@/services/twelvedata/TwelveDataService';
 import { getRedisClient } from '@/lib/cache/redis.config';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -33,7 +34,10 @@ function getNextFOMCDate(): string {
   return 'TBD';
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Check cache
     try {

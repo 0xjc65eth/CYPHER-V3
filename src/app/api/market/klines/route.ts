@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // In-memory cache
 const klinesCache = new Map<string, { data: any; timestamp: number }>();
@@ -7,6 +8,9 @@ const CACHE_TTL = 30000; // 30s
 const VALID_INTERVALS = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol') || 'BTCUSDT';
@@ -79,7 +83,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Failed to fetch klines',
-      details: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
 }

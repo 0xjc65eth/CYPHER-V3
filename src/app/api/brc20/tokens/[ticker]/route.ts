@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { hiroAPI } from '@/lib/hiro-api'
 import { brc20Service } from '@/services/BRC20Service'
 
@@ -6,6 +7,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ ticker: string }> }
 ) {
+  const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
   const { ticker } = await params
 
   if (!ticker) {

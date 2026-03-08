@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 let sentimentCache: any = null;
 let cacheTimestamp = 0;
@@ -55,7 +56,10 @@ async function fetchGlobalData(): Promise<{ btcDominance: number; totalMarketCap
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     if (sentimentCache && Date.now() - cacheTimestamp < CACHE_TTL) {
       return NextResponse.json({

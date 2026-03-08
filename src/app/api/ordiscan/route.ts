@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const ORDISCAN_API_KEY = process.env.ORDISCAN_API_KEY;
 const ORDISCAN_BASE_URL = 'https://api.ordiscan.com/v1';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const endpoint = searchParams.get('endpoint') || 'collections';
@@ -68,8 +72,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch real data from Ordiscan API',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to fetch real data from Ordiscan API'
       },
       { status: 503 }
     );

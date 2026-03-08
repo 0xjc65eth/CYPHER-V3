@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { xverseAPI } from '@/lib/api/xverse';
 
 /**
@@ -10,6 +11,9 @@ import { xverseAPI } from '@/lib/api/xverse';
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
+
     const searchParams = request.nextUrl.searchParams;
     const collection = searchParams.get('collection');
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -213,7 +217,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch whale data',
+        error: 'Failed to fetch whale data',
         timestamp: Date.now()
       },
       { status: 500 }

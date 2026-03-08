@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { rateLimitedFetch } from '@/lib/rateLimitedFetch';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Use daily interval (free tier supports daily for 365 days) with rate limiting
     let data;
@@ -50,7 +54,7 @@ export async function GET() {
       } catch { /* ignore fallback error */ }
 
       return NextResponse.json(
-        { error: `CoinGecko API error: ${error instanceof Error ? error.message : 'Unknown'}` },
+        { error: 'Failed to fetch performance data' },
         { status: 502 }
       );
     }
@@ -123,7 +127,6 @@ export async function GET() {
       }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch performance data' }, { status: 500 });
   }
 }

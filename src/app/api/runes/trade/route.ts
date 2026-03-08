@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 const UNISAT_API = process.env.UNISAT_API_URL || 'https://open-api.unisat.io';
 const UNISAT_KEY = process.env.UNISAT_API_KEY;
@@ -21,6 +22,8 @@ if (UNISAT_KEY) headers['Authorization'] = `Bearer ${UNISAT_KEY}`;
 // GET: List sell orders for a rune tick
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const tick = request.nextUrl.searchParams.get('tick');
     const sort = request.nextUrl.searchParams.get('sort') || 'unitPriceAsc';
     const start = request.nextUrl.searchParams.get('start') || '0';
@@ -49,6 +52,8 @@ export async function GET(request: NextRequest) {
 // POST: Create listing or buy order
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitRes = await strictRateLimit(request, 10, 60); if (rateLimitRes) return rateLimitRes;
+
     const body = await request.json();
     const { action } = body;
 

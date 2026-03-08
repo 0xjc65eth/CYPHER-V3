@@ -3,8 +3,12 @@ import crypto from 'crypto';
 import { runesMarketService } from '@/services/runesMarketService';
 import { BITCOIN_FEE_ADDRESS, getBitcoinFeeSats } from '@/config/fee-config';
 import { recordFee } from '@/lib/feeCollector';
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const body = await request.json();
     const { action } = body;

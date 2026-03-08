@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { apiCache, CacheKeys, CACHE_TTL, isValidBitcoinAddress, sanitizeAddress } from '@/lib/apiCache';
 import { devLogger } from '@/lib/logger';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // Types
 interface Inscription {
@@ -254,7 +255,10 @@ export async function GET(
   { params }: { params: Promise<{ address: string }> }
 ) {
   const startTime = Date.now();
-  
+
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '0');
@@ -331,16 +335,16 @@ export async function GET(
       
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch ordinals data'
+        error: 'Failed to fetch ordinals data'
       }, { status: 500 });
     }
 
   } catch (error) {
     devLogger.error(error as Error, 'Ordinals Address API Error');
-    
+
     return NextResponse.json<ApiResponse>({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }

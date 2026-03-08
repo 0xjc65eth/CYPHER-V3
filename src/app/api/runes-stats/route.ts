@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 
 // Lista de runas reais verificadas com dados atualizados
 const VERIFIED_RUNES = [
@@ -38,7 +39,10 @@ const RUNE_MARKETPLACES = {
   'SAPPHIRE': ['unisat.io', 'gamma.io']
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
 
     // Tentar obter dados reais de Runes

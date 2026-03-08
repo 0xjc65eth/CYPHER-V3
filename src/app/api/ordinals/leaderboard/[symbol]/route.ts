@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { xverseAPI } from '@/lib/api/xverse';
 
 /**
@@ -17,6 +18,9 @@ export async function GET(
   context: RouteContext
 ) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
+
     const { symbol } = await context.params;
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -216,7 +220,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch leaderboard',
+        error: 'Failed to fetch leaderboard',
         timestamp: Date.now()
       },
       { status: 500 }

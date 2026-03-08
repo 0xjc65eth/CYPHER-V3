@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { hiroAPI, processBRC20Data } from '@/lib/hiro-api'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
+  const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
   const { address } = await params
 
   if (!address) {
@@ -62,8 +65,7 @@ export async function GET(
     // Return error - NO MOCK DATA
     return NextResponse.json({
       success: false,
-      error: 'Failed to fetch BRC-20 balances',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     }, { status: 500 })
   }
 }

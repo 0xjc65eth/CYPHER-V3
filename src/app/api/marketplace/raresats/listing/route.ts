@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ordinalsMarketService } from '@/services/ordinalsMarketService';
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const body = await request.json();
     const { action } = body;

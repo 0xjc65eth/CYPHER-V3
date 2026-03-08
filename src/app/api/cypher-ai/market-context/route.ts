@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 // Tipos para dados de mercado
 interface MarketData {
@@ -369,6 +370,9 @@ function generateTradingOpportunities(bitcoinPrice: number, ethereumPrice: numbe
 
 // Handler principal GET
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Buscar dados de mercado em paralelo
     const [coinGeckoData, fearGreedData] = await Promise.all([
@@ -443,7 +447,7 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: 'Erro ao buscar contexto de mercado',
-        details: error instanceof Error ? error.message : 'Erro desconhecido',
+        details: 'Internal server error',
         timestamp: new Date().toISOString()
       },
       { status: 500 }
@@ -453,6 +457,9 @@ export async function GET(request: NextRequest) {
 
 // Handler POST para análise específica
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { assets, timeframe, analysisType } = await request.json();
 
@@ -489,7 +496,7 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Erro na análise específica',
-        details: error instanceof Error ? error.message : 'Erro desconhecido'
+        details: 'Internal server error'
       },
       { status: 500 }
     );

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import {
   fetchYahooQuotes,
   fetchViaV8Chart,
@@ -98,6 +99,9 @@ const STATIC_FALLBACK: Record<string, { price: number; name: string }> = {
  * NEVER returns placeholder/N/A data. Items only appear if they have real prices.
  */
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // --- Crypto from CoinGecko (always) ---
     const cryptoPromise = fetchCrypto();

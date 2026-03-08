@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
@@ -12,8 +16,8 @@ export async function GET() {
 
     if (!res.ok) {
       return NextResponse.json(
-        { error: `Fear & Greed API error: ${res.status}` },
-        { status: res.status }
+        { error: 'Failed to fetch fear and greed data' },
+        { status: 502 }
       );
     }
 
@@ -42,7 +46,6 @@ export async function GET() {
       }
     );
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch fear and greed data' }, { status: 500 });
   }
 }

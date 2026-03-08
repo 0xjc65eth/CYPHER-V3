@@ -5,8 +5,24 @@
 
 export type EventPriority = 'low' | 'medium' | 'high' | 'critical';
 
+export type AgentEventType =
+  | 'signal' | 'vote' | 'risk_alert' | 'execution_report'
+  | 'market_update' | 'consensus_request' | 'consensus_result'
+  // Data Engine events
+  | 'market.tick' | 'orderbook.update' | 'funding.update' | 'liquidation.detected' | 'candle.update'
+  // Alpha Engine events
+  | 'alpha.signal' | 'alpha.funding_arb' | 'alpha.liquidation_cascade'
+  | 'alpha.spread' | 'alpha.whale_flow' | 'alpha.orderflow'
+  // Portfolio events
+  | 'portfolio.rebalance' | 'portfolio.allocation' | 'portfolio.exposure_breach'
+  // Execution events
+  | 'execution.order_sent' | 'execution.order_filled' | 'execution.order_failed'
+  | 'execution.twap_tick' | 'execution.vwap_tick'
+  // Regime events
+  | 'regime.change' | 'regime.volatility_shift';
+
 export interface AgentEvent {
-  type: 'signal' | 'vote' | 'risk_alert' | 'execution_report' | 'market_update' | 'consensus_request' | 'consensus_result';
+  type: AgentEventType | string;
   source: string;
   data: any;
   timestamp: number;

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { okxOrdinalsAPI as ordinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
 
 export interface OrderBookLevel {
@@ -35,6 +36,9 @@ export async function GET(
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
+
     const { symbol } = await params;
 
     if (!symbol) {
@@ -180,7 +184,6 @@ export async function GET(
     return NextResponse.json(
       {
         error: 'Failed to fetch order book data',
-        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { apiCache, CacheKeys, CACHE_TTL, isValidBitcoinAddress, sanitizeAddress } from '@/lib/apiCache';
 import { devLogger } from '@/lib/logger';
 
@@ -312,8 +313,11 @@ async function fetchFromBlockstream(address: string, page = 0, limit = 50): Prom
  */
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   const startTime = Date.now();
-  
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const address = searchParams.get('address');
@@ -393,16 +397,16 @@ export async function GET(request: NextRequest) {
       
       return NextResponse.json<ApiResponse>({
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch transaction data'
+        error: 'Failed to fetch transaction data'
       }, { status: 500 });
     }
 
   } catch (error) {
     devLogger.error(error as Error, 'Bitcoin Transactions API Error');
-    
+
     return NextResponse.json<ApiResponse>({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }

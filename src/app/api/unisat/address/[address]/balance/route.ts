@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unisatService } from '@/services/unisatService';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ address: string }> }
 ) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { address } = await params;
     const data = await unisatService.getAddressBalance(address);
     return NextResponse.json(data);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch address balance';
-    console.error('UniSat balance error:', message);
+    console.error('UniSat balance error:', error instanceof Error ? error.message : error);
     return NextResponse.json(
-      { code: -1, msg: message, data: null },
+      { code: -1, msg: 'Internal server error', data: null },
       { status: 502 }
     );
   }

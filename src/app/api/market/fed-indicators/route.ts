@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fredService } from '@/services/fred/FREDService';
 import { getRedisClient } from '@/lib/cache/redis.config';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const CACHE_KEY = 'market:fed-indicators';
 const CACHE_TTL = 3600; // 1 hour
@@ -61,6 +62,9 @@ function memSet(key: string, data: any, ttlSeconds: number): void {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Check cache first (Redis with in-memory fallback)
     let cached: string | null = null;

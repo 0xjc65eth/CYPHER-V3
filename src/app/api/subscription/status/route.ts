@@ -5,7 +5,8 @@
  * legacy dbService for backward compatibility.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { SUBSCRIPTION_TIERS, type SubscriptionTier } from '@/lib/stripe/config'
 import { getSupabaseServiceClient } from '@/lib/database/supabase-client'
 
@@ -18,7 +19,10 @@ const FREE_RESPONSE = {
   isActive: true,
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { searchParams } = new URL(request.url)
     const wallet = searchParams.get('wallet')
@@ -84,7 +88,6 @@ export async function GET(request: Request) {
     )
   } catch (error) {
     console.error('[API] subscription/status error:', error)
-    const message = error instanceof Error ? error.message : 'Failed to fetch subscription status'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch subscription status' }, { status: 500 })
   }
 }

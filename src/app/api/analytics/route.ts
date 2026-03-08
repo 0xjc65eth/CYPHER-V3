@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // Simple in-memory cache with 60s TTL
 const cache = new Map<string, { data: any; timestamp: number }>();
@@ -59,7 +60,10 @@ async function fetchBTCData(): Promise<{ price: number; change24h: number; volum
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { searchParams } = new URL(request.url)
     const timeframe = searchParams.get('timeframe') || '7d'

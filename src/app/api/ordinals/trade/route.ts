@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter';
 import { xverseAPI } from '@/lib/api/xverse';
 
 const HIRO_API = 'https://api.hiro.so';
@@ -21,6 +22,8 @@ if (HIRO_KEY) hiroHeaders['x-hiro-api-key'] = HIRO_KEY;
 // GET: Listings, collection info, floor prices
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
     const action = request.nextUrl.searchParams.get('action');
     const collection = request.nextUrl.searchParams.get('collection');
     const address = request.nextUrl.searchParams.get('address');
@@ -134,6 +137,8 @@ export async function GET(request: NextRequest) {
 // POST: Operations that require signing
 export async function POST(request: NextRequest) {
   try {
+    const rateLimitRes = await strictRateLimit(request, 10, 60);
+    if (rateLimitRes) return rateLimitRes;
     const body = await request.json();
 
     if (body.action === 'buy_rune_psbt') {

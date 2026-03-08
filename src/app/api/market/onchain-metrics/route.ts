@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { duneService } from '@/services/DuneAnalyticsService';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,10 @@ interface OnChainMetrics {
   }>;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const baseData: OnChainMetrics = {
       mvrvRatio: 2.34,

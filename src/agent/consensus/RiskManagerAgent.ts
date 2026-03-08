@@ -15,7 +15,7 @@ export interface TradeProposal {
   takeProfit: number[];
   positionSizeUSD: number;
   leverage: number;
-  strategy: 'scalp' | 'mm' | 'lp';
+  strategy: 'scalp' | 'mm' | 'lp' | 'ipo';
   confidence: number;
 }
 

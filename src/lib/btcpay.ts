@@ -43,6 +43,8 @@ export async function createInvoice(params: {
         checkout: {
           expirationMinutes: params.expirationMinutes ?? 30,
           redirectURL: params.redirectURL,
+          speedPolicy: 'HighSpeed',
+          paymentMethods: ['BTC', 'BTC_LightningLike'],
         },
       }),
     }

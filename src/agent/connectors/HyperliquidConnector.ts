@@ -17,6 +17,7 @@ import {
   BalanceInfo,
 } from './BaseConnector';
 import { CircuitBreaker, createAPICircuitBreaker } from '@/lib/circuit-breaker/CircuitBreaker';
+import type { HyperliquidMarketDiscovery } from './HyperliquidMarketDiscovery';
 
 export interface HyperliquidConfig {
   apiUrl: string;
@@ -28,6 +29,7 @@ export class HyperliquidConnector {
   private config: HyperliquidConfig;
   private connected: boolean = false;
   private circuitBreaker: CircuitBreaker;
+  private marketDiscovery: HyperliquidMarketDiscovery | null = null;
 
   constructor(config: HyperliquidConfig) {
     this.config = {
@@ -43,9 +45,29 @@ export class HyperliquidConnector {
 
   async connect(): Promise<boolean> {
     try {
-      // Verify agent wallet permissions
+      // Validate agentKey looks like an address (0x + 40 hex chars)
+      if (!this.config.agentKey || !/^0x[0-9a-fA-F]{40}$/.test(this.config.agentKey)) {
+        console.error('[Hyperliquid] Invalid agentKey format. Expected 0x address (42 chars), got:', this.config.agentKey?.slice(0, 10) + '...');
+        this.connected = false;
+        return false;
+      }
+
+      // Validate agentSecret looks like a private key (0x + 64 hex chars or 64 hex chars)
+      const secretNorm = this.config.agentSecret?.startsWith('0x') ? this.config.agentSecret : `0x${this.config.agentSecret}`;
+      if (!secretNorm || !/^0x[0-9a-fA-F]{64}$/.test(secretNorm)) {
+        console.error('[Hyperliquid] Invalid agentSecret format. Expected 64-char hex private key.');
+        this.connected = false;
+        return false;
+      }
+      // Normalize secret to 0x-prefixed
+      this.config.agentSecret = secretNorm;
+
+      // Verify agent wallet permissions by fetching account state
       const info = await this.getAccountInfo();
-      if (!info) throw new Error('Failed to get account info');
+      if (!info) throw new Error('Failed to get account info — API returned null');
+
+      // Pre-fetch asset metadata so getAssetIndex() works for synth perps (stocks, forex, etc.)
+      await this.fetchAssetMeta();
 
       this.connected = true;
       return true;
@@ -59,7 +81,7 @@ export class HyperliquidConnector {
   async getAccountInfo(): Promise<any> {
     return this.request('/info', {
       type: 'clearinghouseState',
-      user: this.config.agentKey,
+      user: this.config.agentKey, // Must be the 0x address of the agent wallet
     });
   }
 
@@ -357,23 +379,79 @@ export class HyperliquidConnector {
     }
   }
 
-  private getAssetIndex(pair: string): number {
-    // Hyperliquid asset indices - must match exchange metadata
-    const indices: Record<string, number> = {
-      'BTC-PERP': 0, 'ETH-PERP': 1, 'SOL-PERP': 5,
-      'ARB-PERP': 11, 'DOGE-PERP': 4, 'AVAX-PERP': 6,
-      'MATIC-PERP': 7, 'LINK-PERP': 8, 'UNI-PERP': 9,
-      'OP-PERP': 10, 'APT-PERP': 12, 'WLD-PERP': 13,
-      'INJ-PERP': 14, 'SUI-PERP': 15, 'SEI-PERP': 16,
-      'TIA-PERP': 17, 'BLUR-PERP': 18, 'STX-PERP': 19,
-      'ORDI-PERP': 20, 'PEPE-PERP': 21, 'WIF-PERP': 22,
-      'JUP-PERP': 23, 'STRK-PERP': 24, 'BONK-PERP': 25,
-    };
-    const index = indices[pair];
-    if (index === undefined) {
-      throw new Error(`Unknown Hyperliquid asset: ${pair}. Refusing to default to BTC index. Add the pair to getAssetIndex().`);
+  /**
+   * Resolve asset index from pair name.
+   * For known crypto perps, uses hardcoded indices.
+   * For synth assets (stocks, forex, commodities), fetches from exchange metadata dynamically.
+   */
+  private assetMetaCache: Record<string, number> | null = null;
+
+  private async fetchAssetMeta(): Promise<Record<string, number>> {
+    if (this.assetMetaCache) return this.assetMetaCache;
+    try {
+      const meta = await this.request('/info', { type: 'meta' });
+      const universe = meta?.universe || [];
+      const mapping: Record<string, number> = {};
+      universe.forEach((asset: { name: string }, idx: number) => {
+        mapping[`${asset.name}-PERP`] = idx;
+      });
+      this.assetMetaCache = mapping;
+      // Invalidate cache after 5 minutes
+      setTimeout(() => { this.assetMetaCache = null; }, 300_000);
+      return mapping;
+    } catch {
+      return {};
     }
-    return index;
+  }
+
+  private getAssetIndex(pair: string): number {
+    // Try market discovery first (always-fresh, covers all pairs)
+    if (this.marketDiscovery) {
+      try {
+        return this.marketDiscovery.getAssetIndex(pair);
+      } catch {
+        // Fall through to cached metadata
+      }
+    }
+
+    // Fall back to cached metadata from fetchAssetMeta()
+    if (this.assetMetaCache) {
+      const cachedIndex = this.assetMetaCache[pair];
+      if (cachedIndex !== undefined) return cachedIndex;
+    }
+
+    throw new Error(`Unknown Hyperliquid asset: ${pair}. Ensure market discovery or fetchAssetMeta() has been called.`);
+  }
+
+  /**
+   * Set the market discovery service for always-fresh asset index resolution.
+   */
+  setMarketDiscovery(discovery: HyperliquidMarketDiscovery): void {
+    this.marketDiscovery = discovery;
+  }
+
+  /**
+   * Fetch mid prices for ALL pairs at once.
+   */
+  async getAllMids(): Promise<Record<string, number>> {
+    const data = await this.request('/info', { type: 'allMids' });
+    if (!data || typeof data !== 'object') return {};
+    const result: Record<string, number> = {};
+    for (const [coin, price] of Object.entries(data)) {
+      result[coin] = parseFloat(price as string);
+    }
+    return result;
+  }
+
+  /**
+   * Fetch full meta + asset contexts (volume, OI, funding for all pairs).
+   */
+  async getMetaAndContexts(): Promise<{ meta: any; contexts: any[] }> {
+    const data = await this.request('/info', { type: 'metaAndAssetCtxs' });
+    if (Array.isArray(data) && data.length >= 2) {
+      return { meta: data[0], contexts: data[1] || [] };
+    }
+    return { meta: null, contexts: [] };
   }
 
   getCapabilities(): ConnectorCapabilities {

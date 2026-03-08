@@ -1,10 +1,10 @@
 /**
  * Subscription Configuration
  * Defines tiers, pricing, features, and access control helpers.
- * Payment: BTCPay Server (Bitcoin-only, self-custodial)
+ * Payment: Stripe (Card) + BTCPay Server (Bitcoin + Lightning)
  */
 
-export type SubscriptionTier = 'free' | 'pro' | 'elite'
+export type SubscriptionTier = 'free' | 'explorer' | 'trader' | 'hacker_yields'
 
 export interface TierConfig {
   id: SubscriptionTier
@@ -24,9 +24,9 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     features: ['Dashboard (view only)'],
     limits: { maxAlerts: 0, paperTrading: false, aiAgent: false },
   },
-  pro: {
-    id: 'pro',
-    name: 'Pro',
+  explorer: {
+    id: 'explorer',
+    name: 'Explorer',
     price: 29,
     description: 'Essential tools for Bitcoin traders',
     features: [
@@ -43,10 +43,32 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
     ],
     limits: { maxAlerts: -1, paperTrading: true, aiAgent: false },
   },
-  elite: {
-    id: 'elite',
-    name: 'Elite',
-    price: 99,
+  trader: {
+    id: 'trader',
+    name: 'Trader',
+    price: 79,
+    description: 'Advanced tools for serious traders',
+    features: [
+      'Dashboard (view only)',
+      'Portfolio tracking',
+      'Market data real-time',
+      'Swap',
+      'Ordinals/Runes viewer',
+      'Basic tax reports',
+      'Arbitrage scanner',
+      'AI analytics (CYPHER AI)',
+      'Alerts (unlimited)',
+      'Paper trading',
+      'Neural predictions',
+      'Smart Money Concepts',
+      'Whale tracking',
+    ],
+    limits: { maxAlerts: -1, paperTrading: true, aiAgent: false },
+  },
+  hacker_yields: {
+    id: 'hacker_yields',
+    name: 'Hacker Yields',
+    price: 149,
     description: 'Full autonomous trading suite',
     features: [
       'Dashboard (view only)',
@@ -57,15 +79,15 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
       'Basic tax reports',
       'Arbitrage scanner',
       'AI analytics (CYPHER AI)',
-      'Neural predictions',
-      'Smart Money Concepts',
       'Alerts (unlimited)',
       'Paper trading',
+      'Neural predictions',
+      'Smart Money Concepts',
+      'Whale tracking',
       'AI Trading Agent',
       'Multi-agent consensus',
       'Auto-compound',
       'MEV protection',
-      'Whale tracking',
     ],
     limits: { maxAlerts: -1, paperTrading: true, aiAgent: true },
   },
@@ -73,8 +95,9 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier, TierConfig> = {
 
 export const TIER_HIERARCHY: Record<SubscriptionTier, number> = {
   free: 0,
-  pro: 1,
-  elite: 2,
+  explorer: 1,
+  trader: 2,
+  hacker_yields: 3,
 }
 
 /**
@@ -89,23 +112,23 @@ export function tierHasAccess(userTier: SubscriptionTier, requiredTier: Subscrip
  */
 export const FEATURE_TIER_MAP: Record<string, SubscriptionTier> = {
   dashboard: 'free',
-  portfolio: 'pro',
-  market_data: 'pro',
-  swap: 'pro',
-  ordinals_runes: 'pro',
-  tax_reports: 'pro',
-  arbitrage: 'pro',
-  ai_analytics: 'pro',
-  alerts_unlimited: 'pro',
-  paper_trading: 'pro',
-  cypher_ai: 'pro',
-  neural_predictions: 'elite',
-  smart_money: 'elite',
-  ai_trading_agent: 'elite',
-  multi_agent: 'elite',
-  auto_compound: 'elite',
-  mev_protection: 'elite',
-  whale_tracking: 'elite',
+  portfolio: 'explorer',
+  market_data: 'explorer',
+  swap: 'explorer',
+  ordinals_runes: 'explorer',
+  tax_reports: 'explorer',
+  arbitrage: 'explorer',
+  ai_analytics: 'explorer',
+  alerts_unlimited: 'explorer',
+  paper_trading: 'explorer',
+  cypher_ai: 'explorer',
+  neural_predictions: 'trader',
+  smart_money: 'trader',
+  whale_tracking: 'trader',
+  ai_trading_agent: 'hacker_yields',
+  multi_agent: 'hacker_yields',
+  auto_compound: 'hacker_yields',
+  mev_protection: 'hacker_yields',
 }
 
 /**

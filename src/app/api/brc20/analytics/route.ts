@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { brc20Service } from '@/services/BRC20Service'
 
 export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
 
     // Fetch tokens to calculate analytics
     const controller = new AbortController();

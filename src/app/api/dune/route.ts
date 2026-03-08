@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { duneService } from '@/services/DuneAnalyticsService';
 import { getRedisClient } from '@/lib/cache/redis.config';
 
@@ -52,6 +53,9 @@ async function setCached(cacheKey: string, data: any, ttl: number): Promise<void
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   const query = request.nextUrl.searchParams.get('query');
 
   if (!query || !['ordinals-trends', 'dex-volume', 'dex-candles'].includes(query)) {
@@ -122,7 +126,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch Dune data', source: 'dune' },
+      { error: 'Failed to fetch Dune data', source: 'dune' },
       { status: 500 }
     );
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { newsAPIService } from '@/services/newsapi/NewsAPIService';
 import { getRedisClient } from '@/lib/cache/redis.config';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const CACHE_KEY = 'market:news';
 const CACHE_TTL = 1800; // 30 minutes
@@ -42,6 +43,9 @@ function getFallbackNews() {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const redis = getRedisClient();
 

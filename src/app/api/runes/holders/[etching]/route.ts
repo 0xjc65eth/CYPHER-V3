@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const HIRO_API_KEY = process.env.HIRO_API_KEY || '';
 const HIRO_BASE_URL = 'https://api.hiro.so/runes/v1';
@@ -65,9 +66,11 @@ export async function GET(
   let apiResponse = null;
   
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     // Await params in Next.js 15
     const { etching } = await params;
-    
+
     // Rate limiting
     const clientIP = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(clientIP)) {
@@ -250,7 +253,7 @@ export async function GET(
         data: fallbackData,
         source: 'hiro-runes-api-fallback',
         timestamp: new Date().toISOString(),
-        error: error.message || 'Internal server error',
+        error: 'Internal server error',
         responseTime: Date.now() - startTime
       },
       { status: 500 }

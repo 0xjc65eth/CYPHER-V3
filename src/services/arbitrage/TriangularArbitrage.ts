@@ -6,6 +6,7 @@
 
 import { logger } from '@/lib/logger';
 import { coinGeckoService } from '@/lib/api/coingecko-service';
+import { fetchAllExchangePrices, EXCHANGE_FEES, type ExchangePrice } from '@/lib/arbitrage/exchange-fetchers';
 
 // Cached real prices from CoinGecko, refreshed in updateMarketData()
 interface CachedPrices {
@@ -17,6 +18,9 @@ interface CachedPrices {
   matic: number;
   timestamp: number;
 }
+
+// Real exchange data cache: exchange -> pair -> ExchangePrice
+type ExchangeDataCache = Map<string, Map<string, ExchangePrice>>;
 
 export interface ArbitrageOpportunity {
   id: string;
@@ -91,6 +95,8 @@ export class TriangularArbitrageEngine {
   private readonly MAX_EXECUTION_TIME = 300; // 5 minutes max execution
   private readonly OPPORTUNITY_TTL = 120 * 1000; // 2 minute TTL
   private cachedPrices: CachedPrices | null = null;
+  private realExchangeData: ExchangeDataCache = new Map();
+  private realDataTimestamp = 0;
   private executedCount = 0;
   private successCount = 0;
   private totalProfitTracked = 0;
@@ -318,16 +324,35 @@ export class TriangularArbitrageEngine {
   }
 
   /**
-   * Get market data for a trading pair using real CoinGecko prices.
-   * Exchange-specific spreads use asymmetric offsets to model real market microstructure.
-   * Each exchange prices pairs slightly differently due to their user base and liquidity.
+   * Get market data for a trading pair from real exchange data.
+   * Tries real exchange-fetcher data first, falls back to CoinGecko-derived prices
+   * for cross pairs not directly available on exchanges (e.g. ADA/SOL).
    */
   private getMarketDataFromCache(pair: string, exchange: string): MarketData | null {
+    // 1. Try real exchange data first
+    const exchangeLower = exchange.toLowerCase();
+    const exchangeMap = this.realExchangeData.get(exchangeLower);
+    if (exchangeMap) {
+      const realData = exchangeMap.get(pair);
+      if (realData && realData.bid > 0 && realData.ask > 0) {
+        const spread = realData.ask > 0 ? ((realData.ask - realData.bid) / realData.ask) * 100 : 0;
+        return {
+          exchange,
+          pair,
+          bid: realData.bid,
+          ask: realData.ask,
+          volume: realData.volume || 0,
+          timestamp: new Date(realData.timestamp).toISOString(),
+          spread,
+          liquidity: Math.min(10000, realData.volume || 0),
+        };
+      }
+    }
+
+    // 2. Fallback: derive from CoinGecko USD prices for cross pairs
     if (!this.cachedPrices) return null;
 
     const prices = this.cachedPrices;
-
-    // Derive pair rate from real USD prices
     const coinPrices: Record<string, number> = {
       'USDT': 1,
       'BTC': prices.btc,
@@ -344,33 +369,22 @@ export class TriangularArbitrageEngine {
     if (!basePrice || !quotePrice) return null;
 
     const midPrice = basePrice / quotePrice;
-
     const profile = this.EXCHANGE_PROFILES[exchange] || { feeRate: 0.002, spreadBps: 3 };
     const spreadFraction = profile.spreadBps / 10000;
 
-    // Asymmetric price offset per exchange+pair combination.
-    // Real exchanges have slightly different mid-prices due to regional demand,
-    // liquidity pool composition, and maker/taker ratios.
-    // This creates a deterministic but non-cancelling offset using hash-like mixing.
-    const pairHash = pair.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
-    const exchHash = exchange.split('').reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0);
-    const seed = Math.abs(pairHash ^ exchHash);
-    // Offset range: -8 to +8 basis points (realistic inter-exchange deviation)
-    const offsetBps = ((seed % 17) - 8) / 10000;
-
-    const adjustedMid = midPrice * (1 + offsetBps);
-    const ask = adjustedMid * (1 + spreadFraction / 2);
-    const bid = adjustedMid * (1 - spreadFraction / 2);
+    // Use exchange-specific spread applied to CoinGecko mid price
+    const ask = midPrice * (1 + spreadFraction / 2);
+    const bid = midPrice * (1 - spreadFraction / 2);
 
     return {
       exchange,
       pair,
       bid,
       ask,
-      volume: midPrice * (500 + (seed % 2000)), // Simulated volume based on price
+      volume: 0, // No real volume data for CoinGecko fallback
       timestamp: new Date().toISOString(),
       spread: spreadFraction * 100,
-      liquidity: 500 + (seed % 2000),
+      liquidity: 0,
     };
   }
 
@@ -463,45 +477,94 @@ export class TriangularArbitrageEngine {
   }
 
   /**
-   * Update market data by fetching real prices from CoinGecko (with 30s cache)
+   * Update market data by fetching real prices from exchanges and CoinGecko.
+   * Exchange-fetchers provide real bid/ask from 8 exchanges for USDT pairs.
+   * CoinGecko provides USD prices for deriving cross-pair rates as fallback.
    */
   private async updateMarketData(): Promise<void> {
-    // Skip if prices are less than 30 seconds old
-    if (this.cachedPrices && Date.now() - this.cachedPrices.timestamp < 30000) {
-      logger.debug('[ARBITRAGE] Using cached prices (< 30s old)');
-      // Still rebuild market data from cached prices
+    const now = Date.now();
+
+    // Skip if data is fresh (< 15 seconds old)
+    if (this.realDataTimestamp && now - this.realDataTimestamp < 15000 && this.cachedPrices && now - this.cachedPrices.timestamp < 30000) {
+      logger.debug('[ARBITRAGE] Using cached exchange data (< 15s old)');
       this.rebuildMarketData();
       return;
     }
 
-    try {
-      const data = await coinGeckoService.getSimplePrice(
-        ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano', 'matic-network'],
-        ['usd'],
-        { include24hrVol: true }
-      );
+    // Fetch real exchange data for USDT pairs and CoinGecko for cross-pair fallback in parallel
+    const exchangePairs = ['BTC/USDT', 'ETH/USDT', 'SOL/USDT', 'BNB/USDT'];
+    const exchangeNames = ['binance', 'coinbase', 'kraken', 'okx'];
 
-      this.cachedPrices = {
-        btc: data.bitcoin?.usd ?? 0,
-        eth: data.ethereum?.usd ?? 0,
-        sol: data.solana?.usd ?? 0,
-        bnb: data.binancecoin?.usd ?? 0,
-        ada: data.cardano?.usd ?? 0,
-        matic: data['matic-network']?.usd ?? 0,
-        timestamp: Date.now(),
-      };
+    const [exchangeResults, coinGeckoResult] = await Promise.allSettled([
+      // Fetch real exchange prices for main USDT pairs
+      Promise.allSettled(exchangePairs.map(pair => fetchAllExchangePrices(pair, exchangeNames))),
+      // Fetch CoinGecko as fallback for cross-pair calculations
+      (this.cachedPrices && now - this.cachedPrices.timestamp < 30000)
+        ? Promise.resolve(null) // Skip if CoinGecko cache is fresh
+        : coinGeckoService.getSimplePrice(
+            ['bitcoin', 'ethereum', 'solana', 'binancecoin', 'cardano', 'matic-network'],
+            ['usd'],
+            { include24hrVol: true }
+          ).catch(() => null),
+    ]);
 
-      logger.debug('[ARBITRAGE] Updated market data from CoinGecko');
+    // Process real exchange data
+    if (exchangeResults.status === 'fulfilled') {
+      const pairResults = exchangeResults.value;
+      this.realExchangeData.clear();
 
-      // Build market data from real prices
-      this.rebuildMarketData();
-    } catch (error) {
-      logger.error('[ARBITRAGE] Failed to fetch real prices from CoinGecko', error as Error);
-      // If we have stale prices, still use them rather than nothing
-      if (this.cachedPrices) {
-        this.rebuildMarketData();
+      for (let i = 0; i < exchangePairs.length; i++) {
+        const result = pairResults[i];
+        if (result.status !== 'fulfilled') continue;
+
+        const prices = result.value;
+        const pair = exchangePairs[i];
+
+        for (const price of prices) {
+          const exchKey = price.exchange.toLowerCase();
+          if (!this.realExchangeData.has(exchKey)) {
+            this.realExchangeData.set(exchKey, new Map());
+          }
+          this.realExchangeData.get(exchKey)!.set(pair, price);
+
+          // Also store the reverse pair for triangular path resolution
+          if (price.bid > 0 && price.ask > 0) {
+            const [base, quote] = pair.split('/');
+            const reversePair = `${quote}/${base}`;
+            const reversePrice: ExchangePrice = {
+              exchange: price.exchange,
+              pair: reversePair,
+              bid: 1 / price.ask,   // reverse bid = 1/ask
+              ask: 1 / price.bid,   // reverse ask = 1/bid
+              last: price.last > 0 ? 1 / price.last : 0,
+              volume: price.volume,
+              timestamp: price.timestamp,
+            };
+            this.realExchangeData.get(exchKey)!.set(reversePair, reversePrice);
+          }
+        }
       }
+      this.realDataTimestamp = now;
+      logger.debug(`[ARBITRAGE] Updated real exchange data for ${exchangePairs.length} pairs`);
     }
+
+    // Process CoinGecko data (for cross-pair fallback)
+    if (coinGeckoResult.status === 'fulfilled' && coinGeckoResult.value) {
+      const data = coinGeckoResult.value;
+      this.cachedPrices = {
+        btc: data.bitcoin?.usd ?? this.cachedPrices?.btc ?? 0,
+        eth: data.ethereum?.usd ?? this.cachedPrices?.eth ?? 0,
+        sol: data.solana?.usd ?? this.cachedPrices?.sol ?? 0,
+        bnb: data.binancecoin?.usd ?? this.cachedPrices?.bnb ?? 0,
+        ada: data.cardano?.usd ?? this.cachedPrices?.ada ?? 0,
+        matic: data['matic-network']?.usd ?? this.cachedPrices?.matic ?? 0,
+        timestamp: now,
+      };
+      logger.debug('[ARBITRAGE] Updated CoinGecko fallback prices');
+    }
+
+    // Rebuild market data map
+    this.rebuildMarketData();
   }
 
   /**

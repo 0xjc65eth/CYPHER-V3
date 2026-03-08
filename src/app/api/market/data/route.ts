@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { marketDataSchema } from '@/lib/validation/schemas';
 import { cacheInstances } from '@/lib/cache/advancedCache';
 import { applyRateLimit, apiRateLimiters } from '@/lib/api/middleware/rateLimiter';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { coinMarketCapService } from '@/services/CoinMarketCapService';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   // Apply rate limiting
   const rateLimitResult = await applyRateLimit(request, apiRateLimiters.market);
   if (!rateLimitResult.success) {
@@ -69,8 +73,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch market data',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to fetch market data'
       },
       { status: 500 }
     );

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { strictRateLimit } from '@/lib/middleware/rate-limiter';
 import {
   calculateTaxReport,
   type TaxTransaction,
@@ -9,6 +10,9 @@ import {
  * POST /api/tax-report - Generate tax report
  */
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const body = await request.json();
 
@@ -56,7 +60,6 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: 'Failed to generate tax report',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

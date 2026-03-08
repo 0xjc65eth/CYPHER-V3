@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ ticker: string }> }
 ) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const { ticker } = await params;
 
     if (!ticker) {
@@ -117,7 +120,7 @@ export async function GET(
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('BRC-20 token detail API error:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch token details', message },
+      { success: false, error: 'Internal server error' },
       { status: 500, headers: { 'Cache-Control': 'no-cache' } }
     );
   }

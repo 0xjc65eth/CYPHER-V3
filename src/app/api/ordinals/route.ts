@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { xverseAPI } from '@/lib/api/xverse'
 import { ordinalsMarketService } from '@/services/ordinalsMarketService'
 import type { OrdinalsCollectionStats } from '@/services/ordinalsMarketService'
@@ -338,8 +339,10 @@ async function fetchOrdinalsData(): Promise<unknown> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
     const cached = getCachedResponse()
     if (cached) {
       return NextResponse.json({
@@ -471,7 +474,7 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       data: null,
-      error: error instanceof Error ? error.message : 'Failed to fetch real Ordinals data',
+      error: 'Internal server error',
       cached: false,
       timestamp: new Date().toISOString(),
     }, { status: 500 })

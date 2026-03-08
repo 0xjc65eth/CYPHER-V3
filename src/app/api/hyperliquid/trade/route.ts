@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 /**
  * Hyperliquid Trade API
@@ -11,6 +12,9 @@ import { NextRequest, NextResponse } from 'next/server';
  * with server-side environment variables, never accepting keys via HTTP.
  */
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   return NextResponse.json({
     success: false,
     error: 'Direct trade execution via API is disabled for security. Use the Trading Agent UI or wallet connector.',

@@ -9,7 +9,7 @@ export interface HyperLiquidMessage {
 }
 
 export interface HyperLiquidSubscription {
-  type: 'l2Book' | 'trades' | 'user' | 'candle' | 'orderUpdates' | 'fills'
+  type: 'l2Book' | 'trades' | 'user' | 'candle' | 'orderUpdates' | 'fills' | 'allMids'
   coin?: string
   user?: string
   interval?: string
@@ -326,6 +326,14 @@ export class HyperLiquidWebSocket {
     const subscription: HyperLiquidSubscription = {
       type: 'fills',
       user
+    }
+
+    await this.subscribe(subscription)
+  }
+
+  async subscribeToAllMids(): Promise<void> {
+    const subscription: HyperLiquidSubscription = {
+      type: 'allMids'
     }
 
     await this.subscribe(subscription)

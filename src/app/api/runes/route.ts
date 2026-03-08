@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const HIRO_API_BASE = 'https://api.hiro.so/runes/v1'
 const FETCH_TIMEOUT = 10000
@@ -14,8 +15,9 @@ async function fetchWithTimeout(url: string, timeoutMs: number = FETCH_TIMEOUT):
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
 
     // Fetch runes list directly from Hiro API
     const response = await fetchWithTimeout(`${HIRO_API_BASE}/etchings?limit=50&offset=0`)
@@ -80,7 +82,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         error: 'Failed to fetch runes data from Hiro API',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: 'Internal server error'
       },
       { status: 500 }
     )

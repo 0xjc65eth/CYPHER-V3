@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // In-memory cache
 let tickerCache: any[] = [];
@@ -114,7 +115,10 @@ async function fetchBinanceFallback(): Promise<any[]> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Return cache if fresh
     if (tickerCache.length > 0 && Date.now() - cacheTimestamp < CACHE_TTL) {

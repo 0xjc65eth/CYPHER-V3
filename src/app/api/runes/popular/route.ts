@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // Well-known popular runes (name format for Hiro API - no bullets)
 // Verified rune names that exist in Hiro API (tested 2025-06)
@@ -97,8 +98,10 @@ function normalizeHiroRune(r: any): any {
   };
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '60'), 60);
     const cacheKey = `popular:${limit}`;
@@ -218,7 +221,7 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Runes popular API error:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch popular runes', message },
+      { success: false, error: 'Internal server error' },
       { status: 500, headers: { 'Cache-Control': 'no-cache' } }
     );
   }

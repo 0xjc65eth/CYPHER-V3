@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { hiroOrdinalsService } from '@/services/ordinals/integrations';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { searchParams } = request.nextUrl;
     const limit = parseInt(searchParams.get('limit') || '20');

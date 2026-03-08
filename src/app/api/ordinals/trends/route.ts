@@ -10,7 +10,8 @@
  * - period: '7d' | '30d' | '90d' (default: '30d')
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { historicalDataService } from '@/services/ordinals/HistoricalDataService'
 
 interface TrendAnalysis {
@@ -194,8 +195,10 @@ function detectTrend(
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
     const { searchParams } = new URL(request.url)
     const symbol = searchParams.get('symbol')
     const type = searchParams.get('type') || 'all'

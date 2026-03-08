@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { strictRateLimit } from '@/lib/middleware/rate-limiter'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 
@@ -23,6 +24,9 @@ function verifySignature(body: string, signature: string, secret: string): boole
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitRes = await strictRateLimit(req, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const body = await req.text()
     const rawSig = req.headers.get('btcpay-sig1') ?? ''
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
     const event = JSON.parse(body)
     // Event type logged implicitly via response
 
-    if (event.type !== 'InvoiceSettled') {
+    if (event.type !== 'InvoiceSettled' && event.type !== 'InvoicePaymentSettled') {
       return NextResponse.json({ received: true, skipped: event.type })
     }
 

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { xverseAPI, type XverseCollection } from '@/lib/api/xverse'
 import { apiService } from '@/lib/api-service'
 
@@ -14,7 +15,10 @@ interface CacheEntry { data: unknown; timestamp: number }
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL = 60_000;
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60)
+  if (rateLimitRes) return rateLimitRes
+
   try {
     const cacheKey = 'ordinals-stats';
     const cached = cache.get(cacheKey);

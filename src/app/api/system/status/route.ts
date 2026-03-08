@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { hiroAPI } from '@/lib/hiro-api'
 
 interface ServiceStatus {
@@ -52,6 +53,9 @@ async function checkServiceHealth(
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Check all service health in parallel
     const serviceChecks = await Promise.allSettled([
@@ -182,6 +186,9 @@ export async function GET(request: NextRequest) {
 
 // Health check endpoint for simple monitoring
 export async function HEAD(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Quick health check - just verify we can respond
     const quickCheck = await hiroAPI.getNetworkInfo()

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unisatRunesService } from '@/services/unisatRunesService';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { searchParams } = request.nextUrl;
     const type = searchParams.get('type') || undefined;

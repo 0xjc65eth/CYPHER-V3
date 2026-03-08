@@ -9,8 +9,9 @@ const supabaseAdmin = createClient(
 )
 
 const PLANS = {
-  pro:   { amount: '29', label: 'CYPHER Pro' },
-  elite: { amount: '99', label: 'CYPHER Elite' },
+  explorer:      { amount: '29',  label: 'CYPHER Explorer' },
+  trader:        { amount: '79',  label: 'CYPHER Trader' },
+  hacker_yields: { amount: '149', label: 'CYPHER Hacker Yields' },
 } as const
 
 type PlanId = keyof typeof PLANS
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     const planId = body?.planId as PlanId
 
     if (!planId || !PLANS[planId]) {
-      return NextResponse.json({ error: 'Plano inválido. Use: pro, elite' }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid plan. Use: explorer, trader, hacker_yields' }, { status: 400 })
     }
 
     const plan = PLANS[planId]
@@ -63,6 +64,8 @@ export async function POST(req: NextRequest) {
           checkout: {
             expirationMinutes: 30,
             redirectURL: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+            speedPolicy: 'HighSpeed',
+            paymentMethods: ['BTC', 'BTC_LightningLike'],
           },
         }),
       }
@@ -70,8 +73,8 @@ export async function POST(req: NextRequest) {
 
     if (!btcpayRes.ok) {
       const errText = await btcpayRes.text()
-      console.error('[CreateInvoice] BTCPay erro:', errText)
-      return NextResponse.json({ error: 'Erro ao criar invoice' }, { status: 502 })
+      console.error('[CreateInvoice] BTCPay error:', errText)
+      return NextResponse.json({ error: 'Failed to create invoice' }, { status: 502 })
     }
 
     const invoice = await btcpayRes.json()
@@ -98,7 +101,7 @@ export async function POST(req: NextRequest) {
     })
 
   } catch (err) {
-    console.error('[CreateInvoice] Erro:', err)
+    console.error('[CreateInvoice] Error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

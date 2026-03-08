@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 60);
 
@@ -101,7 +104,7 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Runes trending API error:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch trending runes', message },
+      { success: false, error: 'Internal server error' },
       { status: 500, headers: { 'Cache-Control': 'no-cache' } }
     );
   }

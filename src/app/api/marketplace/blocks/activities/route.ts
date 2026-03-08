@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ordinalsMarketService } from '@/services/ordinalsMarketService';
 import type { OrdinalsBlockActivitiesParams } from '@/services/ordinalsMarketService';
 import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const collectionSymbol = searchParams.get('collectionSymbol');

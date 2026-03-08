@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 interface NewsArticle {
   title: string;
@@ -45,7 +46,10 @@ function parseSentiment(title: string, body: string): string {
   return 'neutral';
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') || 'BTC';
@@ -122,7 +126,6 @@ export async function GET(request: Request) {
       }
     );
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: `Failed to fetch news: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch news' }, { status: 500 });
   }
 }

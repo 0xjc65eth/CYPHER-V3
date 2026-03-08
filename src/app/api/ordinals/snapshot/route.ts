@@ -11,11 +11,14 @@
  * - force: boolean (skip existing check)
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter'
 import { historicalDataService } from '@/services/ordinals/HistoricalDataService'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const rateLimitRes = await strictRateLimit(request, 10, 60);
+    if (rateLimitRes) return rateLimitRes;
     const { searchParams } = new URL(request.url)
     const force = searchParams.get('force') === 'true'
 
@@ -90,7 +93,7 @@ export async function POST(request: Request) {
       {
         success: false,
         error: 'Failed to collect snapshot',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       },
       { status: 500 }
     )
@@ -104,8 +107,10 @@ export async function POST(request: Request) {
  * Query params:
  * - date: YYYY-MM-DD (optional, defaults to latest)
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
     const { searchParams } = new URL(request.url)
     const date = searchParams.get('date')
 
@@ -160,7 +165,7 @@ export async function GET(request: Request) {
       {
         success: false,
         error: 'Failed to fetch snapshot',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       },
       { status: 500 }
     )

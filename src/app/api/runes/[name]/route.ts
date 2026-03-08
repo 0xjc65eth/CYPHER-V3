@@ -1,13 +1,16 @@
 // pages/api/runes/[name].js - API para detalhes de um Rune
 import { hiroAPI } from '@/lib/hiro-api';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { createSafeBigIntResponse } from '@/lib/utils/bigint-serializer';
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const { name } = await params;
     
     if (!name) {
@@ -41,8 +44,7 @@ export async function GET(
     console.error('Erro na API Rune Details:', error);
     return NextResponse.json({
       success: false,
-      error: 'Erro ao buscar detalhes do Rune',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }

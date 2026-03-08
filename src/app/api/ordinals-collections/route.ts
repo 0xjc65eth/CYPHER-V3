@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60)
+  if (rateLimitRes) return rateLimitRes
+
   try {
     const ordiscanKey = process.env.ORDISCAN_API_KEY;
     if (!ordiscanKey) {

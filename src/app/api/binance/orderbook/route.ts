@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // Proxy for Binance public API - orderbook and recent trades
 // Binance public endpoints require no API key
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   const { searchParams } = new URL(request.url);
   const type = searchParams.get('type') || 'orderbook';
   const symbol = searchParams.get('symbol') || 'BTCUSDT';
@@ -45,7 +49,6 @@ export async function GET(request: NextRequest) {
         success: false,
         data: type === 'trades' ? [] : { bids: [], asks: [] },
         error: 'Failed to fetch from Binance',
-        message: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 503 }
     );

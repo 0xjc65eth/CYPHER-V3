@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { apiService } from '@/lib/api-service'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     
     // Extract query parameters
@@ -87,7 +91,7 @@ export async function GET(request: Request) {
       success: false,
       data: [],
       source: 'error',
-      error: message,
+      error: 'Failed to fetch runes list',
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }

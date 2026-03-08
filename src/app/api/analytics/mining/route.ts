@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const MEMPOOL_API = 'https://mempool.space/api';
 
@@ -135,6 +136,9 @@ function generateFallbackData() {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const data = await fetchRealMiningData();
     return NextResponse.json(data);

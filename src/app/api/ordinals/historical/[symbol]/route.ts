@@ -10,14 +10,18 @@
  * - metrics: comma-separated list (default: 'price,volume,holders')
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit } from '@/lib/middleware/rate-limiter'
 import { historicalDataService } from '@/services/ordinals/HistoricalDataService'
 
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
+
     const { searchParams } = new URL(request.url)
     const period = (searchParams.get('period') || '30d') as '7d' | '30d' | '90d' | '1y' | 'all'
     const interval = searchParams.get('interval') || 'daily'
@@ -136,7 +140,7 @@ export async function GET(
       {
         success: false,
         error: 'Failed to fetch historical data',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Internal server error',
       },
       { status: 500 }
     )

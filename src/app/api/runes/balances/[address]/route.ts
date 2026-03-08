@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter';
 import { apiCache, CacheKeys, CACHE_TTL, isValidBitcoinAddress, sanitizeAddress } from '@/lib/apiCache';
 import { devLogger } from '@/lib/logger';
 
@@ -320,8 +321,10 @@ export async function GET(
   { params }: { params: Promise<{ address: string }> }
 ) {
   const startTime = Date.now();
-  
+
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '0');
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100); // Max 100
@@ -425,7 +428,7 @@ export async function GET(
     
     return NextResponse.json<ApiResponse>({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }
@@ -438,8 +441,10 @@ export async function POST(
   { params }: { params: Promise<{ address: string }> }
 ) {
   const startTime = Date.now();
-  
+
   try {
+    const rateLimitRes = await strictRateLimit(request, 10, 60); if (rateLimitRes) return rateLimitRes;
+
     const body = await request.json();
     const { rune_ids } = body;
 
@@ -509,7 +514,7 @@ export async function POST(
     
     return NextResponse.json<ApiResponse>({
       success: false,
-      error: error instanceof Error ? error.message : 'Internal server error'
+      error: 'Internal server error'
     }, { status: 500 });
   }
 }

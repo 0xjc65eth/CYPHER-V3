@@ -42,6 +42,23 @@ import { TradeProposal } from '../consensus/RiskManagerAgent';
 import { getAgentPersistence, AgentPersistenceService } from '../persistence';
 import { getSessionKeyManager, SessionKeyManager } from '../wallet';
 import { getAgentEventBus, AgentEventBus } from '../consensus/AgentEventBus';
+import { HyperliquidMarketDiscovery } from '../connectors/HyperliquidMarketDiscovery';
+import { HyperliquidWSBridge } from '../connectors/HyperliquidWSBridge';
+import { PairRegistrationService } from './PairRegistrationService';
+import { IPOStrategyEngine } from '../strategies/ipo/IPOStrategyEngine';
+
+// Quant engines
+import { MarketDataService, getMarketDataService } from '../data/MarketDataService';
+import { OrderbookAggregator, getOrderbookAggregator } from '../data/OrderbookAggregator';
+import { FundingRateTracker, getFundingRateTracker } from '../data/FundingRateTracker';
+import { LiquidationTracker, getLiquidationTracker } from '../data/LiquidationTracker';
+import { CandleStore, getCandleStore } from '../data/CandleStore';
+import { MarketRegimeDetector, getMarketRegimeDetector } from '../regime/MarketRegimeDetector';
+import { FundingArbitrageAlpha } from '../alpha/FundingArbitrageAlpha';
+import { LiquidationCascadeAlpha } from '../alpha/LiquidationCascadeAlpha';
+import { OrderFlowImbalanceAlpha } from '../alpha/OrderFlowImbalanceAlpha';
+import { PortfolioManager, getPortfolioManager } from '../portfolio/PortfolioManager';
+import { OrderExecutionService, getOrderExecutionService } from '../execution/OrderExecutionService';
 
 export interface UserCredentials {
   hyperliquid?: { agentKey: string; agentSecret: string };
@@ -77,6 +94,25 @@ export class AgentOrchestrator {
   private eventBus: AgentEventBus;
   private credentials: UserCredentials;
   private configId: string | null = null;
+
+  // Dynamic pair discovery
+  private discovery: HyperliquidMarketDiscovery | null = null;
+  private wsBridge: HyperliquidWSBridge | null = null;
+  private pairRegistration: PairRegistrationService | null = null;
+  private ipoEngines: Map<string, IPOStrategyEngine> = new Map();
+
+  // Quant engines
+  private marketDataService: MarketDataService;
+  private orderbookAggregator: OrderbookAggregator;
+  private fundingTracker: FundingRateTracker;
+  private liquidationTracker: LiquidationTracker;
+  private candleStore: CandleStore;
+  private regimeDetector: MarketRegimeDetector;
+  private alphaFunding: FundingArbitrageAlpha;
+  private alphaCascade: LiquidationCascadeAlpha;
+  private alphaOrderFlow: OrderFlowImbalanceAlpha;
+  private portfolioManager: PortfolioManager;
+  private executionService: OrderExecutionService;
 
   // Trade history (persists across cycles)
   private tradeHistory: Array<TradeSignal & { executedAt: number; result?: string }> = [];
@@ -133,6 +169,19 @@ export class AgentOrchestrator {
 
     // Initialize event bus
     this.eventBus = getAgentEventBus();
+
+    // Initialize quant engines (singletons)
+    this.marketDataService = getMarketDataService();
+    this.orderbookAggregator = getOrderbookAggregator();
+    this.fundingTracker = getFundingRateTracker();
+    this.liquidationTracker = getLiquidationTracker();
+    this.candleStore = getCandleStore();
+    this.regimeDetector = getMarketRegimeDetector();
+    this.alphaFunding = new FundingArbitrageAlpha();
+    this.alphaCascade = new LiquidationCascadeAlpha();
+    this.alphaOrderFlow = new OrderFlowImbalanceAlpha();
+    this.portfolioManager = getPortfolioManager();
+    this.executionService = getOrderExecutionService();
 
     // Initialize LP engine with defaults
     this.lpEngine = new LPStrategyEngine({
@@ -269,6 +318,34 @@ export class AgentOrchestrator {
         throw new Error('Failed to connect to Hyperliquid. Check your API credentials (Agent Key / Agent Secret).');
       }
 
+      // Validate wallet balances against capital allocation
+      await this.validateWalletBalances();
+
+      // Wire execution service to primary connector
+      this.executionService.setConnectorExecutor(
+        async (pair: string, side: 'buy' | 'sell', sizeUSD: number, limitPrice: number) => {
+          const coin = pair.replace('-PERP', '').split('/')[0];
+          const price = limitPrice > 0 ? limitPrice : await this.connector.getMidPrice(coin);
+          if (price <= 0) return { success: false, fillPrice: 0, filledSize: 0, feePaid: 0, latencyMs: 0, error: 'No price available' };
+          const coinSize = sizeUSD / price;
+          const start = Date.now();
+          const result = await this.connector.placeOrder({
+            pair, side, price, size: coinSize, type: 'limit',
+            clientId: `cypher_exec_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          });
+          return { success: result.success, fillPrice: price, filledSize: result.success ? coinSize : 0, feePaid: 0, latencyMs: Date.now() - start, error: result.error };
+        }
+      );
+      this.executionService.setMidPriceProvider(
+        async (pair: string) => {
+          const coin = pair.replace('-PERP', '').split('/')[0];
+          return this.connector.getMidPrice(coin);
+        }
+      );
+
+      // Initialize dynamic pair discovery (non-blocking)
+      await this.initializeDiscovery();
+
       // Save config to database
       if (!this.configId) {
         this.configId = await this.persistence.saveConfig(this.config, this.userId);
@@ -313,6 +390,19 @@ export class AgentOrchestrator {
       clearInterval(this.compoundInterval);
       this.compoundInterval = null;
     }
+
+    // Cleanup discovery and WS bridge
+    if (this.discovery) {
+      this.discovery.stop();
+      this.discovery = null;
+    }
+    if (this.wsBridge) {
+      this.wsBridge.disconnect();
+      this.wsBridge = null;
+    }
+
+    // Cleanup quant engines: cancel active TWAP/VWAP orders
+    this.executionService.stop();
 
     this.emit('agent_stopped', { timestamp: Date.now() });
   }
@@ -362,9 +452,15 @@ export class AgentOrchestrator {
       // 1. Update positions and PnL from exchange
       await this.updatePositions();
 
-      // 2. Update drawdown guard with current equity
+      // 2. Feed quant engines with market data
+      await this.feedQuantEngines();
+
+      // 2b. Update drawdown guard with current equity
       const equity = this.calculateCurrentEquity();
       this.drawdownGuard.updateEquity(equity);
+
+      // 2c. Update portfolio manager with positions and equity
+      this.portfolioManager.updateState(equity, this.state.positions);
 
       // 3. Check risk limits
       const riskCheck = await this.checkRiskLimits();
@@ -435,10 +531,17 @@ export class AgentOrchestrator {
   // ========================================================================
 
   private async runStrategies(): Promise<void> {
-    const enabledMarkets = this.config.markets.filter(m => m.enabled);
+    // Run alpha signal generation across all markets
+    await this.runAlphaSignals();
+
+    // Snapshot enabled markets to avoid mutation during iteration
+    const enabledMarkets = [...this.config.markets.filter(m => m.enabled)];
 
     for (const market of enabledMarkets) {
       try {
+        // Concentration check: skip new trades if > 20% of portfolio in this pair
+        if (this.isOverConcentrated(market.pair)) continue;
+
         switch (market.type) {
           case 'lp':
             await this.runLPStrategy(market);
@@ -446,6 +549,10 @@ export class AgentOrchestrator {
           case 'perp':
             await this.runScalpingStrategy(market);
             await this.runMMStrategy(market);
+            // Run IPO strategy on newly listed perps (< 24h old)
+            if (market.discoveredAt && (Date.now() - market.discoveredAt) < 24 * 3_600_000) {
+              await this.runIPOStrategy(market);
+            }
             break;
           case 'spot':
             await this.runSpotStrategy(market);
@@ -459,6 +566,31 @@ export class AgentOrchestrator {
         );
       }
     }
+  }
+
+  /**
+   * Check if portfolio is over-concentrated in a single pair.
+   * Uses PortfolioManager for correlation-aware concentration limits.
+   */
+  private isOverConcentrated(pair: string): boolean {
+    const equity = this.calculateCurrentEquity();
+    if (equity <= 0) return false;
+
+    // Use portfolio manager's state if available
+    const portfolioState = this.portfolioManager.getState();
+    if (portfolioState) {
+      const pairPosition = portfolioState.positions.find(p => p.pair === pair);
+      if (pairPosition) {
+        return pairPosition.weight > 0.20; // 20% max per-pair
+      }
+    }
+
+    // Fallback: simple notional check
+    const pairExposure = this.state.positions
+      .filter(p => p.pair === pair)
+      .reduce((sum, p) => sum + Math.abs(p.size * p.currentPrice), 0);
+
+    return pairExposure / equity > 0.20;
   }
 
   /**
@@ -1305,6 +1437,222 @@ export class AgentOrchestrator {
   }
 
   // ========================================================================
+  // Dynamic Pair Discovery
+  // ========================================================================
+
+  /**
+   * Initialize dynamic pair discovery for Hyperliquid.
+   * Discovers all available pairs and auto-registers qualifying ones.
+   */
+  private async initializeDiscovery(): Promise<void> {
+    try {
+      this.discovery = new HyperliquidMarketDiscovery({
+        apiUrl: 'https://api.hyperliquid.xyz',
+        pollIntervalMs: 60_000,
+        contextPollIntervalMs: 30_000,
+      });
+
+      this.pairRegistration = new PairRegistrationService(
+        {
+          autoEnableClasses: ['crypto_perp'],
+          globalRiskLimits: this.config.riskLimits,
+          maxAutoEnabled: 30,
+        },
+        this.eventBus,
+      );
+
+      // Wire market discovery to connector for dynamic asset index resolution
+      this.connector.setMarketDiscovery(this.discovery);
+
+      // Run initial discovery
+      const allPairs = await this.discovery.discoverPairs();
+      const perpCount = allPairs.filter(p => !p.isSpot).length;
+
+      // Evaluate and register qualifying pairs
+      const existingPairs = new Set(this.config.markets.map(m => m.pair));
+      const newPairs = allPairs.filter(p => !existingPairs.has(p.pair));
+      await this.handleNewPairDiscovered(newPairs);
+
+      this.emit('discovery_initialized', {
+        totalPairs: allPairs.length,
+        perpPairs: perpCount,
+        registeredMarkets: this.config.markets.length,
+        timestamp: Date.now(),
+      });
+
+      // Subscribe to EventBus for future discovery events
+      this.eventBus.subscribe('market_update', async (event) => {
+        if (event.source === 'HyperliquidMarketDiscovery' && event.data?.newPairs) {
+          await this.handleNewPairDiscovered(event.data.newPairs);
+        }
+      });
+
+      // Start periodic polling
+      await this.discovery.start();
+
+      // Optionally start WS bridge for real-time price feed
+      try {
+        this.wsBridge = new HyperliquidWSBridge();
+        await this.wsBridge.connect();
+        await this.wsBridge.subscribeAllMids(() => {
+          // Price cache updates happen inside the bridge
+        });
+      } catch (wsError) {
+        // WS bridge is optional — REST polling is the fallback
+        console.error('[AgentOrchestrator] WS bridge failed (non-critical):', wsError);
+        this.wsBridge = null;
+      }
+    } catch (error) {
+      console.error('[AgentOrchestrator] Discovery initialization failed (non-critical):', error);
+      // Discovery failure is non-critical — agent continues with static markets
+    }
+  }
+
+  /**
+   * Handle newly discovered pairs: evaluate and register qualifying ones.
+   */
+  private async handleNewPairDiscovered(pairs: import('../core/types').HyperliquidPairMeta[]): Promise<void> {
+    if (!this.pairRegistration || pairs.length === 0) return;
+
+    try {
+      this.pairRegistration.resetEnabledCount(
+        this.config.markets.filter(m => m.enabled && m.exchange === 'hyperliquid').length,
+      );
+
+      const newMarkets = await this.pairRegistration.evaluateNewPairs(pairs);
+
+      for (const market of newMarkets) {
+        // Avoid duplicates
+        if (this.config.markets.some(m => m.pair === market.pair)) continue;
+
+        this.config.markets.push(market);
+
+        // Lazy-create strategy engines for new perps
+        if (market.type === 'perp' && market.enabled) {
+          this.getOrCreateScalpingEngine(market);
+          this.getOrCreateMMEngine(market);
+        }
+
+        this.emit('market_added', {
+          pair: market.pair,
+          classification: market.assetClass,
+          volume24h: market.volume24h,
+          timestamp: Date.now(),
+        });
+      }
+
+      if (newMarkets.length > 0) {
+        this.state.config = this.config; // Sync state
+      }
+    } catch (error) {
+      console.error('[AgentOrchestrator] handleNewPairDiscovered error:', error);
+    }
+  }
+
+  /**
+   * IPO Strategy: Run on newly listed pairs (< 24h old) with high volatility.
+   * Uses 1-minute candles for faster signal detection.
+   */
+  private async runIPOStrategy(market: MarketConfig): Promise<void> {
+    if (!this.discovery) return;
+
+    const meta = this.discovery.getPairMeta(market.pair);
+    if (!meta) return;
+
+    // Only run on pairs < 24h old
+    const ageHours = (Date.now() - meta.discoveredAt) / 3_600_000;
+    if (ageHours > 24) return;
+
+    // Get or create IPO engine
+    if (!this.ipoEngines.has(market.pair)) {
+      const capital = this.config.capitalAllocation.total * this.config.capitalAllocation.scalp;
+      this.ipoEngines.set(market.pair, new IPOStrategyEngine({
+        pair: market.pair,
+        exchange: market.exchange,
+        maxPositionSize: market.maxPositionUSD || this.config.riskLimits.maxPositionSize * 0.5,
+        accountBalance: capital,
+      }));
+    }
+
+    const engine = this.ipoEngines.get(market.pair)!;
+    const connector = this.connectors.get(market.exchange) || this.connector;
+
+    // Fetch 1-minute candles for IPO
+    const candles = await (connector as any).getCandles(market.pair, '1m', 60);
+    if (candles.length < 5) return;
+
+    // Check if we already have a position in this pair
+    const existingPosition = this.state.positions.find(
+      p => p.pair === market.pair && p.strategy === 'ipo'
+    );
+    if (existingPosition) return;
+
+    const signal = await engine.scanForEntry(candles, meta);
+    if (!signal || signal.confidence < 0.55) return;
+
+    // Submit to consensus
+    const proposal: TradeProposal = {
+      pair: signal.pair,
+      exchange: market.exchange,
+      direction: signal.direction,
+      entry: signal.entry,
+      stopLoss: signal.stopLoss,
+      takeProfit: signal.takeProfit,
+      positionSizeUSD: Math.min(signal.positionSize, market.maxPositionUSD || this.config.riskLimits.maxPositionSize),
+      leverage: Math.min(signal.leverage, this.config.riskLimits.maxLeverage),
+      strategy: 'ipo',
+      confidence: signal.confidence,
+    };
+
+    const consensusResult = await this.consensus.evaluateProposal(
+      proposal, candles, signal.smcContext,
+      {
+        totalEquity: this.calculateCurrentEquity(),
+        openPositions: this.state.positions,
+        performance: this.state.performance,
+        riskLimits: this.config.riskLimits,
+      },
+    );
+
+    if (!consensusResult.approved) {
+      if (this.configId) {
+        this.persistence.recordConsensusDecision({
+          agent_config_id: this.configId,
+          pair: market.pair,
+          proposal,
+          votes: consensusResult.votes,
+          result: consensusResult,
+          approved: false,
+          executed: false,
+        }).catch(() => {});
+      }
+      return;
+    }
+
+    signal.positionSize = consensusResult.positionSize;
+    await this.executeSignal(signal, connector);
+
+    if (this.configId) {
+      this.persistence.recordConsensusDecision({
+        agent_config_id: this.configId,
+        pair: market.pair,
+        proposal,
+        votes: consensusResult.votes,
+        result: consensusResult,
+        approved: true,
+        executed: true,
+      }).catch(() => {});
+    }
+  }
+
+  /**
+   * Get the market discovery instance (used by MCP tools).
+   */
+  getMarketDiscovery(): HyperliquidMarketDiscovery | null {
+    return this.discovery;
+  }
+
+  // ========================================================================
   // Auto-Compound
   // ========================================================================
 
@@ -1431,6 +1779,264 @@ export class AgentOrchestrator {
   }
 
   // ========================================================================
+  // Wallet Balance Validation
+  // ========================================================================
+
+  /**
+   * Validate that wallet balances cover the configured capital allocation.
+   * Called during start() — emits warnings if balances are insufficient.
+   * Does NOT block start (user may be depositing funds).
+   */
+  private async validateWalletBalances(): Promise<void> {
+    const { capitalAllocation } = this.config;
+    const warnings: string[] = [];
+
+    // Check Hyperliquid balance
+    const hlAlloc = capitalAllocation.hyperliquid ?? (capitalAllocation.total * (capitalAllocation.mm + capitalAllocation.scalp));
+    if (hlAlloc > 0) {
+      try {
+        const hlBalances = await this.connector.getBalances();
+        const hlBalance = hlBalances.reduce((sum, b) => sum + b.valueUSD, 0);
+        if (hlBalance < hlAlloc) {
+          warnings.push(
+            `Hyperliquid: configured $${hlAlloc.toLocaleString()} but wallet has $${hlBalance.toFixed(2)}. ` +
+            `Deposit $${(hlAlloc - hlBalance).toFixed(2)} or reduce allocation.`
+          );
+        }
+      } catch {
+        warnings.push('Hyperliquid: could not fetch wallet balance for validation.');
+      }
+    }
+
+    // Check Solana LP balance
+    const solAlloc = capitalAllocation.lpSolana ?? 0;
+    if (solAlloc > 0) {
+      const solConnector = this.connectors.get('jupiter') || this.connectors.get('raydium');
+      if (solConnector) {
+        try {
+          const solBalances = await (solConnector as any).getBalances();
+          const solBalance = (solBalances as any[]).reduce((sum: number, b: any) => sum + (b.valueUSD || 0), 0);
+          if (solBalance < solAlloc) {
+            warnings.push(
+              `Solana LP: configured $${solAlloc.toLocaleString()} but wallet has $${solBalance.toFixed(2)}. ` +
+              `Deposit $${(solAlloc - solBalance).toFixed(2)} or reduce allocation.`
+            );
+          }
+        } catch {
+          warnings.push('Solana: could not fetch wallet balance for validation.');
+        }
+      } else {
+        warnings.push('Solana LP: $' + solAlloc.toLocaleString() + ' allocated but no Solana connector configured.');
+      }
+    }
+
+    // Check EVM LP balance
+    const evmAlloc = capitalAllocation.lpEvm ?? 0;
+    if (evmAlloc > 0) {
+      const evmConnector = this.connectors.get('uniswap');
+      if (evmConnector) {
+        try {
+          const evmBalances = await (evmConnector as any).getBalances();
+          const evmBalance = (evmBalances as any[]).reduce((sum: number, b: any) => sum + (b.valueUSD || 0), 0);
+          if (evmBalance < evmAlloc) {
+            warnings.push(
+              `EVM LP: configured $${evmAlloc.toLocaleString()} but wallet has $${evmBalance.toFixed(2)}. ` +
+              `Deposit $${(evmAlloc - evmBalance).toFixed(2)} or reduce allocation.`
+            );
+          }
+        } catch {
+          warnings.push('EVM: could not fetch wallet balance for validation.');
+        }
+      } else {
+        warnings.push('EVM LP: $' + evmAlloc.toLocaleString() + ' allocated but no EVM connector configured.');
+      }
+    }
+
+    // Emit warnings (non-blocking)
+    for (const warning of warnings) {
+      this.addError(`BALANCE WARNING: ${warning}`, 'wallet_validation');
+      this.emit('balance_warning', { message: warning, timestamp: Date.now() });
+    }
+
+    // Publish summary to event bus
+    if (warnings.length > 0) {
+      this.eventBus.publish({
+        type: 'risk_alert' as any,
+        source: 'AgentOrchestrator',
+        data: { type: 'insufficient_balance', warnings, count: warnings.length },
+        timestamp: Date.now(),
+        priority: 'high',
+      });
+    }
+  }
+
+  /**
+   * Get real-time wallet balances across all connected exchanges.
+   * Used by API route to show balances in the wizard UI.
+   */
+  async getWalletBalances(): Promise<{
+    hyperliquid: { balances: any[]; totalUSD: number };
+    solana: { balances: any[]; totalUSD: number };
+    evm: { balances: any[]; totalUSD: number };
+    total: number;
+    allocation: {
+      hyperliquid: { configured: number; available: number; sufficient: boolean };
+      lpSolana: { configured: number; available: number; sufficient: boolean };
+      lpEvm: { configured: number; available: number; sufficient: boolean };
+    };
+  }> {
+    const { capitalAllocation } = this.config;
+
+    // Fetch balances in parallel
+    const [hlResult, solResult, evmResult] = await Promise.allSettled([
+      this.connector.getBalances(),
+      (this.connectors.get('jupiter') || this.connectors.get('raydium'))
+        ? (this.connectors.get('jupiter') || this.connectors.get('raydium') as any).getBalances()
+        : Promise.resolve([]),
+      this.connectors.get('uniswap')
+        ? (this.connectors.get('uniswap') as any).getBalances()
+        : Promise.resolve([]),
+    ]);
+
+    const hlBalances = hlResult.status === 'fulfilled' ? hlResult.value : [];
+    const solBalances = solResult.status === 'fulfilled' ? solResult.value : [];
+    const evmBalances = evmResult.status === 'fulfilled' ? evmResult.value : [];
+
+    const hlTotal = (hlBalances as any[]).reduce((s: number, b: any) => s + (b.valueUSD || 0), 0);
+    const solTotal = (solBalances as any[]).reduce((s: number, b: any) => s + (b.valueUSD || 0), 0);
+    const evmTotal = (evmBalances as any[]).reduce((s: number, b: any) => s + (b.valueUSD || 0), 0);
+
+    const hlConfigured = capitalAllocation.hyperliquid ?? (capitalAllocation.total * (capitalAllocation.mm + capitalAllocation.scalp));
+    const solConfigured = capitalAllocation.lpSolana ?? 0;
+    const evmConfigured = capitalAllocation.lpEvm ?? 0;
+
+    return {
+      hyperliquid: { balances: hlBalances as any[], totalUSD: hlTotal },
+      solana: { balances: solBalances as any[], totalUSD: solTotal },
+      evm: { balances: evmBalances as any[], totalUSD: evmTotal },
+      total: hlTotal + solTotal + evmTotal,
+      allocation: {
+        hyperliquid: { configured: hlConfigured, available: hlTotal, sufficient: hlTotal >= hlConfigured },
+        lpSolana: { configured: solConfigured, available: solTotal, sufficient: solTotal >= solConfigured },
+        lpEvm: { configured: evmConfigured, available: evmTotal, sufficient: evmTotal >= evmConfigured },
+      },
+    };
+  }
+
+  // ========================================================================
+  // Quant Engine Integration
+  // ========================================================================
+
+  /**
+   * Feed market data into quant engines each cycle.
+   * Ingests candles, funding rates, and orderbook snapshots.
+   */
+  private async feedQuantEngines(): Promise<void> {
+    const enabledPerps = this.config.markets.filter(m => m.enabled && m.type === 'perp');
+
+    // Feed candle data into CandleStore and run regime analysis (sample up to 10 markets per cycle)
+    const marketsToFeed = enabledPerps.slice(0, 10);
+    for (const market of marketsToFeed) {
+      try {
+        const connector = this.connectors.get(market.exchange) || this.connector;
+        const candles = await (connector as any).getCandles(market.pair, '5m', 20);
+        if (candles && candles.length > 0) {
+          // Feed latest candle into store
+          const latest = candles[candles.length - 1];
+          this.candleStore.appendCandle(market.pair, '5m', latest);
+
+          // Feed mid price into MarketDataService
+          const coin = market.pair.replace('-PERP', '').split('/')[0];
+          const midPrice = await (connector as any).getMidPrice(coin);
+          if (midPrice > 0) {
+            this.marketDataService.ingestPrice(market.pair, midPrice, midPrice * 0.999, midPrice * 1.001, latest.volume);
+          }
+
+          // Update regime detector with candle history
+          if (candles.length >= 10) {
+            this.regimeDetector.analyze(market.pair, candles);
+          }
+        }
+      } catch {
+        // Non-critical: data feed failure doesn't stop the loop
+      }
+    }
+
+    // Feed funding rates (sample top 5 by volume)
+    const topMarkets = enabledPerps.slice(0, 5);
+    for (const market of topMarkets) {
+      try {
+        const coin = market.pair.replace('-PERP', '');
+        const connector = this.connectors.get(market.exchange) || this.connector;
+        if ('getFundingRate' in connector) {
+          const funding = await (connector as any).getFundingRate(coin);
+          if (funding !== undefined && funding !== null) {
+            this.fundingTracker.recordRate(market.pair, market.exchange, funding, Date.now() + 8 * 3_600_000);
+          }
+        }
+      } catch {
+        // Non-critical
+      }
+    }
+  }
+
+  /**
+   * Run alpha signal generation engines.
+   * Alpha signals are published to EventBus for consensus to incorporate.
+   */
+  private async runAlphaSignals(): Promise<void> {
+    const enabledPerps = this.config.markets.filter(m => m.enabled && m.type === 'perp');
+    const pairs = enabledPerps.slice(0, 10).map(m => m.pair);
+    if (pairs.length === 0) return;
+
+    try {
+      // Funding arbitrage alpha — scan all pairs at once
+      const fundingSignals = this.alphaFunding.scan(this.fundingTracker, this.marketDataService, pairs);
+      for (const signal of fundingSignals) {
+        if (signal.confidence >= 0.5) {
+          this.eventBus.publish({
+            type: 'alpha.signal' as any,
+            source: 'FundingArbitrageAlpha',
+            data: { pair: signal.pair, signal },
+            timestamp: Date.now(),
+            priority: signal.confidence > 0.8 ? 'high' : 'medium',
+          });
+        }
+      }
+
+      // Liquidation cascade alpha
+      const liqSignals = this.alphaCascade.scan(this.liquidationTracker, this.marketDataService, pairs);
+      for (const signal of liqSignals) {
+        if (signal.confidence >= 0.6) {
+          this.eventBus.publish({
+            type: 'alpha.signal' as any,
+            source: 'LiquidationCascadeAlpha',
+            data: { pair: signal.pair, signal },
+            timestamp: Date.now(),
+            priority: signal.confidence > 0.8 ? 'high' : 'medium',
+          });
+        }
+      }
+
+      // Order flow imbalance alpha
+      const flowSignals = this.alphaOrderFlow.scan(this.orderbookAggregator, pairs);
+      for (const signal of flowSignals) {
+        if (signal.confidence >= 0.5) {
+          this.eventBus.publish({
+            type: 'alpha.signal' as any,
+            source: 'OrderFlowImbalanceAlpha',
+            data: { pair: signal.pair, signal },
+            timestamp: Date.now(),
+            priority: signal.confidence > 0.8 ? 'high' : 'medium',
+          });
+        }
+      }
+    } catch {
+      // Alpha signal failure is non-critical
+    }
+  }
+
+  // ========================================================================
   // Helpers
   // ========================================================================
 
@@ -1521,10 +2127,28 @@ export class AgentOrchestrator {
 
   private validateConfig(): void {
     const { capitalAllocation, riskLimits } = this.config;
-    const totalAlloc = capitalAllocation.lp + capitalAllocation.mm + capitalAllocation.scalp;
-    if (Math.abs(totalAlloc - 1) > 0.01) {
-      throw new Error(`Capital allocation must sum to 100%, got ${(totalAlloc * 100).toFixed(1)}%`);
+
+    // If chain-specific allocations are set, recompute total and percentages
+    if (capitalAllocation.hyperliquid !== undefined || capitalAllocation.lpSolana !== undefined || capitalAllocation.lpEvm !== undefined) {
+      const hl = capitalAllocation.hyperliquid ?? 0;
+      const lpSol = capitalAllocation.lpSolana ?? 0;
+      const lpEvm = capitalAllocation.lpEvm ?? 0;
+      const total = hl + lpSol + lpEvm;
+      if (total <= 0) {
+        throw new Error('Total capital allocation must be greater than 0');
+      }
+      // Recompute percentage fields for backward compatibility
+      capitalAllocation.total = total;
+      capitalAllocation.lp = (lpSol + lpEvm) / total;
+      capitalAllocation.mm = (hl * 0.5) / total; // 50% of HL capital to MM
+      capitalAllocation.scalp = (hl * 0.5) / total; // 50% of HL capital to Scalp
+    } else {
+      const totalAlloc = capitalAllocation.lp + capitalAllocation.mm + capitalAllocation.scalp;
+      if (Math.abs(totalAlloc - 1) > 0.01) {
+        throw new Error(`Capital allocation must sum to 100%, got ${(totalAlloc * 100).toFixed(1)}%`);
+      }
     }
+
     if (riskLimits.maxLeverage < 1 || riskLimits.maxLeverage > 100) {
       throw new Error('Max leverage must be between 1x and 100x');
     }

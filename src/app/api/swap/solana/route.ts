@@ -13,6 +13,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { CYPHER_FEE_WALLETS, CYPHER_FEE_CONFIG } from '@/config/feeWallets';
 import { recordFee } from '@/lib/feeCollector';
 
@@ -29,6 +30,9 @@ const TOKEN_INFO: Record<string, { symbol: string; decimals: number; coingeckoId
 };
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const params = request.nextUrl.searchParams;
     const inputMint = params.get('inputMint');
@@ -148,7 +152,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Failed to get Solana swap quote',
-      message: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 });
   }
 }

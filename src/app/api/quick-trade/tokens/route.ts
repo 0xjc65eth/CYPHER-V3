@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter'
 
 // Token registry - preços são atualizados via API em runtime.
 // Valores iniciais servem apenas como fallback. Atualizado 2026-02-24.
@@ -143,6 +144,9 @@ const TOKEN_REGISTRY = {
 
 // GET /api/quick-trade/tokens - Get tokens for a specific chain
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams
     const chainId = searchParams.get('chainId')
@@ -203,15 +207,17 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Token API error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to fetch tokens',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({
+      error: 'Failed to fetch tokens'
     }, { status: 500 })
   }
 }
 
 // POST /api/quick-trade/tokens - Add custom token
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const body = await request.json()
     const { address, chainId, symbol, name, decimals, logoUri } = body
@@ -259,9 +265,8 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Add token error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to add token',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({
+      error: 'Failed to add token'
     }, { status: 500 })
   }
 }

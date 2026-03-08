@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 let indicatorCache: any = null;
 let cacheTimestamp = 0;
@@ -92,7 +93,10 @@ async function fetchMVRV(): Promise<{ value: number; change: number }> {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     if (indicatorCache && Date.now() - cacheTimestamp < CACHE_TTL) {
       return NextResponse.json({

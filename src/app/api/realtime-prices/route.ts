@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { coinMarketCapService } from '@/services/CoinMarketCapService';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbols = searchParams.get('symbols')?.split(',') || ['BTC', 'ETH', 'SOL'];
@@ -121,7 +125,6 @@ export async function GET(request: NextRequest) {
       fallback: true,
       symbols: symbols,
       count: Object.keys(fallbackData).length,
-      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }

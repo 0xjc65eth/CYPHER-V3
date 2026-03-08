@@ -6,8 +6,12 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { blockchainValidationService } from '@/services/blockchain-validation'
+import { rateLimit, strictRateLimit } from '@/lib/middleware/rate-limiter'
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60)
+  if (rateLimitRes) return rateLimitRes
+
   try {
     const body = await request.json()
     const { txids } = body
@@ -37,8 +41,7 @@ export async function POST(request: NextRequest) {
     console.error('[API] Batch transaction validation error:', error)
     return NextResponse.json(
       {
-        error: 'Batch transaction validation failed',
-        message: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
       },
       { status: 500 }
     )

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { twelveDataService } from '@/services/twelvedata/TwelveDataService';
 import { fredService } from '@/services/fred/FREDService';
 import { getRedisClient } from '@/lib/cache/redis.config';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const CACHE_KEY = 'market:macro-indicators';
 const CACHE_TTL = 300; // 5 minutes
@@ -50,6 +51,9 @@ const FALLBACK_DATA: MacroIndicators = {
 };
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const redis = getRedisClient();
 

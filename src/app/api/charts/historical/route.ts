@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 interface ChartDataPoint {
   time: number;
@@ -28,6 +29,9 @@ function getIntervalInMs(interval: string): number {
 
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const symbol = searchParams.get('symbol') || 'BTCUSDT';
@@ -91,8 +95,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch historical data',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: 'Failed to fetch historical data'
       },
       { status: 500 }
     );

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ordinalsMarketService } from '@/services/ordinalsMarketService';
 import { okxOrdinalsAPI } from '@/services/ordinals/integrations/OKXOrdinalsAPI';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ symbol: string }> }
 ) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { symbol } = await params;
 

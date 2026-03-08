@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unisatRunesService } from '@/services/unisatRunesService';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ txid: string; index: string }> }
 ) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const { txid, index } = await params;
     const data = await unisatRunesService.getUtxoRuneBalance(txid, Number(index));

@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 /**
  * Ordinals Activity API — OKX primary, ME/Ordiscan/Hiro fallbacks
  * Returns normalized activity data (listings, sales, inscriptions)
  */
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60);
+    if (rateLimitRes) return rateLimitRes;
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 100);
     const kind = searchParams.get('kind') || '';
@@ -235,7 +238,7 @@ export async function GET(request: Request) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Ordinals activity API error:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch activity', message },
+      { success: false, error: 'Failed to fetch activity', message: 'Internal server error' },
       { status: 500, headers: { 'Cache-Control': 'no-cache' } }
     );
   }

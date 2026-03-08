@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const ORDISCAN_API_KEY = process.env.ORDISCAN_API_KEY || '';
 
@@ -132,7 +133,10 @@ const RARE_SAT_CATEGORIES = [
   },
 ];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Try Ordiscan API first
     let ordiscanData = null;
@@ -194,7 +198,7 @@ export async function GET() {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('Rare sats categories API error:', message);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch rare sat categories', message },
+      { success: false, error: 'Failed to fetch rare sat categories' },
       { status: 500, headers: { 'Cache-Control': 'no-cache' } }
     );
   }

@@ -15,6 +15,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { z } from 'zod';
 import {
   withMiddleware,
@@ -343,6 +344,8 @@ function buildAnalytics(runes: RuneMarketData[]): RunesAnalytics {
 // Handler function
 async function handleRunesMarketData(request: NextRequest): Promise<NextResponse> {
   try {
+    const rateLimitRes = await rateLimit(request, 30, 60); if (rateLimitRes) return rateLimitRes;
+
     // Proxy to the real endpoint instead of redirect (redirects return HTML in Next.js)
     const origin = new URL(request.url).origin;
     const listUrl = `${origin}/api/runes/list/${new URL(request.url).search}`;
@@ -446,7 +449,7 @@ async function handleRunesMarketData(request: NextRequest): Promise<NextResponse
 
     return NextResponse.json(
       createErrorResponse('Failed to retrieve runes market data', {
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Internal server error',
         timestamp: new Date().toISOString()
       }),
       { status: 500, headers: corsHeaders }

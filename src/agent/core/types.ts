@@ -15,10 +15,14 @@ export interface AgentConfig {
    *  When false or undefined, trades are logged but NOT executed. */
   enableTrading?: boolean;
   capitalAllocation: {
-    total: number; // USD
-    lp: number; // percentage (0-1)
-    mm: number; // percentage (0-1)
-    scalp: number; // percentage (0-1)
+    total: number; // USD (computed: hyperliquid + lpSolana + lpEvm)
+    lp: number; // percentage (0-1) — computed from chain allocations
+    mm: number; // percentage (0-1) — computed from chain allocations
+    scalp: number; // percentage (0-1) — computed from chain allocations
+    /** Chain-specific capital (USD). When set, total/lp/mm/scalp are computed from these. */
+    hyperliquid?: number; // USD for perp trading (scalp + MM)
+    lpSolana?: number; // USD for Solana LP (Jupiter/Raydium)
+    lpEvm?: number; // USD for EVM LP (Uniswap)
   };
   riskLimits: RiskLimits;
   autoCompound: AutoCompoundConfig;
@@ -62,6 +66,38 @@ export interface MarketConfig {
   chain?: ChainType;
   assetClass?: AssetClass;
   maxPositionUSD?: number;
+  discoveredAt?: number;
+  volume24h?: number;
+  openInterest?: number;
+  liquidityScore?: number;
+}
+
+// ============================================================================
+// Hyperliquid Dynamic Pair Discovery
+// ============================================================================
+
+export type PairClassification = 'crypto_perp' | 'synth_stock' | 'synth_forex' | 'synth_commodity' | 'spot';
+
+export interface HyperliquidPairMeta {
+  name: string;               // "BTC", "AAPL", "EUR"
+  pair: string;               // "BTC-PERP"
+  assetIndex: number;
+  szDecimals: number;
+  maxLeverage: number;
+  classification: PairClassification;
+  isSpot: boolean;
+  funding?: number;
+  openInterest?: number;
+  volume24h?: number;
+  midPrice?: number;
+  discoveredAt: number;
+}
+
+export interface PairDiscoveryEvent {
+  newPairs: HyperliquidPairMeta[];
+  delistedPairs: string[];
+  totalPairs: number;
+  timestamp: number;
 }
 
 export interface SessionKeyConfig {
@@ -116,7 +152,7 @@ export interface TradeSignal {
   confidence: number; // 0-1
   positionSize: number; // USD
   leverage: number;
-  strategy: 'scalp' | 'mm' | 'lp';
+  strategy: 'scalp' | 'mm' | 'lp' | 'ipo';
   reason: string;
   timestamp: number;
   smcContext?: SMCContext;
@@ -136,7 +172,7 @@ export interface Position {
   realizedPnl: number;
   stopLoss: number;
   takeProfit: number[];
-  strategy: 'scalp' | 'mm' | 'lp';
+  strategy: 'scalp' | 'mm' | 'lp' | 'ipo';
   openedAt: number;
   lastUpdated: number;
 }
@@ -313,6 +349,9 @@ export const DEFAULT_AGENT_CONFIG: AgentConfig = {
     lp: 0.50,
     mm: 0.25,
     scalp: 0.25,
+    hyperliquid: 2500,
+    lpSolana: 1250,
+    lpEvm: 1250,
   },
   riskLimits: {
     maxPositionSize: 250,

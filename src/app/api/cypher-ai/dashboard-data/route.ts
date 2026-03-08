@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 // Simple in-memory cache with 30s TTL
 const cache: Record<string, { data: unknown; ts: number }> = {};
@@ -156,7 +157,10 @@ async function getDerivatives() {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   const [btcPrice, ethPrice, fearGreed, news, klines, derivatives] = await Promise.allSettled([
     getBtcPrice(),
     getEthPrice(),

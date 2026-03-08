@@ -8,10 +8,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { getAllFeeRecords, getFeeStats } from '@/lib/feeCollector';
 import { validateAdminAuth } from '@/lib/middleware/admin-auth';
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const auth = validateAdminAuth(request);
     if (!auth.ok) return auth.response;

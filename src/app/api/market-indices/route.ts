@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 export const dynamic = 'force-dynamic';
 
 // Real-time market indices data
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Try to fetch real data from a financial API
     // For now, we'll use Yahoo Finance API or a similar free service

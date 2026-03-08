@@ -26,7 +26,7 @@ export interface AgentTradeRecord {
   pair: string;
   exchange: string;
   direction: 'long' | 'short';
-  strategy: 'scalp' | 'mm' | 'lp';
+  strategy: 'scalp' | 'mm' | 'lp' | 'ipo';
   asset_class?: 'crypto' | 'forex' | 'stock' | 'commodity';
   entry_price: number;
   exit_price?: number;

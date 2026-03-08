@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { strictRateLimit } from '@/lib/middleware/rate-limiter';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = await strictRateLimit(request, 10, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     if (!ELEVENLABS_API_KEY) {
       return NextResponse.json(

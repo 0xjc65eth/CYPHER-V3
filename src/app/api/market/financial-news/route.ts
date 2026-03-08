@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { newsAPIService } from '@/services/newsapi/NewsAPIService';
 import { getRedisClient } from '@/lib/cache/redis.config';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 const CACHE_KEY = 'market:financial-news';
 const CACHE_TTL = 1800; // 30 minutes
@@ -41,6 +42,9 @@ async function setCached(data: unknown): Promise<void> {
 }
 
 export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 60, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     // Check cache first
     const cached = await getCached();

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 
 async function fetchWithTimeout(url: string, timeoutMs = 10000): Promise<Response> {
   const controller = new AbortController();
@@ -14,7 +15,10 @@ async function fetchWithTimeout(url: string, timeoutMs = 10000): Promise<Respons
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const rateLimitRes = await rateLimit(request, 30, 60);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const [hashrateRes, difficultyRes, poolsRes] = await Promise.all([
       fetchWithTimeout('https://mempool.space/api/v1/mining/hashrate/3m'),
@@ -85,7 +89,6 @@ export async function GET() {
       }
     );
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ error: `Failed to fetch mining data: ${message}` }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch mining data' }, { status: 500 });
   }
 }

@@ -305,6 +305,42 @@ function SetupWizard({
   const [solanaPrivateKey, setSolanaPrivateKey] = useState('');
   const [evmPrivateKey, setEvmPrivateKey] = useState('');
   const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
+  const [testingKeys, setTestingKeys] = useState(false);
+  const [testKeyResult, setTestKeyResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Wallet balance state for Step 3 validation
+  const [walletBalances, setWalletBalances] = useState<{
+    hyperliquid: number;
+    solana: number;
+    evm: number;
+    loaded: boolean;
+    loading: boolean;
+  }>({ hyperliquid: 0, solana: 0, evm: 0, loaded: false, loading: false });
+
+  const handleTestKeys = async () => {
+    if (!hlApiKey || !hlApiSecret) return;
+    setTestingKeys(true);
+    setTestKeyResult(null);
+    try {
+      const res = await fetch('/api/agent/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'test_keys',
+          walletAddress: connectedAddress || 'test',
+          credentials: {
+            hyperliquid: { agentKey: hlApiKey, agentSecret: hlApiSecret },
+          },
+        }),
+      });
+      const data = await res.json();
+      setTestKeyResult({ success: data.success, message: data.message || data.error || 'Unknown result' });
+    } catch (err) {
+      setTestKeyResult({ success: false, message: `Test failed: ${err instanceof Error ? err.message : 'Unknown'}` });
+    } finally {
+      setTestingKeys(false);
+    }
+  };
 
   // Determine which wallets are connected
   const evmConnected = ethWallet.isConnected;
@@ -323,6 +359,38 @@ function SetupWizard({
     || multiWallet.solana?.activeConnection?.address
     || btcWallet.walletState.address
     || null;
+
+  // Fetch real wallet balances when entering Step 3
+  useEffect(() => {
+    if (currentStep === 3 && !walletBalances.loaded && !walletBalances.loading && connectedAddress && testKeyResult?.success) {
+      setWalletBalances(prev => ({ ...prev, loading: true }));
+      fetch('/api/agent/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'balances',
+          walletAddress: connectedAddress,
+        }),
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            setWalletBalances({
+              hyperliquid: data.allocation?.hyperliquid?.available ?? 0,
+              solana: data.allocation?.lpSolana?.available ?? 0,
+              evm: data.allocation?.lpEvm?.available ?? 0,
+              loaded: true,
+              loading: false,
+            });
+          } else {
+            setWalletBalances(prev => ({ ...prev, loaded: true, loading: false }));
+          }
+        })
+        .catch(() => {
+          setWalletBalances(prev => ({ ...prev, loaded: true, loading: false }));
+        });
+    }
+  }, [currentStep, walletBalances.loaded, walletBalances.loading, connectedAddress, testKeyResult]);
 
   const steps = [
     { num: 1, title: 'Connect Wallet' },
@@ -482,10 +550,18 @@ function SetupWizard({
                     <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded">WALLET CONNECTED</span>
                   )}
                 </div>
-                <p className="text-xs text-white/40 mb-4">
+                <p className="text-xs text-white/40 mb-3">
                   All perps: Crypto, Synth Stocks, Forex, Commodities — 24/7 trading on Hyperliquid L1.
-                  Get your API key at <span className="text-orange-400">app.hyperliquid.xyz</span> → API → Create Agent Wallet.
                 </p>
+                <div className="border border-orange-500/10 rounded p-3 mb-4 bg-black/50 space-y-1.5">
+                  <div className="text-[10px] text-orange-400/80 font-mono font-bold mb-1">HOW TO GET YOUR AGENT WALLET:</div>
+                  <div className="text-[10px] text-white/50 font-mono">1. Go to <span className="text-orange-400">app.hyperliquid.xyz</span> and connect your main wallet</div>
+                  <div className="text-[10px] text-white/50 font-mono">2. Click the <span className="text-white/80">hamburger menu (≡)</span> → <span className="text-white/80">API</span></div>
+                  <div className="text-[10px] text-white/50 font-mono">3. Click <span className="text-white/80">"Create Agent Wallet"</span> (generates a separate wallet for trading)</div>
+                  <div className="text-[10px] text-white/50 font-mono">4. Copy the <span className="text-emerald-400">Agent Address (0x...)</span> → paste below as AGENT WALLET KEY</div>
+                  <div className="text-[10px] text-white/50 font-mono">5. Copy the <span className="text-emerald-400">Private Key</span> → paste below as AGENT WALLET SECRET</div>
+                  <div className="text-[10px] text-red-400/80 font-mono mt-2 font-bold">WARNING: Do NOT use your main wallet private key. Always create a dedicated Agent Wallet.</div>
+                </div>
                 <div className="space-y-3">
                   <div>
                     <label className="text-[10px] text-white/30 font-mono block mb-1">AGENT WALLET KEY *</label>
@@ -522,7 +598,21 @@ function SetupWizard({
                     <span className="text-[10px] text-emerald-400 font-mono font-bold">MAINNET — LIVE TRADING</span>
                   </div>
                   {hlApiKey && hlApiSecret && (
-                    <div className="text-[10px] text-emerald-400 font-mono mt-1">Keys configured</div>
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        onClick={handleTestKeys}
+                        disabled={testingKeys}
+                        className="px-3 py-1.5 text-[10px] font-mono font-bold border border-orange-500/50 text-orange-400 rounded hover:bg-orange-500/10 transition-colors disabled:opacity-30"
+                      >
+                        {testingKeys ? 'TESTING...' : 'TEST CONNECTION'}
+                      </button>
+                      {testKeyResult && (
+                        <span className={`text-[10px] font-mono ${testKeyResult.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {testKeyResult.success ? '✓ ' : '✕ '}{testKeyResult.message}
+                        </span>
+                      )}
+                      {!testKeyResult && <span className="text-[10px] text-emerald-400/60 font-mono">Keys configured</span>}
+                    </div>
                   )}
                 </div>
               </div>
@@ -632,37 +722,74 @@ function SetupWizard({
                 Configure capital allocation and risk parameters. These limits protect your portfolio.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Capital Allocation */}
+                {/* Capital Allocation by Chain */}
                 <div className="space-y-4">
-                  <h3 className="text-xs font-mono text-orange-400/80 font-bold">CAPITAL ALLOCATION</h3>
-                  <div>
-                    <label className="text-[10px] text-white/30 font-mono block mb-1">Total Capital (USD)</label>
-                    <input
-                      type="number"
-                      value={config.capitalAllocation.total}
-                      onChange={e => setConfig({ ...config, capitalAllocation: { ...config.capitalAllocation, total: Number(e.target.value) } })}
-                      className="w-full bg-black border border-white/10 rounded px-3 py-2 text-sm font-mono text-white focus:border-orange-500/50 focus:outline-none"
-                    />
-                  </div>
+                  <h3 className="text-xs font-mono text-orange-400/80 font-bold">CAPITAL ALLOCATION BY CHAIN</h3>
+                  <p className="text-[10px] text-white/30 font-mono">Allocate your capital per chain. Total is computed automatically.</p>
                   {[
-                    { key: 'lp' as const, label: 'LP Allocation' },
-                    { key: 'mm' as const, label: 'Market Making' },
-                    { key: 'scalp' as const, label: 'Scalping' },
-                  ].map(item => (
-                    <div key={item.key}>
-                      <div className="flex justify-between mb-1">
-                        <label className="text-[10px] text-white/30 font-mono">{item.label}</label>
-                        <span className="text-[10px] text-orange-400 font-mono">{Math.round(config.capitalAllocation[item.key] * 100)}%</span>
+                    { key: 'hyperliquid' as const, label: 'Hyperliquid Perps (Scalp + MM)', placeholder: '3000', color: 'orange', balanceKey: 'hyperliquid' as const },
+                    { key: 'lpSolana' as const, label: 'Solana LP (Jupiter / Raydium)', placeholder: '1000', color: 'purple', balanceKey: 'solana' as const },
+                    { key: 'lpEvm' as const, label: 'EVM LP (Uniswap V3)', placeholder: '1000', color: 'blue', balanceKey: 'evm' as const },
+                  ].map(item => {
+                    const available = walletBalances[item.balanceKey];
+                    const configured = config.capitalAllocation[item.key] ?? 0;
+                    const isOverAllocated = walletBalances.loaded && configured > 0 && configured > available;
+                    return (
+                      <div key={item.key}>
+                        <div className="flex justify-between items-center mb-1">
+                          <label className="text-[10px] text-white/30 font-mono">{item.label} (USD)</label>
+                          {walletBalances.loading && (
+                            <span className="text-[10px] text-white/20 font-mono animate-pulse">Loading balance...</span>
+                          )}
+                          {walletBalances.loaded && available > 0 && (
+                            <span className={`text-[10px] font-mono ${isOverAllocated ? 'text-red-400' : 'text-emerald-400/60'}`}>
+                              Available: ${available.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          max={walletBalances.loaded && available > 0 ? available : undefined}
+                          value={configured}
+                          onChange={e => {
+                            let val = Number(e.target.value) || 0;
+                            if (walletBalances.loaded && available > 0 && val > available) {
+                              val = Math.floor(available);
+                            }
+                            const newAlloc = { ...config.capitalAllocation, [item.key]: val };
+                            const hl = newAlloc.hyperliquid ?? 0;
+                            const lpSol = newAlloc.lpSolana ?? 0;
+                            const lpEvm = newAlloc.lpEvm ?? 0;
+                            const total = hl + lpSol + lpEvm;
+                            newAlloc.total = total;
+                            newAlloc.lp = total > 0 ? (lpSol + lpEvm) / total : 0.5;
+                            newAlloc.mm = total > 0 ? (hl * 0.5) / total : 0.25;
+                            newAlloc.scalp = total > 0 ? (hl * 0.5) / total : 0.25;
+                            setConfig({ ...config, capitalAllocation: newAlloc });
+                          }}
+                          className={`w-full bg-black border rounded px-3 py-2 text-sm font-mono text-white focus:outline-none ${
+                            isOverAllocated ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-orange-500/50'
+                          }`}
+                          placeholder={item.placeholder}
+                        />
+                        {isOverAllocated && (
+                          <p className="text-[10px] text-red-400 font-mono mt-1">
+                            Exceeds wallet balance by ${(configured - available).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </p>
+                        )}
                       </div>
-                      <input
-                        type="range"
-                        min="0" max="100" step="5"
-                        value={config.capitalAllocation[item.key] * 100}
-                        onChange={e => setConfig({ ...config, capitalAllocation: { ...config.capitalAllocation, [item.key]: Number(e.target.value) / 100 } })}
-                        className="w-full accent-orange-500"
-                      />
+                    );
+                  })}
+                  <div className="border-t border-white/10 pt-3">
+                    <div className="flex justify-between text-xs font-mono">
+                      <span className="text-white/40">TOTAL CAPITAL</span>
+                      <span className="text-orange-400 font-bold">${config.capitalAllocation.total.toLocaleString()}</span>
                     </div>
-                  ))}
+                    <div className="flex justify-between text-[10px] font-mono mt-1">
+                      <span className="text-white/20">LP {Math.round(config.capitalAllocation.lp * 100)}% / MM {Math.round(config.capitalAllocation.mm * 100)}% / Scalp {Math.round(config.capitalAllocation.scalp * 100)}%</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Risk Limits */}
@@ -788,9 +915,9 @@ function SetupWizard({
                   <div className="text-[10px] text-orange-400/60 font-mono mb-2">CAPITAL</div>
                   <div className="text-lg font-mono text-white font-bold">${config.capitalAllocation.total.toLocaleString()}</div>
                   <div className="mt-2 space-y-1 text-xs text-white/40 font-mono">
-                    <div>LP: {Math.round(config.capitalAllocation.lp * 100)}% (${Math.round(config.capitalAllocation.total * config.capitalAllocation.lp).toLocaleString()})</div>
-                    <div>MM: {Math.round(config.capitalAllocation.mm * 100)}% (${Math.round(config.capitalAllocation.total * config.capitalAllocation.mm).toLocaleString()})</div>
-                    <div>Scalp: {Math.round(config.capitalAllocation.scalp * 100)}% (${Math.round(config.capitalAllocation.total * config.capitalAllocation.scalp).toLocaleString()})</div>
+                    <div>Hyperliquid Perps: <span className="text-orange-400">${(config.capitalAllocation.hyperliquid ?? Math.round(config.capitalAllocation.total * (config.capitalAllocation.mm + config.capitalAllocation.scalp))).toLocaleString()}</span></div>
+                    <div>Solana LP: <span className="text-purple-400">${(config.capitalAllocation.lpSolana ?? 0).toLocaleString()}</span></div>
+                    <div>EVM LP: <span className="text-blue-400">${(config.capitalAllocation.lpEvm ?? 0).toLocaleString()}</span></div>
                   </div>
                 </div>
 
@@ -957,6 +1084,17 @@ function AgentDashboard({
   const [enableTrading, setEnableTrading] = useState<boolean>(false);
   const [lastSyncAt, setLastSyncAt] = useState<number>(0);
   const [syncInProgress, setSyncInProgress] = useState(false);
+  const reconnectAttemptedRef = useRef(false);
+
+  // Persist/restore session token in sessionStorage (survives page refresh)
+  useEffect(() => {
+    const addr = credentials.current?.walletAddress;
+    if (!addr) return;
+    const stored = sessionStorage.getItem(`cypher_agent_session_${addr}`);
+    if (stored) {
+      sessionTokenRef.current = stored;
+    }
+  }, [credentials]);
   const [tradeToast, setTradeToast] = useState<string | null>(null);
   const prevTradeCountRef = useRef<number>(0);
 
@@ -987,8 +1125,33 @@ function AgentDashboard({
       const res = await fetch(url, { signal });
       if (!res.ok && res.status >= 500) throw new Error(`API returned ${res.status}`);
 
-      const data: AgentApiResponse = await res.json();
+      const data: AgentApiResponse & { sessionExpired?: boolean } = await res.json();
       if (!data.success && !data.state) throw new Error(data.error || 'API returned unsuccessful response');
+
+      // Auto-reconnect if session expired but agent is still running
+      if (data.sessionExpired && !reconnectAttemptedRef.current) {
+        reconnectAttemptedRef.current = true;
+        try {
+          const addr = credentials.current?.walletAddress;
+          if (addr) {
+            const reconnRes = await fetch('/api/agent/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'reconnect', walletAddress: addr }),
+            });
+            const reconnData = await reconnRes.json();
+            if (reconnData.success && reconnData.sessionToken) {
+              sessionTokenRef.current = reconnData.sessionToken;
+              sessionStorage.setItem(`cypher_agent_session_${addr}`, reconnData.sessionToken);
+            }
+          }
+        } catch {
+          // reconnect failed silently, continue with stale data
+        } finally {
+          reconnectAttemptedRef.current = false;
+        }
+        return; // data will be fetched on next poll cycle with new token
+      }
 
       // Update agent status from API
       const apiStatus = mapApiStatus(data.state.status);
@@ -1138,13 +1301,17 @@ function AgentDashboard({
       const data = await res.json();
       if (!data.success) throw new Error(data.error || 'Action failed');
 
-      // SEC-02: Store session token from start response
-      if (action === 'start' && data.sessionToken) {
+      // SEC-02: Store session token from start/reconnect response
+      if ((action === 'start' || action === 'reconnect') && data.sessionToken) {
         sessionTokenRef.current = data.sessionToken;
+        const addr = credentials.current?.walletAddress;
+        if (addr) sessionStorage.setItem(`cypher_agent_session_${addr}`, data.sessionToken);
       }
       // Clear token on stop/emergency_stop/reset
       if (['stop', 'emergency_stop', 'reset'].includes(action)) {
         sessionTokenRef.current = null;
+        const addr = credentials.current?.walletAddress;
+        if (addr) sessionStorage.removeItem(`cypher_agent_session_${addr}`);
       }
 
       // Update local status based on action
@@ -1169,9 +1336,7 @@ function AgentDashboard({
     if (!creds) return;
     executeAction('start', {
       config: {
-        testnet: creds.hlTestnet,
-        portfolioUSD: config.capitalAllocation.total,
-        maxRiskPercent: config.riskLimits.maxDailyDrawdown * 100,
+        ...config,
         enableTrading: true,
       },
       credentials: {
@@ -1804,11 +1969,8 @@ export default function TradingAgentPage() {
           action: 'start',
           walletAddress: credentials.walletAddress,
           config: {
-            testnet: credentials.hlTestnet,
-            portfolioUSD: config.capitalAllocation.total,
-            maxRiskPercent: config.riskLimits.maxDailyDrawdown * 100,
+            ...config,
             enableTrading: true,
-            markets: config.markets.filter(m => m.enabled).map(m => m.pair),
           },
           credentials: {
             hyperliquid: {
