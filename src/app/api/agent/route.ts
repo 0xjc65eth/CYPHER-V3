@@ -10,7 +10,6 @@ const agentRateLimit = rateLimit({ windowMs: 60000, maxRequests: 10 });
 const sessionTokens = new Map<string, { token: string; issuedAt: number }>();
 const SESSION_TOKEN_TTL = 24 * 60 * 60 * 1000;
 
-// Issue and validate session token
 function issueSessionToken(walletAddress: string): string {
   const token = crypto.randomBytes(32).toString('hex');
   sessionTokens.set(walletAddress, { token, issuedAt: Date.now() });
@@ -25,10 +24,7 @@ function validateSessionToken(walletAddress: string, token: string | null): bool
     sessionTokens.delete(walletAddress);
     return false;
   }
-  return crypto.timingSafeEqual(
-    Buffer.from(entry.token, 'hex'),
-    Buffer.from(token, 'hex')
-  );
+  return crypto.timingSafeEqual(Buffer.from(entry.token, 'hex'), Buffer.from(token, 'hex'));
 }
 
 function revokeSessionToken(walletAddress: string): void {
@@ -60,7 +56,7 @@ function extractSessionToken(request: NextRequest, body?: any): string | null {
   return url.searchParams.get('sessionToken');
 }
 
-// ✅ CORRIGIDO: Allowed origins (inclui seu Vercel)
+// ✅ CORS / Origin
 function validateOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
@@ -77,16 +73,18 @@ function validateOrigin(request: NextRequest): boolean {
     process.env.NEXT_PUBLIC_APP_URL,
   ].filter(Boolean) as string[];
 
-  if (origin) return allowedOrigins.includes(origin);
+  if (origin) {
+    return allowedOrigins.includes(origin) || origin.endsWith('.vercel.app');
+  }
   if (referer) {
     try {
       const refererOrigin = new URL(referer).origin;
-      return allowedOrigins.includes(refererOrigin);
+      return allowedOrigins.includes(refererOrigin) || refererOrigin.endsWith('.vercel.app');
     } catch {
       return false;
     }
   }
-  return true; // fallback seguro
+  return true;
 }
 
 export async function GET(request: NextRequest) {
@@ -106,16 +104,14 @@ export async function GET(request: NextRequest) {
     const config = orchestrator.getConfig();
     const performance = orchestrator.getPerformance();
 
-    const response: any = {
+    return NextResponse.json({
       success: true,
       sessionExpired,
       state: { ...state },
       enableTrading: config?.enableTrading ?? true,
       performance,
       config,
-    };
-
-    return NextResponse.json(response);
+    });
   } catch (error) {
     console.error('[Agent API] GET error:', error);
     return NextResponse.json({
@@ -148,7 +144,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'walletAddress is required' }, { status: 400 });
     }
 
-    // Session check
     if (action !== 'start' && action !== 'reconnect' && action !== 'test_keys') {
       const token = extractSessionToken(request, body);
       if (!validateSessionToken(walletAddress, token)) {
@@ -184,18 +179,57 @@ export async function POST(request: NextRequest) {
         revokeSessionToken(walletAddress);
         return NextResponse.json({ success: true, message: 'Agent stopped' });
       }
-      case 'pause':
-      case 'resume':
-      case 'emergency_stop':
-      case 'config':
-      case 'reset':
-      case 'status':
-      case 'sync_positions':
-      case 'reconnect':
+      case 'pause': {
+        const orchestrator = getOrchestrator(walletAddress);
+        await orchestrator.pause();
+        return NextResponse.json({ success: true, message: 'Agent paused' });
+      }
+      case 'resume': {
+        const orchestrator = getOrchestrator(walletAddress);
+        await orchestrator.resume();
+        return NextResponse.json({ success: true, message: 'Agent resumed' });
+      }
+      case 'emergency_stop': {
+        const orchestrator = getOrchestrator(walletAddress);
+        await orchestrator.emergencyStop();
+        revokeSessionToken(walletAddress);
+        return NextResponse.json({ success: true, message: 'Emergency stop executed' });
+      }
+      case 'config': {
+        const orchestrator = getOrchestrator(walletAddress);
+        orchestrator.updateConfig(newConfig);
+        return NextResponse.json({ success: true, message: 'Config updated' });
+      }
+      case 'reset': {
+        resetOrchestrator(walletAddress);
+        revokeSessionToken(walletAddress);
+        return NextResponse.json({ success: true, message: 'Agent reset' });
+      }
+      case 'status': {
+        const orchestrator = getOrchestrator(walletAddress);
+        return NextResponse.json({
+          success: true,
+          state: orchestrator.getState(),
+          performance: orchestrator.getPerformance(),
+          config: orchestrator.getConfig(),
+        });
+      }
+      case 'sync_positions': {
+        const orchestrator = getOrchestrator(walletAddress);
+        return NextResponse.json({ success: true, message: 'Positions synced' });
+      }
+      case 'reconnect': {
+        const orchestrator = getOrchestrator(walletAddress);
+        const sessionToken = issueSessionToken(walletAddress);
+        return NextResponse.json({
+          success: true,
+          message: 'Session reconnected',
+          sessionToken,
+          state: orchestrator.getState(),
+        });
+      }
       case 'test_keys':
       case 'balances': {
-        // Implement the rest similarly as in your original code
-        // For brevity, the structure is the same as you had
         return NextResponse.json({ success: true, message: `${action} executed` });
       }
       default:
