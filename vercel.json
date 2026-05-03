@@ -1,57 +1,10 @@
 {
-  "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "installCommand": "npm install --legacy-peer-deps",
-  "env": {
-    "NODE_ENV": "production",
-    "NEXT_TELEMETRY_DISABLED": "1"
-  },
-  "build": {
-    "env": {
-      "NODE_ENV": "production",
-      "NEXT_TELEMETRY_DISABLED": "1"
-    }
-  },
-  "functions": {
-    "src/app/api/**/*.ts": {
-      "maxDuration": 30
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/proxy/coinmarketcap/:path*",
-      "destination": "https://pro-api.coinmarketcap.com/:path*"
-    },
-    {
-      "source": "/api/proxy/elevenlabs/:path*",
-      "destination": "https://api.elevenlabs.io/:path*"
-    },
-    {
-      "source": "/api/proxy/mempool/:path*",
-      "destination": "https://mempool.space/api/:path*"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "SAMEORIGIN"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=63072000; includeSubDomains; preload"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "origin-when-cross-origin"
-        }
+        {"key": "Access-Control-Allow-Origin", "value": "*"},
+        {"key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS"}
       ]
     }
   ]
